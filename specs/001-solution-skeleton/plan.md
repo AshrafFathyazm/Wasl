@@ -10,6 +10,7 @@ every file is named, because a plan that does not name its files is a descriptio
 
 ```text
 Wasl.sln
+global.json                                 pins SDK 10.0.2xx — refuses the preview
 Directory.Build.props                       net10.0 · nullable · warnings as errors
 docker-compose.yml                          SQL Server 2022, one service: db
 .github/workflows/ci.yml                    build → unit → integration
@@ -53,6 +54,7 @@ tests/
 | Domain depends on nothing (ADR-010) | `DomainHasNoDependenciesTests` over the compiled assembly | The csproj being tidy today |
 | Every `DateTime` is UTC (ADR-013) | `UtcDateTimeConverter` applied by convention + a round-trip test | A naming convention and good intentions |
 | Warnings are errors | One `Directory.Build.props` at the root | Each csproj repeating it |
+| Which SDK compiles this | `global.json`, pinned to the `10.0.2xx` band | Whatever the machine resolves — four SDKs are installed here and the highest is a preview |
 | No secrets committed | Placeholder in `appsettings.json`, real value from user secrets | A note in the README |
 | Append-only tables have no `rowversion` | Explicit `.IsRowVersion()` only where ADR-006 requires it | Applying it everywhere "to be safe" |
 
@@ -147,8 +149,23 @@ someone adding a property to it "while they are there". Contained by `007` ownin
 entity's specification, and by the shell having private setters so a caller cannot
 mutate it into something before then.
 
-### Accepted divergence: .NET 10 against the house platform's `net8.0`
+### Confirmed divergence: .NET 10 against the house platform's `net8.0`
 
-Reasoning and containment in [`research.md`](research.md) R-3. One line in one file
-until something depends on a .NET 10-only API, and `ai-notes.md` records it if anything
-ever does.
+**Confirmed by the product owner on 2026-08-23**, so this is a decision rather than an
+assumption being carried. Reasoning and containment in [`research.md`](research.md) R-3:
+one line in one file until something depends on a .NET 10-only API, and `ai-notes.md`
+records it if anything ever does.
+
+The residual risk was never the framework version — it was **SDK resolution**. Four
+SDKs are installed on this machine and the highest is `10.0.400-preview`. A preview
+compiler emitting one warning that GA does not is a *build failure* here, because
+warnings are errors. `global.json` pins the band, and AC-13 checks that
+`dotnet --version` inside the repository reports the pinned SDK rather than the preview.
+
+### Known-false assumption at time of writing: Docker
+
+The Docker daemon is not running on this machine (`research.md` R-8). Nothing in the
+plan changes — but `BE-001-10` and every `TEST-` task depending on a container cannot be
+verified until Docker Desktop is started, and `WaslApiFactory` must fail fast naming
+Docker rather than hanging. Recorded here so a red integration suite is diagnosed in one
+second rather than investigated.

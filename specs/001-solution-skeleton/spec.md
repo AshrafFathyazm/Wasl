@@ -24,6 +24,8 @@ cost one file now and a sweep across every commit later.
 - Solution file and two projects — `Wasl.Domain`, `Wasl.Api` — per ADR-010
 - `Directory.Build.props`: .NET 10, nullable enabled, warnings as errors, one language
   version for every project
+- `global.json` pinning the SDK, so the build does not depend on which of the four
+  installed SDKs a given machine happens to resolve (`research.md` R-3)
 - `docker compose` with SQL Server 2022, and a documented `LocalDB` fallback
 - `WaslDbContext`, the `Customers` table, and the initial migration
 - A global UTC value converter for every `DateTime` (ADR-013)
@@ -58,9 +60,9 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 
 | # | Assumption | If wrong |
 |---|---|---|
-| A-1 | Docker Desktop is available on the machine that runs the integration suite | Unit tests still run. The integration suite falls back to LocalDB, documented in `docs/sdd/documentation/development/setup.md`, and the fallback is recorded in `tests.md` rather than left implied |
+| A-1 | Docker Desktop is available on the machine that runs the integration suite | **Currently false — the daemon is not running** (`research.md` R-8). Unit tests still run. The integration suite falls back to LocalDB, documented in `docs/sdd/documentation/development/setup.md`, and the fallback is recorded in `tests.md` rather than left implied |
 | A-2 | The CI runner can run Linux containers | Integration tests are skipped in CI with an explicit skip reason, never silently. AC-9 fails if they are skipped without one |
-| A-3 | .NET 10 SDK is installed. The house platform targets `net8.0`; this diverges | See `research.md` R-3. Reverting is a one-line change in `Directory.Build.props` before any code depends on a .NET 10 API |
+| A-3 | ~~.NET 10 SDK is installed~~ — **verified**: `10.0.200` is present (`research.md` R-3). The framework choice is no longer an assumption either; the product owner confirmed .NET 10 on 2026-08-23 | The remaining risk is not *whether* an SDK is installed but *which one resolves*, since a preview `10.0.400` is also present and is the highest version. `global.json` removes it — AC-13 |
 | A-4 | `Guid` keys are generated client-side, so an entity has its id before `SaveChanges` | Sequential-GUID index fragmentation is a real concern at volume and not at this one. Recorded in `research.md` R-5 |
 
 ## Open questions
@@ -86,6 +88,7 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | AC-10 | No connection string, password, or key appears in a committed file. `appsettings.json` carries a placeholder; the real value comes from user secrets or an environment variable |
 | AC-11 | `Directory.Build.props` sets `Nullable=enable` and `TreatWarningsAsErrors=true` for every project, including the test projects |
 | AC-12 | The `Customers` table exists with `nvarchar` text columns, `datetime2(3)` timestamps, a `rowversion` column, and the contact check constraint — verified by querying `INFORMATION_SCHEMA` and `sys.check_constraints`, not by reading the migration |
+| AC-13 | `global.json` pins the SDK to the `10.0.2xx` band. `dotnet --version` inside the repository reports `10.0.200`, not the installed `10.0.400-preview`, so the build is reproducible on a machine with a different SDK set |
 
 ## Edge cases
 

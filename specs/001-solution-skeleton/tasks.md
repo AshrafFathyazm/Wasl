@@ -31,6 +31,7 @@ Everything else hardens it. These make it exist.
 | BE-001-08 | `GET /health` returns `503` with the failing check named when the database is unreachable | BE-001-07 | Stop the container, call the endpoint, read the status line | AC-5 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-001-09 | Connection string is a placeholder in `appsettings.json`; the real value comes from user secrets | BE-001-04 | `git grep -iE "password|Pwd=" -- src/` returns only the placeholder | AC-10 | `comprehensive-review:security-auditor` | — |
 | BE-001-10 | `.github/workflows/ci.yml` runs build, unit, and integration on push, with Docker available to the runner | BE-001-05, BE-001-07 | A green run visible on the first push | AC-9 | `voltagent-lang:dotnet-core-expert` | — |
+| BE-001-11 | `global.json` pins the SDK to `10.0.200` with `rollForward: latestFeature`, so the installed `10.0.400-preview` is not used | BE-001-01 | `dotnet --version` run **inside the repository** reports `10.0.200`, not the preview | AC-13 | `voltagent-lang:dotnet-core-expert` | — |
 
 ## Frontend
 
@@ -74,6 +75,10 @@ Recorded rather than omitted, so the empty lane is visibly a decision.
 
 **Not droppable:** BE-001-02. Without warnings-as-errors from the first commit, the
 warning count only ever grows, and turning it on later means fixing everything at once.
+
+**Not droppable:** BE-001-11. Four SDKs are installed here and the highest is a preview.
+Four lines of `global.json` are the difference between a build that is reproducible on
+the reviewer's machine and one that is a property of ours.
 
 **Not droppable:** BE-001-10. Adding CI after twenty commits is the retrofit this
 ordering exists to avoid.

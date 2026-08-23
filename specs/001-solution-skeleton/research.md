@@ -54,24 +54,77 @@ the client without rounding surprises.
 
 ## R-3 · .NET 10 or .NET 8?
 
-**Checked:** the house platform. `azm-formbuilderBE` targets `net8.0` in every project.
+**Status: DECIDED — .NET 10, confirmed by the product owner on 2026-08-23.**
 
-**The divergence is real and this is the one-sentence defence:** .NET 10 is the current
-LTS release and the one a new project started today should be on; .NET 8's support
-window ends first, so starting a greenfield repository on it would mean planning an
-upgrade before the first feature ships.
+**Checked:** the house platform. `azm-formbuilderBE` targets `net8.0` in every project.
+The question was raised because of that, and answered against it deliberately.
+
+**The one-sentence defence:** .NET 10 is the current LTS release and the one a new
+project started today should be on; .NET 8's support window closes first, so starting a
+greenfield repository on it would mean planning an upgrade before the first feature
+ships.
 
 **What it costs:** if this code is ever merged into the house platform, the target has
 to come down, and any .NET 10-only API used along the way has to come out.
 
 **How that cost is contained:** the target framework is set in exactly one place —
 `Directory.Build.props` — and nothing in the planned features needs a .NET 10-specific
-API. Reverting is one line until something depends on it, and `ai-notes.md` records if
-anything ever does.
+API. Reverting is one line until something depends on it, and `ai-notes.md` records it
+if anything ever does.
 
 **Recorded as a divergence, deliberately.** A reviewer from the house platform will
 notice the version before they notice anything else, and "we chose the current LTS" is
 a better answer than "we did not check what you use."
+
+### What the machine actually has
+
+Verified, not assumed — `dotnet --list-sdks` on 2026-08-23:
+
+```text
+8.0.418
+9.0.313
+10.0.200                        ← GA
+10.0.400-preview.0.26322.102    ← preview, and the highest version installed
+```
+
+`dotnet ef` is 10.0.10. Runtimes 10.0.4 and 10.0.9 are both present.
+
+**The hazard:** four SDKs are installed and the highest is a **preview**. Without a
+`global.json`, SDK selection is a property of the machine rather than of the repository,
+so the reviewer's build and ours can resolve to different compilers — and a preview SDK
+producing a warning that GA does not is a build failure here, because warnings are
+errors.
+
+**Settled:** commit a `global.json` pinning `10.0.200` with
+`"rollForward": "latestFeature"`. That accepts a newer 10.0.x feature band and refuses
+the preview, and it makes the build reproducible on a machine we have never seen —
+which is the actual requirement behind NFR-7.
+
+This is `BE-001-11`. It is four lines and it removes an entire class of "works on my
+machine".
+
+---
+
+## R-8 · Is Docker actually available here?
+
+**Checked:** `docker --version` and `docker info` on 2026-08-23.
+
+**Found:** Docker 29.5.3 CLI is installed. The **daemon is not running** —
+`failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`.
+
+**Consequence, and it is not a spec problem:** assumption A-1 is currently false. The
+integration suite cannot run until Docker Desktop is started. Nothing about the plan
+changes; what changes is that this is known now rather than discovered by a red suite
+during implementation.
+
+**Two things follow:**
+
+1. `WaslApiFactory` must fail **fast** with a message naming Docker, not hang until a
+   test timeout. That is already an edge case in `spec.md` and it is the behaviour that
+   makes this state diagnosable in one second instead of two minutes.
+2. The `mssql/server:2022-latest` image is not in the local cache, so the first
+   integration run pulls roughly 1.5GB. `quickstart.md` says so, because an unexplained
+   two-minute pause reads as a hang.
 
 ---
 

@@ -19,7 +19,7 @@ trusted, and again before the feature closes.
 
 | ✓ | Item | Note |
 |---|---|---|
-| ☑ | Every AC maps to at least one task in `tasks.md` | AC-1→BE-001-02, AC-2→BE-001-03, AC-3→BE-001-05, AC-4→TEST-001-06, AC-5→TEST-001-07, AC-6→TEST-001-02, AC-7→TEST-001-01, AC-8→TEST-001-03, AC-9→BE-001-10, AC-10→BE-001-09, AC-11→BE-001-02, AC-12→TEST-001-04/05 |
+| ☑ | Every AC maps to at least one task in `tasks.md` | AC-1→BE-001-02, AC-2→BE-001-03, AC-3→BE-001-05, AC-4→TEST-001-06, AC-5→TEST-001-07, AC-6→TEST-001-02, AC-7→TEST-001-01, AC-8→TEST-001-03, AC-9→BE-001-10, AC-10→BE-001-09, AC-11→BE-001-02, AC-12→TEST-001-04/05, AC-13→BE-001-11 |
 | ☑ | No AC needs a follow-up question to turn into a test | Each names a command or an observable result |
 | ☑ | Nothing is verified by "it works" | Every `Verified by` cell is a command or an inspection |
 | ☑ | The silent failures each have their own criterion | AC-5, AC-7, AC-8, AC-9, AC-12 |
@@ -42,7 +42,8 @@ trusted, and again before the feature closes.
 | The CI workflow has no test of its own | Verified by observing a green run (AC-9). A test that tests a workflow file needs a runner to run it, which is the thing being verified |
 | `Customer` has no behaviour and therefore no unit tests | Its specification belongs to `007`. Writing tests here would test the compiler |
 | No load or performance verification | No stated requirement. `docs/sdd/testing/test-strategy.md` lists this as deliberately untested |
-| Divergence from the house platform's `net8.0` | `research.md` R-3, with the containment and the one-sentence defence |
+| ~~Divergence from the house platform's `net8.0`~~ | **No longer a gap** — the product owner confirmed .NET 10 on 2026-08-23. It is a recorded decision with a one-sentence defence (`research.md` R-3), and `global.json` closes the SDK-resolution risk that came with it |
+| Docker is not currently running on this machine | `research.md` R-8. Every container-dependent AC is unverifiable until Docker Desktop is started. Stated rather than discovered by a red suite |
 
 ## Sign-off
 

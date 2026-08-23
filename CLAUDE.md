@@ -241,7 +241,7 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | MediatR stays — it is what makes validation, audit, and the transaction boundary structural rather than remembered | ADR-008, ADR-010 |
 | SQL Server, not PostgreSQL | ADR-013 (supersedes ADR-001, resolves Q-3) |
 | `ProblemDetails`, not the house `{ IsSuccess, Data, Errors }` envelope | The assessment counts `200`-with-an-error against you |
-| .NET 10, while the house platform targets `net8.0` | `specs/001-solution-skeleton/research.md` R-3 — current LTS, one line to revert |
+| **.NET 10** — confirmed by the product owner 2026-08-23, while the house platform targets `net8.0` | `specs/001-solution-skeleton/research.md` R-3 — current LTS, one line to revert. `global.json` pins the SDK band because a preview `10.0.400` is also installed and would otherwise win |
 | React, not Angular | ADR-003 (Q-4, Q-12 closed) |
 | No global state store | ADR-011 §1 |
 | `ICommunicationProvider` + one Mock **is** built | `docs/sdd/08-board.md`, feature `021`. Channels is a named module in the requirement |

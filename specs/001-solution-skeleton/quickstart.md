@@ -9,12 +9,18 @@ that has to be guessed while following it is a defect in this file.
 
 | Tool | Version | Needed for |
 |---|---|---|
-| .NET SDK | 10.0 | Everything |
-| Docker Desktop | any recent | SQL Server and the integration tests |
+| .NET SDK | 10.0.2xx — pinned by `global.json` | Everything |
+| Docker Desktop | any recent, **and running** | SQL Server and the integration tests |
 | `dotnet-ef` | `dotnet tool install -g dotnet-ef` | Migrations |
 
+`global.json` pins the SDK band, so `dotnet --version` inside this repository reports the
+pinned SDK regardless of what else is installed. If it reports a preview instead,
+`global.json` is missing or was edited.
+
 Without Docker: the unit suite runs, the integration suite does not. See the LocalDB
-fallback at the bottom.
+fallback at the bottom. The first integration run also **pulls about 1.5GB** for
+`mssql/server:2022-latest` — an unexplained two-minute pause on a cold cache is that,
+not a hang.
 
 ## Run it
 
