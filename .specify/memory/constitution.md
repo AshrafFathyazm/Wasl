@@ -100,8 +100,8 @@ this document, not a decision inside a feature plan.
 
 | Concern | Choice |
 |---|---|
-| Backend | ASP.NET Core Minimal APIs, .NET 8, C# |
-| Data access | EF Core 8, `Microsoft.EntityFrameworkCore.SqlServer` |
+| Backend | ASP.NET Core Minimal APIs, .NET 10, C#. Two projects, vertical slices, thin domain core (ADR-010) |
+| Data access | EF Core 10, `Microsoft.EntityFrameworkCore.SqlServer` |
 | Database | **SQL Server** |
 | Mediation | MediatR — justified solely by three cross-cutting pipeline concerns: validation, the audit row, and the transaction boundary |
 | Validation | FluentValidation at the boundary |
@@ -109,7 +109,7 @@ this document, not a decision inside a feature plan.
 | Server state | TanStack Query. No fetching inside components |
 | Forms | React Hook Form + Zod |
 | Localization | `IStringLocalizer` over `.resx` server-side; `react-i18next` client-side |
-| Backend tests | xUnit + FluentAssertions; `WebApplicationFactory` + `Testcontainers.MsSql` |
+| Backend tests | xUnit + FluentAssertions + Moq; `WebApplicationFactory` + `Testcontainers.MsSql` |
 | Frontend tests | Vitest + React Testing Library on the critical forms |
 | Auth | JWT, two roles: `Agent` and `Manager`, enforced server-side |
 
@@ -120,10 +120,11 @@ query objects with one caller.
 **No new abstraction without a second implementation in hand or in prospect.** This
 applies to provider wrappers, channel abstractions, and generic base classes alike.
 
-SQL Server is not interchangeable in three places, and each must be implemented as
+SQL Server is not interchangeable in four places, and each must be implemented as
 specified: `rowversion` with `.IsRowVersion()` for the concurrency token, filtered unique
-indexes (`WHERE [col] IS NOT NULL`) for the optional-but-unique contact rule, and an
-explicit case-insensitive collation for email uniqueness. Integration tests run against a
+indexes (`WHERE [col] IS NOT NULL`) for the optional-but-unique contact rule, an
+explicit case-insensitive collation for email uniqueness, and `nvarchar` for every column a
+human writes into — `varchar` returns `????` for Arabic. Integration tests run against a
 real SQL Server container; EF `InMemory` is never a substitute because it does not
 enforce constraints.
 
@@ -212,5 +213,6 @@ a principle is recorded in the feature's review artifact with its reason — an
 unrecorded deviation is a defect regardless of whether the code works.
 
 `CLAUDE.md` carries runtime development guidance and is kept consistent with this file.
+`specs/README.md` carries the phase plan, the feature numbering, and who builds what.
 
 **Version**: 1.0.0 | **Ratified**: 2026-08-23 | **Last Amended**: 2026-08-23

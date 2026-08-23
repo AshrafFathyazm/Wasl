@@ -1,0 +1,143 @@
+# Start Here
+
+The day-one runbook. Everything else in this repository is reference; this is the
+order to actually do things in.
+
+---
+
+## Before you write a line: four questions, five minutes
+
+Three go to the evaluator, one to whoever owns the design file. Ask them together.
+
+| Ask | Why it matters now | If no answer comes |
+|---|---|---|
+| **How long is the session?** (Q-5) | It decides where the cut line falls in `08-board.md` | Assume Release 1 minus US-006 |
+| ~~Is SQL Server expected?~~ (Q-3) | **ANSWERED: SQL Server.** See `decisions/ADR-013-database-sql-server.md` | — |
+| **Is the demo live or recorded?** (Q-6) | `14-demo-script.md` is written for live | Assume live, seed a dataset anyway |
+| **Is reusing the house design system fine, and does that exclude client branding?** (Q-11) | You are about to build on their tokens | Tokens yes, no client logo or product name |
+
+Two more are worth asking but do not block: what the Productivity criterion measures
+(Q-1), and which Arabic typeface (Q-15).
+
+**Asking a specific question raises your score on Requirement & Specification. Guessing
+silently lowers it.** That is the criterion, in one sentence.
+
+---
+
+## Then: follow the phases
+
+`PHASES.md` breaks the build into seven phases, each ending in something that works. If
+time runs out you stop at a boundary with a demonstrable product rather than mid-story.
+
+The ordering principle there replaces the "put everything in the skeleton" advice below:
+**add a cross-cutting concern at the moment there is exactly one consumer.** Zero is
+speculative, seven is a retrofit, one is free.
+
+## The skeleton, in outline
+
+This is roughly two days and it is not a story. Nothing can be verified before it
+exists, and three of its five parts are things that cost almost nothing now and a
+rewrite later.
+
+| # | Piece | Why first |
+|---|---|---|
+| 1 | Solution structure, `DbContext`, migrations, health endpoint, CI | Nothing runs without it |
+| 2 | JWT auth with two seeded users (ADR-005) | Every authorization test depends on it |
+| 3 | `ProblemDetails` middleware + the error contract (`05-api-conventions.md`) | Retrofitting an error contract means touching every endpoint |
+| 4 | **Localization infrastructure, both sides** (ADR-007) | Retrofitting means revisiting every string and every stylesheet. `UseRequestLocalization()` **after** `UseAuthentication()` — this fails silently |
+| 5 | **Audit pipeline behaviour + architecture test** (ADR-008) | An audit log added after the handlers exist has invisible holes |
+| 6 | **Design tokens + the eight primitives** (ADR-009) — 1 day, hard stop | Every component built before the tokens exist has to be revisited |
+| 7 | Integration test harness: `WebApplicationFactory` + Testcontainers | "Tests pass" needs somewhere to run |
+
+Items 4, 5, and 6 are the ones that look skippable and are not. 6 is the only one with
+a hard timebox, because it is the only one that degrades gracefully — tokens with plain
+controls looks intentional, whereas a partial audit log just has holes.
+
+---
+
+## Then: stories, one at a time
+
+Build order is in `08-board.md`. WIP limit is one.
+
+For each story, the loop is in `07-execution-workflow.md`:
+
+```text
+spec → plan → tasks → [preview, for any screen] → build → verify → review → summarise
+```
+
+`spec.md`, `plan.md`, and `tasks.md` are **already written** for all seven Release 1
+stories plus US-014. Read them; do not rewrite them. The remaining artifacts fill in as
+you build.
+
+Phase 3b — the preview — is not optional for a screen. Rendering it costs minutes;
+changing a screen that already has tests, translation keys, and query wiring costs
+hours.
+
+---
+
+## Where the marks actually are
+
+| Axis | Weight | Where it is earned |
+|---|---|---|
+| Planning & Task Breakdown | **20** | Already done, in `story-artifacts/*/plan.md` and `tasks.md` |
+| Requirement & Specification | 10 | Already done, plus how you handle the four questions above |
+| AI Usage & Verification | 10 | `ai-notes.md` per story — specific, not "AI helped and I reviewed" |
+| Engineering Foundations | 10 | The skeleton |
+| Backend / API / Database | 10 | US-001, US-005, US-008 |
+| Frontend & End-to-End | 10 | The demo flow working in both languages |
+| Correctness, Testing, Ownership | 20 + **gate** | Tests, and being able to say why for every decision |
+
+**Thirty points are already earned before you open an editor.** That is why the specs
+and plans were written first, and it is the single strongest argument for not skipping
+the process under time pressure.
+
+The Quality axis is a **gate**, not just points. When time runs short, cut scope from
+`08-board.md` — do not cut quality from the stories that remain.
+
+---
+
+## Three rules that will be tested in the walkthrough
+
+1. **Never write a test result you did not observe.** It is the easiest thing for a
+   reviewer to catch, and the most expensive to be caught on.
+2. **"The AI wrote it" is not an answer to "why?"** Every accepted output must be
+   explainable by you. If you cannot explain a file in the diff, the story is not done.
+3. **State the limitations first.** "Here is what I did not build and why" is a stronger
+   opening than being asked.
+
+---
+
+## Still open, and that is fine
+
+| # | Question | Status |
+|---|---|---|
+| Q-1 | What Productivity measures | Blank in the assessment sheet — ask |
+| Q-2 | The 24/40 gate arithmetic | Inconsistent in the sheet — ask |
+| Q-3 | PostgreSQL or SQL Server | **RESOLVED — SQL Server** (ADR-013) |
+| Q-5, Q-6 | Session length, demo format | Ask |
+| Q-7 | Arabic search normalisation | Deferred with the fix written down |
+| Q-8 | Who writes the Arabic copy | Ask |
+| Q-9, Q-10 | Audit retention, read auditing | Not engineering decisions |
+| Q-11 | Design asset permission | Ask |
+| Q-15 | The Arabic typeface | Ask — it may never have been chosen |
+
+An open question that is written down is evidence of judgement. An open question that
+was quietly guessed is a defect waiting to surface in the walkthrough.
+
+---
+
+## The map
+
+| Need | File |
+|---|---|
+| What we are building | `01-product-spec.md` |
+| The rules, as testable propositions | `04-business-rules.md` |
+| Schema, ERD, indexes | `03-domain-model.md` |
+| Why anything is the way it is | `decisions/` — nine ADRs |
+| What to build next | `08-board.md` |
+| How a story moves | `07-execution-workflow.md` |
+| Whether a story is done | `09-definition-of-done.md` |
+| Design values and rules | `design/tokens.css`, `design/DESIGN-BRIEF.md` |
+| What to hand an AI before a UI task | `design/DESIGN-BRIEF.md` |
+| What to say in the walkthrough | `14-demo-script.md` |
+| What to check before saying it | `13-self-review-checklist.md` |
