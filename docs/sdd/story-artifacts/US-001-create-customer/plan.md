@@ -19,9 +19,9 @@ produce a usable message — the index is the actual guarantee.
 | Domain | `DuplicateCustomerException` | Signals BR-4.4 / BR-4.5 |
 | Application | `CreateCustomerCommand` / `Handler` | Validates, checks for an existing match, creates, persists, maps |
 | Application | `CreateCustomerValidator` | FluentValidation: required fields, lengths, the at-least-one-contact rule |
-| Application | `ICustomerRepository` | `ExistsByEmailAsync`, `ExistsByPhoneAsync`, `AddAsync` |
+| Application | `IApplicationDbContext` | `Customers` `DbSet<T>` plus `SaveChangesAsync`. The duplicate pre-check is a LINQ query in the handler, not a repository method |
 | Infrastructure | `CustomerConfiguration` | Column types, lengths, indexes, check constraint |
-| Infrastructure | `CustomerRepository` | EF Core implementation |
+| Infrastructure | `WaslDbContext` | Implements `IApplicationDbContext`. No per-aggregate repository — `DbSet<T>` is already one (ADR-010) |
 | Infrastructure | `DbUpdateException` translation | Maps the unique-index violation to `DuplicateCustomerException` |
 | API | `CustomersController.Create` | Binds, delegates, returns `201` with `Location` |
 
@@ -144,9 +144,9 @@ src/Wasl.Application/Customers/Create/CreateCustomerCommand.cs
 src/Wasl.Application/Customers/Create/CreateCustomerHandler.cs
 src/Wasl.Application/Customers/Create/CreateCustomerValidator.cs
 src/Wasl.Application/Customers/CustomerDto.cs
-src/Wasl.Application/Abstractions/ICustomerRepository.cs
+src/Wasl.Application/Common/Abstractions/IApplicationDbContext.cs
 src/Wasl.Infrastructure/Persistence/Configurations/CustomerConfiguration.cs
-src/Wasl.Infrastructure/Persistence/Repositories/CustomerRepository.cs
+src/Wasl.Infrastructure/Persistence/WaslDbContext.cs
 src/Wasl.Infrastructure/Migrations/*_AddCustomers.cs
 src/Wasl.Api/Controllers/CustomersController.cs
 src/wasl-web/src/features/customers/CreateCustomerPage.tsx

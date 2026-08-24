@@ -5,6 +5,17 @@ at a phase boundary with a demonstrable product — never mid-story with half a 
 
 Read `START-HERE.md` first for the questions to ask before any of this.
 
+> **Under the three-day constraint, follow `16-three-day-plan.md` instead.**
+>
+> These phases total 21–25 hours. The actual budget is about nine (`11-open-questions.md`
+> Q-5, resolved). `16-three-day-plan.md` is the nine-hour cut: three sessions of three
+> hours, committing to US-005, US-007, US-008, and a seeded US-001, with every cut pointing
+> at where its design lives.
+>
+> This file stays as written. It is the plan for the unconstrained build, the reference the
+> cut was made *from*, and the thing that makes the cut auditable — a compressed plan with
+> no full plan behind it is indistinguishable from a small plan.
+
 ---
 
 ## The principle that decides the order
@@ -26,20 +37,30 @@ in Phase 2 (one screen exists) rather than both being piled into an empty skelet
 
 ---
 
-## Phase 0 · Make something run — 2–3h
+## Phase 0 · Make something run — 3h
 
 The cheapest phase and the one that de-risks everything else.
 
 | # | Task | Done when |
 |---|---|---|
-| 0.1 | Solution + two projects (`Wasl.Domain`, `Wasl.Api`) | `dotnet build` succeeds |
+| 0.1 | Solution + four projects (`Wasl.Domain`, `Wasl.Application`, `Wasl.Infrastructure`, `Wasl.Api`) + three test projects, with the project references pointing the right way | `dotnet build` succeeds, and a reference from `Wasl.Application` to EF Core would not compile |
 | 0.2 | `docker compose` with SQL Server | `docker compose up -d db` works |
-| 0.3 | `DbContext` + `Customer` entity + first migration | `dotnet ef database update` applies to an empty database |
+| 0.3 | `IApplicationDbContext` in Application, `WaslDbContext` in Infrastructure, `Customer` entity, first migration | `dotnet ef database update` applies to an empty database |
 | 0.4 | `GET /health` | Returns 200, no auth |
 | 0.5 | Integration test project with Testcontainers, one test hitting `/health` | Green |
 | 0.6 | **CI: build + test on push** | Badge is green on the repo |
 
 **Stop here and you have:** a repository someone else can clone and run in two commands.
+
+**The estimate moved from 2–3h to 3h**, and it is 0.1 that moved it. Four projects plus
+three test projects instead of two plus two is four extra `dotnet new`, six extra
+`dotnet add reference`, and one decision that has to be got right the first time: the
+reference direction. That is roughly half an hour, and it is stated rather than absorbed
+because a silently adjusted estimate is how a plan stops being a plan.
+
+Getting the references right *is* the task. `Wasl.Application` must not be able to see EF
+Core — if it can, the layering is decorative and the `IApplicationDbContext` in 0.3 buys
+nothing. That is why 0.1's "done when" is a compile failure rather than a compile success.
 
 **Do 0.6 now, not later.** CI is direct evidence for *Engineering Foundations*, it costs
 one file, and adding it after twenty commits means fixing twenty commits' worth of drift
@@ -47,7 +68,7 @@ in one go.
 
 ---
 
-## Phase 1 · One vertical slice, end to end — 4–5h
+## Phase 1 · One feature, end to end — 4–5h
 
 The single most important phase. It proves the whole pipeline on the smallest feature.
 

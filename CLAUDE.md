@@ -13,7 +13,7 @@ catalogues, never in code or docs.
 
 ## Active Technologies
 
-- C# / .NET 10 + ASP.NET Core Minimal APIs (main)
+- C# / .NET 10 + ASP.NET Core Web API, controllers (main)
 - MediatR pipeline behaviours: validation, transaction, audit (main)
 - EF Core + Microsoft.EntityFrameworkCore.SqlServer (main)
 - SQL Server 2022 (main)
@@ -27,30 +27,41 @@ catalogues, never in code or docs.
 docs/sdd/                            the blueprint: FR/BR/NFR/US/ADR, design, testing
 specs/NNN-feature/                   one folder per feature — see specs/README.md
 src/
-  Wasl.Domain/                       no EF, no HTTP, no packages at all
+  Wasl.Domain/                       no EF, no HTTP, no MediatR, no packages at all
     Customers/                       Customer, EmailAddress, PhoneNumber
     Tickets/                         Ticket, TicketStatus, TicketStatusTransitions
     Communications/                  Interaction, CommunicationChannel
     Audit/                           AuditEntry
-  Wasl.Api/
-    Features/                        one folder per vertical slice
-      Customers/CreateCustomer/      Endpoint · Command · Handler · Validator · Response
+  Wasl.Application/                  depends only on Wasl.Domain
+    Features/                        one folder per USE CASE, not per technical type
+      Customers/CreateCustomer/      Command · Handler · Validator · Dto
       Tickets/ChangeStatus/
       ...
     Common/
-      Persistence/                   WaslDbContext, Configurations/, Migrations/
-      Behaviors/                     Validation · Transaction · Audit
-      Auth/  Errors/  Localization/  Health/
-    Program.cs
+      Abstractions/                  IApplicationDbContext · ICurrentUser · ITicketNumberGenerator
+      Behaviours/                    Validation · Transaction · Audit
+      Exceptions/  PagedResult.cs
+    Resources/                       .resx for server-authored messages
+  Wasl.Infrastructure/               implements what Application declares
+    Persistence/                     WaslDbContext, Configurations/, Migrations/
+    Queries/                         TicketTimelineQuery · DashboardAggregatesQuery
+    Auth/  Communications/
+  Wasl.Api/                          composes everything at startup
+    Controllers/  Middleware/  Localization/  Program.cs
   wasl-web/                          React + TypeScript, feature folders
 tests/
   Wasl.Domain.Tests/                 pure unit tests, no database, no HTTP
+  Wasl.Application.Tests/            use cases with faked infrastructure
   Wasl.Api.IntegrationTests/         real HTTP + real SQL Server via Testcontainers
 ```
 
-Dependency direction: `Wasl.Api` → `Wasl.Domain`. Never the reverse. `Wasl.Domain` has
-**zero package references** — an architecture test fails the build if it gains one,
-because that claim is the entire load-bearing argument of ADR-010.
+Dependency direction: `Wasl.Api` and `Wasl.Infrastructure` → `Wasl.Application` →
+`Wasl.Domain`. Never the reverse.
+
+`Wasl.Domain` has **zero package references**, and `Wasl.Application` must not be able to
+see EF Core or ASP.NET Core — it declares interfaces, Infrastructure implements them. An
+architecture test fails the build on either, because those two boundaries are the whole
+return on four projects.
 
 ## Commands
 
@@ -60,8 +71,8 @@ dotnet build                                         # warnings are errors
 dotnet test                                          # all tests
 dotnet test tests/Wasl.Domain.Tests                  # unit only (no Docker needed)
 dotnet test tests/Wasl.Api.IntegrationTests          # needs Docker running
-dotnet ef migrations add <Name> -p src/Wasl.Api
-dotnet ef database update -p src/Wasl.Api
+dotnet ef migrations add <Name> -p src/Wasl.Infrastructure -s src/Wasl.Api
+dotnet ef database update -p src/Wasl.Infrastructure -s src/Wasl.Api
 dotnet run --project src/Wasl.Api                    # /health, /swagger
 docker compose up -d db                              # SQL Server 2022
 
@@ -76,10 +87,19 @@ Full run-from-clean-clone script: [specs/001-solution-skeleton/quickstart.md](sp
 
 **C#** — nullable enabled, warnings as errors, set once in `Directory.Build.props`.
 `TimeProvider` injected, never `DateTime.UtcNow` inline. `CancellationToken` threaded
-through every async path. One slice = one folder, deletable in one go. No `IRepository`
-— `DbSet<T>` is already one; use a named query object when a query is non-trivial.
-Domain exceptions for invariant violations, mapped to `ProblemDetails` in one middleware
-— no hand-built error responses, no mixing in `Result<T>`.
+through every async path. One use case = one folder under `Application/Features/`.
+
+**No `IRepository<T>` and no per-aggregate repository** — reach EF Core through
+`IApplicationDbContext`, declared in `Application/Common/Abstractions` and implemented by
+`Infrastructure/Persistence/WaslDbContext`. `DbSet<T>` is already a repository; the
+interface exists to keep EF Core out of the Application layer, not to re-implement it.
+Query it with LINQ at the call site. A named query class only where a query is genuinely
+non-trivial, in `Infrastructure/Queries/` — two exist (`TicketTimelineQuery`,
+`DashboardAggregatesQuery`) and a third needs a written reason.
+
+Controllers bind, authorise, dispatch, and map. Domain exceptions for invariant
+violations, mapped to `ProblemDetails` in one middleware — no hand-built error responses,
+no mixing in `Result<T>`.
 
 **TypeScript** — feature folders, no barrel files. Server state through TanStack Query
 only; fetching happens at the route level, never in a child component. Forms are React
@@ -91,7 +111,7 @@ and `ar`.
 
 ## Recent Changes
 
-- main: repository initialized; spec-kit scaffolded; blueprint vendored to `docs/sdd/` and converted to SQL Server; ADR-010 accepted; `specs/001` and `specs/007` specified
+- main: repository initialized; spec-kit scaffolded; blueprint vendored to `docs/sdd/` and converted to SQL Server; **ADR-010 rejected — four-project Clean stands (ADR-002)**; the product scope document traced in `docs/sdd/15-scope-coverage.md`; nine-hour plan in `docs/sdd/16-three-day-plan.md`
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -237,8 +257,8 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 
 | Decision | Where |
 |---|---|
-| Two projects, vertical slices, minimal APIs — **not** four-project Clean | ADR-010, accepted by the product owner. Its one-sentence defence is written there; deliver it as written |
-| MediatR stays — it is what makes validation, audit, and the transaction boundary structural rather than remembered | ADR-008, ADR-010 |
+| **Four-project Clean** — `Domain` · `Application` · `Infrastructure` · `Api`, with feature folders inside Application | ADR-002. ADR-010 proposed vertical slices, was evaluated, and was **rejected**: house convention, separation of concerns that is visible without explanation, and the developer is fastest in a familiar structure |
+| MediatR stays — it is what makes validation, audit, and the transaction boundary structural rather than remembered | ADR-008, ADR-002 |
 | SQL Server, not PostgreSQL | ADR-013 (supersedes ADR-001, resolves Q-3) |
 | `ProblemDetails`, not the house `{ IsSuccess, Data, Errors }` envelope | The assessment counts `200`-with-an-error against you |
 | **.NET 10** — confirmed by the product owner 2026-08-23, while the house platform targets `net8.0` | `specs/001-solution-skeleton/research.md` R-3 — current LTS, one line to revert. `global.json` pins the SDK band because a preview `10.0.400` is also installed and would otherwise win |

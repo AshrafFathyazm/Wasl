@@ -48,6 +48,31 @@ delivered partially.
 | Translation of user-entered content | Customer names, ticket subjects, descriptions, and comments are stored and displayed exactly as entered. Machine translation of free text is a different product |
 | Locales beyond English and Arabic | Two locales prove the mechanism; a third is configuration, not design |
 
+### Named in the product scope document, and excluded
+
+The supplied scope document (`azm_squad_customer_support_crm.pdf`) is the source for the
+product's twelve sections. It lists features the rows above did not name individually, so
+each is recorded here with its reason. Full traceability, section by section, is in
+`15-scope-coverage.md`.
+
+| Out of scope | Reason |
+|---|---|
+| SLA engine — response and resolution targets, automatic assignment, alerts | Background scheduling, business-calendar arithmetic, a pause-and-resume model for customer waiting time, and a notification pipeline. An SLA clock that is wrong is worse than none, because it reports compliance that did not happen. Escalation ships instead as a deliberate manual action (BR-3) |
+| Knowledge base — FAQs, articles, guides, search | A content product: authoring, draft and published states, versioning, publish permissions, and bilingual search. It has no dependency on the ticket flow and the ticket flow has none on it |
+| AI features — summaries, suggested replies, auto-categorisation, chatbot | Requires a model provider, prompt versioning, latency and failure handling on a user-facing path, and an evaluation approach. Note the distinction: the assessment measures AI-*assisted engineering*, which is covered by `prompts/` and each story's `ai-notes.md` |
+| Customer portal — self-service ticket submission and tracking | Needs customer authentication and a second authorisation model. A portal that leaks one internal comment to one customer is worse than no portal, and the failure is a single missing filter (BR-5.4 anticipates the view without building it) |
+| Customer-facing reports — SLA performance, satisfaction, agent performance | SLA performance has nothing to measure without the engine above; satisfaction data is not collected, and reporting a metric from no data is fabrication; agent leaderboards are excluded **on principle** — ranking agents by tickets closed rewards closing over resolving (`US-016`) |
+| External integrations — ERP, provider APIs, external systems | No live provider or ERP is in scope, so an abstraction would have one implementation and no second in prospect. The same test `epics/EPIC-003-communication-channels.md` applied to `US-012`. The API itself remains the integration surface, documented as OpenAPI |
+| Multi-department | An organisational hierarchy changes the authorisation model and adds a filter to every query in the system. Same class of change as multi-tenancy above, and for the same reason |
+| Multi-branch | The same change on a second axis, and the two compose |
+| Custom branding — the settings screen | `decisions/ADR-012-tenant-theming.md` is accepted **in part**: the token architecture is built, the settings screen is deferred. The capability is demonstrable by changing three CSS variables, which proves the architecture better than a settings page would |
+| Quick replies | A template library — authoring, categorising, variable substitution, and permissions on shared templates. The knowledge base in miniature |
+| Tasks and reminders | A second work item with its own lifecycle, assignment, and notification path. A to-do product beside a ticket product; nothing in the support flow needs it |
+| Team collaboration — mentions, presence, handoff threads | Internal comments already are the collaboration the flow needs (BR-5.4). Mentions and presence are a messaging product |
+
+Every reason above would still hold with four times the budget. That is the test applied:
+a reason that evaporates when the deadline moves is not a reason.
+
 ## Quality rules
 
 - Domain logic lives in the domain and application layers, never in controllers or

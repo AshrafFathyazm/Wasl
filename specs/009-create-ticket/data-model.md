@@ -1,0 +1,194 @@
+# 009 — Data Model
+
+**Migration:** `AddTicketsAndHistory`
+
+This is the largest schema change in the project. `dbo.Customers` and
+`dbo.SupportUsers` already exist — `001-solution-skeleton` created them — so this
+migration adds two tables, one sequence, and six foreign keys, three of which point into
+a table it does not own.
+
+Full schema reference: [`docs/sdd/03-domain-model.md`](../../docs/sdd/03-domain-model.md).
+Type mapping: [`ADR-013`](../../docs/sdd/decisions/ADR-013-database-sql-server.md).
+
+---
+
+## What already exists
+
+| Object | Created by | Used here as |
+|---|---|---|
+| `dbo.Customers` | `001` | The target of `FK_Tickets_Customers` |
+| `dbo.SupportUsers` | `001` | The target of three FKs from `Tickets` and one from `TicketHistory` |
+| `dbo.AuditLog` | `001`, wired by `003` | Written by the audit behaviour; **not** touched by this migration |
+| The `DateTimeKind.Utc` value converter | `001` | Applies to every `datetime2(3)` column added here |
+
+`008` added `IX_Customers_FullName`, which is what the customer picker's search uses.
+Nothing on the customer side changes here.
+
+## Added here
+
+### Sequence
+
+```sql
+CREATE SEQUENCE dbo.TicketNumberSeq AS bigint START WITH 1 INCREMENT BY 1;
+```
+
+`AS bigint` explicitly: the SQL Server default for a sequence with no type is `bigint`,
+but stating it removes the question, and `int` would cap at 2.1 billion for no saving.
+No `MAXVALUE`, no `CYCLE` — a cycling sequence would eventually hand out a number the
+unique index already holds, and that failure would arrive years later with no clue as to
+why.
+
+**Not reset per year.** The year in `TCK-{yyyy}-{000000}` is informational; the sequence
+is what makes the number unique. A per-year reset would make `TCK-2026-000001` and
+`TCK-2027-000001` two different tickets sharing a numeric part, and any code that parses
+the number for sorting would silently interleave them.
+
+EF Core maps it with `.HasSequence<long>("TicketNumberSeq")`; the value is read with
+`NEXT VALUE FOR dbo.TicketNumberSeq` and formatted by
+`TicketNumber.Format(year, sequence)` in `Wasl.Domain`.
+
+### `dbo.Tickets`
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | `uniqueidentifier` | PK, `Guid` generated client-side so the aggregate is valid before `SaveChanges` |
+| `TicketNumber` | `nvarchar(20)` | `TCK-2026-000042`. Unique |
+| `CustomerId` | `uniqueidentifier` | FK → `dbo.Customers`, `ON DELETE NO ACTION` |
+| `Subject` | `nvarchar(200)` | Human-written. `nvarchar`, not `varchar` |
+| `Description` | `nvarchar(4000)` | Human-written |
+| `Category` | `nvarchar(20)` | Enum as string |
+| `Priority` | `nvarchar(20)` | Enum as string, `DEFAULT 'Normal'` |
+| `Channel` | `nvarchar(20)` | Enum as string |
+| `Status` | `nvarchar(20)` | Enum as string, `DEFAULT 'New'` |
+| `AssignedToUserId` | `uniqueidentifier NULL` | FK → `dbo.SupportUsers`, `NO ACTION`. Null on creation |
+| `CreatedByUserId` | `uniqueidentifier` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `IsEscalated` | `bit` | `DEFAULT 0` |
+| `EscalatedAtUtc` | `datetime2(3) NULL` | Created here so `016` needs no second migration |
+| `EscalatedByUserId` | `uniqueidentifier NULL` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `EscalationReason` | `nvarchar(500) NULL` | |
+| `CreatedAtUtc` | `datetime2(3)` | From the injected `TimeProvider`, never `DateTime.UtcNow` |
+| `UpdatedAtUtc` | `datetime2(3)` | Equal to `CreatedAtUtc` on insert |
+| `ClosedAtUtc` | `datetime2(3) NULL` | Set by `012` (BR-1.7) |
+| `RowVersion` | `rowversion` | `.IsRowVersion()`. Maintained by the engine, never by application code |
+
+### `dbo.TicketHistory`
+
+| Column | Type | Notes |
+|---|---|---|
+| `Id` | `uniqueidentifier` | PK |
+| `TicketId` | `uniqueidentifier` | FK → `dbo.Tickets`, **`ON DELETE CASCADE`** |
+| `EventType` | `nvarchar(30)` | `Created` on insert here |
+| `OldValue` | `nvarchar(200) NULL` | Null for `Created` |
+| `NewValue` | `nvarchar(200) NULL` | `New` for `Created` |
+| `Note` | `nvarchar(500) NULL` | |
+| `PerformedByUserId` | `uniqueidentifier` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `PerformedAtUtc` | `datetime2(3)` | The same `TimeProvider` reading as the ticket's `CreatedAtUtc` |
+
+No `RowVersion`: `TicketHistory` is append-only, so there is nothing to conflict over
+(BR-5.6).
+
+### Indexes
+
+| Index | Definition | Query it serves |
+|---|---|---|
+| `UX_Tickets_Number` | `CREATE UNIQUE INDEX UX_Tickets_Number ON dbo.Tickets (TicketNumber)` | Lookup and search by number (`010`, `015`). Also the guarantee behind AC-3 |
+| `IX_Tickets_Status_Created` | `ON dbo.Tickets (Status, CreatedAtUtc DESC)` | The default ticket list, newest first (`010`, BR-7.1) |
+| `IX_Tickets_Customer` | `ON dbo.Tickets (CustomerId)` | Tickets for one customer (`018`) |
+| `IX_Tickets_Assignee` | `ON dbo.Tickets (AssignedToUserId)` | The "my tickets" filter (`010`) |
+| `IX_TicketHistory_Ticket_Time` | `ON dbo.TicketHistory (TicketId, PerformedAtUtc)` | The timeline (`013`) |
+
+**Five indexes across two tables** — four on `dbo.Tickets`, one on `dbo.TicketHistory`.
+None is filtered, so unlike `007` there is no `filter_definition` to verify. What is
+verified instead is that `UX_Tickets_Number` came back `is_unique = 1`: a non-unique
+index there would satisfy every test in this feature except `TEST-009-08`, and would
+leave AC-3's uniqueness resting on the sequence alone.
+
+```sql
+SELECT name, is_unique, filter_definition
+FROM   sys.indexes
+WHERE  object_id = OBJECT_ID('dbo.Tickets');
+
+SELECT name, is_unique
+FROM   sys.indexes
+WHERE  object_id = OBJECT_ID('dbo.TicketHistory');
+```
+
+Four rows plus the clustered primary key for `Tickets`; two rows for `TicketHistory`.
+`\d+` is a psql command and does not exist here — the original plan's verification step
+was written against PostgreSQL.
+
+### Why every index is created now
+
+The no-speculative-indexes rule normally means an index arrives with the query that needs
+it. These are the exception, and the reason is stated so it does not read as a lapse: the
+columns are created here, each index names the feature that consumes it, and adding them
+in `010`, `013`, and `018` would be three migrations that alter a table nothing has yet
+queried at volume. Every one of them has a named consumer in the table above; none is
+"probably useful later".
+
+## Delete behaviour, and why it is not a free choice
+
+| FK | On delete | Reason |
+|---|---|---|
+| `Tickets.CustomerId` → `Customers` | `NO ACTION` | Deleting a customer must not silently erase their support history |
+| `TicketHistory.TicketId` → `Tickets` | `CASCADE` | History has no meaning without its ticket |
+| `Tickets.CreatedByUserId` → `SupportUsers` | `NO ACTION` | The author must stay resolvable |
+| `Tickets.AssignedToUserId` → `SupportUsers` | `NO ACTION` | |
+| `Tickets.EscalatedByUserId` → `SupportUsers` | `NO ACTION` | |
+| `TicketHistory.PerformedByUserId` → `SupportUsers` | `NO ACTION` | The audit trail must never lose its actor |
+
+`ON DELETE RESTRICT` is **not SQL Server syntax**. `NO ACTION` is the same behaviour, and
+it is what ADR-013 specifies.
+
+**Three foreign keys from one table to `dbo.SupportUsers` is the part that fails loudly
+if it is got wrong, and quietly if it is got half-right:**
+
+- If any of the three cascaded, SQL Server would refuse to create the table at all —
+  multiple cascade paths from `SupportUsers` into `Tickets` and onward into
+  `TicketHistory` and `TicketComments`. The error names cycles, not the real cause, and it
+  arrives at `dotnet ef database update` rather than at a delete. `NO ACTION` on all three
+  is correct on its own merits *and* is the only creatable configuration.
+- EF Core cannot infer three relationships to one entity. Each needs an explicit
+  `HasOne(...).WithMany().HasForeignKey(...)`. Left to convention it invents shadow
+  properties, and the migration produces a `SupportUserId1` column nobody asked for — a
+  defect that compiles, migrates, and is visible only in the schema.
+
+## Domain shape
+
+`Wasl.Domain/Tickets/` — the aggregate and everything genuinely shared.
+
+| Type | Responsibility |
+|---|---|
+| `Ticket` | Aggregate root. Private setters and a `Create` factory that sets `Status = New`, leaves the assignee null, and appends the `Created` history row. There is no constructor an outside caller can use to reach a ticket with no history |
+| `TicketHistory` | Owned, append-only. Exposed as `IReadOnlyCollection<TicketHistory>`; there is no public `Add` |
+| `TicketNumber` | `static string Format(int year, long sequence)` → `$"TCK-{year:0000}-{sequence:000000}"`. Pure, so AC-3's formatting is a unit test with no database |
+| `TicketStatusTransitions` | The BR-1 static map. Read here only to answer `allowedTransitions` for `New`; `012` is what exercises the rest |
+| Enums | `TicketCategory`, `TicketPriority`, `CommunicationChannel`, `TicketStatus`, `TicketEventType` |
+
+`Ticket.Create` appending the history row is the whole design (AC-9, BR-1.8). A handler
+that appends it is one new caller away from a ticket whose history begins in the middle,
+and nothing in the system would announce that — the timeline would simply start at the
+first status change.
+
+## Concurrency
+
+`RowVersion` is a `rowversion` column mapped with `.IsRowVersion()` (ADR-013 row 1). Not
+`xmin`, and never a manually incremented `int` — a counter someone forgets to increment
+is a silent lost update, which is the exact defect ADR-006 exists to prevent.
+
+This feature does not consume it. The `201` response **does** return `version`, so
+`011-assign-ticket` and `012-change-ticket-status` do not have to change the read shape
+after a client has shipped against it.
+
+## Sequences are not transactional, and that is the design
+
+A value drawn from `dbo.TicketNumberSeq` is **not returned** if the surrounding
+transaction rolls back. Two consequences, both accepted:
+
+| Consequence | Why it is accepted |
+|---|---|
+| The number series has gaps | A failed create consumes a number. Making the series dense would require serialising every create behind a lock, which is precisely what the sequence was chosen to avoid |
+| The number is drawn before the insert commits | Which is why AC-11 holds: two concurrent creates get two values without either waiting on the other |
+
+Stated here because "why is there no `TCK-2026-000007`?" is a question someone will ask,
+and "it is a bug" is the wrong answer.

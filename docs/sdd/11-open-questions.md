@@ -82,14 +82,28 @@ for the reasoning and the conditions under which Angular is the better answer.
 
 ## Q-5 · Is there a session time limit, and what is it?
 
-**Status:** Open — for the evaluator
+**Status:** **RESOLVED — three calendar days, deadline Wednesday 26 August, about nine
+hours of realistic working time.**
 
-**Why it matters:** the cut line in `08-board.md` between Release 1 and Release 2
-depends on it. Under four hours, only US-001, US-005, US-007, and US-008 are
-realistic at full quality.
+**Why it mattered:** the cut line in `08-board.md` between Release 1 and Release 2
+depended on it. This question said: *under four hours, only US-001, US-005, US-007, and
+US-008 are realistic at full quality.*
 
-**Working assumption:** Release 1 as defined in `08-board.md`, with the compression
-order recorded there.
+**The answer landed almost exactly there.** Nine hours across three sessions, with the
+skeleton still to build, commits to US-005, US-007, US-008, and US-001 **seeded rather
+than built through the UI**. The estimate was written before the deadline was known and it
+held, which is worth more than an estimate being generous.
+
+**What changed as a result:** `08-board.md` gains a three-day constraint section above its
+release tables, and `16-three-day-plan.md` is the nine-hour cut of `PHASES.md` — three
+sessions of three hours, with every cut pointing at where its design already lives.
+
+**One consequence recorded rather than smoothed over:** the nine-hour plan cuts
+localization and the audit log, and `08-board.md`'s compression section says neither is
+ever cut. Both positions were written under different assumptions about the budget. The
+conflict is documented in `16-three-day-plan.md` and needs the product owner's
+confirmation — if bilingual is non-negotiable, the honest consequence is that US-007
+leaves the committed scope, not that the estimate shrinks.
 
 ---
 
@@ -362,6 +376,47 @@ the frontend.
 is an assumption held only because the question has not been asked, which is the worst
 reason to hold one — ask it first.
 
+## Q-16 · The scope document specifies no deliverables — what is the definition of done?
+
+**Status:** Open — for the evaluator. **Needs confirming, and it is cheap to confirm.**
+
+The supplied product scope document (`azm_squad_customer_support_crm.pdf`) lists twelve
+sections and roughly sixty features. It specifies **no deliverables, no acceptance
+criteria, no technical constraints, and no evaluation criteria**.
+
+That is not a gap in the document — it is a product scope list, and a product scope list is
+not supposed to contain any of those. But it means the definition of *submitted* has to
+come from somewhere else.
+
+**Why it matters:** the two candidate readings produce different work.
+
+| Reading | What it asks for |
+|---|---|
+| The scope document is a **backlog** | Attempt sixty features. In nine hours that produces twelve broken ones |
+| The scope document is a **requirements source** | Select a coherent slice, deliver it end to end at full quality, and document what was cut and why |
+
+**Working assumption: the second**, and the deliverables list is taken from the programme
+deck's Week 4 brief, which does specify them:
+
+> Backend endpoint · data model or persistence · frontend screen · API integration · form
+> validation · error handling · a basic test or documented manual testing evidence ·
+> `README` with setup and run steps · AI usage notes · a short demo or walkthrough.
+
+Every one of those is on the build path in `16-three-day-plan.md`, and each maps to an
+artifact this repository already produces.
+
+**Why the second reading is the safer bet even if wrong:** the assessment sheet weights
+*Planning & Task Breakdown* at 20 — the highest single weight — and *Requirement &
+Specification* at 10. Both reward a defended scope decision. Neither rewards breadth. And
+the Quality axis is a gate, so twelve half-features fail it outright regardless of the
+total.
+
+**What confirming it would change:** nothing about the plan, and everything about the
+confidence with which it is presented. `15-scope-coverage.md` exists to make the selection
+auditable either way.
+
+---
+
 ## Resolved
 
 *(Move questions here with the answer and the date once they are settled.)*
@@ -371,3 +426,4 @@ reason to hold one — ask it first.
 | Q-4 | Is the frontend framework constrained? | No. React confirmed. See ADR-003 | This session |
 | Q-12 | Does an implemented component library exist? | Moot as a framework question once React was chosen. See ADR-003 | This session |
 | Q-3 | Is the database choice constrained? | **Yes — SQL Server.** See ADR-013 | 2026-08-23 |
+| Q-5 | Is there a session time limit? | **Three days, deadline 26 August, about nine hours.** See `16-three-day-plan.md` | 2026-08-24 |

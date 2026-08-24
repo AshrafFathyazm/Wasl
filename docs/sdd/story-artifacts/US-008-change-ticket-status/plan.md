@@ -21,7 +21,7 @@ never re-implements the rule.
 | Domain | `InvalidStatusTransitionException`, `TicketClosedException` | Distinct types so the middleware can map distinct `type` values |
 | Application | `ChangeTicketStatusCommand` / `Handler` | Loads, authorizes (BR-6), calls the domain, writes history, saves |
 | Application | `ChangeTicketStatusValidator` | Enum validity, note length, `expectedVersion` presence |
-| Application | `ITicketRepository.GetForUpdateAsync` | Loads with the concurrency token |
+| Application | `IApplicationDbContext.Tickets` | Loaded with its `RowVersion`, so the concurrency token travels with the entity rather than through a repository method |
 | API | `TicketsController.ChangeStatus` | Binds, delegates, maps |
 | API | Exception middleware additions | Maps the two new exceptions to their `type` values |
 

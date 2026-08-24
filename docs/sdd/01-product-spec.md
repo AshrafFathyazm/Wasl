@@ -1,5 +1,35 @@
 # Product Specification — Customer Support CRM
 
+## Where these requirements come from
+
+| Requirements | Source |
+|---|---|
+| **FR-1** Customer Management, **FR-2** Ticket Management, **FR-3** Communication Channels | The supplied product scope document, `azm_squad_customer_support_crm.pdf`, sections 1–3 |
+| **FR-4** Authentication and Authorization, **FR-5** Localization, **FR-6** Audit | **Derived.** The scope document does not specify them at this level |
+| **NFR-1 to NFR-10** | Derived. The scope document states no non-functional requirements |
+
+The distinction matters and is stated rather than blurred.
+
+The scope document lists twelve product sections and roughly sixty features. It specifies
+**no deliverables, no acceptance criteria, no technical constraints, and no evaluation
+criteria** — so it is a requirements source to trace against, not a task specification.
+Every acceptance criterion in this repository was written here, not copied from there.
+
+FR-4, FR-5, and FR-6 are derived rather than given, and each has a reason:
+
+- **FR-4** — the scope document names *users and roles* and *permissions* under section 10
+  (Security & Administration) without saying what they govern. BR-6's authorisation matrix
+  is our reading of what two roles must actually mean in a support queue.
+- **FR-5** — section 12 says *Arabic & English*. What that entails for right-to-left
+  layout, plural categories, digit systems, and which strings are never translated is
+  `decisions/ADR-007-localization.md`, not the source.
+- **FR-6** — section 10 names *audit logs*. That an audit record must survive deletion of
+  the thing it describes, and must therefore be a separate table with no foreign keys, is
+  `decisions/ADR-008-audit-log.md`.
+
+Section-by-section traceability, including the seven sections that are cut and why, is in
+`15-scope-coverage.md`.
+
 ## Actors
 
 | Actor | Description |

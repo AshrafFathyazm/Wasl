@@ -1,0 +1,51 @@
+# US-007 — Review
+
+**Phase:** 6 · **Role:** Review · **Status:** Not started
+
+Scope: this story's blast radius, not the whole system.
+
+## Blocking Issues
+
+| # | File | Issue | Required change |
+|---|---|---|---|
+
+Marking everything blocking makes the review useless. Blocking means the story cannot
+ship.
+
+## Non-Blocking Improvements
+
+| # | File | Suggestion |
+|---|---|---|
+
+## Missing Tests
+
+| Rule or AC | What is missing |
+|---|---|
+
+## Acceptance Criteria Status
+
+| AC | Met / Not met / Partial | Note |
+|---|---|---|
+
+## Boundary Check
+
+| Check | Result |
+|---|---|
+| Business rules in the domain, not in an endpoint or a component | |
+| `Wasl.Domain` has zero package references (architecture test green) | |
+| DTOs at the boundary, not entities | |
+| Every new index justified | |
+| No query inside a loop | |
+| `CancellationToken` threaded through | |
+
+## Security Notes
+
+Against `testing/security-checklist.md`.
+
+## Scope Check
+
+Anything built that is not in `spec.md`.
+
+## Verdict
+
+`Approved` / `Changes Required`

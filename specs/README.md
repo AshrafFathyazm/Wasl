@@ -226,11 +226,55 @@ without help?** If not, it is not done, regardless of whether the tests pass.
 
 ## Status
 
-| Feature | Phase | State |
+All 22 features are **specified and awaiting review**. None is implemented.
+
+| Feature | Phase | Origin |
 |---|---|---|
-| `001-solution-skeleton` | 0 | **Specified** — awaiting review |
-| `007-create-customer` | 1 | **Specified** — migrated from `docs/sdd/story-artifacts/US-001-create-customer/` |
-| everything else | — | Planned above; folders created as each is specified |
+| `001-solution-skeleton` | 0 | Authored |
+| `002-error-contract` | 0 | Authored |
+| `003-audit-trail` | 0 | Authored |
+| `004-auth-and-roles` | 0 | Authored |
+| `005-localization-core` | 0 | Authored |
+| `006-design-system` | 0 | Authored |
+| `007-create-customer` | 1 | Migrated from `US-001-create-customer` |
+| `008-customer-list-and-profile` | 1 | Migrated from `US-002-view-customer` |
+| `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` |
+| `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-filter-tickets` (read half) |
+| `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` |
+| `012-change-ticket-status` | 2 | Migrated from `US-008-change-ticket-status` |
+| `013-ticket-timeline-and-comments` | 3 | Migrated from `US-010-ticket-timeline-comments` |
+| `014-language-preference-and-rtl` | 4 | Migrated from `US-014-language-preference` |
+| `015-ticket-filters-and-search` | 5 | Migrated from `US-006-list-filter-tickets` (filter half) |
+| `016-escalate-ticket` | 5 | Migrated from `US-009-escalate-ticket` |
+| `017-update-customer` | 5 | Migrated from `US-003-update-customer` |
+| `018-customer-overview` | 5 | Migrated from `US-004-customer-overview` |
+| `019-audit-log-access` | 5 | Migrated from `US-015-audit-log-access` |
+| `020-dashboard` | 5 | Authored from `US-016-dashboard` — no prior artifacts existed |
+| `021-communication-provider-abstraction` | 5 | Authored — promoted out of `DEFERRED.md` |
+| `022-tenant-theming-settings` | 5 | Authored from ADR-012 |
+
+### What "migrated" means
+
+The `spec.md`, `plan.md`, and `tasks.md` in a migrated feature were **already written**
+before implementation began — that is the whole point of the blueprint, and it is why
+thirty of the hundred assessment points are earned before an editor is opened. Migration
+preserved their content and their acceptance-criteria numbering, and did four things:
+
+1. **Repaired what they predate.** They were written against PostgreSQL (ADR-001), a
+   four-project layout (ADR-002), and before the audit log existed (ADR-008). Every
+   `uuid`, `timestamptz`, `xmin`, `varchar`, `Wasl.Application` path, and controller is
+   now what ADR-013 and ADR-010 actually say.
+2. **Added the audit obligation.** Most originals carry no audit task, because they are
+   older than ADR-008 — and `NFR-10`'s architecture test would have failed the build.
+3. **Added the artifacts spec-kit needs and story-artifacts did not have:** the frozen
+   contract, the frontend handoff guide, the frontend spec, the data model, the research
+   record, and the requirements checklist.
+4. **Added `Agent` and `Skill` to every task row**, so who does what is part of the plan
+   rather than decided in the moment.
+
+`tests.md`, `ai-notes.md`, `review.md`, `summary.md`, `backend.md`, and `frontend.md` are
+deliberately **unfilled templates** in every feature. They are evidence artifacts; filling
+one before the work happens would make it a false statement.
 
 Nothing here claims to be implemented. `docs/sdd/08-board.md` and
 `docs/sdd/12-delivery-log.md` are where delivery is recorded, and neither says so yet.

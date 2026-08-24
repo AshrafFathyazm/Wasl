@@ -18,6 +18,22 @@ do not build it.
 - `record` for immutable DTOs and value objects.
 - Pattern matching where it improves readability, not to be clever.
 - Domain rules in `Wasl.Domain`. A controller that contains a business rule is a defect.
+- **No `IRepository<T>`, and no per-aggregate repository.** `DbSet<T>` is already a
+  repository; wrapping it produces an interface with one implementation and no second in
+  prospect. Reach EF Core through **`IApplicationDbContext`**, declared in
+  `Wasl.Application/Common/Abstractions` and implemented by
+  `Wasl.Infrastructure/Persistence/WaslDbContext`. Query it with LINQ at the call site,
+  where the query's intent is (ADR-010).
+- **A named query class only where a query is genuinely non-trivial**, and it lives in
+  `Wasl.Infrastructure/Queries/`. Two exist: `TicketTimelineQuery` (the union, US-010)
+  and `DashboardAggregatesQuery` (the six aggregates, US-016). A third needs a written
+  reason in `plan.md` — "this query is a bit long" is how a query folder turns into a
+  repository layer. A query object has one caller and no interface; that is what makes it
+  a query object rather than a repository.
+- **A use case is a feature folder** — `Wasl.Application/Features/<Area>/<UseCase>/` —
+  holding its command or query, handler, validator, and DTO. Not `Commands/`,
+  `Handlers/`, and `Validators/` directories that a story's diff has to be reassembled
+  from.
 - Validation at the boundary with FluentValidation; invariants in the domain.
 - Errors through the shared middleware. No hand-built error responses.
 - Status codes per `05-api-conventions.md`.
@@ -33,7 +49,7 @@ do not build it.
 - Every command implements `IAuditableCommand` and declares its action name (BR-9.1).
   The architecture test fails the build if one does not.
 - Never write a credential, token, or comment body into an audit row (BR-9.7).
-- Never issue `UPDATE` or `DELETE` against `audit_log` (BR-9.5).
+- Never issue `UPDATE` or `DELETE` against `dbo.AuditLog` (BR-9.5).
 
 ## After implementing
 

@@ -11,24 +11,38 @@ produce a usable message — the index is the actual guarantee.
 
 ## Backend
 
-| Layer | Component | Responsibility |
-|---|---|---|
-| Domain | `Customer` | Aggregate root; enforces BR-4.1 in its factory method |
-| Domain | `EmailAddress` (value object) | Parses, validates, and normalises per BR-4.2 |
-| Domain | `PhoneNumber` (value object) | Parses and normalises to E.164 per BR-4.3 |
-| Domain | `DuplicateCustomerException` | Signals BR-4.4 / BR-4.5 |
-| Application | `CreateCustomerCommand` / `Handler` | Validates, checks for an existing match, creates, persists, maps |
-| Application | `CreateCustomerValidator` | FluentValidation: required fields, lengths, the at-least-one-contact rule |
-| Application | `ICustomerRepository` | `ExistsByEmailAsync`, `ExistsByPhoneAsync`, `AddAsync` |
-| Infrastructure | `CustomerConfiguration` | Column types, lengths, indexes, check constraint |
-| Infrastructure | `CustomerRepository` | EF Core implementation |
-| Infrastructure | `DbUpdateException` translation | Maps the unique-index violation to `DuplicateCustomerException` |
-| API | `CustomersController.Create` | Binds, delegates, returns `201` with `Location` |
+Two projects, one slice. ADR-010.
 
-Value objects rather than validated strings because normalisation has to happen
-exactly once, in one place. A `string Email` property means every caller is
-responsible for lowercasing, and one of them will forget — that is precisely the bug
-BR-4.2 exists to prevent.
+| Where | Component | Responsibility |
+|---|---|---|
+| `Wasl.Domain/Customers/` | `Customer` | Aggregate root; enforces BR-4.1 in its factory method |
+| `Wasl.Domain/Customers/` | `EmailAddress` (value object) | Parses, validates, and normalises per BR-4.2 |
+| `Wasl.Domain/Customers/` | `PhoneNumber` (value object) | Parses and normalises to E.164 per BR-4.3 |
+| `Wasl.Domain/Customers/` | `DuplicateCustomerException` | Signals BR-4.4 / BR-4.5 |
+| **The slice** — `Wasl.Api/Features/Customers/CreateCustomer/` | `Endpoint` | One minimal-API endpoint. Binds, authorizes, sends the command, returns `201` with `Location` |
+| | `Command` + `Handler` | Validates, checks for an existing match, creates, persists, maps to `Response` |
+| | `Validator` | FluentValidation: required fields, lengths, the at-least-one-contact rule |
+| | `Response` | The DTO. Never the entity |
+| | `DuplicateCustomerQuery` | Named query object — one caller, no interface. **Not** a repository |
+| `Wasl.Api/Common/Persistence/` | `CustomerConfiguration` | Column types, lengths, the filtered indexes, the collation |
+| `Wasl.Api/Common/Errors/` | `DbUpdateException` translation | Maps the unique-index violation to `DuplicateCustomerException`, which the shared middleware then maps to the `409` |
+
+**Migration note.** The original plan put the command in `Wasl.Application`, the EF
+configuration in `Wasl.Infrastructure`, an `ICustomerRepository` between them, and a
+`CustomersController` on top. All four are gone: ADR-010 was accepted after that plan was
+written, so this feature is one slice folder plus the domain, and `DbSet<T>` is the
+repository. The original's *reasoning* about what each piece does is unchanged — only
+where it lives, and one abstraction fewer.
+
+**Why a query object and not a repository.** `DuplicateCustomerQuery` has exactly one
+caller and no interface. `ICustomerRepository` with `ExistsByEmailAsync` /
+`ExistsByPhoneAsync` / `AddAsync` would be an abstraction over `DbSet<T>`, which is
+already one — an interface with one implementation and no second in prospect.
+
+**Value objects rather than validated strings**, because normalisation has to happen
+exactly once, in one place. A `string Email` property means every caller is responsible
+for lowercasing, and one of them will forget — which is precisely the bug BR-4.2 exists
+to prevent.
 
 ## Data Changes
 
@@ -146,23 +160,27 @@ integration test harness.
 ## Files to Create or Change
 
 ```text
-src/Wasl.Domain/Customers/Customer.cs
+src/Wasl.Domain/Customers/Customer.cs                          becomes a real aggregate; 001 left a shell
 src/Wasl.Domain/Customers/EmailAddress.cs
 src/Wasl.Domain/Customers/PhoneNumber.cs
 src/Wasl.Domain/Customers/DuplicateCustomerException.cs
-src/Wasl.Application/Customers/Create/CreateCustomerCommand.cs
-src/Wasl.Application/Customers/Create/CreateCustomerHandler.cs
-src/Wasl.Application/Customers/Create/CreateCustomerValidator.cs
-src/Wasl.Application/Customers/CustomerDto.cs
-src/Wasl.Application/Abstractions/ICustomerRepository.cs
-src/Wasl.Infrastructure/Persistence/Configurations/CustomerConfiguration.cs
-src/Wasl.Infrastructure/Persistence/Repositories/CustomerRepository.cs
-src/Wasl.Infrastructure/Migrations/*_AddCustomers.cs
-src/Wasl.Api/Controllers/CustomersController.cs
+
+src/Wasl.Api/Features/Customers/CreateCustomer/Endpoint.cs     the whole slice, one folder
+src/Wasl.Api/Features/Customers/CreateCustomer/Command.cs
+src/Wasl.Api/Features/Customers/CreateCustomer/Handler.cs
+src/Wasl.Api/Features/Customers/CreateCustomer/Validator.cs
+src/Wasl.Api/Features/Customers/CreateCustomer/Response.cs
+src/Wasl.Api/Features/Customers/CreateCustomer/DuplicateCustomerQuery.cs
+
+src/Wasl.Api/Common/Persistence/Configurations/CustomerConfiguration.cs   changed, not created
+src/Wasl.Api/Common/Persistence/Migrations/*_AddCustomerDuplicateIndexes.cs
+src/Wasl.Api/Common/Errors/DuplicateCustomerExceptionMapping.cs           changed, not created
+
 src/wasl-web/src/features/customers/CreateCustomerPage.tsx
 src/wasl-web/src/features/customers/CustomerForm.tsx
 src/wasl-web/src/features/customers/api.ts
 src/wasl-web/src/features/customers/schema.ts
+
 tests/Wasl.Domain.Tests/Customers/EmailAddressTests.cs
 tests/Wasl.Domain.Tests/Customers/PhoneNumberTests.cs
 tests/Wasl.Domain.Tests/Customers/CustomerTests.cs

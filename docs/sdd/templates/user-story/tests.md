@@ -14,7 +14,7 @@ $ dotnet build
 
 ```text
 $ dotnet test tests/Wasl.Domain.Tests
-$ dotnet test tests/Wasl.Application.Tests
+$ dotnet test tests/Wasl.Api.IntegrationTests
 ```
 
 Count, passed, failed, skipped.

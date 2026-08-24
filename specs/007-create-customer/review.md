@@ -31,8 +31,8 @@ ship.
 
 | Check | Result |
 |---|---|
-| Domain logic outside controllers and components | |
-| Domain has no infrastructure dependency | |
+| Business rules in the domain, not in an endpoint or a component | |
+| `Wasl.Domain` has zero package references (architecture test green) | |
 | DTOs at the boundary, not entities | |
 | Every new index justified | |
 | No query inside a loop | |

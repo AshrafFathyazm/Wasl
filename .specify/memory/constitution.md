@@ -100,7 +100,7 @@ this document, not a decision inside a feature plan.
 
 | Concern | Choice |
 |---|---|
-| Backend | ASP.NET Core Minimal APIs, .NET 10, C#. Two projects, vertical slices, thin domain core (ADR-010) |
+| Backend | ASP.NET Core Web API with controllers, .NET 10, C#. Four projects — `Domain` · `Application` · `Infrastructure` · `Api` — with feature folders inside Application (ADR-002; ADR-010 rejected) |
 | Data access | EF Core 10, `Microsoft.EntityFrameworkCore.SqlServer` |
 | Database | **SQL Server** |
 | Mediation | MediatR — justified solely by three cross-cutting pipeline concerns: validation, the audit row, and the transaction boundary |
@@ -113,7 +113,9 @@ this document, not a decision inside a feature plan.
 | Frontend tests | Vitest + React Testing Library on the critical forms |
 | Auth | JWT, two roles: `Agent` and `Manager`, enforced server-side |
 
-**No repository abstraction.** `DbSet<T>` is already one, and an interface with exactly
+**No repository abstraction.** Reach EF Core through `IApplicationDbContext`, declared in
+the Application layer and implemented by Infrastructure. `DbSet<T>` is already one, and a
+per-aggregate interface with exactly
 one implementation and no second in prospect is ceremony. Non-trivial queries get named
 query objects with one caller.
 

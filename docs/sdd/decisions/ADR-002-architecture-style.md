@@ -1,6 +1,7 @@
 # ADR-002 — Architecture style
 
-**Status:** Accepted · **Amended by:** ADR-010 (internal layout) · **Related:** ADR-010
+**Status:** **Accepted** · **Related:** ADR-010, which challenged the internal layout and
+was rejected
 
 ## Context
 
@@ -54,11 +55,29 @@ event bus becomes worth its cost.
 Rejected. It is faster for the first day and slower for every day after, and it makes
 the domain rules untestable without a database.
 
-## Amendment
+## Challenged, and upheld
 
-ADR-010 revisits the **internal** layout — four projects versus vertical slices over a
+ADR-010 revisited the **internal** layout — four projects versus vertical slices over a
 thin domain core — after the full system was specified and its actual size was clear.
-The deployment reasoning below is unchanged: one deployable, one database, no
+That proposal was **evaluated and rejected** on 2026-08-24: the house convention is
+four-project Clean, the assessment rewards separation of concerns that is visible without
+explanation, and the developer builds fastest in the familiar structure. This decision
+therefore stands unamended.
+
+Two things were adopted from the rejected proposal, and both are refinements *within* this
+layout rather than departures from it:
+
+- **Feature folders inside `Wasl.Application`** — grouping by use case rather than by
+  technical type, so a story's diff lands in one folder while the layering stays visible
+  at the project boundary.
+- **No `IRepository<T>`.** `IApplicationDbContext`, declared in the Application layer and
+  implemented by Infrastructure, replaces it. `DbSet<T>` is already a repository; the
+  interface exists to keep EF Core out of the Application layer, not to re-implement what
+  EF Core provides.
+
+Detail and reasoning: `decisions/ADR-010-vertical-slices.md`.
+
+The deployment reasoning below was never in question: one deployable, one database, no
 microservices.
 
 ## Consequences

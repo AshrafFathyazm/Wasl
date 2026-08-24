@@ -4,20 +4,20 @@
 
 ### Backend
 
-| Concern             | Choice                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------- |
-| Framework           | ASP.NET Core Web API (.NET 10)                                                               |
-| Language            | C#                                                                                          |
-| API style           | Minimal APIs, colocated with vertical feature slices                                        |
-| Request handling    | MediatR for commands and queries                                                            |
-| Architecture        | Vertical slices with a thin domain core                                                     |
-| Data access         | Entity Framework Core                                                                       |
-| Database            | SQL Server 2022 — see `decisions/ADR-013-database-sql-server.md`                          |
-| Validation          | FluentValidation through MediatR pipeline behaviors; domain invariants remain in the domain |
-| Unit testing        | xUnit + FluentAssertions                                                                    |
-| Faking              | Moq, only where a collaborator must be faked                                         |
-| Integration testing | `WebApplicationFactory` + Testcontainers (SQL Server)                                       |
-| Localization        | `IStringLocalizer` over `.resx`, with `RequestLocalizationMiddleware`                       |
+| Concern             | Choice                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------- |
+| Framework           | ASP.NET Core Web API (.NET 10)                                                                |
+| Language            | C#                                                                                            |
+| API style           | Controllers, thin — bind, authorise, dispatch, map the result to a status code                 |
+| Architecture        | Four-project Clean Architecture, with feature folders inside the Application layer              |
+| Request handling    | MediatR for commands and queries                                                              |
+| Data access         | Entity Framework Core through `IApplicationDbContext`. No repository abstraction                |
+| Database            | SQL Server 2022 — see `decisions/ADR-013-database-sql-server.md`                               |
+| Validation          | FluentValidation through a MediatR pipeline behaviour; domain invariants remain in the domain   |
+| Unit testing        | xUnit + FluentAssertions                                                                      |
+| Faking              | Moq, only where a collaborator must be faked                                                   |
+| Integration testing | `WebApplicationFactory` + Testcontainers (SQL Server)                                          |
+| Localization        | `IStringLocalizer` over `.resx`, with `RequestLocalizationMiddleware`                          |
 
 ### Frontend
 
@@ -34,513 +34,488 @@
 
 ## Architectural approach
 
-The system uses **vertical slices for application behavior** and a **thin domain core for business rules that genuinely span use cases**.
+**Four projects, layered — and feature folders inside the Application layer, so a story's
+diff lands in one place.**
 
-A feature owns everything required to execute its use case: its HTTP endpoint, command or query, handler, validation, request and response models, and any feature-specific query logic.
+The layering is what `decisions/ADR-002-architecture-style.md` chose and what
+`decisions/ADR-010-vertical-slices.md` challenged and failed to unseat. Read ADR-010 for
+the evaluation. The short version: it is the house convention, the assessment rewards
+separation of concerns that is *visible* without explanation, and the developer builds
+fastest in a familiar structure under a deadline.
 
-The domain remains independent and contains only business concepts and rules that must not depend on HTTP, EF Core, or ASP.NET.
+Two refinements came out of that evaluation and both are adopted:
+
+- **Feature folders inside `Wasl.Application`.** Grouping by use case, not by technical
+  type. `Features/Tickets/ChangeStatus/` rather than `Commands/`, `Handlers/`, and
+  `Validators/` directories that a story's diff has to be reassembled from.
+- **No `IRepository<T>`.** `IApplicationDbContext` instead — declared in the Application
+  layer, implemented by Infrastructure. `DbSet<T>` is already a repository; the interface
+  exists to keep EF Core out of the Application layer, not to re-implement what EF Core
+  provides.
 
 CQRS is used pragmatically:
 
 * Commands change state.
 * Queries read and project data.
-* Commands and queries live inside their feature slices.
-* CQRS does not introduce separate databases, read models, deployments, or a top-level `Commands` / `Queries` project structure.
+* Both live in the feature folder for their use case.
+* CQRS does not introduce separate databases, read models, or deployments.
 
-MediatR is retained primarily to apply cross-cutting concerns consistently through pipeline behaviors, including validation, auditing, and transaction handling.
-
-This approach is defined by `decisions/ADR-010-vertical-slices.md`, which amends the internal layout decision in ADR-002. The deployment decision remains unchanged: one deployable application and one database.
+The deployment decision is unchanged: one deployable application, one database, no
+microservices, no message broker.
 
 ## Solution structure
 
 ```text
 src/
 
-  Wasl.Domain/
+  Wasl.Domain/                          no EF Core, no HTTP, no MediatR
     Customers/
       Customer.cs
       EmailAddress.cs
       PhoneNumber.cs
-
     Tickets/
       Ticket.cs
       TicketStatus.cs
       TicketPriority.cs
       TicketStatusTransitions.cs
       EscalationPolicy.cs
-
     Communications/
       Interaction.cs
       CommunicationChannel.cs
-
     Audit/
       AuditEntry.cs
+    Common/
+      Exceptions/                       domain exceptions for invariant violations
 
-  Wasl.Api/
-
+  Wasl.Application/                     depends only on Wasl.Domain
     Features/
-
       Customers/
-
         CreateCustomer/
-          Endpoint.cs
-          Command.cs
-          Handler.cs
-          Validator.cs
-          Response.cs
-
+          CreateCustomerCommand.cs
+          CreateCustomerHandler.cs
+          CreateCustomerValidator.cs
+          CustomerDto.cs
         GetCustomer/
-          Endpoint.cs
-          Query.cs
-          Handler.cs
-          Response.cs
-
         UpdateCustomer/
-        AddNote/
-        GetInteractionHistory/
-
+        GetCustomerOverview/
       Tickets/
-
         CreateTicket/
-          Endpoint.cs
-          Command.cs
-          Handler.cs
-          Validator.cs
-          Response.cs
-
-        GetTicket/
         ChangeStatus/
         AssignTicket/
         EscalateTicket/
         ListTickets/
         Timeline/
-
-      Communications/
-
-        SendMessage/
-        ReceiveMessage/
-
+        AddComment/
+      Me/
+        SetLanguage/
     Common/
+      Abstractions/
+        IApplicationDbContext.cs
+        ICurrentUser.cs
+        ITicketNumberGenerator.cs
+      Behaviours/
+        ValidationBehaviour.cs
+        TransactionBehaviour.cs
+        AuditBehaviour.cs
+      Exceptions/
+      PagedResult.cs
+    Resources/                          .resx for server-authored messages
 
-      Persistence/
-        WaslDbContext.cs
-        Configurations/
-        Migrations/
+  Wasl.Infrastructure/                  implements what Application declares
+    Persistence/
+      WaslDbContext.cs                  implements IApplicationDbContext
+      Configurations/
+      Migrations/
+      SequenceTicketNumberGenerator.cs
+    Queries/
+      TicketTimelineQuery.cs            the union — US-010
+      DashboardAggregatesQuery.cs       the six aggregates — US-016
+    Auth/
+      JwtTokenService.cs
+      CurrentUser.cs
+    Communications/
+      MockCommunicationProvider.cs
 
-      Behaviors/
-        ValidationBehavior.cs
-        TransactionBehavior.cs
-        AuditBehavior.cs
-
-      Auth/
-      Errors/
-      Localization/
-
+  Wasl.Api/                             composes everything at startup
+    Controllers/
+      CustomersController.cs
+      TicketsController.cs
+      MeController.cs
+      AuthController.cs
+      AuditController.cs
+    Middleware/
+      ExceptionHandlingMiddleware.cs
+    Localization/
+      ClaimsRequestCultureProvider.cs
     Program.cs
 
-  wasl-web/
-    React + TypeScript client
+  wasl-web/                             React + TypeScript client
 
 tests/
 
-  Wasl.Domain.Tests/
-    Pure domain unit tests
-
-  Wasl.Api.IntegrationTests/
-    Real HTTP + real SQL Server via Testcontainers
+  Wasl.Domain.Tests/                    pure unit tests — no database, no HTTP
+  Wasl.Application.Tests/               use case tests with faked infrastructure
+  Wasl.Api.IntegrationTests/            real HTTP + real SQL Server via Testcontainers
 ```
 
-The exact list of slices evolves with the user stories. The important rule is that a use case is organized around its behavior rather than distributed across technical layers.
+The exact list of features evolves with the user stories. The rule that does not change: a
+use case is organised around its behaviour within the Application layer, rather than
+scattered across technical-type directories.
 
-## Feature slice structure
+## Feature folder structure
 
-A typical command slice has the following shape:
+A command feature:
 
 ```text
 Features/
   Tickets/
     ChangeStatus/
-      Endpoint.cs
-      Command.cs
-      Handler.cs
-      Validator.cs
-      Response.cs
+      ChangeTicketStatusCommand.cs
+      ChangeTicketStatusHandler.cs
+      ChangeTicketStatusValidator.cs
+      TicketStatusDto.cs
 ```
 
-A query slice follows the same principle:
+A query feature follows the same principle:
 
 ```text
 Features/
   Tickets/
-    Timeline/
-      Endpoint.cs
-      Query.cs
-      Handler.cs
-      Response.cs
-      TicketTimelineQuery.cs
+    ListTickets/
+      ListTicketsQuery.cs
+      ListTicketsHandler.cs
+      TicketListItemDto.cs
+      TicketFilterSpecification.cs
 ```
 
-Not every slice must contain every file. A simple query does not need a validator or a separate query object unless the complexity justifies it.
+Not every feature needs every file — a simple query needs no validator.
 
-A complex query may have a named query object when naming and isolating the query improves clarity and testability. This is not a generic repository abstraction and does not require an interface when there is only one implementation.
+A feature-specific specification or policy class lives with the feature that uses it.
+`TicketFilterSpecification` (US-006) and `TicketAssignmentPolicy` (US-007) are
+Application-layer types belonging to their feature, not shared services and not domain
+types: they encode how a use case reads or decides, while the rules that must hold for
+every caller stay in `Wasl.Domain`.
 
 ## Dependency direction
 
 ```text
-Wasl.Api ───────────────> Wasl.Domain
+Wasl.Api ──────────────┐
+                       ├──> Wasl.Application ──> Wasl.Domain
+Wasl.Infrastructure ───┘
 ```
 
-`Wasl.Domain` depends on nothing.
+| Project | Depends on | Never depends on |
+|---|---|---|
+| `Wasl.Domain` | nothing | anything |
+| `Wasl.Application` | `Wasl.Domain` | EF Core, ASP.NET Core, HTTP types, `DbContext` |
+| `Wasl.Infrastructure` | `Wasl.Application`, `Wasl.Domain` | `Wasl.Api` |
+| `Wasl.Api` | all three, for composition only | — |
 
-`Wasl.Api` contains:
+`Wasl.Application` declares the interfaces it needs — `IApplicationDbContext`,
+`ICurrentUser`, `ITicketNumberGenerator` — and `Wasl.Infrastructure` implements them.
 
-* Vertical feature slices.
-* The HTTP boundary.
-* EF Core persistence concerns.
-* Authentication and authorization infrastructure.
-* Error handling.
-* Localization infrastructure.
-* MediatR pipeline behaviors.
-* Application composition at startup.
+That inversion is the point of the layering: the Application layer is testable without a
+database because it never names one.
 
-Feature slices may depend on the domain.
+`Wasl.Api` composes the graph at startup and owns nothing but the HTTP boundary.
 
-The domain must never depend on:
+## Layer responsibilities
 
-* `Wasl.Api`
-* ASP.NET Core
-* HTTP types
-* EF Core
-* `DbContext`
-* database-specific infrastructure
+### Domain
 
-The architectural boundary is therefore enforced where it provides the most value for this system: around the business domain.
+Entities, value objects, enums, and the rules that must hold regardless of who calls them:
+the ticket state machine, escalation preconditions, contact-detail invariants. No EF Core
+attributes, no HTTP types, no MediatR.
 
-## Domain responsibilities
+The domain is deliberately thin. It is not a container for speculative abstractions,
+generic services, repositories, or infrastructure concerns.
 
-`Wasl.Domain` contains the business rules and concepts that must remain true regardless of which feature invokes them.
+### Application
 
-Examples include:
+One folder per use case. A handler validates its input, loads what it needs through
+`IApplicationDbContext`, calls into the domain, persists, and returns a DTO.
 
-* Customer contact-detail invariants.
-* `EmailAddress` and `PhoneNumber` value objects.
-* Ticket state transitions.
-* Valid and invalid status changes.
-* Escalation preconditions and rules.
-* Domain-level entities and enums.
-* Other invariants genuinely shared by multiple use cases.
-
-The domain does not contain EF Core attributes or HTTP types.
-
-The domain is intentionally thin. It should not become a container for speculative abstractions, generic services, repositories, or infrastructure concerns.
-
-## Feature responsibilities
-
-Each feature slice represents one use case.
-
-A slice may contain:
-
-* Minimal API endpoint.
-* Command or query.
-* MediatR handler.
-* FluentValidation validator.
-* Request and response DTOs.
-* Feature-specific authorization checks.
-* Feature-specific query objects.
-* Mapping logic.
-* Calls into domain behavior.
-* Persistence through `WaslDbContext`.
-
-For example, `ChangeStatus` is responsible for the orchestration of changing a ticket's status:
+For example, `ChangeStatus`:
 
 1. Receive and validate the request.
 2. Load the ticket.
 3. Apply the domain state-transition rule.
-4. Persist the change.
+4. Persist the change and its history row.
 5. Produce the response.
 
-The rule determining whether a transition is valid belongs in the domain. The orchestration of the use case belongs in the feature slice.
+Whether a transition is permitted is a **domain** decision. Orchestrating the use case is
+an **Application** one.
 
-Authorization decisions that depend on application data, such as whether the current user is the ticket assignee, belong in the relevant feature. Role-only checks may be applied at the endpoint through authorization policies.
+Authorisation decisions that depend on data — "is this user the assignee?" — live here,
+because this is the only layer with the data. Role-only checks live at the API boundary as
+policies.
+
+DTOs are never domain entities.
+
+### Infrastructure
+
+The `WaslDbContext` implementation of `IApplicationDbContext`, entity configurations,
+migrations, the ticket-number generator over a database sequence, the JWT token service,
+the `ICurrentUser` implementation, the mock communication provider, and the two named
+query classes.
+
+This is the only layer that knows the database exists.
+
+### API
+
+Controllers are thin: bind, authorise, dispatch through MediatR, map the result to a
+status code. Exception-to-`ProblemDetails` translation lives in one middleware. OpenAPI
+metadata is declared here.
+
+Business rules never live in a controller.
+
+### Frontend
+
+Presentation and interaction only. It mirrors backend rules to improve the experience —
+disabling a status button the state machine would reject — but it is never the authority.
+Every rule it mirrors is also enforced server-side, and the API returns
+`allowedTransitions` rather than the client deriving them.
+
+It owns every string it authors: labels, buttons, headings, empty states, and the display
+names of enum values. It does not own server-authored messages, which arrive already
+translated. See `decisions/ADR-007-localization.md`.
 
 ## Persistence
 
-EF Core persistence lives in:
+### `IApplicationDbContext`, not a repository
 
 ```text
-Wasl.Api/Common/Persistence/
+Wasl.Application/Common/Abstractions/IApplicationDbContext.cs      declared
+Wasl.Infrastructure/Persistence/WaslDbContext.cs                   implements
 ```
 
-This includes:
+The interface exposes `DbSet<T>` properties and `SaveChangesAsync`. One interface for the
+whole application, not one per aggregate.
 
-* `WaslDbContext`.
-* Entity configurations.
-* Database migrations.
-* EF Core persistence configuration.
+**Why not `IRepository<T>`:**
 
-Handlers use `WaslDbContext` directly where appropriate.
+| | `IRepository<T>` per aggregate | `IApplicationDbContext` |
+|---|---|---|
+| Interfaces to maintain | One per aggregate, growing | One, total |
+| Application depends on EF Core? | No | No |
+| Testable without a database? | Yes | Yes |
+| Duplicates what `DbSet<T>` already does | Yes | No |
+| Query expressiveness | Whatever methods were added in advance | Full LINQ at the call site, where the query's intent is |
 
-No generic repository abstraction is introduced over EF Core.
+The last row decides it. A repository method list is a guess at which queries will be
+needed, and the guess is always slightly wrong, so the interface grows a method per
+surprise. `DbSet<T>` is already a queryable repository; wrapping it produces an
+abstraction over an abstraction.
 
-`DbContext` and `DbSet<T>` already provide the primary persistence abstraction required by this system. A repository should only be introduced when it represents a meaningful domain abstraction or when multiple implementations are genuinely required.
+Handlers therefore query `IApplicationDbContext` directly. Configurations and migrations
+stay in Infrastructure, where the database is allowed to be known about.
 
-Complex read operations may use named query objects, for example:
+### Two named query classes
 
-```text
-Features/
-  Tickets/
-    Timeline/
-      TicketTimelineQuery.cs
-```
+Exactly two queries are complex enough to name and test on their own, and they live in
+`Wasl.Infrastructure/Queries/`:
 
-A query object exists to give complex query logic a meaningful name and isolated responsibility. It does not require an interface when there is only one implementation and no alternate implementation is expected.
+| Query | Why it earns a class |
+|---|---|
+| `TicketTimelineQuery` (US-010) | Comments and history are two tables with different shapes, ordered together and paginated across the boundary |
+| `DashboardAggregatesQuery` (US-016) | Six aggregates that must not become six round trips |
 
-## API responsibilities
+These are **query objects, not repositories**: one caller each, no interface, no second
+implementation in prospect. A repository is something you programme against; a query
+object is a name for a complicated piece of SQL.
 
-The API uses Minimal APIs rather than controllers.
+A third one requires a written reason, because "this query is a bit long" is how a query
+folder turns into a repository layer.
 
-Each endpoint is colocated with the feature it serves.
+## MediatR and pipeline behaviours
 
-An endpoint is responsible for:
-
-1. Binding the HTTP request.
-2. Applying endpoint-level authorization.
-3. Dispatching the command or query.
-4. Returning the appropriate HTTP response.
-
-Business rules do not live in endpoints.
-
-A feature should be understandable by opening its folder without navigating through separate `Application`, `Infrastructure`, and `Api` projects.
-
-## MediatR and pipeline behaviors
-
-MediatR is used as the request dispatch mechanism for commands and queries.
-
-Its primary architectural value in this system is the ability to apply required cross-cutting behavior consistently.
-
-The pipeline is conceptually:
+MediatR dispatches commands and queries. Its architectural value here is not indirection
+at fifteen endpoints — it is that three cross-cutting concerns apply to every command
+**without anyone remembering to apply them**.
 
 ```text
 HTTP Request
     ↓
-Minimal API Endpoint
+Controller
     ↓
 MediatR
     ↓
-Validation Behavior
+ValidationBehaviour
     ↓
-Transaction Behavior for commands
+TransactionBehaviour            commands only
     ↓
-Audit Behavior where applicable
+AuditBehaviour                  IAuditableCommand only
     ↓
 Feature Handler
     ↓
-Domain + EF Core
+Domain + IApplicationDbContext
 ```
 
-Pipeline behaviors are used so that required concerns are structural rather than dependent on every handler remembering to implement them.
+If those three requirements did not exist, neither would MediatR here.
 
 ## Transactions
 
-Commands that modify state execute within a transaction managed by the request pipeline.
+`TransactionBehaviour` opens one transaction per state-changing request. Not per handler.
 
-The transaction boundary is not individually recreated by every handler.
-
-This ensures that related changes, including required audit or history records, participate in the same transaction.
-
-Queries do not open write transactions.
+That makes "the audit row is in the same transaction as the change" a property of the
+pipeline rather than something each handler must not forget. Queries do not open write
+transactions.
 
 ## Audit and history
 
-Audit and history requirements are applied consistently to the commands that require them.
+Two distinct things, and `decisions/ADR-008-audit-log.md` explains why they are not
+merged:
 
-The audit record must participate in the same transaction as the business change.
+- **`TicketHistory`** is a product feature — the ticket timeline. Typed columns, foreign
+  keys, cascades with its ticket.
+- **`AuditLog`** is a forensic record. No foreign keys, actor email and role snapshotted
+  onto the row, never deleted by application code.
 
-The implementation may use a MediatR pipeline behavior where the applicable command types can be identified structurally.
+A command requiring an audit row implements `IAuditableCommand`, declaring its action
+name. `AuditBehaviour` writes the row inside the same transaction as the change, so it is
+absent when that transaction rolls back. Denied and failed actions have no business
+transaction to join and are written independently — that asymmetry is BR-9.4 and it is
+tested.
 
-For example, commands requiring auditing may implement a marker interface such as:
+An architecture test fails the build if any `ICommand` does not implement
+`IAuditableCommand` (NFR-10). The rule targets types, not projects, so the layout does not
+affect it.
 
-```text
-IAuditableCommand
-```
-
-The architecture rule targets the command type and behavior rather than depending on a particular project layout.
-
-Domain entities remain responsible for domain behavior. The feature and pipeline infrastructure are responsible for ensuring the required audit record is persisted as part of the request.
+Domain entities remain responsible for domain behaviour. The Application layer and the
+pipeline are responsible for the required record being persisted as part of the request.
 
 ## Validation
 
-Validation has two levels.
+Two levels, and neither replaces the other.
 
 ### Request validation
 
-FluentValidation validates incoming command data at the feature boundary through a MediatR pipeline behavior.
-
-Examples include:
-
-* Required fields.
-* Maximum lengths.
-* Request format.
-* Input ranges.
-* Values required for a specific use case.
+FluentValidation, applied at the Application boundary through `ValidationBehaviour`:
+required fields, maximum lengths, request format, ranges, and values a specific use case
+needs.
 
 ### Domain invariants
 
-Rules that must always hold regardless of the caller belong in the domain.
+Rules that must hold regardless of the caller belong in `Wasl.Domain`: forbidden state
+transitions, invalid contact details, escalation preconditions that must not be bypassed.
 
-Examples include:
-
-* Invalid ticket state transitions.
-* Invalid contact details.
-* Escalation rules that must not be bypassed.
-
-Request validation does not replace domain invariants.
-
-The same domain entity may be called by another feature, background process, or future integration. Domain rules must therefore remain enforced independently of the HTTP request.
+The same entity may be called by another feature, a background process, or a future
+integration. A rule enforced only in a validator is a rule that holds only for HTTP.
 
 ## Error handling
 
-Invariant and business violations are represented through explicit application or domain exceptions as appropriate.
+Domain and application exceptions represent invariant and business violations.
+Exception-to-HTTP translation is centralised in one middleware in `Wasl.Api`, which maps
+known exceptions to the `ProblemDetails` contract in `05-api-conventions.md`.
 
-Exception-to-HTTP translation is centralized in a single exception-handling middleware.
+Unexpected exceptions return a trace id and nothing else. `detail` never carries a stack
+trace, SQL, an exception type name, or a connection string.
 
-The middleware maps known exceptions to the system's `ProblemDetails` contract.
-
-Unexpected exceptions are handled separately and must not expose implementation details to clients.
-
-The system uses one consistent error-handling approach rather than mixing multiple response patterns within feature handlers.
+One error-handling approach, everywhere. `Result<T>` is the better pattern in a larger
+system, and mixing both is worse than either.
 
 ## Time
 
-Time-dependent behavior uses `TimeProvider`.
-
-Handlers and domain-adjacent services must not call:
-
-```text
-DateTime.UtcNow
-```
-
-inline when the value affects business behavior.
-
-Using `TimeProvider` allows time to be controlled during tests.
+`TimeProvider`, injected. Nothing calls `DateTime.UtcNow` inline where the value affects
+behaviour, so time can be controlled in a test.
 
 ## Current user
 
-Current user information is exposed through an `ICurrentUser` abstraction resolved from JWT claims.
-
-Features depend on the abstraction rather than reading HTTP claims directly throughout the application.
-
-This keeps current-user access consistent while avoiding a repository-like abstraction where none is needed.
+`ICurrentUser` is declared in `Wasl.Application/Common/Abstractions` and implemented in
+`Wasl.Infrastructure/Auth`, resolved from JWT claims. Features depend on the abstraction
+rather than reading HTTP claims throughout the application.
 
 ## Localization
 
-`RequestLocalizationMiddleware` is configured in `Wasl.Api` after authentication.
+`RequestLocalizationMiddleware` is registered in `Wasl.Api` **after**
+`UseAuthentication()`. Registered before it, the custom culture provider cannot see the
+user and silently returns nothing — `decisions/ADR-007-localization.md` calls this the
+single most likely defect in this build.
 
-Resources are colocated with the code that owns the message where practical.
-
-The frontend owns strings it authors, including:
-
-* Labels.
-* Buttons.
-* Headings.
-* Empty states.
-* Display names.
-
-The frontend may mirror server-side rules to improve the user experience, for example by disabling a status action that would be rejected.
-
-The frontend is never the authority for business rules.
-
-Every rule mirrored by the frontend must also be enforced server-side.
-
-Server-authored messages follow the ownership rules defined in `decisions/ADR-007-localization.md`.
+Server-authored resources live in `Wasl.Application/Resources`, next to the code that
+raises the messages. The client owns the strings it authors. Machine-readable values —
+`ProblemDetails.type`, the keys of `errors`, enum values, `TicketNumber`, `traceId` — are
+never translated.
 
 ## Cross-cutting concerns
 
-| Concern           | Where it lives                                                                                        |
-| ----------------- | ----------------------------------------------------------------------------------------------------- |
-| Validation        | FluentValidation through a MediatR pipeline behavior; invariants remain in `Wasl.Domain`               |
-| Error translation | Single exception-handling middleware in `Wasl.Api`                                                     |
-| Audit / history   | Audit behavior and feature/domain changes participate in the same transaction                         |
-| Transactions      | Transaction pipeline behavior for state-changing commands                                             |
-| Time              | `TimeProvider` injected where time affects behavior                                                   |
-| Current user      | `ICurrentUser` abstraction resolved from JWT claims                                                   |
-| Authorization     | Endpoint policies for role-only checks; feature-level checks for decisions requiring application data |
-| Persistence       | EF Core `WaslDbContext`, configurations, and migrations in `Wasl.Api/Common/Persistence`                |
-| Localization      | `RequestLocalizationMiddleware` in `Wasl.Api`; resources colocated with the code that owns the message |
+| Concern | Where it lives |
+|---|---|
+| Validation | `ValidationBehaviour` in `Wasl.Application/Common/Behaviours`; invariants in `Wasl.Domain` |
+| Error translation | Single exception-handling middleware in `Wasl.Api` |
+| Audit | `AuditBehaviour`, writing in the same transaction as the change |
+| History | The domain raises the change; the handler writes `TicketHistory` in the same transaction |
+| Transactions | `TransactionBehaviour`, one per state-changing request |
+| Time | `TimeProvider`, injected |
+| Current user | `ICurrentUser`, declared in Application, implemented in Infrastructure |
+| Authorisation | Endpoint policies for role-only checks; handler-level checks where the decision needs data |
+| Persistence | `IApplicationDbContext` declared in Application; `WaslDbContext`, configurations, and migrations in `Wasl.Infrastructure/Persistence` |
+| Localization | `RequestLocalizationMiddleware` in `Wasl.Api`, after authentication; resources in `Wasl.Application/Resources` |
 
 ## Testing strategy
 
-### Domain tests
+### `Wasl.Domain.Tests`
 
-`Wasl.Domain.Tests` contains pure unit tests for:
+Pure unit tests: value objects, entity invariants, the full ticket transition matrix,
+escalation rules. No database, no HTTP.
 
-* Value objects.
-* Entity invariants.
-* Ticket state transitions.
-* Escalation rules.
-* Other domain behavior independent of HTTP and the database.
+Tools: xUnit, FluentAssertions, and Moq only where a collaborator genuinely has to be
+faked.
 
-These tests use:
+### `Wasl.Application.Tests`
 
-* xUnit.
-* FluentAssertions.
-* Moq only where a real collaborator must be faked.
+Use case tests with faked infrastructure. `IApplicationDbContext` is the seam that makes
+these possible without a database, which is the practical return on declaring it.
 
-### Integration tests
+### `Wasl.Api.IntegrationTests`
 
-`Wasl.Api.IntegrationTests` verifies feature behavior through the real HTTP pipeline.
+Real HTTP through `WebApplicationFactory`, real SQL Server through Testcontainers, the
+real EF Core configuration, and authentication set up as the test needs.
 
-Tests use:
+Never EF `InMemory`: it enforces no unique constraints, no foreign keys, and no
+concurrency tokens, which are exactly what these tests exist to verify.
 
-* `WebApplicationFactory`.
-* SQL Server through Testcontainers.
-* The real EF Core configuration.
-* Authentication setup appropriate to the test environment.
-
-Integration tests verify the complete behavior of important slices, including:
-
-* Routing.
-* Validation.
-* Authorization.
-* Database persistence.
-* Transactions.
-* Error translation.
-* Feature-specific business behavior.
-
-The primary testing boundary for a use case is therefore the feature itself, while pure business rules remain independently unit-testable in `Wasl.Domain.Tests`.
+Covers routing, validation, authorisation, persistence, transactions, error translation,
+and the business behaviour of the endpoint.
 
 ## Architectural rules
 
-The following rules define the intended boundaries:
-
-1. `Wasl.Domain` has no dependency on ASP.NET Core, EF Core, HTTP, or database infrastructure.
-2. Features may depend on `Wasl.Domain`; the domain never depends on features.
-3. A use case is organized as a vertical slice rather than being distributed across technical-layer projects.
-4. Commands change state; queries read and project state.
-5. CQRS is an organizational pattern and does not require separate databases or deployments.
-6. EF Core is used directly through `WaslDbContext`; generic repositories are not introduced without a concrete need.
-7. Complex queries may use named query objects when naming and isolating the query improves clarity.
-8. Validation, transactions, and auditing are applied structurally through the request pipeline where applicable.
-9. Domain invariants remain enforced independently of request validation.
-10. Every state-changing operation requiring an audit record must ensure that record participates in the same transaction as the change.
-11. Feature-specific authorization decisions remain close to the feature that requires them.
-12. A feature should be understandable and changeable primarily from its own folder.
+1. `Wasl.Domain` has no dependency on ASP.NET Core, EF Core, HTTP, or MediatR.
+2. `Wasl.Application` has no dependency on EF Core or ASP.NET Core. It declares the
+   interfaces it needs; `Wasl.Infrastructure` implements them.
+3. `Wasl.Infrastructure` never depends on `Wasl.Api`.
+4. A use case is organised as a feature folder inside `Wasl.Application`, not as
+   `Commands/` and `Handlers/` directories.
+5. Commands change state; queries read and project it.
+6. CQRS is organisational. It does not imply separate databases or deployments.
+7. EF Core is reached through `IApplicationDbContext`. No generic repository.
+8. A named query class exists only where a query is complex enough to name and test. A
+   third one needs a written reason.
+9. Validation, transactions, and auditing are applied structurally through the pipeline.
+10. Domain invariants are enforced independently of request validation.
+11. Every state-changing operation requiring an audit record has that record in the same
+    transaction as the change.
+12. Authorisation decisions requiring data live in the handler; role-only checks live at
+    the boundary.
+13. Controllers bind, authorise, dispatch, and map. They contain no business rules.
 
 ## Why this structure
 
-The system has a limited number of entities and use cases, with relatively low coupling between features.
+The layering provides the boundaries that matter: the domain does not know about EF Core,
+and the API does not know about the database. Those are what SOLID and DDD are asking for.
+Process boundaries are a deployment concern, not a design one.
 
-A four-project `Domain` / `Application` / `Infrastructure` / `Api` structure would distribute a single user story across multiple projects even when the behavior itself is small and self-contained.
+Four projects do mean that adding one endpoint touches four of them. That cost is real and
+it is accepted for the reasons in `decisions/ADR-010-vertical-slices.md`: the shape is
+what a reviewer expects, it is what the developer is fastest in, and the assessment
+rewards separation of concerns a reader can see without being walked through it. The
+feature folders inside `Wasl.Application` are what stop that cost also meaning four
+*unrelated* folders.
 
-Vertical slices keep the implementation of a use case together.
+The domain project stays isolated because this system genuinely has business logic
+spanning multiple use cases — ticket state transitions, escalation rules, customer contact
+invariants, shared value objects — and those rules must be testable without a database.
 
-The domain project remains isolated because the system does have business logic that genuinely spans multiple use cases, particularly around:
-
-* Ticket state transitions.
-* Escalation rules.
-* Customer contact invariants.
-* Shared value objects.
-
-This structure keeps those rules independent and testable without introducing additional application and infrastructure projects solely for structural symmetry.
-
-If the system grows significantly, with stronger module boundaries, multiple teams, or substantial independent infrastructure concerns, the structure can be split further. The current architecture intentionally optimizes for the present system while preserving a clear path for future extraction.
+If the system grew, with stronger module boundaries, multiple teams, or substantial
+independent infrastructure concerns, the layer boundaries are where it would be cut.
+Keeping them clean now is what makes that possible later.

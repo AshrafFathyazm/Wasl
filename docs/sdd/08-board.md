@@ -15,6 +15,36 @@ Last updated: *(update this line with every board change)*
 | `Done` | Definition of Done satisfied with evidence |
 | `Deferred` | Consciously cut, with a recorded reason |
 
+## Three-day constraint
+
+**Deadline Wednesday 26 August. About nine hours of working time.** This answers
+`11-open-questions.md` Q-5, which had been open since before the deadline was known.
+
+The tables below are unchanged and remain the plan for the unconstrained build. Under nine
+hours the committed scope is narrower:
+
+| Committed under nine hours | Note |
+|---|---|
+| **US-005** Create Ticket | |
+| **US-007** Assign Ticket | |
+| **US-008** Change Ticket Status | With the full BR-1 transition test set |
+| **US-001** Create Customer | **Seeded**, not built through the UI. The endpoint's spec is written and unbuilt |
+
+**Everything else in Release 1 moves to Release 2** — US-002, US-006, US-010, US-014, and
+the localization and audit infrastructure. Authentication is split: the token endpoint,
+seeded users, and authorisation policies are **in**, because BR-2 and BR-6 have `403`
+acceptance criteria and a faked user would make them unverifiable (`ADR-005`). The login
+screen is out.
+
+The session-by-session plan is `16-three-day-plan.md`. It also records a real conflict
+this creates with the compression section further down this file, which says localization
+and the audit behaviour are never cut — under nine hours, two of those four are cut, and
+that contradiction is documented there rather than quietly resolved.
+
+Product-level scope selection against the twelve sections of the supplied scope document
+is a separate question and lives in `15-scope-coverage.md`. Those are decisions; these are
+schedule.
+
 ## Release 1 — the core flow
 
 These eight stories are the committed scope. Every one of them goes through the full

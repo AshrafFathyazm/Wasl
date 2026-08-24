@@ -119,8 +119,8 @@ src/Wasl.Application/Tickets/Create/CreateTicketCommand.cs
 src/Wasl.Application/Tickets/Create/CreateTicketHandler.cs
 src/Wasl.Application/Tickets/Create/CreateTicketValidator.cs
 src/Wasl.Application/Tickets/TicketDto.cs
-src/Wasl.Application/Abstractions/ITicketRepository.cs
-src/Wasl.Application/Abstractions/ITicketNumberGenerator.cs
+src/Wasl.Application/Common/Abstractions/IApplicationDbContext.cs
+src/Wasl.Application/Common/Abstractions/ITicketNumberGenerator.cs
 src/Wasl.Infrastructure/Persistence/Configurations/TicketConfiguration.cs
 src/Wasl.Infrastructure/Persistence/Configurations/TicketHistoryConfiguration.cs
 src/Wasl.Infrastructure/Persistence/SequenceTicketNumberGenerator.cs
