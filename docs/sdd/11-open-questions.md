@@ -98,12 +98,18 @@ held, which is worth more than an estimate being generous.
 release tables, and `16-three-day-plan.md` is the nine-hour cut of `PHASES.md` — three
 sessions of three hours, with every cut pointing at where its design already lives.
 
-**One consequence recorded rather than smoothed over:** the nine-hour plan cuts
-localization and the audit log, and `08-board.md`'s compression section says neither is
-ever cut. Both positions were written under different assumptions about the budget. The
-conflict is documented in `16-three-day-plan.md` and needs the product owner's
-confirmation — if bilingual is non-negotiable, the honest consequence is that US-007
-leaves the committed scope, not that the estimate shrinks.
+**One consequence, and it was resolved rather than left open.** `08-board.md`'s compression
+section says localization and the audit behaviour are never cut; the nine-hour budget
+cannot afford them in full. The answer was neither — both are **reduced to their minimum
+useful form**: the catalogue and the Arabic strings without the switcher screen, the table
+and the pipeline behaviour without the read endpoint. Roughly 1h45 rather than three hours,
+and **US-007 stays in the committed scope**.
+
+The reasoning is that the expensive half of each was never the capability, it was the
+retrofit — and the retrofit is only expensive if the discipline is skipped at the start.
+Detail in `16-three-day-plan.md`; the decision is recorded in `12-delivery-log.md`, which
+supersedes the "never cut" line rather than contradicting it. **A changed constraint
+producing a changed decision is what the delivery log is for.**
 
 ---
 

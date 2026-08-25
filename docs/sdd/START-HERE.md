@@ -3,6 +3,9 @@
 The day-one runbook. Everything else in this repository is reference; this is the
 order to actually do things in.
 
+> **Under the three-day constraint, follow `16-three-day-plan.md`. The fuller phase plan in
+> `PHASES.md` remains the plan for an unconstrained build.**
+
 ## The constraint, first
 
 **Three calendar days. Deadline Wednesday 26 August. About nine hours of working time.**
@@ -60,9 +63,9 @@ speculative, seven is a retrofit, one is free.
 
 ## The skeleton, in outline
 
-This is roughly two days and it is not a story. Nothing can be verified before it
-exists, and three of its five parts are things that cost almost nothing now and a
-rewrite later.
+Under the nine-hour constraint this is **roughly the first session and a half**, not two
+days — see `16-three-day-plan.md`. It is not a story. Nothing can be verified before it
+exists, and three of its parts cost almost nothing now and a rewrite later.
 
 | # | Piece | Why first |
 |---|---|---|
@@ -71,7 +74,7 @@ rewrite later.
 | 3 | `ProblemDetails` middleware + the error contract (`05-api-conventions.md`) | Retrofitting an error contract means touching every endpoint |
 | 4 | **Localization infrastructure, both sides** (ADR-007) | Retrofitting means revisiting every string and every stylesheet. `UseRequestLocalization()` **after** `UseAuthentication()` — this fails silently |
 | 5 | **Audit pipeline behaviour + architecture test** (ADR-008) | An audit log added after the handlers exist has invisible holes |
-| 6 | **Design tokens + the eight primitives** (ADR-009) — 1 day, hard stop | Every component built before the tokens exist has to be revisited |
+| 6 | **Design tokens + three primitives** — Button, Input, Badge (ADR-009). The other five are added when a screen needs one | Every component built before the tokens exist has to be revisited |
 | 7 | Integration test harness: `WebApplicationFactory` + Testcontainers | "Tests pass" needs somewhere to run |
 
 Items 4, 5, and 6 are the ones that look skippable and are not. 6 is the only one with
@@ -104,12 +107,12 @@ hours.
 
 | Axis | Weight | Where it is earned |
 |---|---|---|
-| Planning & Task Breakdown | **20** | Already done, in `story-artifacts/*/plan.md` and `tasks.md` |
+| Planning & Task Breakdown | **20** | Already done, in `specs/*/plan.md` and `tasks.md`, plus `15-scope-coverage.md` and `16-three-day-plan.md` |
 | Requirement & Specification | 10 | Already done, plus how you handle the four questions above |
 | AI Usage & Verification | 10 | `ai-notes.md` per story — specific, not "AI helped and I reviewed" |
 | Engineering Foundations | 10 | The skeleton |
 | Backend / API / Database | 10 | US-001, US-005, US-008 |
-| Frontend & End-to-End | 10 | The demo flow working in both languages |
+| Frontend & End-to-End | 10 | The demo flow working, with Arabic strings present and RTL verified on the screens that exist |
 | Correctness, Testing, Ownership | 20 + **gate** | Tests, and being able to say why for every decision |
 
 **Thirty points are already earned before you open an editor.** That is why the specs

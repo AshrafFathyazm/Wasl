@@ -1,5 +1,12 @@
 # Feature Specifications
 
+> **Three-day constraint — about nine hours.** Only four features are on the critical
+> path: **`009-create-ticket`**, **`011-assign-ticket`**, **`012-change-ticket-status`**,
+> and **`007-create-customer`** (seeded, not built through the UI). The other eighteen are
+> specified and deferred. The session plan is
+> [docs/sdd/16-three-day-plan.md](../docs/sdd/16-three-day-plan.md); what was cut from the
+> product scope and why is [docs/sdd/15-scope-coverage.md](../docs/sdd/15-scope-coverage.md).
+
 Every feature in Wasl is specified before it is built, in a numbered folder here.
 
 This file is the plan: what gets built, in what order, who builds each part, and what

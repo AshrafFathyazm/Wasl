@@ -115,7 +115,32 @@ and `ar`.
 
 <!-- MANUAL ADDITIONS START -->
 
-## Working agreement
+## Working agreement — the gates, in order
+
+**No feature is implemented without an approved spec, and no commit happens without
+permission. Both gates are per feature, every time.**
+
+```text
+1. spec        write the spec for the feature — nothing else, no code
+2. questions   anything unclear or needing a change → ask. Do not assume, do not
+               guess a requirement into the spec
+3. review      the product owner reads the spec in full. Wait
+4. approval    ask explicitly: "may I implement this spec?" and wait for yes
+5. implement   build it, task by task
+6. summary     write summary.md inside the same spec folder: what was built, the
+               trade-offs, what deviated from the plan and why, known limitations
+7. permission  ask before `git commit` and before `git push`. Every time
+```
+
+| Gate | Do not |
+|---|---|
+| 1 | Write code, scaffold a project, or install a package before the spec exists |
+| 2 | Invent a missing requirement. It goes to **Open Questions** in `spec.md`, never into the design |
+| 3–4 | Start implementing because the spec "looks approved". Approval is a yes, not an absence of objection |
+| 6 | Leave the feature without a `summary.md`. An implemented feature with no summary cannot be reviewed against what it promised |
+| 7 | Run `git commit`, `git push`, or `gh pr create` without being asked. Approval of one commit is not approval of the next |
+
+Writing, editing, and `git add` need no permission. The line is at commit and push.
 
 One feature in progress at a time. The plan — phases, feature numbering, task IDs, and
 who builds what — is [specs/README.md](specs/README.md).

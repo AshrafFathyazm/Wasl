@@ -168,6 +168,21 @@ after the handlers exist is an audit log with holes in it, and the holes are inv
 English-only product against a stated requirement. Cutting the third means the central
 business rule is unproven.
 
+> **Superseded for the nine-hour build — see `16-three-day-plan.md`.**
+>
+> The paragraph above was written assuming 20–25 hours, where localization and audit are
+> roughly a tenth of the budget. At nine hours they are a third, and the answer is neither
+> "keep in full" nor "cut": both are **reduced to their minimum useful form** — the
+> catalogue and the Arabic strings without the switcher screen, the table and the pipeline
+> behaviour without the read endpoint. Roughly 1h45 rather than three hours, and both
+> capabilities are demonstrably present rather than absent.
+>
+> The state machine tests are not reduced. They stay as written.
+>
+> This is a changed constraint producing a changed decision, recorded in
+> `12-delivery-log.md`. It is not a contradiction of the paragraph above; it is what that
+> paragraph would have said at nine hours.
+
 ## Work-in-progress limit
 
 One story in `In Progress` at a time. The cost of a half-finished second story is
