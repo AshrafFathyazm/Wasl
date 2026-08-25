@@ -65,7 +65,7 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | # | Assumption | If wrong |
 |---|---|---|
 | A-1 | Docker is available on the machine that runs the integration suite | **Unreliable here** — the daemon restarted mid-pull and the image download failed with `unexpected EOF` (`research.md` R-8). The **development loop no longer depends on it**: it uses the local `.\SQLEXPRESS` instance. Only the integration suite does, and if Docker is down that suite is recorded in `tests.md` as **not run, with the reason** — never as a pass |
-| A-2 | The CI runner can run Linux containers | Integration tests are skipped in CI with an explicit skip reason, never silently. AC-9 fails if they are skipped without one |
+| ~~A-2~~ | **Not an assumption — a decision.** The CI runner is `ubuntu-latest`, which ships with Docker, so Testcontainers works with no setup. The only runner that cannot host Linux containers is a Windows one, and we are not choosing that | Nothing. If the runner cannot start a container, the **job fails**. See AC-9 — there is no skip path in CI |
 | A-3 | ~~.NET 10 SDK is installed~~ — **verified**: `10.0.200` is present (`research.md` R-3). The framework choice is no longer an assumption either; the product owner confirmed .NET 10 on 2026-08-23 | The remaining risk is not *whether* an SDK is installed but *which one resolves*, since a preview `10.0.400` is also present and is the highest version. `global.json` removes it — AC-13 |
 | A-4 | `Guid` keys are generated client-side, so an entity has its id before `SaveChanges` | Sequential-GUID index fragmentation is a real concern at volume and not at this one. Recorded in `research.md` R-5 |
 
@@ -88,7 +88,8 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | AC-6 | An integration test boots the API through `WebApplicationFactory` against a `Testcontainers.MsSql` instance, applies migrations, and asserts AC-4 |
 | AC-7 | An architecture test fails if `Wasl.Domain` gains a reference to EF Core, ASP.NET Core, MediatR, or any third-party package |
 | AC-8 | Every `DateTime` round-tripped through the database comes back with `DateTimeKind.Utc`, asserted by an integration test that writes and re-reads a row |
-| AC-9 | CI runs build, unit tests, and integration tests on every push. A skipped test suite fails the job unless it carries an explicit skip reason |
+| AC-9 | CI runs build, unit tests, **and integration tests** on every push, on `ubuntu-latest`. **The integration suite has no skip path: if it does not run, the job fails.** An individual test may be skipped with a written reason; the suite may not. A green run with the suite absent is the failure this criterion exists to prevent |
+| AC-9b | Running locally without Docker is a valid state, and a different one: the integration suite is **not run**, and `tests.md` records it as not run **with the reason**. Never as a pass, and never as a green CI |
 | AC-10 | No connection string, password, or key appears in a committed file. The development loop uses Windows auth, so **there is no password to leak**; the only credential in the repository is the throwaway `sa` password in `docker-compose.yml`, which exists for a test container and is documented as such |
 | AC-11 | `Directory.Build.props` sets `Nullable=enable` and `TreatWarningsAsErrors=true` for every project, including the test projects |
 | AC-12 | The `Customers` table exists with `nvarchar` text columns, `datetime2(3)` timestamps, a `rowversion` column, and the contact check constraint — verified by querying `INFORMATION_SCHEMA` and `sys.check_constraints`, not by reading the migration |
@@ -102,7 +103,8 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | Migration run against a database that already has an unrelated table | Applies cleanly; the migration touches only its own objects |
 | `/health` called while the database is starting but not accepting connections | `503`, with the database check named as failing — not a hang and not a 500 |
 | Container port already in use | `docker compose` fails with a readable message; the port is documented in `quickstart.md` so it can be changed |
-| Integration test run with no Docker daemon | The suite fails fast with a message naming Docker, rather than timing out |
+| Integration test run with no Docker daemon, **locally** | The suite fails fast with a message naming Docker, rather than timing out. `tests.md` records it as not run, with the reason |
+| Integration test run with no Docker daemon, **in CI** | The job fails. There is no skip path, and a green run with the suite absent is exactly what AC-9 forbids |
 | A `DateTime` with `Kind = Local` passed to a handler | The converter normalises to UTC on write. A test asserts this rather than trusting it |
 | Arabic text written to `Customers.FullName` | Round-trips intact. `varchar` would return `????`, and this is the test that would catch it (ADR-013 row 4) |
 

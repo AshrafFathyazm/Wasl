@@ -1,0 +1,44 @@
+# SQL Server for the **integration suite** and for anyone without a local instance.
+#
+# The application itself does not need this: the development loop connects to the local
+# SQL Server 2022 Express instance over Windows auth, which needs nothing started and
+# stores no password. See specs/001-solution-skeleton/quickstart.md.
+#
+# The integration suite does not use this container either — Testcontainers starts its own
+# so each run gets a clean database. This file is here for a manual poke at a throwaway
+# database, and for a contributor whose machine has no local instance.
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: wasl-db
+    environment:
+      # Without this the container exits immediately and logs nothing useful. It is the
+      # least helpful failure in this stack, so it is set here and explained in quickstart.
+      ACCEPT_EULA: "Y"
+      # Must satisfy SQL Server's complexity policy — 8+ characters, three of
+      # upper/lower/digit/symbol — or the container starts and then refuses every
+      # connection, which looks like a networking problem and is not one.
+      #
+      # This is a local throwaway credential for a disposable container. It is NOT the
+      # application's connection string: that one uses Windows auth and has no password
+      # (AC-10).
+      MSSQL_SA_PASSWORD: "Wasl_Local_Dev_2026!"
+      MSSQL_PID: Developer
+    ports:
+      - "14330:1433"
+    healthcheck:
+      # The port accepts connections several seconds before the engine will answer a
+      # query, so the check runs a query rather than probing the socket.
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - wasl-db-data:/var/opt/mssql
+
+volumes:
+  wasl-db-data:

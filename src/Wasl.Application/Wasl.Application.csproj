@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wasl.Domain\Wasl.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

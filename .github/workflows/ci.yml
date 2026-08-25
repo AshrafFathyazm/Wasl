@@ -1,0 +1,63 @@
+name: CI
+
+# Added in feature 001 rather than later, deliberately: it costs one file now, and adding
+# it after twenty commits means fixing twenty commits' worth of drift in one sitting.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    # ubuntu-latest ships with Docker, so Testcontainers works with no setup. This is a
+    # decision, not an assumption — the only runner that cannot host Linux containers is
+    # a Windows one, and we are not choosing that. See spec.md, the row that used to be A-2.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          # No version here on purpose: global.json pins it. Two places to change the SDK
+          # is one place too many.
+          global-json-file: global.json
+
+      - name: Report the resolved SDK
+        run: dotnet --version
+
+      - name: Restore
+        run: dotnet restore
+
+      # Warnings are errors (Directory.Build.props), so this step is also the warning gate.
+      # On the first run it caught a high-severity advisory in a transitive package.
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Unit tests — domain
+        run: dotnet test tests/Wasl.Domain.Tests --no-build --configuration Release
+
+      - name: Unit tests — application, including the layer-boundary architecture test
+        run: dotnet test tests/Wasl.Application.Tests --no-build --configuration Release
+
+      # AC-9: the integration suite has NO skip path. If it cannot run, the job fails.
+      # An individual test may be skipped with a written reason; the suite may not.
+      - name: Integration tests — real SQL Server via Testcontainers
+        run: |
+          set -o pipefail
+          dotnet test tests/Wasl.Api.IntegrationTests \
+            --no-build --configuration Release \
+            --logger "console;verbosity=normal" | tee integration.log
+
+      # A green run with the suite absent is the failure AC-9 exists to prevent, and
+      # "the tests passed" does not distinguish it from a suite that ran. This does.
+      - name: Assert the integration suite actually ran
+        run: |
+          if grep -qE 'Total:[[:space:]]*0' integration.log; then
+            echo "::error::The integration suite reported zero tests. AC-9 forbids a green run with the suite absent."
+            exit 1
+          fi
+          grep -E 'Passed!|Failed!' integration.log

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Wasl.Api/Wasl.Api.csproj" />
+    <Project Path="src/Wasl.Application/Wasl.Application.csproj" />
+    <Project Path="src/Wasl.Domain/Wasl.Domain.csproj" />
+    <Project Path="src/Wasl.Infrastructure/Wasl.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Wasl.Api.IntegrationTests/Wasl.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Wasl.Application.Tests/Wasl.Application.Tests.csproj" />
+    <Project Path="tests/Wasl.Domain.Tests/Wasl.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

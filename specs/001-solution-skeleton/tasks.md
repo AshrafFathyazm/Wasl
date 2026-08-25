@@ -31,7 +31,7 @@ Everything else hardens it. These make it exist.
 | BE-001-07 | `GET /health` returns the `200` shape in `contracts/health-api.md`, unauthenticated | BE-001-04 | `curl -s localhost:7001/health \| jq` matches the contract | AC-4 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-001-08 | `GET /health` returns `503` with the failing check named when the database is unreachable | BE-001-07 | Point the app at a dead connection string, call the endpoint, read the status line | AC-5 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-001-09 | No credential anywhere in `src/`: the development loop uses Windows auth, and `appsettings.json` carries no connection string at all | BE-001-03 | `git grep -iE "password|Pwd=" -- src/` returns nothing | AC-10 | `comprehensive-review:security-auditor` | — |
-| BE-001-10 | `.github/workflows/ci.yml` runs build, unit, and integration on push, with Docker available to the runner | BE-001-05, BE-001-07 | A green run visible on the first push | AC-9 | `voltagent-lang:dotnet-core-expert` | — |
+| BE-001-10 | `.github/workflows/ci.yml` on `ubuntu-latest` runs build, unit, **and integration** on push. No skip path for the integration suite | BE-001-05, BE-001-07 | A green run visible on the first push, with the integration suite's test count non-zero in the log | AC-9 | `voltagent-lang:dotnet-core-expert` | — |
 | BE-001-11 | `global.json` pins the SDK to `10.0.200` with `rollForward: latestFeature`, so the installed `10.0.400-preview` is not used | BE-001-01 | `dotnet --version` run **inside the repository** reports `10.0.200`, not the preview | AC-13 | `voltagent-lang:dotnet-core-expert` | — |
 
 ## Frontend
