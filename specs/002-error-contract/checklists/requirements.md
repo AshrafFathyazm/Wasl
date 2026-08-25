@@ -42,7 +42,7 @@ again before the feature closes.
 | ☑ | Server logs stay English at every locale | BR-8.9 |
 | ☑ | `traceId` joins the response, the log, and the audit row | BR-9.9 |
 | ☑ | Nothing leaks a stack trace, exception name, SQL, path, or configuration value | NFR-4, `docs/sdd/testing/security-checklist.md` |
-| ☑ | `Wasl.Domain` gains no HTTP type and no package reference | ADR-010, constitution III; enforced by `001`'s architecture test plus a `grep` in BE-002-01 |
+| ☑ | `Wasl.Domain` gains no HTTP type and no package reference | ADR-002, constitution III; enforced by `001`'s architecture test plus a `grep` in BE-002-01 |
 | ☑ | Validation is a pipeline behaviour, not per-handler discipline | Constitution V; MediatR's stated justification in Technology Constraints |
 | ☑ | `UseRequestLocalization` after `UseAuthentication` is recorded for whoever adds them | ADR-007 §4; written out in `plan.md`'s `Program.cs` block |
 | ☑ | Integration tests use the real host and a real engine, never EF `InMemory` | `docs/sdd/testing/test-strategy.md` |

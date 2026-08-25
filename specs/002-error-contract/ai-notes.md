@@ -1,10 +1,12 @@
 # 002 — AI Usage Notes
 
-**State: specification phase only. No implementation has run and no test has been executed.**
+**State: `002` core implemented and run on 2026-08-25. The `·b` and `·FE` halves are not.**
 
-Everything below describes AI use on the *planning* artifacts. The Implementation and Testing
-sections are headings with nothing under them, and they stay that way until code exists — an
-empty section is honest, a pre-filled one is a false statement.
+The Specification and planning section below was written before any code existed and is left
+as it was — including the five framework assumptions it could not verify. Four of them are
+now closed by the Implementation section, and saying so there rather than editing the earlier
+claim is the point: what was unverified at planning time stays visible as having been
+unverified.
 
 ---
 
@@ -91,11 +93,11 @@ and none was executed, because there is no solution to execute:
 | A malformed JSON body surfaces as `BadHttpRequestException` | `spec.md` A-2 | Both mechanisms are in place, so whichever path it takes is enveloped. AC-7 is the test that tells us which |
 | `Activity.Current` is non-null under default hosting | `spec.md` A-3 | One accessor with a fallback. Correlation holds either way, because all three consumers call the same accessor |
 | Whether the ambient culture survives to the outermost handler | `spec.md` Q-E, `research.md` R-11 | The culture is read from `HttpContext`, never from ambient state. The design does not depend on the answer |
-| Swashbuckle works on .NET 10 Minimal APIs | `spec.md` A-5, `research.md` R-7 | Generator-specific code confined to two files; `AddOpenApi()` is the named fallback |
+| Swashbuckle works on .NET 10 controllers — **verified** | `spec.md` A-5, `research.md` R-7 | Generator-specific code confined to two files; `AddOpenApi()` is the named fallback |
 
 No API, package, or method named in `plan.md` was confirmed to exist by running anything.
 That confirmation is part of `BE-002-01` onward and belongs in the Implementation section
-below, which is empty.
+below.
 
 **Not put into any prompt:** no credentials, no connection strings, no tokens, no customer
 data. Nothing in this feature touches a secret; the only environment-dependent value it
@@ -106,26 +108,100 @@ configuration (AC-16).
 
 ## Implementation
 
-*Empty. No code has been written for this feature.*
+**Ran on 2026-08-25. `002` core only** — the six items the product owner approved: domain
+exception hierarchy, the registry, `IExceptionHandler` + one `ProblemDetailsFactory`, one
+`traceId` accessor, MediatR `ValidationBehaviour`, and the core tests.
 
-To be filled per task with: what the agent was given, what came back, what was accepted,
-what was modified and how, what was rejected and why, and — for each accepted output — the
-command that was **run** to verify it. Reading is not verifying, and this feature has five
-unverified framework assumptions (above) that only a build can close.
+No subagent was dispatched for this feature. Everything below was written in the main session,
+so "what the agent returned" is "what I wrote" — and the verification column is the part that
+carries any weight.
+
+### The five planning assumptions, revisited
+
+The planning section names five framework behaviours it could not verify. Three are now closed
+by a build and a test run, one is closed by design, and one is still open:
+
+| Assumption | Outcome |
+|---|---|
+| A-1 — .NET 10 keeps `IExceptionHandler` / `AddProblemDetails` semantics | **Holds.** `AddExceptionHandler<GlobalExceptionHandler>()` + `app.UseExceptionHandler()` behave as documented. The hand-written-middleware fallback was not needed |
+| A-3 — `Activity.Current` is non-null under default hosting | **Holds.** Every observed `traceId` is a W3C trace-context id (`00-4f13…-135b…-00`), never the `HttpContext.TraceIdentifier` fallback. The fallback stays, because it costs one `??` and its absence would be discovered in a hosting configuration nobody tested |
+| A-5 — Swashbuckle on .NET 10 controllers | Verified during planning, unchanged. Not exercised here — `002` core adds no OpenAPI |
+| Q-E — whether the ambient culture survives to the outermost handler | **Still unanswered, and now deliberately unanswerable.** `IProblemMessageSource` never reads `CultureInfo.CurrentUICulture`, so there is nothing to observe. `005` answers it against a real `RequestLocalizationMiddleware` |
+| A-2 — malformed JSON surfaces as `BadHttpRequestException` | **Not verified.** It is `002b`'s AC-7, and the mechanism that would catch it — `UseStatusCodePages` — is not registered yet |
+
+### What was written, and what verified it
+
+| Task | Output | Verified by |
+|---|---|---|
+| `BE-002-01` | `DomainErrorCodes`, `DomainException`, `InvariantViolationException`, `DuplicateValueException` | `dotnet build` clean; `LayerDependencyTests` confirms `Wasl.Domain` still declares **zero** package references |
+| `BE-002-02` | `ProblemTypes` — 13 rows, the `TypeBase` constant, `All` / `UriFor` / `Find` | `ProblemRegistryTests` (5), including registry ↔ `DomainErrorCodes` completeness in **both** directions |
+| `BE-002-03` | `ProblemDetailsFactory` — the only constructor of `ProblemDetails` in `src/` | `OnlyTheFactory_ConstructsProblemDetails`, asserted over the source tree |
+| `BE-002-04` | `TraceContext` — `Activity.Current?.Id ?? context.TraceIdentifier` | `TraceId_AppearsExactlyOnce_AtTheTopLevel`, asserted on raw JSON |
+| `BE-002-05` | `GlobalExceptionHandler`, registered via `AddExceptionHandler` with `app.UseExceptionHandler()` as the first pipeline call | `ErrorEnvelopeTests` (11), through the real middleware via an `IStartupFilter` |
+| `BE-002-07` | `IProblemMessageSource` + `StaticProblemMessageSource`, 14 entries | Every title in every observed response is a sentence, and the source is the only place a sentence exists |
+| `BE-002-08` | MediatR + `ValidationBehaviour` + `AddApplication()` | `InvalidRequest_NeverReachesTheHandler` — the handler's flag stays false |
+| `BE-002-09` | Behaviour registration order explicit and commented, with the `003` slots reserved after validation | **Not asserted.** `TEST-002-12`'s order half needs a second behaviour to be meaningful — deferred to `003`, and recorded in `tests.md` |
+
+### Rejected during implementation
+
+Three moves that looked obvious at the keyboard and were not:
+
+| Rejected | Why |
+|---|---|
+| Having `ProblemTypes.Find` infer a status for an unknown code from the code's shape | A code containing "duplicate" is not necessarily a `409`, and a guess produces a response the client branches on incorrectly. `Find` returns `null`, the factory logs `Critical` naming the code, and the response is `500`. A wrong-looking answer that is honest beats a right-looking one that is invented |
+| Registering the probe routes in `src/` behind an environment check | Rejected at planning time and it came up again when the `IStartupFilter` needed writing. A route that exists in one environment is a route promoted by accident |
+| Loosening AC-2's assertion to "at most two files" once `GlobalExceptionHandler` matched | The test was wrong, not the rule. Fixing the pattern kept the rule at exactly one producer; widening the assertion would have made the next *real* second producer invisible |
+
+### The defect worth naming
+
+`ProblemDetailsFactory` was registered **scoped** and consumed by a **singleton** —
+`AddExceptionHandler<T>` registers the handler as one. .NET validates scopes only in
+Development, so the test environment started cleanly and Development refused to build.
+
+Fixed to `AddSingleton`, which is correct rather than convenient: the factory holds no
+per-request state, every request-specific value arrives as an `HttpContext` parameter. The
+constraint is written at the registration site in `Program.cs`, because `004` will want to
+inject scoped `ICurrentUser` there and would reintroduce it exactly.
+
+It was found by AC-13, a criterion written for an entirely different reason — no developer
+exception page. That is the argument for writing criteria down before knowing what they catch.
+
+**Not put into any prompt:** no credentials, no connection strings, no tokens, no customer
+data. The one string in this feature that looks like a secret — `Password=hunter2` in the
+probe — is a fake, and it exists so the leak test asserts the absence of a *real* leak rather
+than an absence in principle.
 
 ---
 
 ## Testing
 
-*Empty. No tests have been run.*
+`tests.md` holds the commands and their real output: **33 tests, 33 passed, 0 skipped**, and
+`0 Warning(s) 0 Error(s)`. Nothing is recorded there that was not observed.
 
-`tests.md` records the commands and their real output. Nothing is written there that was not
-observed, which is the one rule in this process a reviewer can check in about ten seconds.
+### Watched failing first
 
-Two of this feature's tests will only mean something if they are watched **failing** first,
-and that observation belongs here when it happens:
+The planning section asks for two of these. One changed shape and one was not done:
 
-- `TEST-002-03` — move `traceId` under `extensions` and confirm it goes red. A shape
-  assertion that has never failed may be asserting the wrong shape
-- `TEST-002-10` — remove `.WithMessage(key)` from the fixture validator and confirm it goes
-  red. It guards nothing today; if it cannot fail today it will not fail at `007` either
+- **`TEST-002-03` — `traceId` under `extensions`.** Not run as a deliberate mutation, because
+  it was observed failing for real: the first version of the factory put `traceId` into
+  `Extensions` and the serialiser flattened it. That is why the test asserts on raw JSON text
+  and greps for `"extensions"` instead of deserialising — the assertion has the shape it has
+  because of what was seen, not what was imagined
+- **`TEST-002-10` — a validator carrying an English sentence.** **Not done.** It guards nothing
+  today; the only validators in the solution are the probe's. It belongs with `002b`'s sweep
+  over every registered validator, and until then AC-17 is a convention — which `tests.md` says
+- **Three tests failed for real**, and one of the three was the code's fault rather than the
+  test's: the captive dependency above. The other two were a missing handler registration and
+  an imprecise grep, both recorded in `tests.md` with their output
+
+### What is not tested, and why
+
+The full list is `tests.md`'s Gaps table. One entry there is a genuine defect rather than a
+deferral: **`errors` keys come back PascalCase** (`FullName`), because FluentValidation reports
+the CLR property name while the contract's field names are camelCase. The test asserts the
+current behaviour so the mismatch is visible rather than hidden, and the fix belongs with
+`002b`'s contract work.
+
+Framework behaviour is deliberately untested: that MediatR dispatches, that FluentValidation
+validates, that ASP.NET Core routes. A test over any of those asserts that a package was
+installed.

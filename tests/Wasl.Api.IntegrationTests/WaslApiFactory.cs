@@ -1,10 +1,14 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using MediatR;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
 using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
+using Wasl.Api.IntegrationTests.Errors;
 using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
 
@@ -92,5 +96,25 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting(
             $"ConnectionStrings:{DependencyInjection.ConnectionStringName}",
             _database.GetConnectionString());
+
+        // The 002 error-contract probes. Test-only routes, mapped here and never in src/,
+        // so the envelope can be asserted against the frozen contract before any product
+        // endpoint exists — which matters for the one feature whose whole job IS that
+        // contract. They also give MediatR a real consumer in this feature (research.md R-10).
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IStartupFilter>(new ProbeRouteStartupFilter());
+
+            // The probe's handler and validator live in THIS assembly, and
+            // AddApplication only scans Wasl.Application — so without these the probe
+            // request finds no handler and the pipeline throws, which surfaces as a 500
+            // and looks exactly like the error contract being broken. Registering the
+            // test assembly puts the probe inside the real pipeline rather than beside it.
+            services.AddMediatR(configuration =>
+                configuration.RegisterServicesFromAssembly(typeof(ProbeCommand).Assembly));
+
+            services.AddValidatorsFromAssembly(
+                typeof(ProbeCommandValidator).Assembly, includeInternalTypes: true);
+        });
     }
 }

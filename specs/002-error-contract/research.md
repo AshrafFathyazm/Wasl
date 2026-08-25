@@ -53,7 +53,7 @@ containment is why the question is answerable now.
 
 ## R-2 · Where does the status code live, if not in the domain exception?
 
-**The constraint:** `Wasl.Domain` has zero package references, ever (ADR-010, Principle
+**The constraint:** `Wasl.Domain` has zero package references, ever (ADR-002, Principle
 III). `Microsoft.AspNetCore.Http.StatusCodes` is a package reference. So a domain exception
 cannot say `409`.
 
@@ -206,13 +206,43 @@ Swashbuckle is the same as for the error contract itself, one layer up.
 
 **The live risk:** Swashbuckle's release cadence has historically trailed .NET's, and .NET
 9 shipped `Microsoft.AspNetCore.OpenApi` as the in-box alternative. If Swashbuckle does not
-support .NET 10 Minimal APIs cleanly, the fallback is `builder.Services.AddOpenApi()` and
+support .NET 10 controllers cleanly, the fallback is `builder.Services.AddOpenApi()` and
 `app.MapOpenApi()`.
 
 **Contained by:** all Swashbuckle-specific code living in `Common/OpenApi/`, and the
 contract naming *the document* rather than the generator. Swapping generators changes two
-files and no acceptance criterion. This is spec A-5 and it is the one assumption in this
-feature most likely to be wrong.
+files and no acceptance criterion. This is spec A-5.
+
+### Checked on 2026-08-25, before adding the package
+
+`001` removed `Microsoft.AspNetCore.OpenApi` because the build gate flagged a
+high-severity advisory in its transitive `Microsoft.OpenApi 2.0.0`. Adding a *different*
+OpenAPI generator without checking whether it drags in the same package would have been
+the same defect wearing a different name, so it was checked in a throwaway project first:
+
+```text
+$ dotnet add package Swashbuckle.AspNetCore
+info : PackageReference for package 'Swashbuckle.AspNetCore' version '10.2.3' added
+
+$ dotnet list package --include-transitive
+   > Swashbuckle.AspNetCore              10.2.3
+   > Microsoft.OpenApi                    2.7.5      ← not the vulnerable 2.0.0
+   > Swashbuckle.AspNetCore.Swagger      10.2.3
+   > Swashbuckle.AspNetCore.SwaggerGen   10.2.3
+   > Swashbuckle.AspNetCore.SwaggerUI    10.2.3
+
+$ dotnet list package --vulnerable --include-transitive
+The given project has no vulnerable packages given the current sources.
+```
+
+**Settled: Swashbuckle 10.2.3 is safe to add**, and it has a .NET 10 release, so the
+"cadence trails .NET" half of the risk has not materialised either. A-5 stands, but it is
+no longer the most likely assumption in this feature to be wrong.
+
+`dotnet list package --vulnerable --include-transitive` belongs in CI — the build gate
+only fails on an advisory NuGet already knows about at restore time, and this command asks
+the question directly. Not added here: it is a change to `001`'s workflow, and it needs its
+own decision about whether a newly-published advisory should turn an unchanged build red.
 
 **Also settled: `/swagger` is Development-only** (AC-23). An OpenAPI document is an
 enumeration of every endpoint and every field, which is reconnaissance
@@ -292,6 +322,44 @@ consumers, and `003` adds the second and third behaviours into a pipeline whose 
 already asserted (AC-20). Recorded as spec A-6 because a reviewer applying `001`'s test
 mechanically will land on it, and the answer should be written down rather than improvised.
 
+### Confirmed by the product owner, 2026-08-25 — and given a boundary
+
+The question was put explicitly, because the same rule had been applied in the **opposite**
+direction two days earlier: `001` used "no abstraction without a consumer" to *defer* the
+async materialisation abstraction. One rule applied in two directions inside one week is
+not a rule, it is a preference.
+
+The distinction that separates the two cases:
+
+| | An abstraction between a caller and a callee | A pipeline behaviour |
+|---|---|---|
+| What it does | Replaces a direct call with an indirect one | Applies a concern to every call, by construction |
+| Cost of adding it late | One call site changes | Every handler written in the meantime changes |
+| Who notices if it is missing | The next caller, immediately | **Nobody** — the concern is simply absent |
+
+`IAsyncQuery` deferred cheaply because the first handler writes it while looking at a real
+call site, and nothing written before then depends on its absence. A behaviour is the other
+column: defer it and every handler written first has to be revisited, and the one that is
+missed is the one that matters.
+
+**And BR-9.3 is not reachable without it.** `003` requires the audit row to be inside the
+same transaction as the change and absent when it rolls back. Without a pipeline that is a
+`using var transaction` in every handler plus a discipline about where the audit write
+goes — exactly the "somebody remembering" ADR-008 exists to replace. The architecture test
+for `IAuditableCommand` has nothing to hook into if there is no pipeline.
+
+**So the exception has an edge rather than a mood:**
+
+> The no-consumer rule does not apply to a **cross-cutting concern applied by construction
+> to a pipeline**, where deferring it means retrofitting every participant written in the
+> meantime. It applies to everything else, including this feature's own message source and
+> trace-id accessor — both of which do have a consumer here.
+
+**What it costs, admitted:** MediatR is registered, one behaviour runs, and the only thing
+passing through it in this feature is a test request. A reviewer applying `001` R-7's test
+literally will flag it, and the answer is the paragraph above rather than a denial that the
+rule was bent.
+
 ---
 
 ## R-11 · Which culture is in force when the envelope is built? (Turned out to matter more than expected)
@@ -337,3 +405,5 @@ second culture to observe.
 **Nothing in `001` is modified.** Its `Program.cs` gains lines; none of its lines change
 meaning. Worth checking explicitly, because "the foundation feature had to be edited" is
 the signal that a phase boundary was drawn in the wrong place.
+
+---

@@ -9,6 +9,54 @@ Agents named here are **not dispatched until the plan is approved**. Naming is t
 dispatching without recording the result in `ai-notes.md` is what turns evidence into a
 claim.
 
+## The split — which of these 49 tasks run now
+
+Decided 2026-08-25; reasoning in `spec.md`. Nothing below is deleted; each task is marked
+with **when** it runs. A task deferred with a reason is a plan; a task quietly dropped is
+a gap.
+
+### `002` core — runs now (~45 min)
+
+| Task | Why it cannot wait |
+|---|---|
+| `BE-002-01` domain exceptions + error codes | Everything from `007` onward throws these |
+| `BE-002-02` the `ProblemTypes` registry | Settles Q-A and Q-B. Without it `007` invents a `type` and `009` invents another |
+| `BE-002-03` `ProblemDetailsFactory`, the only constructor of the envelope | One producer is the entire feature |
+| `BE-002-04` `TraceContext` | BR-9.9 — response, log scope, and `003`'s audit row must read one accessor |
+| `BE-002-05` `GlobalExceptionHandler` | Adding it after endpoints exist means touching each one |
+| `BE-002-07` `IProblemMessageSource` | The seam `005` swaps. Retrofitting it means revisiting every sentence |
+| `BE-002-08` `ValidationBehavior<,>` | A behaviour is applied by construction or retrofitted onto every handler (`research.md` R-10) |
+| `BE-002-09` behaviour registration order, with the `003` slot commented | Ordering is cheap to write and expensive to discover |
+| `TEST-002-01` · `-02` · `-03` · `-05` · `-09` · `-11` · `-12` | Envelope shape · `400` field keys · `traceId` once at top level · `500` leaks nothing · registry completeness · the `005` seam · handler never runs on invalid input |
+
+### `002b` — deferred, with the reason
+
+| Task | Reason it can wait |
+|---|---|
+| `BE-002-06` `StatusCodeProblemWriter` · `TEST-002-08` | `research.md` R-1 calls the `404`-with-an-empty-body case its most important finding, and it is real. But it is an **addition** to a handler that already exists — no code gets written around its absence |
+| `BE-002-10` malformed JSON and `Guid` · `TEST-002-07` | Same shape: one more mapping on an existing handler |
+| `BE-002-11` Swashbuckle · `TEST-002-13` · `REV-002-02` | Documents endpoints, and there is still exactly one after this feature. `research.md` R-7 already says the "more than one endpoint" reason does not hold yet |
+| `BE-002-12` client disconnect · `TEST-002-19` | Already listed as droppable further down this file |
+| `TEST-002-04` · `-06` · `-10` · `-14` · `-15` · `-17` · `-18` | Each covers deferred behaviour, or an edge the core's own tests do not reach |
+| `DOC-002-02` · `DOC-002-03` | The inheritance convention needs an inheritor; the blueprint amendment is a **proposal** and can be proposed once |
+| `REV-002-03` · `REV-002-04` | Review the frontend and the OpenAPI surface, neither of which exists yet |
+
+### Frozen here, executed with the first screen
+
+`FE-002-01` through `FE-002-06`.
+
+The React application does not exist — `006-design-system` creates it and runs after this
+feature, and under the nine-hour plan `006` may not be built at all. So these keep their
+`FE-002-` identifiers and run with whichever screen is built first, which is Session 2's
+ticket list rather than `006`.
+
+**Not folded into that screen's tasks**, deliberately: `FE-002-02` is BR-8.7 as a client
+rule — branch on `type`, never on `title`. Written inside one form it becomes invisible,
+and the second form gets it wrong.
+
+`FE-002-04` (replace the provisional types with generated ones) additionally waits on
+`BE-002-11`, which is itself in `002b`.
+
 ## Critical path
 
 ```text

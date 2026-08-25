@@ -203,7 +203,7 @@ artifacts for it live.*
 | Phase | Feature folder | Story | Notes |
 |---|---|---|---|
 | **0 · Foundation** | `001-solution-skeleton` | — | **✅ Done 2026-08-25** — 17 tests, CI green (run 32828391167). Four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health` |
-| | `002-error-contract` | — | PHASES 1.3–1.4. `ProblemDetails` middleware + validation behaviour |
+| | `002-error-contract` | — | **✅ Core done 2026-08-25** — 33 tests, 0 warnings. Domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, one `traceId` accessor, `ValidationBehaviour`. **`002b`** — status-code envelope (`404`/`405`/`415`), malformed request, Swashbuckle — deferred with a reason per task |
 | | `003-audit-trail` | — | PHASES 1.5. `AuditLog`, audit behaviour, architecture test |
 | | `004-auth-and-roles` | Auth | PHASES 2.1–2.2. JWT, two seeded users, policies, `ICurrentUser` |
 | | `005-localization-core` | — | PHASES 2.3–2.4. Culture resolution, `.resx`, key-parity test |

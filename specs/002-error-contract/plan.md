@@ -344,7 +344,7 @@ An `int Status` or an `HttpStatusCode` property on `DomainException` removes the
 lookup and one indirection.
 
 Rejected: it puts an HTTP concept in the project whose entire claim is that it has none
-(ADR-010, Principle III). The counter-argument — "it is just an integer" — is exactly how
+(ADR-002, Principle III). The counter-argument — "it is just an integer" — is exactly how
 the rule erodes, and the architecture test from `001` would not catch it, because `int` is
 in the BCL. It would be a real violation that no test can see.
 

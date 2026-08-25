@@ -112,6 +112,8 @@ and `ar`.
 ## Recent Changes
 
 - main: repository initialized; spec-kit scaffolded; blueprint vendored to `docs/sdd/` and converted to SQL Server; **ADR-010 rejected — four-project Clean stands (ADR-002)**; the product scope document traced in `docs/sdd/15-scope-coverage.md`; nine-hour plan in `docs/sdd/16-three-day-plan.md`
+- **`001-solution-skeleton` delivered** 2026-08-25 — four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health`, CI green (17 tests)
+- **`002-error-contract` core delivered** 2026-08-25 — domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, `TraceContext`, `ValidationBehaviour` (33 tests). `002b` — `UseStatusCodePages`, malformed request, Swashbuckle — deferred with a reason per task
 
 <!-- MANUAL ADDITIONS START -->
 

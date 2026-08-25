@@ -233,13 +233,14 @@ without help?** If not, it is not done, regardless of whether the tests pass.
 
 ## Status
 
-All 22 features are **specified**. **`001-solution-skeleton` is implemented and delivered**
-(2026-08-25 — 17 tests, CI green). The other 21 are awaiting review.
+All 22 features are **specified**. Two are implemented and delivered: **`001-solution-skeleton`**
+(2026-08-25 — 17 tests, CI green) and the **core of `002-error-contract`** (2026-08-25 — 33
+tests, 0 warnings; `002b` deferred with a reason per task). The other 20 are awaiting review.
 
 | Feature | Phase | Origin |
 |---|---|---|
 | `001-solution-skeleton` | 0 | Authored — **✅ implemented 2026-08-25**, 17 tests, CI green |
-| `002-error-contract` | 0 | Authored |
+| `002-error-contract` | 0 | Authored — **✅ core implemented 2026-08-25**, 33 tests. `002b` deferred |
 | `003-audit-trail` | 0 | Authored |
 | `004-auth-and-roles` | 0 | Authored |
 | `005-localization-core` | 0 | Authored |
