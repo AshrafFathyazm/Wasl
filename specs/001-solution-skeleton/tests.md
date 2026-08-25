@@ -67,12 +67,12 @@ First run took 225 s including the ~1.5 GB image pull; subsequent runs, 1 s of t
 | AC-6 | `WaslApiFactory` + all of `HealthEndpointTests` and `PersistenceConventionTests` | **Pass** |
 | AC-7 | `LayerDependencyTests` — 5 tests, and **proven to fail** when the boundary breaks | **Pass** |
 | AC-8 | `DateTime_RoundTrips_AsUtc`, `DateTime_WithLocalKind_IsNormalisedOnWrite` | **Pass** |
-| AC-9 | `.github/workflows/ci.yml`, run 32826447248 | **Failed, twice, for two different real reasons** — findings 5 and 6. Both fixed; the fixes are **not yet confirmed by a run** |
+| AC-9 | `.github/workflows/ci.yml`, run 32828391167 — **green** | **Pass.** Two earlier runs failed for two different real defects (findings 5 and 6); this one is the fix confirmed. Guard output: `integration suite — total=9 passed=9 failed=0` |
 | AC-9b | This file records the not-run state honestly; see the Docker section | **Pass** |
 | AC-10 | `git grep -iE "password\|Pwd=" -- src/` → nothing | **Pass** |
 | AC-11 | `Directory.Build.props`; no `TargetFramework` anywhere else | **Pass** |
 | AC-12 | `INFORMATION_SCHEMA.COLUMNS` + `sys.check_constraints` + `sys.indexes`, queried | **Pass** |
-| AC-13 | `dotnet --version` inside the repository → `10.0.200`, not the installed `10.0.400-preview` | **Pass** |
+| AC-13 | `dotnet --version` inside the repository → `10.0.200` locally and `10.0.204` on the CI runner. Both are in the pinned `10.0.2xx` band; the installed `10.0.400-preview` is refused | **Pass** |
 
 ### AC-12, from the real schema
 
@@ -274,7 +274,7 @@ nuisance; one that turns it green is the whole problem it exists to prevent.
 
 | Gap | Reason |
 |---|---|
-| **AC-9 is partly verified** | The workflow ran and caught two real defects (findings 5 and 6) — which is more than a green run would have proved. But the fixes have not themselves been through CI, so "the pipeline is green" is not yet a statement anyone can make |
+| ~~AC-9~~ | **Closed.** Run `32828391167` is green on a clean `ubuntu-latest` runner: 3 + 5 + 9 tests, `0 Warning(s)`, and the guard reporting `total=9 passed=9 failed=0`. It took three runs and two real defects to get there, which is the point — a green first run would have proved less |
 | **AC-5 is verified manually, not by a test** | `TEST-001-07` would need the factory to boot a second host pointed at a dead connection string. Worth doing and not done here; the manual run is recorded above with its actual output |
 | **`docker-compose.yml` was never started** | The development loop uses the local instance and the integration suite starts its own container, so nothing in this feature consumes the compose file. Its `ACCEPT_EULA` and healthcheck are unverified |
 | **No test asserts the explicit `Email` collation does anything** | The local instance and the container both default to `CI_AS`, so a case-insensitivity test would pass with the `UseCollation` call removed. The call is kept because relying on a server default is the trap `ADR-013` row 3 describes — but this is an assertion the suite cannot currently make, and saying so is better than a test that proves nothing |

@@ -202,7 +202,7 @@ artifacts for it live.*
 
 | Phase | Feature folder | Story | Notes |
 |---|---|---|---|
-| **0 · Foundation** | `001-solution-skeleton` | — | PHASES 0.1–0.6. Solution, `WaslDbContext`, `/health`, first migration, CI |
+| **0 · Foundation** | `001-solution-skeleton` | — | **✅ Done 2026-08-25** — 17 tests, CI green (run 32828391167). Four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health` |
 | | `002-error-contract` | — | PHASES 1.3–1.4. `ProblemDetails` middleware + validation behaviour |
 | | `003-audit-trail` | — | PHASES 1.5. `AuditLog`, audit behaviour, architecture test |
 | | `004-auth-and-roles` | Auth | PHASES 2.1–2.2. JWT, two seeded users, policies, `ICurrentUser` |

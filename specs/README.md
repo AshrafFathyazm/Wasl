@@ -233,11 +233,12 @@ without help?** If not, it is not done, regardless of whether the tests pass.
 
 ## Status
 
-All 22 features are **specified and awaiting review**. None is implemented.
+All 22 features are **specified**. **`001-solution-skeleton` is implemented and delivered**
+(2026-08-25 — 17 tests, CI green). The other 21 are awaiting review.
 
 | Feature | Phase | Origin |
 |---|---|---|
-| `001-solution-skeleton` | 0 | Authored |
+| `001-solution-skeleton` | 0 | Authored — **✅ implemented 2026-08-25**, 17 tests, CI green |
 | `002-error-contract` | 0 | Authored |
 | `003-audit-trail` | 0 | Authored |
 | `004-auth-and-roles` | 0 | Authored |
