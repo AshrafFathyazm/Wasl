@@ -21,15 +21,16 @@ Everything else hardens it. These make it exist.
 
 | ID | Outcome | Depends on | Verified by | Serves | Agent | Skill |
 |---|---|---|---|---|---|---|
-| BE-001-01 | `Wasl.sln`, `Wasl.Domain`, `Wasl.Api`, and both test projects exist and reference each other correctly | — | `dotnet build` | AC-1 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
+| BE-001-01 | `Wasl.sln` with four projects — `Wasl.Domain`, `Wasl.Application`, `Wasl.Infrastructure`, `Wasl.Api` — plus three test projects, referencing each other in the ADR-002 direction | — | `dotnet build`, and adding an EF Core reference to `Wasl.Application` fails the architecture test | AC-1 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-001-02 | `Directory.Build.props`: `net10.0`, `Nullable=enable`, `TreatWarningsAsErrors=true`, one `LangVersion` | BE-001-01 | `dotnet build` fails on a deliberately introduced unused-variable warning, then passes once removed | AC-1, AC-11 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
-| BE-001-03 | `docker-compose.yml` with SQL Server 2022, `ACCEPT_EULA`, a compliant password, and a healthcheck | — | `docker compose up -d db` then `docker compose ps` shows healthy | AC-2 | `voltagent-lang:dotnet-core-expert` | — |
+| BE-001-03 | Connection to the local `.\SQLEXPRESS` instance over Windows auth — no password in configuration or source | — | `SELECT @@VERSION` answers through the app's own connection string | AC-2, AC-10 | `voltagent-lang:dotnet-core-expert` | — |
+| BE-001-03b | `docker-compose.yml` with SQL Server 2022, `ACCEPT_EULA`, a compliant password, and a healthcheck — **for the integration suite and CI only** | — | `docker compose up -d db` then `docker compose ps` shows healthy | AC-2 | `voltagent-lang:dotnet-core-expert` | — |
 | BE-001-04 | `WaslDbContext`, `UtcDateTimeConverter`, `CustomerConfiguration`, and the model conventions from `data-model.md` | BE-001-01 | `dotnet ef migrations add InitialCreate` produces the columns and types in `data-model.md` | AC-12 | `voltagent-lang:sql-pro` | — |
 | BE-001-05 | `InitialCreate` applies to an empty database and is idempotent | BE-001-03, BE-001-04 | `dotnet ef database update` twice; second run applies nothing | AC-3 | `voltagent-lang:sql-pro` | — |
 | BE-001-06 | `TimeProvider.System` registered; a repository-wide search finds no inline `DateTime.UtcNow` | BE-001-01 | `grep -rn "DateTime.UtcNow" src/` returns nothing | NFR | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-001-07 | `GET /health` returns the `200` shape in `contracts/health-api.md`, unauthenticated | BE-001-04 | `curl -s localhost:7001/health \| jq` matches the contract | AC-4 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
-| BE-001-08 | `GET /health` returns `503` with the failing check named when the database is unreachable | BE-001-07 | Stop the container, call the endpoint, read the status line | AC-5 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
-| BE-001-09 | Connection string is a placeholder in `appsettings.json`; the real value comes from user secrets | BE-001-04 | `git grep -iE "password|Pwd=" -- src/` returns only the placeholder | AC-10 | `comprehensive-review:security-auditor` | — |
+| BE-001-08 | `GET /health` returns `503` with the failing check named when the database is unreachable | BE-001-07 | Point the app at a dead connection string, call the endpoint, read the status line | AC-5 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
+| BE-001-09 | No credential anywhere in `src/`: the development loop uses Windows auth, and `appsettings.json` carries no connection string at all | BE-001-03 | `git grep -iE "password|Pwd=" -- src/` returns nothing | AC-10 | `comprehensive-review:security-auditor` | — |
 | BE-001-10 | `.github/workflows/ci.yml` runs build, unit, and integration on push, with Docker available to the runner | BE-001-05, BE-001-07 | A green run visible on the first push | AC-9 | `voltagent-lang:dotnet-core-expert` | — |
 | BE-001-11 | `global.json` pins the SDK to `10.0.200` with `rollForward: latestFeature`, so the installed `10.0.400-preview` is not used | BE-001-01 | `dotnet --version` run **inside the repository** reports `10.0.200`, not the preview | AC-13 | `voltagent-lang:dotnet-core-expert` | — |
 
@@ -42,7 +43,7 @@ Recorded rather than omitted, so the empty lane is visibly a decision.
 
 | ID | Outcome | Depends on | Verified by | Serves | Agent | Skill |
 |---|---|---|---|---|---|---|
-| TEST-001-01 | `DomainHasNoDependenciesTests` fails if `Wasl.Domain` references EF Core, ASP.NET Core, MediatR, or any third-party assembly — transitively included | BE-001-01 | Add a reference deliberately, watch it go red, remove it | AC-7 | `voltagent-qa-sec:test-automator` | `superpowers:test-driven-development` |
+| TEST-001-01 | `LayerDependencyTests` fails if `Wasl.Domain` references any third-party assembly, **or** if `Wasl.Application` references EF Core or ASP.NET Core — transitively included | BE-001-01 | Add each reference deliberately, watch it go red, remove it | AC-7 | `voltagent-qa-sec:test-automator` | `superpowers:test-driven-development` |
 | TEST-001-02 | `WaslApiFactory` boots the API against a `Testcontainers.MsSql` container and applies migrations before the first test | BE-001-05 | The suite runs green from a cold Docker | AC-6 | `voltagent-qa-sec:test-automator` | `superpowers:test-driven-development` |
 | TEST-001-03 | A `DateTime` written and re-read comes back with `Kind == Utc`; a `Local` input is normalised on write | BE-001-04 | Test run | AC-8 | `voltagent-qa-sec:test-automator` | `superpowers:test-driven-development` |
 | TEST-001-04 | Arabic text written to `FullName` round-trips byte-identical | BE-001-05 | Test run — `varchar` would return `????` | AC-12, ADR-013 | `voltagent-qa-sec:test-automator` | `superpowers:test-driven-development` |

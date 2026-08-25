@@ -53,7 +53,7 @@ feature is not just "add a table".
 | No cascade to `SupportUsers` | `DeleteBehavior.Restrict` on every reference to a user | SQL Server rejects multiple cascade paths outright, and a ticket outliving its creator is normal |
 | `rowversion` where two people edit | `.IsRowVersion()` on `Customers`, `Tickets`, `SupportUsers` only | Append-only tables have nothing to conflict over |
 
-Configurations live in `Wasl.Api/Common/Persistence/Configurations/`, one file per
+Configurations live in `Wasl.Infrastructure/Persistence/Configurations/`, one file per
 entity, applied by `ApplyConfigurationsFromAssembly`. A configuration class per entity
 rather than a growing `OnModelCreating` — the latter is where conventions go to be
 forgotten.

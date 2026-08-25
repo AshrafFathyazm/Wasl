@@ -24,8 +24,9 @@ before the engine will answer a query.
 
 **Consequence for the plan:** the compose file and the test fixture both carry the
 EULA variable, and `quickstart.md` says why. A password in `docker-compose.yml` is a
-local development credential for a throwaway container and is documented as such; the
-application's own connection string still comes from user secrets (AC-10).
+local development credential for a throwaway test container and is documented as such. The
+application itself uses Windows auth against the local instance, so it has no credential
+at all — see R-8, and AC-10 is satisfied by absence rather than by discipline.
 
 ---
 
@@ -105,26 +106,58 @@ machine".
 
 ---
 
-## R-8 · Is Docker actually available here?
+## R-8 · Is Docker actually available here, and does the application need it?
 
-**Checked:** `docker --version` and `docker info` on 2026-08-23.
+**Checked, 2026-08-23 and again 2026-08-24:** `docker info`, then a pull, then the local
+SQL Server estate.
 
-**Found:** Docker 29.5.3 CLI is installed. The **daemon is not running** —
-`failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine`.
+**Docker is installed and unreliable on this machine.** The daemon was down; it was
+started; the `mssql/server:2022-latest` pull then failed with `unexpected EOF` after the
+daemon restarted mid-download, leaving nothing in the image cache. Two failures in one
+sitting, on the one dependency that gates the whole first session.
 
-**Consequence, and it is not a spec problem:** assumption A-1 is currently false. The
-integration suite cannot run until Docker Desktop is started. Nothing about the plan
-changes; what changes is that this is known now rather than discovered by a red suite
-during implementation.
+**And the machine already has SQL Server.** `Get-Service` and the instance-names registry
+key found `MSSQL$SQLEXPRESS` running. Connecting through the same `System.Data.SqlClient`
+path the application itself will use returned:
 
-**Two things follow:**
+```text
+version   : 16.0.1000.6            SQL Server 2022 — the major version ADR-013 specifies
+edition   : Express Edition (64-bit)
+patch     : RTM
+collation : SQL_Latin1_General_CP1_CI_AS
+ISJSON()  : yes
+auth      : Windows — connected with no password
+```
 
-1. `WaslApiFactory` must fail **fast** with a message naming Docker, not hang until a
-   test timeout. That is already an edge case in `spec.md` and it is the behaviour that
-   makes this state diagnosable in one second instead of two minutes.
-2. The `mssql/server:2022-latest` image is not in the local cache, so the first
-   integration run pulls roughly 1.5GB. `quickstart.md` says so, because an unexplained
-   two-minute pause reads as a hang.
+`sqllocaldb info` also reports `MSSQLLocalDB`, so there is a second fallback behind it.
+
+**Settled: the development loop uses the local instance; the integration suite keeps
+Testcontainers.**
+
+| | Uses | Why |
+|---|---|---|
+| Development loop | `Server=.\SQLEXPRESS;Trusted_Connection=True` | Nothing to start, nothing to pull, no credential to store. Session 1's database task drops from fifteen minutes to five, and the twenty-minute infrastructure time-box is no longer needed at all |
+| Integration suite | `Testcontainers.MsSql` | CI needs a container regardless. Tying the tests to a local instance would create two paths, and the one that breaks would be the one on the server. A container also gives a clean database per run, where a shared local instance lets a test depend on the order tests ran in |
+
+**Three consequences worth stating:**
+
+1. **Windows auth removes the secret rather than hiding it.** AC-10 is satisfied because
+   there is no password, not because user secrets were remembered.
+   `appsettings.Development.json` can carry `Trusted_Connection=True` in source control
+   safely.
+2. **The collation is still configured explicitly.** The instance already reports `CI_AS`,
+   so email uniqueness would be case-insensitive with no configuration at all — which is
+   precisely the trap `ADR-013` row 3 describes. Relying on a server default means the
+   duplicate rule breaks silently on a server configured differently.
+3. `WaslApiFactory` must still fail **fast** with a message naming Docker rather than
+   hanging until a test timeout. That edge case in `spec.md` is now the *only* place
+   Docker's absence is felt, and the first integration run still pulls roughly 1.5GB —
+   `quickstart.md` says so, because an unexplained two-minute pause reads as a hang.
+
+**Edition note:** Express caps a database at 10GB, the buffer pool at 1410MB, and uses at
+most four cores. None is a constraint on a demo dataset, and none changes *behaviour* —
+`rowversion`, filtered indexes, collations, `nvarchar`, and `ISJSON` are identical to the
+container.
 
 ---
 
@@ -170,17 +203,15 @@ insert locality). That is a change to one factory, not a redesign, and nothing i
 justifies it now.
 
 ---
-
+## R-6 · Do the layer boundaries need a test, or a review?
 ## R-6 · Does `Wasl.Domain` staying clean need a test, or a review?
 
 **Checked:** `docs/sdd/testing/test-strategy.md`, which already names two architecture
 tests — `IAuditableCommand` coverage and translation key parity — on the grounds that
-both fail by omission, and omission is what review is worst at catching.
-
-**Settled:** a third architecture test, here, for the same reason. `Wasl.Domain` having
-no dependency on EF Core or ASP.NET is the entire load-bearing claim of ADR-010; if it
-quietly gains one, the two-project layout stops buying anything and nothing announces
-it.
+**Settled:** a third architecture test, here, for the same reason — and it asserts **two**
+boundaries, not one. `Wasl.Domain` referencing nothing, and `Wasl.Application` being
+unable to see EF Core or ASP.NET Core, are together the load-bearing claim of ADR-002. If
+either quietly breaks, four projects stop buying anything and nothing announces it.
 
 The test asserts over the compiled assembly's references, so it catches a transitive
 reference arriving through a package as well as a direct one.
@@ -194,10 +225,10 @@ reference arriving through a package as well as a direct one.
 | Found | Taken? |
 |---|---|
 | `Serilog.AspNetCore` for structured logging | **Not in this feature.** No requirement yet, and BR-8.9 (logs are always English) only bites once there are messages to log. Revisit at `002`, where the error contract creates the first real log entry |
-| `Mapster` for DTO mapping | **Not yet.** ADR-010 puts DTOs inside the slice that owns them, and a slice mapping its own two records by hand is clearer than a convention. Revisit if hand-mapping appears three times |
+| `Mapster` for DTO mapping | **Not yet.** ADR-002 puts a DTO in the feature folder that owns it, and a feature mapping its own two records by hand is clearer than a convention. Revisit if hand-mapping appears three times |
 | `Swashbuckle.AspNetCore` | **Yes**, but at `002`, when there is more than one endpoint to document |
 | `Moq` over `FakeItEasy` | **Yes** — already applied across `docs/sdd/`. House convention, and no reason to differ |
-| A separate `IOC` project for DI registration | **No.** ADR-010 has two projects; a third holding only registration calls would be ceremony at this size. `Program.cs` composes everything |
+| A separate `IOC` project for DI registration | **No.** Four projects is already the layering; a fifth holding only registration calls would be ceremony. `Wasl.Infrastructure` exposes one `AddInfrastructure` extension and `Program.cs` calls it |
 
 **The pattern in these answers:** take the house convention where it costs nothing and
 we have no reason of our own, and diverge only where a written reason exists. Both

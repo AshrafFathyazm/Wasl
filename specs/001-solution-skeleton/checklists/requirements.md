@@ -28,7 +28,7 @@ trusted, and again before the feature closes.
 
 | ✓ | Item | Source |
 |---|---|---|
-| ☑ | Project layout matches the accepted architecture | ADR-010 |
+| ☑ | Project layout matches the accepted architecture — four projects, feature folders in Application | ADR-002 (ADR-010 rejected) |
 | ☑ | Database provider and every type match | ADR-013, `docs/sdd/03-domain-model.md` |
 | ☑ | The concurrency token is `rowversion`, not `xmin` or a manual counter | ADR-006 as amended |
 | ☑ | Integration tests use a real engine, never EF `InMemory` | `docs/sdd/testing/test-strategy.md` |

@@ -122,7 +122,7 @@ demonstrate a screen.
 | Order | Task | Budget | Done when |
 |---|---|---|---|
 | 1 | Solution + four projects + three test projects, references pointing the right way | 25m | `dotnet build` succeeds, and a reference from `Wasl.Application` to EF Core would not compile |
-| 2 | `docker compose` with SQL Server 2022 | 15m | `docker compose ps` shows healthy. **Hard time-box — see the rule below** |
+| 2 | Point the app at the **local SQL Server 2022 Express instance** over Windows auth | 5m | `SELECT @@VERSION` answers through the app's own connection string. No container, no password |
 | 3 | `IApplicationDbContext`, `WaslDbContext`, `Customer` and `Ticket` entities, `InitialCreate` | 40m | `dotnet ef database update` applies to an empty database |
 | 4 | `ProblemDetails` middleware + `ValidationBehaviour`, with every message resolved through `IStringLocalizer` from the first line | 35m | A `400` returns field-level errors in the documented shape; no message is a literal |
 | 5 | `dbo.AuditLog` + `AuditBehaviour` in the same transaction as the change | 45m | One command produces one audit row; a forced rollback leaves none |
@@ -196,31 +196,52 @@ that was never committed.
 seven-hour plan that overruns. If the buffer is untouched, item 5 gets it — `ai-notes.md`
 is 10 of the 100 assessment points and it is the artifact most often written thinly.
 
-## The infrastructure time-box
+## The database: local instance for the loop, container for the tests
 
-> **If the database is not accepting connections within twenty minutes, stop and switch
-> to LocalDB. Record the switch in the README.**
+**The time-box that used to be here is gone, because the risk it guarded against is
+gone.** A **SQL Server 2022 Express** instance is already installed and running on the
+machine, verified on 2026-08-24:
 
-At this scale an hour lost to infrastructure setup costs a feature, and the failure modes
-are well known: the container exits silently without `ACCEPT_EULA`, or it starts and
-refuses every connection because the `sa` password fails the complexity policy, or the
-port is already held by a local instance. All three are in
-`specs/001-solution-skeleton/quickstart.md` with their fixes — twenty minutes is enough to
-work through that list once.
+```text
+version   : 16.0.1000.6            same major version ADR-013 specifies
+edition   : Express Edition (64-bit)
+collation : SQL_Latin1_General_CP1_CI_AS
+ISJSON()  : yes
+auth      : Windows — no password
+```
 
-**The fallback is LocalDB, not SQLite**, and the difference matters:
+So the split is:
 
-| Fallback | Verdict |
-|---|---|
-| **SQL Server LocalDB** | **Use this.** It is SQL Server. `rowversion`, filtered unique indexes, collations, and `nvarchar` all behave exactly as they will in the container. One connection-string change (`Server=(localdb)\MSSQLLocalDB`), no Docker, and the integration tests still test the real engine |
-| SQLite | **Rejected.** `ADR-013` and `testing/test-strategy.md` both reject it for the same reason: weak type affinity, limited `ALTER TABLE`, no `rowversion`, and constraint behaviour that differs from any production engine. The tests would pass against behaviour that does not exist, which is worse than having no tests — it is having tests that lie |
-| EF `InMemory` | **Rejected.** It enforces no unique constraints, no foreign keys, and no concurrency tokens — which are precisely what BR-4.8 and `ADR-006` need proving |
+| | Uses | Why |
+|---|---|---|
+| **The development loop** | `Server=.\SQLEXPRESS;Trusted_Connection=True` | Nothing to start, nothing to pull, no credential to store. Item 2 of Session 1 drops from fifteen minutes to five |
+| **The integration suite** | `Testcontainers.MsSql` | CI needs a container regardless, so tying the tests to a local instance would create two paths — and the one that breaks is the one on the server. A container also gives a clean database per run; a shared local instance lets a test depend on the order tests ran in |
 
-**A note on the brief that produced this rule:** it named PostgreSQL and SQLite. Both are
-stale by two decisions — `ADR-013` supersedes `ADR-001`, and the database is SQL Server,
-confirmed by the product owner. The *rule* is right and is adopted as written; the
-fallback target is corrected to the one that keeps the test suite honest, and LocalDB was
-already the documented no-Docker path in `specs/001-solution-skeleton/quickstart.md`.
+**Windows auth is a real gain, not just convenience.** There is no `sa` password, so AC-10
+— no secret in a committed file — is satisfied by there being no secret at all rather than
+by remembering to use user secrets.
+
+**One thing that does not change: the collation is still written explicitly.** The
+instance already reports `CI_AS`, so email uniqueness would be case-insensitive without
+any configuration — which is exactly the trap `ADR-013` row 3 warns about. Relying on a
+server default means the duplicate rule breaks silently on a server configured differently.
+
+### The fallbacks, in order
+
+| If | Use | Note |
+|---|---|---|
+| Normal case | `.\SQLEXPRESS` | Already running |
+| Express is unavailable | `(localdb)\MSSQLLocalDB` | Also installed. Same engine family, one connection-string change |
+| Docker is unavailable | Unit tests only, and **say so in `tests.md`** | The integration suite is not run. That is recorded as not-run, never as a pass |
+| — | ~~SQLite~~ | **Rejected.** `ADR-013` and `testing/test-strategy.md` reject it for the same reason: weak type affinity, limited `ALTER TABLE`, no `rowversion`, and constraint behaviour that differs from any production engine. Tests would pass against behaviour that does not exist — worse than no tests, because they lie |
+| — | ~~EF `InMemory`~~ | **Rejected.** Enforces no unique constraints, no foreign keys, no concurrency tokens — precisely what BR-4.8 and `ADR-006` need proving |
+
+**Why this is recorded rather than just done:** the brief that set the original time-box
+named PostgreSQL and SQLite, both stale by two decisions. The rule was right — an hour
+lost to infrastructure costs a feature at this scale — and the local instance is what
+makes the rule unnecessary rather than merely survivable. Worth knowing that the container
+pull was attempted first and failed with `unexpected EOF` after the daemon restarted, so
+this is not a hypothetical risk that was avoided.
 
 ## What "done" means under this plan
 

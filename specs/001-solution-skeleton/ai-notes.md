@@ -38,10 +38,10 @@ external inputs — the assessment sheet and the house platform repository.
 | Suggestion | Why it was rejected |
 |---|---|
 | Drop MediatR "to reduce complexity and keep the solution easier to explain" | ADR-008 needs a pipeline behaviour to make the audit row and the transaction boundary **structural** rather than something each handler remembers. Without it, BR-9.3 becomes discipline, and discipline is what the architecture test exists to replace. The house platform also uses MediatR, so the familiarity argument points the other way |
-| Four-project Clean Architecture, matching the house platform | Raised as the safer choice and overruled by the product owner in favour of ADR-010's vertical slices. Recorded here because the trade is real: a reviewer expecting four projects reads two as unfamiliarity before they read it as judgement. The one-sentence defence is in ADR-010 and should be delivered as written |
+| ~~Four-project Clean Architecture, matching the house platform~~ — **this was not rejected in the end** | Raised as the safer choice, initially overruled in favour of ADR-010's vertical slices, and then **adopted on 2026-08-24** when the product owner reversed the decision. ADR-010 is now `Rejected`. Kept in this table rather than deleted because the sequence is the record: the argument was made, was set aside, and won on its own terms — the house convention, separation of concerns visible without explanation, and the developer being fastest in a familiar structure. Two things were carried over from the rejected proposal: feature folders inside `Wasl.Application`, and `IApplicationDbContext` instead of a repository |
 | Adopt the house response envelope `{ IsSuccess, StatusCode, Data, Errors }` | The assessment sheet counts "returning 200 with an error in the body" against you. `ProblemDetails` with correct HTTP status codes is the deliberate divergence, and it is defended rather than accidental |
 | Create every table in `InitialCreate` | A migration is the cheapest place to get a type mapping wrong. One table reviewed now beats seven reviewed at once |
-| Add `Serilog`, `Mapster`, and `Swashbuckle` in this feature because the house platform has them | No consumer yet. Each is revisited at the feature that first needs it (`research.md` R-7). Adding a package with zero consumers is speculative, which is the same test ADR-010 applied to `IRepository` |
+| Add `Serilog`, `Mapster`, and `Swashbuckle` in this feature because the house platform has them | No consumer yet. Each is revisited at the feature that first needs it (`research.md` R-7). Adding a package with zero consumers is speculative, which is the same test ADR-010 applied to `IRepository` — and that particular conclusion survived its own rejection: there is no repository, only `IApplicationDbContext` |
 
 **How each accepted output was verified:** every claim about the house platform was
 checked by reading `azm-formbuilderBE/src` — project list, `TargetFramework` in the
@@ -52,7 +52,8 @@ because inspection is what let it survive this long.
 
 **Not put into any prompt:** no credentials, no connection strings, no customer data.
 The `sa` password in `docker-compose.yml` is a local throwaway and is not the
-application's own connection string, which comes from user secrets (AC-10).
+application own connection string: the development loop uses Windows auth, so there is no
+application credential at all (AC-10, and `research.md` R-8).
 
 ---
 

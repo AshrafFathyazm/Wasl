@@ -5,14 +5,15 @@
 
 ## Backend design
 
-Two projects, per ADR-010. The layout below is the whole of what this feature creates —
-every file is named, because a plan that does not name its files is a description.
+Four projects, per ADR-002. ADR-010 proposed two and was rejected. The layout below is the
+whole of what this feature creates — every file is named, because a plan that does not name
+its files is a description.
 
 ```text
 Wasl.sln
 global.json                                 pins SDK 10.0.2xx — refuses the preview
 Directory.Build.props                       net10.0 · nullable · warnings as errors
-docker-compose.yml                          SQL Server 2022, one service: db
+docker-compose.yml                          SQL Server 2022 — for the integration suite
 .github/workflows/ci.yml                    build → unit → integration
 .gitignore                                  already present
 src/
@@ -20,42 +21,64 @@ src/
     Wasl.Domain.csproj                      NO PackageReference. That is the point
     Customers/
       Customer.cs                           shell: private setters, no behaviour yet
-  Wasl.Api/
-    Wasl.Api.csproj                          EF Core SqlServer, Design, AspNetCore
-    Program.cs                               composition root
-    appsettings.json                         connection string PLACEHOLDER only
-    appsettings.Development.json
+
+  Wasl.Application/
+    Wasl.Application.csproj                 references Domain ONLY — no EF Core, no ASP.NET
     Common/
-      Persistence/
-        WaslDbContext.cs
-        UtcDateTimeConverter.cs              the ADR-013 guarantee
-        Configurations/
-          CustomerConfiguration.cs
-        Migrations/                          generated
-      Health/
-        HealthEndpoint.cs                    maps GET /health, writes the contract shape
-        HealthReportWriter.cs                the JSON shape in contracts/health-api.md
+      Abstractions/
+        IApplicationDbContext.cs            DbSet<Customer> + SaveChangesAsync
+    Features/                               empty here; 007 adds the first use case
+
+  Wasl.Infrastructure/
+    Wasl.Infrastructure.csproj              EF Core SqlServer, Design
+    Persistence/
+      WaslDbContext.cs                      implements IApplicationDbContext
+      UtcDateTimeConverter.cs               the ADR-013 guarantee
+      Configurations/
+        CustomerConfiguration.cs
+      Migrations/                           generated
+    DependencyInjection.cs                  AddInfrastructure(config) — one entry point
+
+  Wasl.Api/
+    Wasl.Api.csproj                         references Application + Infrastructure
+    Program.cs                              composition root
+    appsettings.json                        no connection string — Production is not configured here
+    appsettings.Development.json            local SQLEXPRESS, Windows auth — no credential, safe to commit
+    Health/
+      HealthReportWriter.cs                 the JSON shape in contracts/health-api.md
 tests/
   Wasl.Domain.Tests/
     Wasl.Domain.Tests.csproj
-    Architecture/DomainHasNoDependenciesTests.cs
+  Wasl.Application.Tests/
+    Wasl.Application.Tests.csproj
+    Architecture/LayerDependencyTests.cs    Domain has no packages; Application cannot see EF Core
   Wasl.Api.IntegrationTests/
     Wasl.Api.IntegrationTests.csproj
-    WaslApiFactory.cs                        WebApplicationFactory + Testcontainers.MsSql
-    DatabaseFixture.cs                       container lifetime, migration on start
+    WaslApiFactory.cs                       WebApplicationFactory + Testcontainers.MsSql
+    DatabaseFixture.cs                      container lifetime, migration on start
     HealthEndpointTests.cs
-    PersistenceConventionTests.cs            UTC round-trip, nvarchar, check constraint
+    PersistenceConventionTests.cs           UTC round-trip, nvarchar, check constraint
 ```
+
+**`Features/` is empty in this feature and that is deliberate.** The folder exists so the
+convention is visible from the first commit — a use case goes in its own folder under
+`Features/`, not into `Commands/` and `Handlers/` directories. `007` puts the first one
+there.
+
+**`/health` is a controller-less endpoint.** `MapHealthChecks` is the framework's own
+mapping; a `HealthController` wrapping it would add a layer that does nothing. Controllers
+arrive with `002`, when there is a request to bind and a result to map.
 
 ### Where each decision is enforced
 
 | Decision | Enforced by | Not by |
 |---|---|---|
-| Domain depends on nothing (ADR-010) | `DomainHasNoDependenciesTests` over the compiled assembly | The csproj being tidy today |
+| Domain depends on nothing (ADR-002) | `LayerDependencyTests` over the compiled assembly | The csproj being tidy today |
+| Application cannot see EF Core (ADR-002) | The same test, asserting `Wasl.Application` references neither `Microsoft.EntityFrameworkCore` nor `Microsoft.AspNetCore` | The project reference list looking right on the day it was written |
 | Every `DateTime` is UTC (ADR-013) | `UtcDateTimeConverter` applied by convention + a round-trip test | A naming convention and good intentions |
 | Warnings are errors | One `Directory.Build.props` at the root | Each csproj repeating it |
 | Which SDK compiles this | `global.json`, pinned to the `10.0.2xx` band | Whatever the machine resolves — four SDKs are installed here and the highest is a preview |
-| No secrets committed | Placeholder in `appsettings.json`, real value from user secrets | A note in the README |
+| No secrets committed | Windows auth against the local instance: there is no password to commit. A container password exists only in `docker-compose.yml`, for a throwaway test container | A placeholder plus a note in the README |
 | Append-only tables have no `rowversion` | Explicit `.IsRowVersion()` only where ADR-006 requires it | Applying it everywhere "to be safe" |
 
 ### `Program.cs` order
@@ -64,13 +87,18 @@ Order matters here in one place already, and it will matter more later, so it is
 written down now rather than discovered:
 
 ```csharp
-builder.Services.AddDbContext<WaslDbContext>(o => o.UseSqlServer(connectionString));
+builder.Services.AddInfrastructure(builder.Configuration);   // Wasl.Infrastructure
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHealthChecks()
        .AddDbContextCheck<WaslDbContext>("database");
 // ── app ──
 app.MapHealthChecks("/health", new() { ResponseWriter = HealthReportWriter.Write });
 ```
+
+`AddInfrastructure` lives in `Wasl.Infrastructure` and registers `WaslDbContext` as
+`IApplicationDbContext`. `Program.cs` therefore names the connection string and nothing
+else about the database — which is what keeps the EF Core dependency on the far side of the
+Application layer rather than in the composition root's business.
 
 `TimeProvider.System` registered here, once, so nothing anywhere calls
 `DateTime.UtcNow` inline. A test can then substitute a fake clock without touching the
@@ -118,15 +146,31 @@ Nothing. This is the first feature; everything else depends on it.
 
 ## Risks and trade-offs
 
-### Considered and rejected: skip Docker, use LocalDB for integration tests
+### Decided: a local instance for the development loop, a container for the tests
 
-Faster to start on a Windows machine and it removes the Docker prerequisite entirely.
-Rejected because LocalDB is Windows-only, has no clean per-run isolation, and drifts
-from whatever CI runs — so a test suite green locally and red in CI becomes normal,
-and the value of the suite goes with it.
+The machine already runs SQL Server 2022 Express (`research.md` R-8, verified — 16.0.1000.6,
+`ISJSON` present, Windows auth). Docker on this machine has failed twice in one sitting:
+the daemon was down, and the image pull then died with `unexpected EOF`.
 
-**Kept as a documented fallback**, not as the default. A contributor without Docker
-runs the unit suite and says so in `tests.md`.
+So the two are split rather than one chosen:
+
+| | Uses | Because |
+|---|---|---|
+| Development loop | `.\SQLEXPRESS`, Windows auth | Nothing to start, nothing to pull, and **no password to store** — AC-10 is satisfied by there being no secret rather than by remembering user secrets |
+| Integration suite | `Testcontainers.MsSql` | CI needs a container regardless, so tying the tests to a local instance would create two paths and the one that breaks would be the one on the server. A container also gives a clean database per run |
+
+**Rejected: use the local instance for the integration tests too.** It removes the Docker
+prerequisite entirely and it is tempting for exactly that reason. But a shared instance has
+no per-run isolation, so a test can come to depend on the order tests ran in — and it
+drifts from CI, which makes "green locally, red on the server" normal and takes the value
+of the suite with it.
+
+**Rejected: LocalDB as the primary.** It is installed (`MSSQLLocalDB`) and it is the second
+fallback, not the first — Express is already running, is the same edition family, and needs
+no instance to be started on demand.
+
+**If Docker is unavailable**, the integration suite is **not run**, and `tests.md` records
+it as not run with the reason. Never as a pass.
 
 ### Considered and rejected: no CI until there is something to test
 
@@ -162,10 +206,17 @@ compiler emitting one warning that GA does not is a *build failure* here, becaus
 warnings are errors. `global.json` pins the band, and AC-13 checks that
 `dotnet --version` inside the repository reports the pinned SDK rather than the preview.
 
-### Known-false assumption at time of writing: Docker
+### Accepted risk: Docker is the one unreliable dependency left
 
-The Docker daemon is not running on this machine (`research.md` R-8). Nothing in the
-plan changes — but `BE-001-10` and every `TEST-` task depending on a container cannot be
-verified until Docker Desktop is started, and `WaslApiFactory` must fail fast naming
-Docker rather than hanging. Recorded here so a red integration suite is diagnosed in one
-second rather than investigated.
+Superseded the earlier note that the daemon was simply down. It has since been started —
+and the image pull then failed with `unexpected EOF` (`research.md` R-8).
+
+The development loop no longer depends on it, so the blast radius is now exactly one thing:
+`BE-001-10` and every `TEST-` task needing a container. Two mitigations, both already in
+the plan:
+
+- `WaslApiFactory` fails **fast** with a message naming Docker rather than hanging until a
+  test timeout — the difference between diagnosing this in a second and investigating it
+  for two minutes.
+- If the suite cannot run, `tests.md` records it as **not run, with the reason**. Never as
+  a pass. That is the rule that makes the rest of the evidence worth anything.

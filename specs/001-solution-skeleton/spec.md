@@ -15,24 +15,28 @@ authentication, no error contract — each of those is its own feature, and each
 cheaper to add once there is one place to add it to.
 
 The reason it is not "just setup" is that four of its decisions are expensive to
-reverse later: the project layout (ADR-010), the database provider and its type
+reverse later: the project layout (ADR-002), the database provider and its type
 mapping (ADR-013), whether warnings are errors, and whether CI exists at all. All four
 cost one file now and a sweep across every commit later.
 
 ## In scope
 
-- Solution file and two projects — `Wasl.Domain`, `Wasl.Api` — per ADR-010
+- Solution file and four projects — `Wasl.Domain`, `Wasl.Application`, `Wasl.Infrastructure`,
+  `Wasl.Api` — plus three test projects, per ADR-002. The reference direction is the task,
+  not the project count: `Wasl.Application` must not be able to see EF Core
 - `Directory.Build.props`: .NET 10, nullable enabled, warnings as errors, one language
   version for every project
 - `global.json` pinning the SDK, so the build does not depend on which of the four
   installed SDKs a given machine happens to resolve (`research.md` R-3)
-- `docker compose` with SQL Server 2022, and a documented `LocalDB` fallback
+- A connection to the **local SQL Server 2022 Express instance** over Windows auth for the
+  development loop, plus `docker compose` with SQL Server 2022 for the integration suite
+  and CI, and `LocalDB` documented as the second fallback
 - `WaslDbContext`, the `Customers` table, and the initial migration
 - A global UTC value converter for every `DateTime` (ADR-013)
 - `TimeProvider` registered in DI, so no code calls `DateTime.UtcNow` (NFR)
 - `GET /health` — liveness plus a database readiness probe
-- Two test projects: `Wasl.Domain.Tests` and `Wasl.Api.IntegrationTests`, the latter
-  wired to `Testcontainers.MsSql`
+- Three test projects: `Wasl.Domain.Tests`, `Wasl.Application.Tests`, and
+  `Wasl.Api.IntegrationTests`, the last wired to `Testcontainers.MsSql`
 - An architecture test asserting `Wasl.Domain` references nothing but the BCL
 - CI: build, unit tests, and integration tests on every push, failing on any warning
 
@@ -60,7 +64,7 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 
 | # | Assumption | If wrong |
 |---|---|---|
-| A-1 | Docker Desktop is available on the machine that runs the integration suite | **Currently false — the daemon is not running** (`research.md` R-8). Unit tests still run. The integration suite falls back to LocalDB, documented in `docs/sdd/documentation/development/setup.md`, and the fallback is recorded in `tests.md` rather than left implied |
+| A-1 | Docker is available on the machine that runs the integration suite | **Unreliable here** — the daemon restarted mid-pull and the image download failed with `unexpected EOF` (`research.md` R-8). The **development loop no longer depends on it**: it uses the local `.\SQLEXPRESS` instance. Only the integration suite does, and if Docker is down that suite is recorded in `tests.md` as **not run, with the reason** — never as a pass |
 | A-2 | The CI runner can run Linux containers | Integration tests are skipped in CI with an explicit skip reason, never silently. AC-9 fails if they are skipped without one |
 | A-3 | ~~.NET 10 SDK is installed~~ — **verified**: `10.0.200` is present (`research.md` R-3). The framework choice is no longer an assumption either; the product owner confirmed .NET 10 on 2026-08-23 | The remaining risk is not *whether* an SDK is installed but *which one resolves*, since a preview `10.0.400` is also present and is the highest version. `global.json` removes it — AC-13 |
 | A-4 | `Guid` keys are generated client-side, so an entity has its id before `SaveChanges` | Sequential-GUID index fragmentation is a real concern at volume and not at this one. Recorded in `research.md` R-5 |
@@ -77,7 +81,7 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | # | Criterion |
 |---|---|
 | AC-1 | From a clean clone, `dotnet build` succeeds with **zero warnings**. Warnings are errors, so a warning fails the build rather than being reported |
-| AC-2 | `docker compose up -d db` starts SQL Server 2022 and the container reaches a healthy state without manual intervention |
+| AC-2 | The application connects to the local `.\SQLEXPRESS` instance over Windows auth, with **no password anywhere** in configuration or source. `docker compose up -d db` also starts SQL Server 2022 for the integration suite and reaches a healthy state without manual intervention |
 | AC-3 | `dotnet ef database update` applies the initial migration to an **empty** database and is idempotent on a second run |
 | AC-4 | `GET /health` returns `200` with no authentication and a body naming each check and its status |
 | AC-5 | `GET /health` returns `503` when the database is unreachable, and the body says which check failed. It does not return `200` with a failure inside it |
@@ -85,7 +89,7 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 | AC-7 | An architecture test fails if `Wasl.Domain` gains a reference to EF Core, ASP.NET Core, MediatR, or any third-party package |
 | AC-8 | Every `DateTime` round-tripped through the database comes back with `DateTimeKind.Utc`, asserted by an integration test that writes and re-reads a row |
 | AC-9 | CI runs build, unit tests, and integration tests on every push. A skipped test suite fails the job unless it carries an explicit skip reason |
-| AC-10 | No connection string, password, or key appears in a committed file. `appsettings.json` carries a placeholder; the real value comes from user secrets or an environment variable |
+| AC-10 | No connection string, password, or key appears in a committed file. The development loop uses Windows auth, so **there is no password to leak**; the only credential in the repository is the throwaway `sa` password in `docker-compose.yml`, which exists for a test container and is documented as such |
 | AC-11 | `Directory.Build.props` sets `Nullable=enable` and `TreatWarningsAsErrors=true` for every project, including the test projects |
 | AC-12 | The `Customers` table exists with `nvarchar` text columns, `datetime2(3)` timestamps, a `rowversion` column, and the contact check constraint — verified by querying `INFORMATION_SCHEMA` and `sys.check_constraints`, not by reading the migration |
 | AC-13 | `global.json` pins the SDK to the `10.0.2xx` band. `dotnet --version` inside the repository reports `10.0.200`, not the installed `10.0.400-preview`, so the build is reproducible on a machine with a different SDK set |
@@ -108,7 +112,8 @@ schema mechanics, and they need to be tested alongside the behaviour they enforc
 - **NFR-1** — maintainability over cleverness
 - **BR-4.1** — the contact invariant, enforced here as the check constraint only; its
   domain-level enforcement and its friendly message belong to `007`
-- **ADR-010** — two projects, vertical slices, thin domain core
+- **ADR-002** — four-project Clean Architecture, with feature folders inside the
+  Application layer. ADR-010 proposed vertical slices and was **rejected**
 - **ADR-013** — SQL Server, and the four provider-coupled points
 - **ADR-002** — one deployable, one database, no broker
 
