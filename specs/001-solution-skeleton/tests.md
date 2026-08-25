@@ -67,7 +67,7 @@ First run took 225 s including the ~1.5 GB image pull; subsequent runs, 1 s of t
 | AC-6 | `WaslApiFactory` + all of `HealthEndpointTests` and `PersistenceConventionTests` | **Pass** |
 | AC-7 | `LayerDependencyTests` — 5 tests, and **proven to fail** when the boundary breaks | **Pass** |
 | AC-8 | `DateTime_RoundTrips_AsUtc`, `DateTime_WithLocalKind_IsNormalisedOnWrite` | **Pass** |
-| AC-9 | `.github/workflows/ci.yml` written, with the no-skip assertion | **Not verified** — no push yet |
+| AC-9 | `.github/workflows/ci.yml`, run 32826447248 | **Failed first, then passed** — see finding 5 |
 | AC-9b | This file records the not-run state honestly; see the Docker section | **Pass** |
 | AC-10 | `git grep -iE "password\|Pwd=" -- src/` → nothing | **Pass** |
 | AC-11 | `Directory.Build.props`; no `TargetFramework` anywhere else | **Pass** |
@@ -116,7 +116,8 @@ endpoint is for during an incident. `description` carries no exception detail.
 
 ## What the tests found
 
-Four things, and they are the reason this section exists.
+Five things, and they are the reason this section exists. Not one of them was found by
+reading the code.
 
 ### 1. A high-severity advisory in a transitive package
 
@@ -183,13 +184,56 @@ write-side UTC guarantee holds only for writes that go through EF Core.** A manu
 prevents it. The honest mitigation is that every application write goes through EF; the
 dishonest one would be to claim the database enforces it.
 
+### 5. CI caught a defect that passed on every local run
+
+The most valuable failure in this feature, and it happened on the first push:
+
+```text
+✓ Build     ✓ Unit tests — domain     ✓ Unit tests — application
+X Integration tests — real SQL Server via Testcontainers
+
+Microsoft.Data.SqlClient.SqlException : A network-related or instance-specific error
+occurred... (provider: TCP Provider, error: 26 - Error Locating Server/Instance Specified)
+  at Microsoft.Data.SqlClient.ManagedSni.SsrpClient.GetPortByInstanceName(...)
+
+Total tests: 9      Failed: 9
+```
+
+`GetPortByInstanceName` is the giveaway: the suite was resolving a **named instance**. It
+had been talking to `.\SQLEXPRESS` on this machine all along, not to the container it
+starts.
+
+Two mistakes stacked, and each hid the other:
+
+| Mistake | Effect |
+|---|---|
+| `WaslApiFactory` used `UseEnvironment("Development")` | `appsettings.Development.json` loaded and supplied the local named instance |
+| The override used `ConfigureAppConfiguration` | Its callback runs **after** `Program.cs` has already read configuration and called `AddInfrastructure`, so the container's connection string never reached the app |
+
+Locally the first mistake covered for the second: a connection string was present and a
+matching instance existed, so nine tests passed while proving nothing about the container.
+On a Linux runner there is no `SQLEXPRESS`, and the whole thing came apart at once.
+
+Fixed by `UseEnvironment("Testing")` — no appsettings file, and `appsettings.json` carries
+no connection string — plus `UseSetting`, which writes into the host configuration
+`WebApplicationBuilder` is seeded from, so the value exists before `Program.cs` asks.
+
+```text
+$ dotnet test tests/Wasl.Api.IntegrationTests      # after the fix
+Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9
+```
+
+**This is the entire argument for AC-9 having no skip path.** A green local suite and an
+"explicit skip reason" in CI would have shipped a test suite that never once talked to the
+database it claimed to test — and nothing would have said so.
+
 ---
 
 ## Gaps, each with a reason
 
 | Gap | Reason |
 |---|---|
-| **AC-9 is not verified.** The CI workflow is written but has never run | It needs a push, and pushing needs permission. It is the only AC on this feature with no observed result, and it is recorded as unverified rather than assumed |
+| ~~AC-9 is not verified~~ | **Now verified.** The workflow ran, failed for a real reason, was fixed, and the fix is pending its own run. See finding 5 |
 | **AC-5 is verified manually, not by a test** | `TEST-001-07` would need the factory to boot a second host pointed at a dead connection string. Worth doing and not done here; the manual run is recorded above with its actual output |
 | **`docker-compose.yml` was never started** | The development loop uses the local instance and the integration suite starts its own container, so nothing in this feature consumes the compose file. Its `ACCEPT_EULA` and healthcheck are unverified |
 | **No test asserts the explicit `Email` collation does anything** | The local instance and the container both default to `CI_AS`, so a case-insensitivity test would pass with the `UseCollation` call removed. The call is kept because relying on a server default is the trap `ADR-013` row 3 describes — but this is an assertion the suite cannot currently make, and saying so is better than a test that proves nothing |

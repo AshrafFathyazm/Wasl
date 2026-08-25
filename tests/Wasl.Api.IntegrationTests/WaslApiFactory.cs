@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
+
 using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
+using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
 
 namespace Wasl.Api.IntegrationTests;
@@ -63,13 +64,33 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        // "Testing", not "Development", and this is not cosmetic.
+        //
+        // With Development, appsettings.Development.json loads — and it points at the
+        // developer's local named instance (Server=.\SQLEXPRESS). That file won the
+        // ordering against the in-memory source below, so the suite talked to the local
+        // instance instead of the container. It passed on a Windows machine where that
+        // instance exists and failed on the CI runner with
+        // "Error Locating Server/Instance Specified", which is the class of defect AC-9
+        // exists to catch: green locally, red on the server.
+        //
+        // There is no appsettings.Testing.json, and appsettings.json carries no connection
+        // string, so the container's is the only one in play.
+        builder.UseEnvironment("Testing");
 
-        builder.ConfigureAppConfiguration((_, configuration) =>
-            configuration.AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:Wasl"] = _database.GetConnectionString(),
-                }));
+        // UseSetting, not ConfigureAppConfiguration, and this is the second half of the
+        // same lesson.
+        //
+        // ConfigureAppConfiguration's callback runs too late: Program.cs has already read
+        // configuration and called AddInfrastructure, which throws if the connection string
+        // is absent. Under "Development" that went unnoticed, because
+        // appsettings.Development.json happened to supply one — the local named instance,
+        // which is exactly the wrong value and the reason CI failed.
+        //
+        // UseSetting writes into the host configuration that WebApplicationBuilder is
+        // seeded from, so the value is present before Program.cs asks for it.
+        builder.UseSetting(
+            $"ConnectionStrings:{DependencyInjection.ConnectionStringName}",
+            _database.GetConnectionString());
     }
 }
