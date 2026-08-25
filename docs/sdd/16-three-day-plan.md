@@ -126,7 +126,25 @@ demonstrate a screen.
 | 3 | `IApplicationDbContext`, `WaslDbContext`, `Customer` and `Ticket` entities, `InitialCreate` | 40m | `dotnet ef database update` applies to an empty database |
 | 4 | `ProblemDetails` middleware + `ValidationBehaviour`, with every message resolved through `IStringLocalizer` from the first line | 35m | A `400` returns field-level errors in the documented shape; no message is a literal |
 | 5 | `dbo.AuditLog` + `AuditBehaviour` in the same transaction as the change | 45m | One command produces one audit row; a forced rollback leaves none |
-| 6 | `Ticket` domain type, `CreateTicketCommand`, validator, `POST /api/tickets` | 50m | `201` with `Location`, and a ticket exists against a seeded customer |
+| 6 | `Ticket` + `TicketHistory` + the sequence, `CreateTicketCommand`, validator, `POST /api/tickets`, **`GET /api/tickets/{id}`**, and **`TicketStatusTransitions` with all 36 transition tests** | **~2h** (was 50m) | `201` with `Location`, a `GET` on that `Location` returns the resource, and every one of the 36 BR-1 cells is covered |
+
+> **Amended 2026-08-25, by product-owner decision, while opening `009`.** Two items moved
+> **into** this one, and the budget moved with them rather than being absorbed:
+>
+> - **Session 2 item 1 — the transition map and its 36 tests — moved here.** AC-10 requires
+>   `allowedTransitions` in the create response, and `CLAUDE.md` allows the map to exist once.
+>   Shipping the map without its tests would put 35 unverified cells behind an API the screen
+>   renders buttons from, which is the failure class `003` caught twice. Session 2 item 1 is
+>   now struck through.
+> - **`GET /api/tickets/{id}` moved here from `010`.** The frozen contract promises `Location`
+>   works. `010` lands after `012`, so the alternative was a `201` whose `Location` returned
+>   `404` for the whole demo.
+>
+> **What did NOT move:** `PUT /api/tickets/{id}/status` and optimistic concurrency stay in
+> `012`; the ticket list and both screens stay in `010`.
+>
+> The overrun is real and was accepted rather than hidden. Item 5 of Session 2 onward is where
+> it comes out of, and the priority order there already says work leaves from the bottom.
 | 7 | `GET /health`, one integration test through it, CI on push | 25m | Green run visible on the repository |
 
 **Customers are seeded, not created.** The seed script is Session 3's first task; until
@@ -155,7 +173,7 @@ Listed in priority order. **If the session runs out, work leaves from the bottom
 
 | Order | Task | Budget | Done when |
 |---|---|---|---|
-| 1 | `TicketStatusTransitions` static map + the full BR-1 transition test set | 40m | Every one of the 36 cells covered, forbidden transitions included |
+| ~~1~~ | ~~`TicketStatusTransitions` static map + the full BR-1 transition test set~~ **→ moved to Session 1 item 6** (2026-08-25). `009` consumes the map, so `009` builds it — with all 36 tests, because a rules table half-verified is not a rules table | — | Done in Session 1 |
 | 2 | `PUT /api/tickets/{id}/status`, `allowedTransitions` on reads, optimistic concurrency | 35m | A forbidden transition returns `409` naming what is permitted; two writes on one version give one `200` and one `409` |
 | 3 | `POST /api/auth/token` + two seeded users + policies | 30m | A token carries the role; a wrong-role call returns `403`, proven by test |
 | 4 | `PUT /api/tickets/{id}/assignee` + BR-2 | 25m | An `Agent` assigning someone else's ticket returns `403`, proven by test |

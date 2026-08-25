@@ -1,69 +1,34 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Wasl.Api;
 using Wasl.Api.Common;
-using Wasl.Api.Common.Auth;
-using Wasl.Api.Common.Errors;
 using Wasl.Api.Health;
 using Wasl.Application;
-using Wasl.Application.Common.Abstractions;
 using Wasl.Infrastructure;
-using Wasl.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// Each layer registers itself, so nothing here names a type from another layer and every
+// implementation can stay internal to the project that owns it.
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AddPresentation();
 
-// Everything this layer needs from the database, behind one call. Program.cs names the
-// connection string and nothing else about EF Core.
-builder.Services.AddInfrastructure(builder.Configuration);
-
-// Handler discovery and validators. It registers NO behaviour — see the comment in that
-// file, and 003's research.md R-15 for what happened when two projects each registered
-// their own.
-builder.Services.AddApplication();
-
-// ── The pipeline (003) ───────────────────────────────────────────────────────────
-// The one place the behaviour order is declared: Validation -> Transaction -> Audit.
-// It is registered AFTER both AddInfrastructure and AddApplication on purpose — every
-// behaviour comes from this call, so nothing earlier can get ahead of it. AC-15 asserts
-// the resolved sequence against WaslPipeline.DeclaredOrder.
+// ── The pipeline (003) — deliberately NOT inside any of the three above ──────────
+//
+// The one place the MediatR behaviour order is declared: Validation -> Transaction -> Audit.
+// That order is execution order, not a naming convention, and it is asserted by AC-15 against
+// WaslPipeline.DeclaredOrder.
+//
+// It is called LAST so no earlier registration can get ahead of it, and it is called from here
+// rather than from a layer because the three behaviours do not live in one layer:
+// ValidationBehaviour is in Wasl.Application, and TransactionBehaviour and AuditBehaviour are in
+// Wasl.Infrastructure because both need a real transaction. Registering per layer was tried and
+// OBSERVED producing Transaction -> Audit -> Validation — a 400 then opens a transaction and
+// writes an audit row for every mistyped form, and nothing throws (003 research.md R-15).
+//
+// So this call is the documented exception to "each layer registers itself", and the exception
+// is the whole reason the order is trustworthy.
 builder.Services.AddWaslPipeline();
-
-// Both are read by the audit behaviour, and both are scoped because they describe one
-// request. IHttpContextAccessor is what makes them resolvable outside a controller.
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IRequestContext, HttpRequestContext>();
-builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
-
-// ── The error contract (002) ─────────────────────────────────────────────────────
-// AddProblemDetails supplies the framework's own writer; the handler and the factory
-// below make every response go through one producer (AC-2).
-builder.Services.AddProblemDetails();
-builder.Services.AddSingleton<IProblemMessageSource, StaticProblemMessageSource>();
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-
-// Singleton, not scoped, and the reason is a captive dependency.
-//
-// AddExceptionHandler<T> registers the handler as a SINGLETON. A singleton consuming a
-// scoped service captures it from the root scope and holds it forever — and .NET
-// validates scopes only in Development, so this started fine under the test environment
-// and refused to build under Development. Registering the factory as scoped was a real
-// latent defect that only the AC-13 test surfaced.
-//
-// It is safe as a singleton because it holds no per-request state: every request-specific
-// value arrives as an HttpContext parameter. That is a CONSTRAINT, not a coincidence —
-// anything scoped injected here later (ICurrentUser in 004, for one) reintroduces the
-// captive dependency, and the fix then is to pass it in rather than inject it.
-builder.Services.AddSingleton<ProblemDetailsFactory>();
-
-// Injected once, here, so nothing anywhere calls DateTime.UtcNow inline and a test can
-// substitute a fake clock without touching the code under test.
-builder.Services.AddSingleton(TimeProvider.System);
-
-builder.Services.AddHealthChecks()
-    // Liveness. Cheap, always true if the process is answering at all — and it is what
-    // distinguishes "the app is up but the database is not" from "the app is down".
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddDbContextCheck<WaslDbContext>("database");
 
 var app = builder.Build();
 
@@ -84,7 +49,7 @@ app.UseExceptionHandler();
 //
 // Also deferred to 002b: UseStatusCodePages, which envelopes the statuses the framework
 // short-circuits without throwing — 404 on a mistyped path, 405, 415. No exception
-// handler in any framework sees those, which research.md R-1 calls this feature's most
+// handler in any framework sees those, which 002's research.md R-1 calls its most
 // important finding.
 
 app.UseHttpsRedirection();
@@ -92,7 +57,7 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 // Outside /api, unauthenticated, and it returns the health report shape rather than
-// ProblemDetails — the one documented exception to the API conventions (AC-11).
+// ProblemDetails — the one documented exception to the API conventions (002 AC-11).
 app.MapHealthChecks("/health", new() { ResponseWriter = HealthReportWriter.Write });
 
 app.Run();

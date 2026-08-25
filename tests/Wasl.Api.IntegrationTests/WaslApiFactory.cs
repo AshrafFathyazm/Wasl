@@ -94,7 +94,7 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         // UseSetting writes into the host configuration that WebApplicationBuilder is
         // seeded from, so the value is present before Program.cs asks for it.
         builder.UseSetting(
-            $"ConnectionStrings:{DependencyInjection.ConnectionStringName}",
+            $"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.ConnectionStringName}",
             _database.GetConnectionString());
 
         // The 002 error-contract probes. Test-only routes, mapped here and never in src/,

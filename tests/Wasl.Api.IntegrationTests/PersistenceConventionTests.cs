@@ -16,8 +16,9 @@ namespace Wasl.Api.IntegrationTests;
 /// All of these need a real engine. EF <c>InMemory</c> would pass every one of them while
 /// proving nothing, which is why <c>testing/test-strategy.md</c> forbids it.
 /// </remarks>
+[Collection(WaslApiCollection.Name)]
 public sealed class PersistenceConventionTests(WaslApiFactory factory)
-    : IClassFixture<WaslApiFactory>
+
 {
     /// <summary>TEST-001-03, AC-8. The converter is only as good as this test.</summary>
     [Fact]

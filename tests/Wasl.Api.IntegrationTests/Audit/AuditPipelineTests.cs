@@ -17,7 +17,8 @@ namespace Wasl.Api.IntegrationTests.Audit;
 /// asserting that <c>Changes</c> is present, would pass on the broken implementation. AC-18 and
 /// AC-19 exist to be read this way.
 /// </remarks>
-public sealed class AuditPipelineTests(WaslApiFactory factory) : IClassFixture<WaslApiFactory>
+[Collection(WaslApiCollection.Name)]
+public sealed class AuditPipelineTests(WaslApiFactory factory)
 {
     private static string Path(string route, Guid customerId, string? company = null) =>
         company is null

@@ -2,10 +2,32 @@
 
 **Migration:** `AddTicketsAndHistory`
 
-This is the largest schema change in the project. `dbo.Customers` and
-`dbo.SupportUsers` already exist — `001-solution-skeleton` created them — so this
-migration adds two tables, one sequence, and six foreign keys, three of which point into
-a table it does not own.
+This is the largest schema change in the project. It adds two tables, one sequence, and
+**exactly one** foreign key.
+
+> **Corrected 2026-08-25. This file described a database that did not exist**, and three of
+> its statements were wrong — which matters more than the count, because the four foreign
+> keys they justified were impossible and every decision after them stood on invented ground.
+>
+> | Was | Is |
+> |---|---|
+> | "`dbo.Customers` and `dbo.SupportUsers` already exist — `001` created them" | `001` created **`Customers` only**. `SupportUsers` does not exist in any migration, in `Wasl.Domain`, or anywhere in source |
+> | "`dbo.AuditLog` — created by `001`, wired by `003`" | **`003` created it**, table and wiring both |
+> | "`008` added `IX_Customers_FullName`" | `008` is **not built**. No index on `FullName` exists |
+>
+> **Consequence, decided by the product owner:** the four columns that pointed at
+> `SupportUsers` — `CreatedByUserId`, `PerformedByUserId`, `AssignedToUserId`,
+> `EscalatedByUserId` — are `uniqueidentifier NULL` **with no foreign key** in `009`.
+> `004-auth-and-roles` creates `SupportUsers` and adds all four keys in the same migration
+> that creates the table.
+>
+> `CreatedByUserId` was additionally specified `NOT NULL` and sourced from the token. `009`
+> ships without authentication (see `spec.md`), so it is nullable here too — the same shape
+> the response takes: **the column exists and its value is null**, not absent.
+>
+> Rejected: seeding a "system" user so the key would work. ADR-005 rejected a forgeable
+> actor for the same reason — every audit row would name a user the server never
+> authenticated.
 
 Full schema reference: [`docs/sdd/03-domain-model.md`](../../docs/sdd/03-domain-model.md).
 Type mapping: [`ADR-013`](../../docs/sdd/decisions/ADR-013-database-sql-server.md).
@@ -16,14 +38,17 @@ Type mapping: [`ADR-013`](../../docs/sdd/decisions/ADR-013-database-sql-server.m
 
 | Object | Created by | Used here as |
 |---|---|---|
-| `dbo.Customers` | `001` | The target of `FK_Tickets_Customers` |
-| `dbo.SupportUsers` | `001` | The target of three FKs from `Tickets` and one from `TicketHistory` |
-| `dbo.AuditLog` | `001`, wired by `003` | Written by the audit behaviour; **not** touched by this migration |
+| `dbo.Customers` | `001` | The target of `FK_Tickets_Customers` — **the only foreign key this migration adds** |
+| `dbo.AuditLog` | `003` | Written by the audit behaviour; **not** touched by this migration |
 | The `DateTimeKind.Utc` value converter | `001` | Applies to every `datetime2(3)` column added here |
+| `IApplicationDbContext` | `001` | Gains `Tickets`; `TicketHistory` is **not** exposed on it — the pipeline writes history, not a handler |
+| `ICommand` · `IAuditableCommand<T>` · the audit and transaction behaviours | `003` | `CreateTicketCommand` is the **first production consumer**. The NFR-10 scanner now has a non-empty population |
 
-`008` added `IX_Customers_FullName`, which is what the customer picker's search uses.
+**`dbo.SupportUsers` does not exist.** It is `004`'s, along with the four foreign keys
+listed above. Nothing here references it.
+
+No index on `Customers.FullName` exists either — `008` owns the customer picker's search.
 Nothing on the customer side changes here.
-
 ## Added here
 
 ### Sequence
@@ -60,11 +85,11 @@ EF Core maps it with `.HasSequence<long>("TicketNumberSeq")`; the value is read 
 | `Priority` | `nvarchar(20)` | Enum as string, `DEFAULT 'Normal'` |
 | `Channel` | `nvarchar(20)` | Enum as string |
 | `Status` | `nvarchar(20)` | Enum as string, `DEFAULT 'New'` |
-| `AssignedToUserId` | `uniqueidentifier NULL` | FK → `dbo.SupportUsers`, `NO ACTION`. Null on creation |
-| `CreatedByUserId` | `uniqueidentifier` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `AssignedToUserId` | `uniqueidentifier NULL` | **No FK in `009`** — `SupportUsers` does not exist yet. Null on creation; `011` assigns and `004` adds the key |
+| `CreatedByUserId` | `uniqueidentifier NULL` | **Nullable and no FK in `009`.** Specified `NOT NULL` from the token; `009` has no authentication, so the column exists and its value is null — `004` fills it and adds the key |
 | `IsEscalated` | `bit` | `DEFAULT 0` |
 | `EscalatedAtUtc` | `datetime2(3) NULL` | Created here so `016` needs no second migration |
-| `EscalatedByUserId` | `uniqueidentifier NULL` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `EscalatedByUserId` | `uniqueidentifier NULL` | **No FK in `009`.** `016` owns escalation; `004` adds the key |
 | `EscalationReason` | `nvarchar(500) NULL` | |
 | `CreatedAtUtc` | `datetime2(3)` | From the injected `TimeProvider`, never `DateTime.UtcNow` |
 | `UpdatedAtUtc` | `datetime2(3)` | Equal to `CreatedAtUtc` on insert |
@@ -81,7 +106,7 @@ EF Core maps it with `.HasSequence<long>("TicketNumberSeq")`; the value is read 
 | `OldValue` | `nvarchar(200) NULL` | Null for `Created` |
 | `NewValue` | `nvarchar(200) NULL` | `New` for `Created` |
 | `Note` | `nvarchar(500) NULL` | |
-| `PerformedByUserId` | `uniqueidentifier` | FK → `dbo.SupportUsers`, `NO ACTION` |
+| `PerformedByUserId` | `uniqueidentifier NULL` | **Nullable and no FK in `009`**, same reason as `Tickets.CreatedByUserId`. The `Created` row is written by an unauthenticated request until `004` |
 | `PerformedAtUtc` | `datetime2(3)` | The same `TimeProvider` reading as the ticket's `CreatedAtUtc` |
 
 No `RowVersion`: `TicketHistory` is append-only, so there is nothing to conflict over
@@ -130,12 +155,16 @@ queried at volume. Every one of them has a named consumer in the table above; no
 
 | FK | On delete | Reason |
 |---|---|---|
+| `TicketHistory.TicketId` → `Tickets` | `CASCADE` | History has no meaning without its ticket. The audit log is the record that survives a deletion (ADR-008); `TicketHistory` is a product projection and goes with it |
 | `Tickets.CustomerId` → `Customers` | `NO ACTION` | Deleting a customer must not silently erase their support history |
-| `TicketHistory.TicketId` → `Tickets` | `CASCADE` | History has no meaning without its ticket |
-| `Tickets.CreatedByUserId` → `SupportUsers` | `NO ACTION` | The author must stay resolvable |
-| `Tickets.AssignedToUserId` → `SupportUsers` | `NO ACTION` | |
-| `Tickets.EscalatedByUserId` → `SupportUsers` | `NO ACTION` | |
-| `TicketHistory.PerformedByUserId` → `SupportUsers` | `NO ACTION` | The audit trail must never lose its actor |
+| ~~`Tickets.CreatedByUserId` → `SupportUsers`~~ | — | **`004`.** The author must stay resolvable, and there is no author yet |
+| ~~`Tickets.AssignedToUserId` → `SupportUsers`~~ | — | **`004`**, consumed by `011` |
+| ~~`Tickets.EscalatedByUserId` → `SupportUsers`~~ | — | **`004`**, consumed by `016` |
+| ~~`TicketHistory.PerformedByUserId` → `SupportUsers`~~ | — | **`004`.** The audit trail must never lose its actor — and until `004` there is no actor to lose |
+
+**`009` adds two foreign keys, not six.** The four struck through above wait for the table
+they point at. That is recorded rather than silently omitted, because a missing foreign key
+looks identical to a forgotten one six months later.
 
 `ON DELETE RESTRICT` is **not SQL Server syntax**. `NO ACTION` is the same behaviour, and
 it is what ADR-013 specifies.

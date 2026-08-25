@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wasl.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Wasl.Infrastructure.Persistence;
 namespace Wasl.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WaslDbContext))]
-    partial class WaslDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825205821_AddTicketsAndHistory")]
+    partial class AddTicketsAndHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -24,7 +24,8 @@ namespace Wasl.Api.IntegrationTests.Architecture;
 /// (`research.md` R-15).
 /// </para>
 /// </remarks>
-public sealed class PipelineOrderTests(WaslApiFactory factory) : IClassFixture<WaslApiFactory>
+[Collection(WaslApiCollection.Name)]
+public sealed class PipelineOrderTests(WaslApiFactory factory)
 {
     /// <summary>
     /// The sequence, for a command that satisfies every constraint.

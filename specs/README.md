@@ -70,6 +70,35 @@ and `tasks.md`. They are the same feature — one set of acceptance criteria, on
 contract between them. Two folders would mean two specs that have to be kept in step
 by hand.
 
+### The exception: a folder owned by one lane carries the lane in its name
+
+The rule above is the default and stays the default. It assumes a feature has two halves.
+Some do not.
+
+**When a feature is one lane end to end, the folder says so: `NNN-frontend-<name>`.**
+There is no `## Backend` section to write, no contract between two lanes to freeze, and
+no second set of tasks — so a shared folder would be a shared folder with one occupant,
+and the name would give a reader no way to tell.
+
+| Folder | Why it carries the lane |
+|---|---|
+| `023-frontend-foundation` | Scaffold, tokens, primitives, shell, i18n. No endpoint, no migration, no `.cs` file |
+| `024-frontend-create-ticket-form` | The screen for `009`. `009` is the backend feature and owns the frozen contract; this consumes it |
+
+Two conditions, and both must hold:
+
+1. **The feature is purely one lane.** If it grows a backend half, it stops qualifying —
+   and the answer then is to move that half into its own numbered feature with a frozen
+   contract between them, not to rename this one back.
+2. **The other lane's feature is named in the spec's first paragraph**, so the pair is
+   findable from either side. `024`'s first line points at `009`; `009`'s *Out of scope*
+   points back.
+
+A folder with **no** lane word is shared, and `plan.md` splits into `## Backend` /
+`## Frontend` as above. The absence of the word is information, which only works if the
+word is used consistently when it applies.
+
+
 ---
 
 ## Phases
@@ -233,10 +262,12 @@ without help?** If not, it is not done, regardless of whether the tests pass.
 
 ## Status
 
-All 22 features are **specified**. Three are implemented and delivered:
+All 22 features are **specified**, and 23 and 24 are named. Four are implemented:
 **`001-solution-skeleton`** (2026-08-25 — 17 tests, CI green), the **core of
-`002-error-contract`** (33 tests) and the **core of `003-audit-trail`** (93 tests, 0 warnings);
-`002b` and `003b` are deferred with a reason per task. The other 19 are awaiting review.
+`002-error-contract`** (33 tests), the **core of `003-audit-trail`** (93 tests) and the
+**backend of `009-create-ticket`** (2026-08-26 — 214 tests, 0 warnings). `002b` and `003b` are
+deferred with a reason per task; `009`'s two auth criteria belong to `004` and its form to
+`024-frontend-create-ticket-form`. The other 18 are awaiting review.
 
 | Feature | Phase | Origin |
 |---|---|---|
@@ -248,7 +279,7 @@ All 22 features are **specified**. Three are implemented and delivered:
 | `006-design-system` | 0 | Authored |
 | `007-create-customer` | 1 | Migrated from `US-001-create-customer` |
 | `008-customer-list-and-profile` | 1 | Migrated from `US-002-view-customer` |
-| `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` |
+| `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` — **✅ backend implemented 2026-08-26**, 214 tests. Gained the BR-1 map + 36 tests (from `012`) and `GET /api/tickets/{id}` (from `010`). No auth (`004`); form is `024-frontend-create-ticket-form` |
 | `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-filter-tickets` (read half) |
 | `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` |
 | `012-change-ticket-status` | 2 | Migrated from `US-008-change-ticket-status` |

@@ -11,45 +11,55 @@ sequence, formatted at insert time.
 
 ## Backend
 
-Two projects, vertical slices, minimal APIs (ADR-010). There is no `Wasl.Application`
-and no `Wasl.Infrastructure`; the slice owns everything it needs and the domain owns
-only what genuinely spans slices.
+**Four projects, ADR-002.** This section was written against ADR-010's two-project vertical
+slices; ADR-010 is **rejected**, so every path below changed and the endpoint is a
+**controller**, not a minimal API.
 
 | Project | Component | Responsibility |
 |---|---|---|
-| `Wasl.Domain` | `Ticket` | Aggregate root; `Create` factory sets `New` and appends the `Created` history row |
-| `Wasl.Domain` | `TicketHistory` | Owned entity; append-only |
-| `Wasl.Domain` | `TicketNumber` | `Format(int year, long sequence)` → `TCK-{yyyy}-{000000}`. Pure, no database, so AC-3's formatting is a unit test |
-| `Wasl.Domain` | `TicketCategory`, `TicketPriority`, `CommunicationChannel`, `TicketEventType`, `TicketStatus` | Enums per `03-domain-model.md` |
-| `Wasl.Domain` | `TicketStatusTransitions` | The BR-1 map. Read here only to populate `allowedTransitions`; `012` is what exercises it |
-| `Wasl.Api` slice | `Features/Tickets/CreateTicket/Endpoint.cs` | `MapPost("/api/tickets")`. Binds, authorizes, delegates, maps to `201` — nothing more |
-| `Wasl.Api` slice | `CreateTicketCommand` / `Handler` | Confirms the customer exists, reserves a number, creates, saves |
-| `Wasl.Api` slice | `CreateTicketValidator` | FluentValidation: required fields, lengths, enum validity |
-| `Wasl.Api` slice | `TicketResponse` | The DTO in the contract. Never the entity |
-| `Wasl.Api` slice | `TicketNumberSequence` | Reads `dbo.TicketNumberSeq` and hands the value to `TicketNumber.Format`. A concrete class with one caller and **no interface** |
-| `Wasl.Api/Common/Persistence` | `TicketConfiguration`, `TicketHistoryConfiguration` | Columns, lengths, string-stored enums, `rowversion`, indexes, the three explicit `SupportUsers` relationships |
+| `Wasl.Domain/Tickets/` | `Ticket` | Aggregate root. `Create` sets `New` and unassigned and stamps **nothing** — see `IAuditableEntity` |
+| `Wasl.Domain/Tickets/` | `TicketHistoryEntry` | Append-only. `Created(ticketId, performedAtUtc)` — the timestamp is data the caller states, not infrastructure |
+| `Wasl.Domain/Tickets/` | `TicketNumber` | `Format(int year, long sequence)` → `TCK-{yyyy}-{000000}`. Pure, so AC-3 and BR-8.13 are unit tests |
+| `Wasl.Domain/Tickets/` | `TicketStatus`, `TicketCategory`, `TicketPriority` | Enums per `03-domain-model.md`, persisted as strings |
+| `Wasl.Domain/Communications/` | `CommunicationChannel` | The **five** channels the product scope names: `Email`, `WhatsApp`, `LiveChat`, `Sms`, `WebForm` |
+| `Wasl.Domain/Tickets/` | `TicketStatusTransitions` | The BR-1 map, **and all 36 tests** (moved from `012`). `AllowedFrom(status, hasAssignee)` — the raw matrix is private, because a caller reading it directly offers `InProgress` on an unassigned ticket |
+| `Wasl.Domain/Common/` | `IAuditableEntity` | `CreatedAtUtc` · `UpdatedAtUtc` · `CreatedByUserId` · `UpdatedByUserId`, stamped by the DbContext |
+| `Wasl.Application/Features/Tickets/CreateTicket/` | `CreateTicketCommand` · `Handler` · `Validator` · `CreateTicketResult` | The first production `IAuditableCommand`. Confirms the customer, draws a number, creates, saves |
+| `Wasl.Application/Features/Tickets/GetTicketById/` | `GetTicketByIdQuery` · `Handler` | Not an `ICommand`, so no transaction and no audit row (AC-16) |
+| `Wasl.Application/Common/Abstractions/` | `ITicketNumberGenerator` · `IRequestTimestamp` | Declared here, implemented in Infrastructure |
+| `Wasl.Infrastructure/Persistence/` | `SequenceTicketNumberGenerator` | `NEXT VALUE FOR dbo.TicketNumberSeq`, formatted by the domain |
+| `Wasl.Infrastructure/Persistence/Configurations/` | `TicketConfiguration` · `TicketHistoryEntryConfiguration` | Columns, lengths, string-stored enums, `rowversion`, indexes, **one** foreign key |
+| `Wasl.Api/Controllers/` | `TicketsController` | Binds, dispatches, maps. `CreatedAtAction` so the `Location` is generated from the route that serves it |
 
-The history row is appended inside the domain factory rather than by the handler, so
-that AC-9 holds for every caller. A handler-level append is one refactor away from
-being forgotten.
+**The history row is written by the handler, not by the domain factory.** The original plan
+appended it inside `Ticket.Create` so AC-9 would hold for every caller — which is the right
+instinct and does not survive the stamping decision: the factory no longer knows the instant,
+because `SaveChangesAsync` supplies it. Both the ticket and its history row now read one scoped
+`IRequestTimestamp`, so they carry the same instant by construction rather than by the factory
+coordinating it.
 
-### Two things the original plan had that ADR-010 removes
+### `ITicketNumberGenerator` is back, and the note that removed it was right
 
-| Removed | Why |
-|---|---|
-| `ITicketRepository` | `DbSet<Ticket>` is already a repository. An interface with one implementation and no second in prospect is ceremony (ADR-010, constitution) |
-| `ITicketNumberGenerator` | Same test, and it fails it: one implementation, no second in prospect. The formatting is pure and lives in `Wasl.Domain` where it is unit-testable; the sequence read is a concrete class in the slice, and the integration test reads a real sequence rather than a stub of one. Faking a sequence would have proven nothing about AC-11, which is the criterion that motivated the sequence in the first place |
+ADR-010 removed it as ceremony: one implementation, no second in prospect. Under ADR-002 the
+handler is in `Wasl.Application`, which cannot see EF Core, and a sequence is a SQL Server
+object — so the interface exists for the layer boundary, the same reason `IApplicationDbContext`
+does.
 
+**The original objection survives intact and is honoured:** a faked sequence proves nothing
+about AC-11. The concurrency test runs eight real concurrent creates against a real sequence and
+never against a substitute. That was a rule about the test, not about the interface.
+
+`ITicketRepository` stays removed. `DbSet<Ticket>` is already a repository.
 ## Data Changes
 
 Full detail in [`data-model.md`](data-model.md). In summary:
 
 **Migration:** `AddTicketsAndHistory`
 
-Tables: `dbo.Tickets`, `dbo.TicketHistory`, plus the sequence `dbo.TicketNumberSeq`.
-`dbo.Customers` and `dbo.SupportUsers` already exist — `001-solution-skeleton` created
-them — so this migration adds two tables and three foreign keys into tables it does not
-own.
+`dbo.Customers` already exists — `001-solution-skeleton` created it. **`dbo.SupportUsers` does
+not**, and this section claimed it did: see `data-model.md`, which carries the correction and the
+two other false statements it contained. So this migration adds two tables, one sequence, and
+**one** foreign key. The four keys into `SupportUsers` belong to `004`, which creates that table.
 
 ```sql
 CREATE SEQUENCE dbo.TicketNumberSeq AS bigint START WITH 1 INCREMENT BY 1;
@@ -82,6 +92,11 @@ would conclude the migration was short one index when it is not.
 
 Enums are stored as strings so a database dump is readable and reordering the enum
 cannot silently reinterpret existing rows.
+
+> **Deferred with the keys themselves.** Everything below stands and none of it is built in
+> `009`: the four columns are `uniqueidentifier NULL` with no key, because the table they point
+> at does not exist. `004` creates it and adds all four in one migration — and this note is what
+> stops the cascade trap below being rediscovered there the hard way.
 
 ### Why every `SupportUsers` foreign key is `NO ACTION`
 

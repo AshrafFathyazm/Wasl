@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Wasl.Domain.Audit;
+using Wasl.Domain.Common;
 
 namespace Wasl.Infrastructure.Persistence.Audit;
 
@@ -73,16 +74,48 @@ internal sealed class AuditDiffInterceptor(AuditDiffAccumulator accumulator) : S
         }
     }
 
+    /// <summary>
+    /// The <see cref="IAuditableEntity"/> stamps, excluded from every diff.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>WaslDbContext.SaveChangesAsync</c> sets these four before <c>base</c> raises
+    /// <c>SavingChanges</c>, so they are already applied when this interceptor looks — which is
+    /// the correct order, and it means they would otherwise appear in every diff.
+    /// </para>
+    /// <para>
+    /// <b>They are infrastructure, not a change the actor made.</b> Including them would put two
+    /// timestamp entries in every audit row and an <c>UpdatedByUserId</c> entry in every update,
+    /// burying the field that actually changed under metadata the row already carries in its own
+    /// columns.
+    /// </para>
+    /// </remarks>
+    private static readonly HashSet<string> StampedProperties = new(StringComparer.Ordinal)
+    {
+        nameof(IAuditableEntity.CreatedAtUtc),
+        nameof(IAuditableEntity.UpdatedAtUtc),
+        nameof(IAuditableEntity.CreatedByUserId),
+        nameof(IAuditableEntity.UpdatedByUserId),
+    };
+
     private static IEnumerable<AuditFieldChange> Describe(EntityEntry entry)
     {
         var entity = entry.Metadata.ClrType.Name;
         var id = PrimaryKeyGuid(entry);
+        var isStamped = entry.Entity is IAuditableEntity;
 
         foreach (var property in entry.Properties)
         {
             // Shadow properties and the key itself are structural, not business changes. The
             // key on an insert is already the `id` on every entry.
             if (property.Metadata.IsPrimaryKey() || property.Metadata.IsShadowProperty())
+            {
+                continue;
+            }
+
+            // Only on entities that are actually stamped, so an entity that happens to own a
+            // field called CreatedAtUtc as business data keeps it in the diff.
+            if (isStamped && StampedProperties.Contains(property.Metadata.Name))
             {
                 continue;
             }

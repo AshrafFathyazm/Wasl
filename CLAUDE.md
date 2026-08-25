@@ -53,6 +53,7 @@ src/
     Auth/  Communications/
   Wasl.Api/                          composes everything at startup
     Controllers/  Middleware/  Localization/  Program.cs
+    DependencyInjection.cs           AddPresentation() — controllers, JSON, ICurrentUser, 002
     Common/WaslPipeline.cs           THE ordered behaviour list. Validation → Transaction → Audit
   wasl-web/                          React + TypeScript, feature folders
 tests/
@@ -271,6 +272,32 @@ Four provider-coupled points. Each fails **quietly** if done wrong:
 | Timestamps | `datetime2(3)` + a global UTC value converter. SQL Server has no `timestamptz` |
 | Integration tests | `Testcontainers.MsSql`, a real engine per run. Never EF `InMemory` — it enforces no constraints |
 
+
+## Testing rules that were learned the hard way
+
+Two of these came from defects that a green test run was actively hiding.
+
+**Verification means the whole suite. `--filter` is for diagnosis, never for proof.**
+Seven integration classes each passed under `--filter` and the suite died of
+`System.OutOfMemoryException` — because `IClassFixture` creates a fixture per class, so seven
+classes started seven SQL Server containers at once. The failures landed on unrelated
+validation assertions, so it read as a feature bug rather than resource exhaustion. A filtered
+run tells you about a class; it tells you nothing about the suite.
+
+**One `ICollectionFixture` for every integration class, so one container. Which means the
+tests share a database — so scope every assertion.** Filter by ticket id, customer id, or
+audit action. **Never `COUNT(*)` over a whole table**: an assertion that was correct with one
+container per class is wrong now, and it fails intermittently depending on which tests ran
+first, which is the worst way to find out.
+
+**Assert content, not presence.** `003` moved its diff interceptor one hook later and four
+tests went red while the audit row still existed, `COUNT(*)` still returned 1, and `Changes`
+came back `null` on every command. A test checking that a row exists, or that a field is
+present, would have stayed green on a broken audit trail.
+
+**A guard that has never been seen to fail has not been verified.** `001` shipped an
+architecture test that was a false negative until someone broke it on purpose. Break the thing
+the test protects, watch it go red, put it back — and record that in `tests.md`.
 ## Definition of Done
 
 Full list: [docs/sdd/09-definition-of-done.md](docs/sdd/09-definition-of-done.md). The
@@ -302,7 +329,8 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | Attachments are **out of scope**, stated explicitly in the affected `spec.md` | `docs/sdd/00-project-context.md` |
 | Theming: token architecture in `006`, settings screen deferred | ADR-012, accepted in part |
 | **`TransactionBehaviour` and `AuditBehaviour` live in `Wasl.Infrastructure`**, not beside `ValidationBehaviour` | `003` `research.md` R-14, product owner 2026-08-25. Both need a real transaction; `IApplicationDbContext` exposes no EF Core type and `IDbContextTransaction` is one, so putting it there would fail the architecture test. The `IUnitOfWork` wrapper was the alternative and was turned down — the boundary keeps **no exemption** |
-| **All three behaviours are registered once, in `Wasl.Api/Common/WaslPipeline.cs`** | `003` `research.md` R-15. Registration order is execution order and `Program.cs` calls `AddInfrastructure` first, so per-project registration was **observed** producing `Transaction → Audit → Validation` — a `400` then writes an audit row, and nothing throws. Do not move a registration back into `AddApplication` or `AddInfrastructure` |
+| **Each layer registers itself** — `AddApplication()` · `AddInfrastructure(config)` · `AddPresentation()`, three chained calls in `Program.cs`, which names no type from another layer. A layer registering its own implementations is what lets them stay `internal` | 2026-08-26. `TimeProvider` and the `WaslDbContext` health check belong to `AddInfrastructure`, not to the composition root |
+| **All three behaviours are registered once, in `Wasl.Api/Common/WaslPipeline.cs`** — the **one exception** to the row above, called last from `Program.cs` | `003` `research.md` R-15. Registration order is execution order and `Program.cs` calls `AddInfrastructure` first, so per-project registration was **observed** producing `Transaction → Audit → Validation` — a `400` then writes an audit row, and nothing throws. Do not move a registration back into `AddApplication` or `AddInfrastructure` |
 
 ## Still open — and they are for the evaluator, not for us
 

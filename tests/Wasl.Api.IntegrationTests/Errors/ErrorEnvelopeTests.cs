@@ -11,7 +11,8 @@ namespace Wasl.Api.IntegrationTests.Errors;
 /// The envelope, asserted against <c>contracts/error-contract.md</c> through the real
 /// pipeline.
 /// </summary>
-public sealed class ErrorEnvelopeTests(WaslApiFactory factory) : IClassFixture<WaslApiFactory>
+[Collection(WaslApiCollection.Name)]
+public sealed class ErrorEnvelopeTests(WaslApiFactory factory)
 {
     private const string TypeBase = "https://wasl.local/errors/";
 

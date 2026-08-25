@@ -14,7 +14,8 @@ namespace Wasl.Api.IntegrationTests.Audit;
 /// <c>sys.*</c> or <c>INFORMATION_SCHEMA</c> against a real engine — which is also why EF
 /// <c>InMemory</c> is never used in this suite: it would report all of this as fine.
 /// </remarks>
-public sealed class AuditSchemaTests(WaslApiFactory factory) : IClassFixture<WaslApiFactory>
+[Collection(WaslApiCollection.Name)]
+public sealed class AuditSchemaTests(WaslApiFactory factory)
 {
     private async Task<List<Dictionary<string, object?>>> QueryAsync(string sql)
     {

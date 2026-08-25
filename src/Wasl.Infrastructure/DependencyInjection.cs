@@ -26,6 +26,12 @@ public static class DependencyInjection
                 $"Connection string '{ConnectionStringName}' is not configured. "
                 + "See specs/001-solution-skeleton/quickstart.md.");
 
+        // The clock, registered by the layer that reads it. Injected once so nothing anywhere
+        // calls DateTime.UtcNow inline and a test can substitute a fake without touching the code
+        // under test. It was in Program.cs, which meant the presentation layer supplied a
+        // dependency only the persistence layer used.
+        services.AddSingleton(TimeProvider.System);
+
         // Scoped, so it spans the request. The interceptor fills it across however many
         // SaveChanges calls the handler makes, and AuditBehaviour reads it once at the end.
         services.AddScoped<AuditDiffAccumulator>();
@@ -56,6 +62,10 @@ public static class DependencyInjection
             provider => provider.GetRequiredService<WaslDbContext>());
 
         services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddScoped<ITicketNumberGenerator, SequenceTicketNumberGenerator>();
+
+        // Scoped, which is what makes one request one instant. See IRequestTimestamp.
+        services.AddScoped<IRequestTimestamp, RequestTimestamp>();
 
         // ── The behaviours are NOT registered here, and that is the point ────────────────
         //
@@ -68,6 +78,11 @@ public static class DependencyInjection
         //
         // That inversion was OBSERVED, not deduced (research.md R-15). All three are
         // registered once, in declared order, by Wasl.Api's AddWaslPipeline().
+
+        // This layer owns the DbContext, so this layer declares the check on it. In Program.cs it
+        // made the presentation layer name WaslDbContext — the one Infrastructure type that had
+        // leaked upward.
+        services.AddHealthChecks().AddDbContextCheck<WaslDbContext>("database");
 
         return services;
     }

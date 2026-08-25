@@ -9,7 +9,8 @@ namespace Wasl.Api.IntegrationTests;
 /// <c>specs/001-solution-skeleton/contracts/health-api.md</c>, not merely that the
 /// endpoint answers.
 /// </summary>
-public sealed class HealthEndpointTests(WaslApiFactory factory) : IClassFixture<WaslApiFactory>
+[Collection(WaslApiCollection.Name)]
+public sealed class HealthEndpointTests(WaslApiFactory factory)
 {
     [Fact]
     public async Task Health_WhenDatabaseIsReachable_Returns200AndTheContractShape()

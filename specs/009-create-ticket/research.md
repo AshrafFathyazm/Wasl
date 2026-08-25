@@ -42,11 +42,22 @@ missing?" will be asked and "it is a bug" is the wrong answer.
 
 ---
 
+
 ## R-2 · Does the number need an interface to be testable?
 
 The original plan had `ITicketNumberGenerator` in `Wasl.Application` and
-`SequenceTicketNumberGenerator` in `Wasl.Infrastructure`. Neither project exists under
-ADR-010, so the question had to be re-answered rather than re-homed.
+`SequenceTicketNumberGenerator` in `Wasl.Infrastructure`. Under ADR-010 neither project
+existed, so the question was re-answered rather than re-homed.
+
+> **Reversed 2026-08-26. ADR-010 is rejected and both projects exist, so the interface is
+> back** — and this note was right about the thing it was actually protecting. The interface
+> exists for the **layer boundary**, not for faking: the handler is in `Wasl.Application`, which
+> cannot see EF Core, and a sequence is a SQL Server object. Same reason as
+> `IApplicationDbContext`.
+>
+> **The objection below stands and is honoured:** a faked sequence proves nothing about AC-11.
+> The concurrency test runs eight real concurrent creates against a real sequence, never against
+> a substitute. That is a rule about the test, and it survived the layout changing under it.
 
 **Checked:** what each test actually needs, against the constitution's rule — no new
 abstraction without a second implementation in hand or in prospect.
@@ -171,7 +182,24 @@ does not have to rediscover the question.
 
 ---
 
-## R-7 · Does the layout change from ADR-010 lose anything this feature relied on?
+## R-7 · Does the layout change from ADR-010 lose anything this feature relied on? — *asked and answered twice*
+
+> **Superseded 2026-08-26. ADR-010 is rejected; four-project Clean stands (ADR-002).** This
+> note weighed the move *to* vertical slices and concluded nothing was lost. The move was then
+> reversed, so the table below is a record of a road not taken — kept because two of its rows
+> turned out to be about something other than layout, and those survived:
+>
+> | Row | What survived the reversal |
+> |---|---|
+> | `ITicketRepository` → `DbSet<Ticket>` | **Still removed.** `DbSet<T>` is already a repository, and that is true in either layout. `CLAUDE.md` states it as a standing rule |
+> | MediatR **kept** | **Still kept**, and `003` made it load-bearing: validation, the transaction boundary, and the audit row are all pipeline behaviours. This feature is the first production consumer of all three |
+> | `ITicketNumberGenerator` removed | **Reversed** — see R-2. The interface is a layer boundary, not ceremony, once `Wasl.Application` exists and cannot see EF Core |
+> | One minimal-API endpoint per slice | **Reversed.** `CLAUDE.md` specifies controllers, and `009` ships `TicketsController` with two actions |
+> | The diff landing in two folders | **Not achieved, and it was never the point.** The diff spans four projects, which is the cost ADR-002 accepted for a boundary that is visible without explanation |
+>
+> The closing claim below — "under four projects it was four folders for one slice of
+> behaviour" — is accurate and is now the accepted cost rather than an argument against.
+
 
 **Checked:** every component in the original plan's four-project table against the
 two-project layout.
@@ -215,3 +243,66 @@ instance of it in the project.
 was not running on this machine on 2026-08-23. Every integration test in this feature is
 unverifiable until it is started, and the fixture fails fast with a message naming Docker
 rather than hanging until a timeout.
+
+---
+
+## R-9 · Do enums reach the wire as names? — *no, and it cost the first request*
+
+**Not checked before implementation, and it should have been.** `CLAUDE.md`'s API contract says
+"enums as strings", every example in `contracts/tickets-api.md` shows `"channel": "WhatsApp"`,
+and BR-8.7 puts enum values outside localisation — which only means anything if the value on the
+wire is the name.
+
+**Found by running it.** `System.Text.Json` binds enums from **numbers** by default. Every
+request in the first test run came back `400`, including the one that should have been a `404`,
+because binding failed before any validator ran. Had the request bound, the response would have
+serialised `status` as `0`.
+
+**Settled:** one `JsonStringEnumConverter`, registered once in `AddPresentation()`.
+
+**Rejected: `[JsonConverter]` per property.** An attribute is a thing the next DTO forgets, and
+the resulting contract violation compiles and ships. The failure mode is a client branching on
+integers whose meaning changes the day someone reorders an enum member — which `TicketStatus`
+explicitly says carries no meaning.
+
+**Why `002` never hit this:** it had no enum on the wire. `009` is the first feature with four.
+
+---
+
+## R-10 · Where do `CreatedAtUtc` and `CreatedByUserId` come from?
+
+**Decided by the product owner, 2026-08-26**, against an implementation that had the handler
+stamping both.
+
+**The argument for moving them out of the handler:** the stamps a handler is responsible for are
+the stamps one handler will forget — and forgetting fails nothing. No test goes red, no
+constraint is violated; a row carries `0001-01-01` until someone sorts by it. The same pattern
+would then repeat in `011`, `012`, `016`, and every entity after.
+
+**Settled:** `IAuditableEntity` in `Wasl.Domain/Common/` — an interface, not a base class, so an
+entity keeps its private setters and its one inheritance slot — stamped by an override of
+`WaslDbContext.SaveChangesAsync`. `Added` sets all four; `Modified` sets only the `Updated*`
+pair, because rewriting `CreatedAtUtc` on every edit would silently move a row's creation time.
+
+**The hard part was AC-9**, which requires the ticket and its first history row to carry the
+*same* instant. The factory no longer knows the instant, so the handler cannot read
+`ticket.CreatedAtUtc` when it builds the history row — the value does not exist until the save.
+
+| Option | Outcome |
+|---|---|
+| Save twice: stamp the ticket, read the stamp back, write the history | **Proposed and rejected by the product owner.** It works — `003`'s accumulator already merges diffs across saves — but it is a workaround that `011`, `012` and `016` would each repeat, and three repetitions is a pattern. The pattern is "write, read what you wrote, write again", which the interceptor exists to avoid |
+| Pass the instant from the handler into the stamping | Makes "the same moment" a thing to be coordinated between two components, and the coordination is what a later feature forgets |
+| **`IRequestTimestamp` — one scoped value, read once, returned for the rest of the request** | **Settled.** The DbContext stamps from it and the handler reads it for the history row, so the two are equal **by construction**. One save, no extra round trip, and no ordering to protect with a test |
+
+**"The same moment" is a fact about the request**, so it is modelled as one value scoped to the
+request rather than as an agreement between components.
+
+**One consequence, recorded because it is invisible:** a long-lived scope sees a frozen clock.
+Every scope here is a request, so nothing is affected — but a hosted service would need a scope
+per unit of work. Written at the implementation rather than left to be discovered.
+
+**And one that had to be handled:** the four stamps are applied *before* `base.SaveChangesAsync`
+raises `SavingChanges`, so `003`'s diff interceptor sees them. It excludes them by name — they
+are infrastructure, not a change the actor made, and including them would put two timestamp
+entries in every audit row and an `UpdatedByUserId` entry in every update, burying the field
+that actually changed.

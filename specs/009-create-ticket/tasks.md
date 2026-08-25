@@ -1,9 +1,43 @@
 # 009 — Task Breakdown
 
-**Phase:** 2 · **Story:** US-005 · **Feature:** `009-create-ticket` · **Status:** Migrated to spec-kit 2026-08-23, awaiting review
+**Phase:** 2 · **Story:** US-005 · **Feature:** `009-create-ticket` ·
+**Status:** Reconciled and implemented 2026-08-26
 
 Agents are **named** here and **not dispatched until the plan is approved**. Naming is
-part of the plan; dispatching is not.
+part of the plan; dispatching is not. **No subagent was dispatched for this feature** — see
+`ai-notes.md`.
+
+## The split — what ran, what moved, what is owned elsewhere
+
+Decided 2026-08-25/26 by the product owner; the reasoning is in `spec.md`'s split note.
+
+### Moved **into** `009`
+
+| Task | From | Why |
+|---|---|---|
+| `TicketStatusTransitions` + **all 36 transition tests** | `012` | AC-10 returns `allowedTransitions`, and `CLAUDE.md` allows the map to exist once. Shipping it with 35 unverified cells would put an untested rule behind an API the screen renders buttons from |
+| `GET /api/tickets/{id}` | `010` | The frozen contract promises `Location` resolves and `TEST-009-03` fetches from it. `010` lands after `012`, so the alternative was a `201` whose `Location` returned `404` for the whole demo |
+
+`012` keeps `PUT /status` and optimistic concurrency. `010` keeps the list and both screens.
+
+### Deferred, with the owner named
+
+| Task / AC | Owner | Why |
+|---|---|---|
+| AC-12, AC-13 · `BE-009-10` (the `Auth.Unauthenticated` row) · `TEST-009-09`, `TEST-009-11` | **`004-auth-and-roles`** | `009` ships without authentication: `004` comes after this feature *and* after `012` in the plan. `createdByUserId` stays in the response as `null`, nullable in the DTO — removing a field and adding it back is a breaking change for a client, a null it handles from day one is not. The frozen contract does not change |
+| The four foreign keys to `dbo.SupportUsers` | **`004`** | That table does not exist. `data-model.md` claimed `001` had created it; `001` created `Customers` alone |
+| AC-14, AC-15 · all `FE-009-*` | **`024-frontend-create-ticket-form`** | `src/wasl-web/` belongs to the parallel frontend lane. `009` closes as a complete backend feature, which is the mechanism `CLAUDE.md` describes — the contract is frozen and `FRONTEND-API-GUIDE.md` is its input. **Not `023`**: that folder is the frontend *foundation*, and a feature screen there would make it grow with every screen and lose its definition of done |
+| `REV-009-03` — OpenAPI compared against the contract | **`002b`** | Swashbuckle is `002b`. Until then the comparison is manual, and `tests.md` records it as such rather than as passing |
+
+### What ran
+
+Everything else. The backend end to end: the domain types and the BR-1 map, the sequence, the
+migration, the command with its validator and handler, `POST /api/tickets`,
+`GET /api/tickets/{id}`, and the tests for all of it.
+
+**Budget.** `docs/sdd/16-three-day-plan.md` allotted 50 minutes to Session 1 item 6. With the
+two moved items, `TicketHistory`, and the sequence it is closer to two hours — amended in that
+file rather than absorbed, and Session 2 item 1 struck through because it moved here.
 
 ### What this migration changed
 
@@ -11,13 +45,13 @@ part of the plan; dispatching is not.
 |---|---|
 | Every ID renumbered `BE-005-nn` → `BE-009-nn`, and every `Depends on` updated with it | The ID says which folder the task lives in (`specs/README.md`) |
 | `Agent` and `Skill` columns added to every row | Who does what is part of the plan, not a decision made in the moment |
-| `BE-009-09` and `BE-009-10` added — the audit obligation | The original predates ADR-008, so **no task carried it**, and `NFR-10`'s architecture test (every `ICommand` implements `IAuditableCommand`) would have failed the build on the first commit of `CreateTicketCommand`. `BE-009-10` exists because BR-9.2 and BR-9.4 make the `401` row a *separate* mechanism: written outside any transaction, since there is no business transaction to join |
+| `BE-009-09` and `BE-009-10` added — the audit obligation | The original predates ADR-008, so **no task carried it**, and `NFR-10`'s architecture test (every `ICommand` implements `IAuditableCommand`) would have failed the build on the first commit of `CreateTicketCommand`. That prediction was correct and `003` built the scanner; `CreateTicketCommand` is its first real population. `BE-009-10` exists because BR-9.2 and BR-9.4 make the `401` row a *separate* mechanism, written outside any transaction — and it is `004`'s, because there is no `401` to record yet |
 | `FE-009-00` added — screen preview before any wiring | Rendering a screen costs minutes; changing one that already has tests, translation keys and query wiring costs hours (ADR-009, `docs/sdd/design/preview-first-workflow.md`) |
 | `FE-009-01` split into a provisional-types task and `FE-009-05`, the swap to generated types | The frontend lane starts from the frozen contract and does not wait for `BE-009-08`. The swap is a deliberate task rather than something to forget (ADR-011 §6) |
 | `FE-009-06` added — the Arabic and accessibility pass | A DoD gate with no task is a gate nobody owns |
 | `TEST-009-10` … `TEST-009-12` added | Audit in-transaction, the `401` row, and an Arabic subject round-tripping byte-identical through `nvarchar` (ADR-013 row 4 — `varchar` yields `????` and reads as a font bug) |
 | A `Review` section added, including `REV-009-03` | The generated OpenAPI is compared against `contracts/tickets-api.md`; a difference is a defect in one of the two |
-| Paths corrected throughout | ADR-010: two projects. `src/Wasl.Application/…` and `src/Wasl.Infrastructure/…` do not exist; controllers became one minimal-API endpoint per slice |
+| **Paths corrected again, 2026-08-26** | The previous correction targeted ADR-010's two projects and minimal APIs. **ADR-010 is rejected** — four-project Clean stands (ADR-002), so `src/Wasl.Application/Features/Tickets/…` and `src/Wasl.Infrastructure/Persistence/…` are exactly where these files go, and the endpoint is a **controller** (`CLAUDE.md`), not a minimal API |
 | Verification for the indexes rewritten | `psql \d+` became a `sys.indexes` query, and the count was made per-table — four indexes on `dbo.Tickets` plus its primary key, one on `dbo.TicketHistory` (ADR-013) |
 
 ## Critical path
