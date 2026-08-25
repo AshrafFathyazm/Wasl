@@ -47,9 +47,9 @@ tests that this is real, and they assert on content, never on presence.
 
 ## R-2 · How does a `Denied` or `Failed` row survive the rollback of the thing that failed?
 
-**The trap.** The obvious implementation catches the exception in `AuditBehavior` and adds
+**The trap.** The obvious implementation catches the exception in `AuditBehaviour` and adds
 the audit row to the same `DbContext`. That `DbContext` is enrolled in the transaction
-`TransactionBehavior` is about to roll back, so the row is created and then destroyed. The
+`TransactionBehaviour` is about to roll back, so the row is created and then destroyed. The
 request still returns the right status code, the log still shows the error, and the audit
 row — the only durable record that someone was denied — is gone. BR-9.4 exists because of
 exactly this.
@@ -80,33 +80,83 @@ true.
 ## R-3 · Does MediatR resolve **constrained** open-generic pipeline behaviours?
 
 **Why it matters.** The design wants
-`AuditBehavior<TRequest, TResponse> where TRequest : IAuditableCommand<TResponse>` so the
+`AuditBehaviour<TRequest, TResponse> where TRequest : IAuditableCommand<TResponse>` so the
 compiler, not a runtime `if`, decides which requests are audited. If the container cannot
 close a constrained open generic, registration throws at startup for every non-auditable
 request — or worse, silently resolves nothing.
 
-**Status: NOT SETTLED HERE.** This is a property of the MediatR version and the container,
-and it is verified by running it, not by recalling it. Recorded as assumption A-3.
+**Status: SETTLED BY RUNNING IT, 2026-08-25.** It was recorded as assumption A-3 and left
+unverified because there was nothing to run it against. The product owner required the
+verification before implementation, so it was run.
 
-**How it gets verified, before `BE-003-05` is written:**
+**How.** `dotnet test --filter PipelineOrderTests` — the command this note originally named —
+could not be the answer: that test is part of `003` and does not exist yet. So the check was a
+throwaway console spike, outside the repository, modelling the three real behaviours with the
+three real constraints against MediatR **14.2.0**, the version `Wasl.Application` declares.
 
-```bash
-dotnet test tests/Wasl.Api.IntegrationTests --filter FullyQualifiedName~PipelineOrderTests
+```text
+MediatR assembly: 14.0.0.0
+
+AuditableCommand   (ICommand + IAuditableCommand<string>)
+  pipeline: Transaction -> Audit(Probe.Audited) -> Validation
+
+PlainCommand       (ICommand only)
+  pipeline: Transaction -> Validation
+
+PlainQuery         (neither marker)
+  pipeline: Validation
 ```
 
-The order test (AC-15) resolves `IEnumerable<IPipelineBehavior<TRequest, TResponse>>` for
-both an auditable probe command and a non-auditable probe query. If the constrained
-behaviour appears for the query, or is missing for the command, the test fails and the
-fallback applies.
+**The constraint resolves, and it filters correctly.** Three things were in question and all
+three are answered:
 
-**Fallback, decided now so it is not designed under pressure:** one unconstrained
-`AuditBehavior<TRequest, TResponse>` with `if (request is not IAuditableCommand) return
-await next();` at the top. Identical semantics, less compile-time help, and the
-architecture test in AC-14 already covers the gap the constraint would have closed.
+| Question | Observed |
+|---|---|
+| Does the container close a constrained open generic at all? | Yes. `AuditBehaviour` ran for `AuditableCommand` |
+| Does it apply **only** where the constraint holds? | Yes. `PlainCommand` implements `ICommand` but not `IAuditableCommand<T>`, and `AuditBehaviour` did not run for it. `PlainQuery` implements neither and got `Validation` alone |
+| Does registration **throw at startup** for requests that do not satisfy the constraint — this note's stated fear? | **No.** Nothing threw. The non-matching behaviour is simply absent from the resolved list |
+
+**So the fallback is not needed and is not built.** It stays written down below, because the
+constraint is a property of a package version: if MediatR is upgraded and the constrained
+behaviour stops resolving, the fallback is the decision already taken rather than one made
+under pressure.
+
+**Fallback, if that day comes:** one unconstrained `AuditBehaviour<TRequest, TResponse>` with
+`if (request is not IAuditableCommand) return await next(ct);` at the top. Identical
+semantics, less compile-time help, and the architecture test in AC-14 already covers the gap
+the constraint would have closed.
+
+**A second finding, not asked for and worth more than the first was.** The spike's bare
+`ServiceCollection` threw before it could resolve anything:
+
+```text
+System.InvalidOperationException: MediatR requires ILoggerFactory to be registered.
+Call services.AddLogging() before services.AddMediatR().
+```
+
+MediatR 14 requires `ILoggerFactory` at registration. `WebApplicationBuilder` adds logging by
+default, so `Wasl.Api` and anything booted through `WaslApiFactory` are fine — and `002`'s 33
+green tests are the evidence. But **a pipeline-order test written against a hand-built
+`ServiceCollection` will throw**, and the exception names a logging problem rather than the
+thing being tested. `TEST-003-05` should resolve the behaviour list from the real host, or call
+`AddLogging()` first. Recorded because the failure message points away from the cause.
+
+**Where the spike lives:** the session scratchpad, not the repository —
+`scratchpad/r3-spike/`. It is deleted with the session. What survives is this note and the
+output above, which is the point: the artefact is disposable, the observation is not.
 
 ---
 
 ## R-4 · `DENY` is on the table — but does it apply to the connection the application uses?
+
+> **Deferred to `003b`, 2026-08-25, by product-owner decision.** Everything in this note
+> stands; none of it is built in `003`. The audit log is append-only by application
+> convention until `003b` lands the `wasl_app` role, the restricted connection string, and
+> AC-12/AC-13. Deferred whole rather than halved, because `DENY` without AC-13 is precisely
+> the decorative case this note identifies. **And one thing this note did not consider:**
+> local development runs against the local named instance `SQLEXPRESS` over Windows auth,
+> where the developer is almost certainly `sysadmin` — so the same code passes AC-13 in the
+> container and fails it locally, or is never run locally and is believed. `003b` owns that too.
 
 **Checked:** what `DENY` does and does not restrict, and what `Testcontainers.MsSql`
 connects as.
@@ -185,7 +235,7 @@ test that needs Docker to run is a reflection test nobody runs.
 ## R-6 · `AuditLog` or `AuditEntry`? The blueprint uses both
 
 **Checked:** `docs/sdd/03-domain-model.md` names the entity `AuditLog` and the table
-`dbo.AuditLog`. ADR-010's project sketch names the domain type `Audit/AuditEntry`.
+`dbo.AuditLog`. ADR-010's project sketch — rejected, but not on this point — names the domain type `Audit/AuditEntry`.
 
 **Settled:** the CLR type is `AuditEntry`, the table is `AuditLog`, mapped with
 `ToTable("AuditLog")`, and the `DbSet` is named `AuditLog`. One row is an entry; the table
@@ -196,13 +246,19 @@ alongside the one that already exists.
 
 ## R-7 · Where do `ICommand` and `IAuditableCommand` live?
 
-**The constraint:** `Wasl.Domain` has zero package references, ever (ADR-010, constitution
+**The constraint:** `Wasl.Domain` has zero package references, ever (ADR-002, constitution
 III). Both markers derive from or are consumed by MediatR types, so neither can live there.
 
-**Settled:** `src/Wasl.Api/Common/Messaging/`. One new folder beyond the set named in
+**Settled:** `src/Wasl.Application/Common/Messaging/`. Under ADR-002 the commands themselves
+live in `Wasl.Application/Features/`, so their markers belong in the same project — a marker
+in `Wasl.Api` would be referenced by every slice in a project that sits *above* them in the
+dependency direction, which does not compile. One new folder beyond the set named in
 `docs/sdd/02-architecture.md`, justified: the markers are consumed by two behaviours and by
-every future slice, so putting them inside `Behaviors/` would make every slice depend on a
-folder named after infrastructure it does not use.
+every future use case, so putting them inside `Behaviours/` would make every use case depend
+on a folder named after infrastructure it does not use.
+
+**Reconciled 2026-08-25.** This research note previously said `Wasl.Api/Common/Messaging/`,
+which was correct only under the two-project sketch ADR-010 proposed and which was rejected.
 
 `AuditEntry`, `AuditOutcome`, `AuditTarget`, `AuditFieldChange`, and `AuditRedaction` all
 **do** live in `Wasl.Domain/Audit/` — they reference nothing but the BCL, and BR-9.7 is a
@@ -268,14 +324,14 @@ people edit at once"*, and `docs/sdd/03-domain-model.md` names `TicketComments`,
 
 ## R-11 · Did the American/British spelling split in the blueprint matter? — *no*
 
-`docs/sdd/02-architecture.md` names the files `ValidationBehavior.cs`,
-`TransactionBehavior.cs`, `AuditBehavior.cs` in a folder called `Behaviors/`. Every prose
+`docs/sdd/02-architecture.md` names the files `ValidationBehaviour.cs`,
+`TransactionBehaviour.cs`, `AuditBehaviour.cs` in a folder called `Behaviours/`. Every prose
 document says "behaviour". Checked in case a folder was being created twice under two
 spellings.
 
-**Settled:** code and file names follow the blueprint exactly — `Behaviors/`,
-`AuditBehavior`. Prose keeps "behaviour". No decision rides on it, and it is written down
-only so nobody creates `Behaviours/` next to `Behaviors/`.
+**Settled:** code and file names follow the blueprint exactly — `Behaviours/`,
+`AuditBehaviour`. Prose keeps "behaviour". No decision rides on it, and it is written down
+only so nobody creates `Behaviours/` next to `Behaviours/`.
 
 ---
 
@@ -286,8 +342,8 @@ guessing at the seam. Three findings, two of which changed this feature's design
 
 | Found in `002` | Effect here |
 |---|---|
-| One accessor — `Common/Errors/TraceContext.cs` — read by the response body **and** the log scope, with the `Activity.Current` → `HttpContext.TraceIdentifier` fallback handled there (`002` A-3) | **Changed.** `003` reads that accessor instead of re-deriving from `Activity.Current`. BR-9.9 asks for one identifier in three places; three callers each computing the obvious thing is exactly how they end up differing, and the divergence would appear only when `Activity.Current` happened to be null — an intermittent AC-21 failure is worse than a constant one |
-| `401`, `403`, `404`, `405`, and `415` are produced **with no exception thrown** | **Changed.** There is no denial exception type to key on, and a middleware-level `403` never reaches MediatR, so `AuditBehavior` cannot see it at all. The classifier keys on `DomainException.ErrorCode` for denials raised *inside* a handler (`011`'s case), and BR-9.2's middleware denials are `004`'s to write through `WriteIndependentAsync`. `spec.md` Q-4 |
+| One accessor — `Wasl.Api/Common/Errors/TraceContext.cs`, `internal` to that project — read by the response body **and** the log scope, with the `Activity.Current` → `HttpContext.TraceIdentifier` fallback handled there (`002` A-3) | **Changed twice.** `003` reads that derivation rather than re-deriving from `Activity.Current`. BR-9.9 asks for one identifier in three places; three callers each computing the obvious thing is exactly how they end up differing, and the divergence would appear only when `Activity.Current` happened to be null — an intermittent AC-21 failure is worse than a constant one. **And it cannot be read directly:** the accessor sits in `Wasl.Api`, which is *above* the behaviours in the dependency direction. It is reached through `IRequestContext` — see R-14 |
+| `401`, `403`, `404`, `405`, and `415` are produced **with no exception thrown** | **Changed.** There is no denial exception type to key on, and a middleware-level `403` never reaches MediatR, so `AuditBehaviour` cannot see it at all. The classifier keys on `DomainException.ErrorCode` for denials raised *inside* a handler (`011`'s case), and BR-9.2's middleware denials are `004`'s to write through `WriteIndependentAsync`. `spec.md` Q-4 |
 | `DomainException` is abstract, lives in `Wasl.Domain`, and carries a **string** `ErrorCode` — deliberately no HTTP status, because the domain holds no HTTP concept | **Confirmed, no change.** Keying the classifier on a string code rather than on a status keeps `003` out of the HTTP vocabulary too, and it is one file when the codes are renamed |
 
 **Why this is recorded rather than just applied:** both changed items are places where the
@@ -315,3 +371,91 @@ an environment where `ASPNETCORE_ENVIRONMENT` was set wrong.
 **Consequence:** MediatR must discover handlers in the test assembly, so `WaslApiFactory`
 calls `RegisterServicesFromAssemblies` with both. That is one line in the factory and it is
 named in [`plan.md`](plan.md) rather than discovered.
+
+---
+
+## R-14 · Where can a transaction behaviour live, given `IApplicationDbContext` exposes no EF Core type?
+
+**Decided by the product owner, 2026-08-25.** Recorded here because the alternatives are
+all defensible and the reason for the choice is the useful part.
+
+**The constraint, checked against the code rather than the plan:**
+`src/Wasl.Application/Common/Abstractions/IApplicationDbContext.cs` as `001` shipped it has
+four members — `IQueryable<Customer>`, `Add`, `Remove`, `SaveChangesAsync`. There is nothing
+that opens a transaction, and `BeginTransactionAsync()` returns `IDbContextTransaction`,
+which is an EF Core type. `tests/Wasl.Application.Tests/Architecture/LayerDependencyTests.cs`
+reads the **declared** `PackageReference` set of `Wasl.Application`, so putting that type on
+the interface fails the build rather than merely being untidy.
+
+**Three options were put to the product owner:**
+
+| Option | Cost |
+|---|---|
+| (a) Declare `IUnitOfWork` / `ITransaction` in `Wasl.Application`, implement in `Wasl.Infrastructure` | Two interfaces wrapping something EF Core already provides. The same objection raised against `IApplicationDbContext` at `001`, arriving a second time |
+| **(b) Put `TransactionBehaviour` and `AuditBehaviour` in `Wasl.Infrastructure`** | One line of `CLAUDE.md`'s project-structure block moves; `MediatR` is added to `Wasl.Infrastructure.csproj`; one of three behaviours sits in a different project from the other two |
+| (c) Relax the rule — expose `IDbContextTransaction`, exempt it from the architecture test | Rejected before it was offered as equal. The first exception in a guard whose stated purpose is "the whole return on four projects" is what makes the second one cheap |
+
+**Settled: (b).** Infrastructure may see EF Core, so the behaviours use `WaslDbContext`
+directly with no wrapper. The boundary stays strict with **no exemption**, which is the part
+that matters — a guard with one exception is a guard that needs a policy, and this project
+has nine hours.
+
+**Verified, not assumed:** `LayerDependencyTests` constrains `Wasl.Domain` (zero packages)
+and `Wasl.Application` (no EF Core, no ASP.NET Core). **No test constrains
+`Wasl.Infrastructure`**, so adding MediatR there breaks nothing. Checked by reading the five
+test methods, not by inferring from the file's name.
+
+---
+
+## R-15 · Does the behaviour order survive being registered in two projects?
+
+**No, and it fails silently. This is the finding R-14 created.**
+
+**Checked:** `src/Wasl.Api/Program.cs` and
+`src/Wasl.Application/DependencyInjection.cs` as `002` shipped them.
+
+MediatR resolves `IEnumerable<IPipelineBehavior<,>>` from the container, so **registration
+order is execution order**. `002` registers `ValidationBehaviour` inside `AddApplication()`,
+and `Program.cs` calls:
+
+```csharp
+builder.Services.AddInfrastructure(builder.Configuration);   // line 14
+builder.Services.AddApplication();                           // line 18
+```
+
+Infrastructure **first**. So if `AddInfrastructure` gained the two new behaviours, the
+resulting order would be `Transaction → Audit → Validation`.
+
+**That is not a deduction any more. It was observed, 2026-08-25**, by the same spike that
+settled R-3 — registering the two behaviours in a first `AddMediatR` call and
+`ValidationBehaviour` in a second, exactly as `Program.cs` orders them today:
+
+```text
+Resolved IPipelineBehavior<AuditableCommand,string> order:
+  TransactionBehaviour -> AuditBehaviour -> ValidationBehaviour
+```
+
+Validation last. The inversion is real, it needs no unusual configuration to trigger, and it
+is what the obvious implementation produces. This note previously closed by saying that if the
+cross-call ordering ever mattered it would need a test and not a paragraph — so it got one, and
+the paragraph was wrong to be comfortable.
+
+**What that breaks:** `spec.md` Q-3 — a `400` would open a transaction and write an audit
+row, so the table would collect a row for every mistyped form. And AC-15. Neither throws.
+The suite stays green, the log fills with rows describing changes that never happened, and
+the defect is found by someone reading the audit table months later.
+
+**Settled:** all three behaviours are registered **once, in declared order, in `Wasl.Api`**.
+`AddApplication()` keeps its validator and handler scanning and loses its
+`AddOpenBehavior` line. AC-15 asserts against that single list.
+
+**Rejected: swapping the two `Add*` calls in `Program.cs`.** It is two lines and it works.
+It also makes execution order depend on the relative position of two calls that look
+independent, so the next person to tidy `Program.cs` alphabetically reintroduces the defect —
+and reintroduces it silently. The comment `002` already left at its registration site
+reserves the slot, which was the right instinct under one-project registration and is not
+enough across two.
+
+**Consequence recorded rather than absorbed:** this edits a delivered feature. It is one
+deleted line in `Wasl.Application/DependencyInjection.cs`, and it belongs in `003`'s
+`summary.md` as a deviation.

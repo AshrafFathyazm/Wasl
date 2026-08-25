@@ -1,10 +1,23 @@
 # 003 — Data Model
 
-Scope: one table, one database role, two permission statements. The full schema reference
-is [`docs/sdd/03-domain-model.md`](../../docs/sdd/03-domain-model.md); this file records
-only what **this** feature creates, and why each choice is not the obvious one.
+**`003` scope: one table — `dbo.AuditLog` — with its check constraint and its four indexes.
+Nothing else.** No database role, no `GRANT`, no `DENY`, no second connection string.
 
-**Migration name:** `AddAuditLog`
+The role, the two permission statements, and the restricted connection are **specified in this
+file for continuity and must not be implemented in `003`**. `003b` is their sole owner, along
+with AC-12 and AC-13. Their section below carries that warning at the point of use, so the
+`003` implementer meets it beside the SQL rather than only here.
+
+**Until `003b`: the audit log is append-only by application convention, not by database
+permission.**
+
+The full schema reference is
+[`docs/sdd/03-domain-model.md`](../../docs/sdd/03-domain-model.md); this file records only what
+**this** feature creates, and why each choice is not the obvious one.
+
+**Migration name:** `AddAuditLog` — creating the table, the check constraint, and the four
+indexes. The `migrationBuilder.Sql(...)` block for the role and grants belongs to `003b`, and
+`003` leaves it out rather than commenting it out.
 
 ---
 
@@ -72,7 +85,14 @@ WHERE   i.object_id = OBJECT_ID('dbo.AuditLog');
 -- and filter_definition = ([Outcome]<>'Success')
 ```
 
-### Permissions — BR-9.5, enforced by the database
+### Permissions — BR-9.5. **Deferred to `003b`; not built in `003`**
+
+> **`003` ships none of this.** By product-owner decision on 2026-08-25 the whole
+> least-privilege block — role, grants, `DENY`, the second connection string, and AC-12/AC-13
+> — moves to `003b`, deferred as one unit because the halved version is decorative
+> (`research.md` R-4). **So until `003b`: the audit log is append-only by application
+> convention, not by database permission.** The SQL below is the specification `003b`
+> implements, kept here so it is designed rather than improvised later.
 
 ```sql
 IF DATABASE_PRINCIPAL_ID('wasl_app') IS NULL
@@ -152,7 +172,7 @@ its own unit test.
 
 ## The domain types
 
-`Wasl.Domain/Audit/`. Zero package references, per ADR-010 and constitution III.
+`Wasl.Domain/Audit/`. Zero package references, per ADR-002 and constitution III.
 
 | Type | Shape |
 |---|---|
@@ -175,10 +195,12 @@ that throws on its own input would fail the mutation it exists to record.
 | `CREATE TABLE dbo.AuditLog` with the columns above | Generated from `AuditEntryConfiguration` |
 | `CK_AuditLog_ChangesIsJson` | `ToTable(t => t.HasCheckConstraint(...))` |
 | The four indexes, including `IsDescending` and `HasFilter` | `HasIndex(...)` (`research.md` R-9) |
-| `CREATE ROLE wasl_app` (idempotent) + `GRANT` + `DENY` | `migrationBuilder.Sql(...)` at the end of `Up` |
+| `CREATE ROLE wasl_app` (idempotent) + `GRANT` + `DENY` — **`003b`** | `migrationBuilder.Sql(...)` at the end of `Up`. The `003` migration adds the table, the check constraint, and the four indexes only |
 | `Down` | Drops the table; **revokes nothing**. Dropping the table removes the object-level grants with it, and dropping a role that another object may reference is a worse failure than leaving an empty role |
 
 Verified on a clean database, twice, per `001` AC-3: the second `dotnet ef database update`
-applies nothing and exits 0. `CREATE ROLE` is guarded by
-`IF DATABASE_PRINCIPAL_ID('wasl_app') IS NULL` so that re-running against a database that
-already has the role is not an error.
+applies nothing and exits 0.
+
+**`003b` only:** `CREATE ROLE` is guarded by `IF DATABASE_PRINCIPAL_ID('wasl_app') IS NULL` so
+that re-running against a database that already has the role is not an error. `003` writes no
+such statement, so its `AddAuditLog` migration has no raw SQL at all.

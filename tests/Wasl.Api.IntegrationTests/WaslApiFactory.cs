@@ -105,6 +105,10 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         {
             services.AddSingleton<IStartupFilter>(new ProbeRouteStartupFilter());
 
+            // 003's audit probes, on the same mechanism. Two filters rather than one combined
+            // map, so a feature's probes are removable with the feature.
+            services.AddSingleton<IStartupFilter>(new Audit.Probe.AuditProbeStartupFilter());
+
             // The probe's handler and validator live in THIS assembly, and
             // AddApplication only scans Wasl.Application — so without these the probe
             // request finds no handler and the pipeline throws, which surfaces as a 500

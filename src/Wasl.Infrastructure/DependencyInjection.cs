@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Infrastructure.Persistence;
+using Wasl.Infrastructure.Persistence.Audit;
 
 namespace Wasl.Infrastructure;
 
@@ -25,13 +26,48 @@ public static class DependencyInjection
                 $"Connection string '{ConnectionStringName}' is not configured. "
                 + "See specs/001-solution-skeleton/quickstart.md.");
 
-        services.AddDbContext<WaslDbContext>(options => options.UseSqlServer(
-            connectionString,
-            sql => sql.MigrationsAssembly(typeof(WaslDbContext).Assembly.FullName)));
+        // Scoped, so it spans the request. The interceptor fills it across however many
+        // SaveChanges calls the handler makes, and AuditBehaviour reads it once at the end.
+        services.AddScoped<AuditDiffAccumulator>();
+        services.AddScoped<AuditDiffInterceptor>();
+
+        services.AddDbContext<WaslDbContext>((provider, options) => options
+            .UseSqlServer(
+                connectionString,
+                sql => sql.MigrationsAssembly(typeof(WaslDbContext).Assembly.FullName))
+            // Resolved from the provider rather than constructed here, because the
+            // interceptor holds the scoped accumulator. A `new AuditDiffInterceptor(...)`
+            // would need its own accumulator and would capture into a list nobody reads —
+            // producing an empty diff on every command, which is research.md R-1's silent
+            // failure arriving by a different route.
+            .AddInterceptors(provider.GetRequiredService<AuditDiffInterceptor>()));
+
+        // The second connection BR-9.4's failure path writes on (research.md R-2). A factory,
+        // not another AddDbContext: the point is a context whose lifetime and connection are
+        // independent of the request's, so it can commit while the request's rolls back.
+        services.AddDbContextFactory<WaslDbContext>((provider, options) => options
+            .UseSqlServer(
+                connectionString,
+                sql => sql.MigrationsAssembly(typeof(WaslDbContext).Assembly.FullName)),
+            lifetime: ServiceLifetime.Scoped);
 
         // The Application layer resolves the interface; only this layer knows the type.
         services.AddScoped<IApplicationDbContext>(
             provider => provider.GetRequiredService<WaslDbContext>());
+
+        services.AddScoped<IAuditWriter, AuditWriter>();
+
+        // ── The behaviours are NOT registered here, and that is the point ────────────────
+        //
+        // MediatR orders behaviours by registration order, and Program.cs calls
+        // AddInfrastructure BEFORE AddApplication. Registering TransactionBehaviour and
+        // AuditBehaviour here would put them ahead of `002`'s ValidationBehaviour, giving
+        // Transaction → Audit → Validation — so a 400 would open a transaction and write an
+        // audit row for every mistyped form, breaking spec.md Q-3 and AC-15 with nothing
+        // thrown and a green suite.
+        //
+        // That inversion was OBSERVED, not deduced (research.md R-15). All three are
+        // registered once, in declared order, by Wasl.Api's AddWaslPipeline().
 
         return services;
     }

@@ -204,7 +204,7 @@ artifacts for it live.*
 |---|---|---|---|
 | **0 · Foundation** | `001-solution-skeleton` | — | **✅ Done 2026-08-25** — 17 tests, CI green (run 32828391167). Four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health` |
 | | `002-error-contract` | — | **✅ Core done 2026-08-25** — 33 tests, 0 warnings. Domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, one `traceId` accessor, `ValidationBehaviour`. **`002b`** — status-code envelope (`404`/`405`/`415`), malformed request, Swashbuckle — deferred with a reason per task |
-| | `003-audit-trail` | — | PHASES 1.5. `AuditLog`, audit behaviour, architecture test |
+| | `003-audit-trail` | — | **✅ Core done 2026-08-25** — 93 tests, 0 warnings. `dbo.AuditLog`, the capture-only diff interceptor, BR-9.7 redaction, `TransactionBehaviour` + `AuditBehaviour` in `Wasl.Infrastructure`, one ordered registration in `Wasl.Api`, NFR-10 scanner with its self-test. **`003b`** — the `wasl_app` role, `DENY`, the restricted connection, AC-12/AC-13 — deferred whole: **append-only is an application property until then** |
 | | `004-auth-and-roles` | Auth | PHASES 2.1–2.2. JWT, two seeded users, policies, `ICurrentUser` |
 | | `005-localization-core` | — | PHASES 2.3–2.4. Culture resolution, `.resx`, key-parity test |
 | | `006-design-system` | — | PHASES 1.7. Tokens + Button, Input, Badge. One day, hard stop (ADR-009) |

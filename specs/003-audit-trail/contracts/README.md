@@ -23,8 +23,9 @@ freeze a contract with no consumer.
 
 That is a real answer, not a placeholder: the table is queryable the moment this feature
 lands, and each of the four indexes exists because one of these four queries needs it
-(`data-model.md`). Run them against `ConnectionStrings:Migrations`, or any read-capable
-connection — `SELECT` is granted to `wasl_app`.
+(`data-model.md`). Run them against any read-capable connection. **Note for `003`:** the
+application connects as the owner until `003b` introduces the restricted principal, so any
+connection reads the table today; from `003b` onward `SELECT` is granted to `wasl_app`.
 
 ```sql
 -- "What happened recently"                              → IX_AuditLog_Time

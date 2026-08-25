@@ -43,4 +43,26 @@ public static class DomainErrorCodes
 
     /// <summary><c>expectedVersion</c> is stale. ADR-006.</summary>
     public const string ConcurrencyConflict = "concurrency-conflict";
+
+    /// <summary>
+    /// The actor is authenticated but not permitted to do this. BR-2, BR-6.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Added by `003`, and the reason is worth keeping.</b> `002` reserved a
+    /// <c>forbidden</c> registry row for `004`, on the understanding that a `403` is produced
+    /// by the auth middleware. That is true for a role-only check — and it means the middleware
+    /// throws nothing, so MediatR never sees it and the audit pipeline cannot record it.
+    /// </para>
+    /// <para>
+    /// But BR-6 also has <b>data-dependent</b> checks — "is this user the assignee?" — which
+    /// `CLAUDE.md` puts in the handler, not in a policy. Those are raised as a
+    /// <c>DomainException</c> carrying this code, and they are the denials
+    /// <c>AuditOutcomeClassifier</c> classifies as <c>Denied</c> rather than <c>Failed</c>
+    /// (`spec.md` Q-4). Without this code the classifier would have nothing to key on and
+    /// every in-handler denial would be recorded as a failure — the distinction an incident
+    /// investigation is looking for, lost.
+    /// </para>
+    /// </remarks>
+    public const string Forbidden = "forbidden";
 }

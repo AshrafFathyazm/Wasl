@@ -22,6 +22,79 @@ namespace Wasl.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Wasl.Domain.Audit.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ActorEmail")
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<string>("ActorRole")
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Changes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityLabel")
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EntityType")
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TraceId")
+                        .IsRequired()
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("nvarchar(400)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId", "OccurredAtUtc")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_AuditLog_Actor");
+
+                    b.HasIndex("EntityType", "EntityId", "OccurredAtUtc")
+                        .IsDescending(false, false, true)
+                        .HasDatabaseName("IX_AuditLog_Entity");
+
+                    b.HasIndex(new[] { "OccurredAtUtc" }, "IX_AuditLog_NotSuccess")
+                        .IsDescending()
+                        .HasFilter("[Outcome] <> 'Success'");
+
+                    b.HasIndex(new[] { "OccurredAtUtc" }, "IX_AuditLog_Time")
+                        .IsDescending();
+
+                    b.ToTable("AuditLog", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AuditLog_ChangesIsJson", "[Changes] IS NULL OR ISJSON([Changes]) = 1");
+                        });
+                });
+
             modelBuilder.Entity("Wasl.Domain.Customers.Customer", b =>
                 {
                     b.Property<Guid>("Id")

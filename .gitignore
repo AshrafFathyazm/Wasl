@@ -52,6 +52,7 @@ coverage/
 
 # Editors / OS
 .vscode/*
+.vs/
 !.vscode/extensions.json
 .idea/
 *.swp

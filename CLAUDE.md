@@ -38,16 +38,22 @@ src/
       Tickets/ChangeStatus/
       ...
     Common/
-      Abstractions/                  IApplicationDbContext · ICurrentUser · ITicketNumberGenerator
-      Behaviours/                    Validation · Transaction · Audit
+      Abstractions/                  IApplicationDbContext · ICurrentUser · IRequestContext
+                                     IAuditWriter · ITicketNumberGenerator
+      Behaviours/                    Validation only — Transaction and Audit are in Infrastructure
+      Messaging/                     ICommand · IAuditableCommand
       Exceptions/  PagedResult.cs
     Resources/                       .resx for server-authored messages
   Wasl.Infrastructure/               implements what Application declares
     Persistence/                     WaslDbContext, Configurations/, Migrations/
     Queries/                         TicketTimelineQuery · DashboardAggregatesQuery
+    Persistence/Behaviours/          TransactionBehaviour · AuditBehaviour — they need a real
+                                     transaction, and IApplicationDbContext exposes no EF type
+    Persistence/Audit/               interceptor · accumulator · serializer · writer
     Auth/  Communications/
   Wasl.Api/                          composes everything at startup
     Controllers/  Middleware/  Localization/  Program.cs
+    Common/WaslPipeline.cs           THE ordered behaviour list. Validation → Transaction → Audit
   wasl-web/                          React + TypeScript, feature folders
 tests/
   Wasl.Domain.Tests/                 pure unit tests, no database, no HTTP
@@ -114,6 +120,7 @@ and `ar`.
 - main: repository initialized; spec-kit scaffolded; blueprint vendored to `docs/sdd/` and converted to SQL Server; **ADR-010 rejected — four-project Clean stands (ADR-002)**; the product scope document traced in `docs/sdd/15-scope-coverage.md`; nine-hour plan in `docs/sdd/16-three-day-plan.md`
 - **`001-solution-skeleton` delivered** 2026-08-25 — four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health`, CI green (17 tests)
 - **`002-error-contract` core delivered** 2026-08-25 — domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, `TraceContext`, `ValidationBehaviour` (33 tests). `002b` — `UseStatusCodePages`, malformed request, Swashbuckle — deferred with a reason per task
+- **`003-audit-trail` core delivered** 2026-08-25 — `dbo.AuditLog`, capture-only diff interceptor, BR-9.7 redaction, `TransactionBehaviour` + `AuditBehaviour` **in `Wasl.Infrastructure`**, one ordered behaviour registration in `Wasl.Api`, NFR-10 scanner + self-test (93 tests). `003b` — `wasl_app` role, `DENY`, restricted connection, AC-12/AC-13 — deferred whole: **append-only is an application property until then**
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -294,6 +301,8 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | `ICommunicationProvider` + one Mock **is** built | `docs/sdd/08-board.md`, feature `021`. Channels is a named module in the requirement |
 | Attachments are **out of scope**, stated explicitly in the affected `spec.md` | `docs/sdd/00-project-context.md` |
 | Theming: token architecture in `006`, settings screen deferred | ADR-012, accepted in part |
+| **`TransactionBehaviour` and `AuditBehaviour` live in `Wasl.Infrastructure`**, not beside `ValidationBehaviour` | `003` `research.md` R-14, product owner 2026-08-25. Both need a real transaction; `IApplicationDbContext` exposes no EF Core type and `IDbContextTransaction` is one, so putting it there would fail the architecture test. The `IUnitOfWork` wrapper was the alternative and was turned down — the boundary keeps **no exemption** |
+| **All three behaviours are registered once, in `Wasl.Api/Common/WaslPipeline.cs`** | `003` `research.md` R-15. Registration order is execution order and `Program.cs` calls `AddInfrastructure` first, so per-project registration was **observed** producing `Transaction → Audit → Validation` — a `400` then writes an audit row, and nothing throws. Do not move a registration back into `AddApplication` or `AddInfrastructure` |
 
 ## Still open — and they are for the evaluator, not for us
 

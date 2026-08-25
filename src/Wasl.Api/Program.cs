@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Wasl.Api.Common;
+using Wasl.Api.Common.Auth;
 using Wasl.Api.Common.Errors;
 using Wasl.Api.Health;
 using Wasl.Application;
+using Wasl.Application.Common.Abstractions;
 using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
 
@@ -13,9 +16,23 @@ builder.Services.AddControllers();
 // connection string and nothing else about EF Core.
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// MediatR + the validation behaviour. See Wasl.Application/DependencyInjection.cs for the
-// behaviour ordering and the slot 003 fills.
+// Handler discovery and validators. It registers NO behaviour — see the comment in that
+// file, and 003's research.md R-15 for what happened when two projects each registered
+// their own.
 builder.Services.AddApplication();
+
+// ── The pipeline (003) ───────────────────────────────────────────────────────────
+// The one place the behaviour order is declared: Validation -> Transaction -> Audit.
+// It is registered AFTER both AddInfrastructure and AddApplication on purpose — every
+// behaviour comes from this call, so nothing earlier can get ahead of it. AC-15 asserts
+// the resolved sequence against WaslPipeline.DeclaredOrder.
+builder.Services.AddWaslPipeline();
+
+// Both are read by the audit behaviour, and both are scoped because they describe one
+// request. IHttpContextAccessor is what makes them resolvable outside a controller.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRequestContext, HttpRequestContext>();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
 // ── The error contract (002) ─────────────────────────────────────────────────────
 // AddProblemDetails supplies the framework's own writer; the handler and the factory

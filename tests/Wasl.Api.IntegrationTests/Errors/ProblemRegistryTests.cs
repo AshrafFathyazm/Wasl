@@ -73,10 +73,16 @@ public sealed class ProblemRegistryTests
         // Codes owned by 002's own machinery or by a later feature, per the contract's
         // "Owning feature" column. Listed explicitly so adding a row without a raiser is
         // a deliberate act rather than an accident.
+        // "forbidden" left this list when `003` added DomainErrorCodes.Forbidden. `002`
+        // reserved it for `004` on the understanding that a 403 comes from auth middleware —
+        // true for a role-only check, and false for BR-6 data-dependent checks, which are
+        // raised in the handler as a DomainException so the audit pipeline can classify them
+        // as Denied rather than Failed. It is now raisable, so listing it as reserved would
+        // be the test asserting something that stopped being true.
         string[] reservedByLaterFeatures =
         [
             "internal", "malformed-request", "method-not-allowed", "unsupported-media-type",
-            "unauthenticated", "forbidden",
+            "unauthenticated",
         ];
 
         var domainCodes = typeof(DomainErrorCodes)

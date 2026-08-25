@@ -21,22 +21,24 @@ public static class DependencyInjection
         {
             configuration.RegisterServicesFromAssembly(assembly);
 
-            // ── Behaviour order. Registration order IS execution order. ──────────────
+            // ── No behaviour is registered here. Removed by 003, for a reason. ────────
             //
-            // Written down rather than discovered, because getting it wrong fails
-            // quietly: a request that should have been rejected gets audited as an
-            // attempt, or a validation failure rolls back a transaction that never
-            // needed opening.
+            // `002` registered ValidationBehaviour on this line, and the comment that
+            // was here reserved the next two slots for 003 — which was the right
+            // instinct while one project did the registering, and not enough once two
+            // did.
             //
-            //   1. Validation    reject before anything else happens
-            //   2. Transaction   003 — opens AFTER validation, so an invalid request
-            //                    never opens one
-            //   3. Audit         003 — inside the transaction, so BR-9.3 holds: the
-            //                    audit row is absent when the change rolls back
+            // MediatR orders behaviours by REGISTRATION order, and Program.cs calls
+            // AddInfrastructure BEFORE AddApplication. So 003's two behaviours,
+            // registered in their own project, would have landed ahead of this one:
+            // Transaction → Audit → Validation. A 400 would then open a transaction and
+            // write an audit row for every mistyped form — breaking spec.md Q-3 and
+            // AC-15 with nothing thrown and a green suite. That inversion was observed,
+            // not deduced (003 research.md R-15).
             //
-            // 003 inserts its two here, in that order. The slot is commented rather
-            // than left to be inferred (AC-20 asserts the final sequence).
-            configuration.AddOpenBehavior(typeof(ValidationBehaviour<,>));
+            // All three now live in ONE ordered list, in
+            // src/Wasl.Api/Common/WaslPipeline.cs, which AC-15 asserts against. This
+            // method keeps what belongs to it: handler discovery and validators.
         });
 
         return services;
