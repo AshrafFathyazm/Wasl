@@ -67,7 +67,7 @@ First run took 225 s including the ~1.5 GB image pull; subsequent runs, 1 s of t
 | AC-6 | `WaslApiFactory` + all of `HealthEndpointTests` and `PersistenceConventionTests` | **Pass** |
 | AC-7 | `LayerDependencyTests` — 5 tests, and **proven to fail** when the boundary breaks | **Pass** |
 | AC-8 | `DateTime_RoundTrips_AsUtc`, `DateTime_WithLocalKind_IsNormalisedOnWrite` | **Pass** |
-| AC-9 | `.github/workflows/ci.yml`, run 32826447248 | **Failed first, then passed** — see finding 5 |
+| AC-9 | `.github/workflows/ci.yml`, run 32826447248 | **Failed, twice, for two different real reasons** — findings 5 and 6. Both fixed; the fixes are **not yet confirmed by a run** |
 | AC-9b | This file records the not-run state honestly; see the Docker section | **Pass** |
 | AC-10 | `git grep -iE "password\|Pwd=" -- src/` → nothing | **Pass** |
 | AC-11 | `Directory.Build.props`; no `TargetFramework` anywhere else | **Pass** |
@@ -116,7 +116,7 @@ endpoint is for during an incident. `description` carries no exception detail.
 
 ## What the tests found
 
-Five things, and they are the reason this section exists. Not one of them was found by
+Six things, and they are the reason this section exists. Not one of them was found by
 reading the code.
 
 ### 1. A high-severity advisory in a transitive package
@@ -227,13 +227,54 @@ Passed!  - Failed: 0, Passed: 9, Skipped: 0, Total: 9
 "explicit skip reason" in CI would have shipped a test suite that never once talked to the
 database it claimed to test — and nothing would have said so.
 
+### 6. The CI guard failed on a run where every test passed
+
+Same push, next step along:
+
+```text
+✓ Integration tests — real SQL Server via Testcontainers
+      Passed: 9
+      Total time: 51.0847 Seconds
+X Assert the integration suite actually ran
+      Error: Process completed with exit code 1
+```
+
+Nine tests passed and the job went red anyway. The guard's last command was:
+
+```bash
+grep -E 'Passed!|Failed!' integration.log
+```
+
+`--logger "console;verbosity=normal"` prints `Passed: 9`. The **default** console logger
+prints `Passed!  - Failed: 0, …`. The guard was written against the second and run against
+the first, found nothing, and `grep` exiting 1 became the step's exit code.
+
+**A guard that parses human-readable output breaks when the output is reformatted.**
+Rewritten to read the TRX counters, which are a machine-readable contract:
+
+```text
+$ dotnet test … --logger "trx;LogFileName=integration.trx"
+integration suite — total=9 passed=9 failed=0
+GUARD PASSES (exit 0)
+```
+
+And verified in the direction that matters — it must still fail when the suite is absent:
+
+```text
+case A: no results file    → ::error::…the integration suite did not run.   exit 1
+case B: trx with total="0" → ::error::The integration suite reported zero tests.  exit 1
+```
+
+One thing it got right: it failed **closed**. A broken guard that turns the job red is a
+nuisance; one that turns it green is the whole problem it exists to prevent.
+
 ---
 
 ## Gaps, each with a reason
 
 | Gap | Reason |
 |---|---|
-| ~~AC-9 is not verified~~ | **Now verified.** The workflow ran, failed for a real reason, was fixed, and the fix is pending its own run. See finding 5 |
+| **AC-9 is partly verified** | The workflow ran and caught two real defects (findings 5 and 6) — which is more than a green run would have proved. But the fixes have not themselves been through CI, so "the pipeline is green" is not yet a statement anyone can make |
 | **AC-5 is verified manually, not by a test** | `TEST-001-07` would need the factory to boot a second host pointed at a dead connection string. Worth doing and not done here; the manual run is recorded above with its actual output |
 | **`docker-compose.yml` was never started** | The development loop uses the local instance and the integration suite starts its own container, so nothing in this feature consumes the compose file. Its `ACCEPT_EULA` and healthcheck are unverified |
 | **No test asserts the explicit `Email` collation does anything** | The local instance and the container both default to `CI_AS`, so a case-insensitivity test would pass with the `UseCollation` call removed. The call is kept because relying on a server default is the trap `ADR-013` row 3 describes — but this is an assertion the suite cannot currently make, and saying so is better than a test that proves nothing |

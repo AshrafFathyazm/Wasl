@@ -57,3 +57,7 @@ coverage/
 *.swp
 .DS_Store
 Thumbs.db
+
+# Test result artifacts (trx, coverage)
+TestResults/
+*.trx

@@ -47,17 +47,34 @@ jobs:
       # An individual test may be skipped with a written reason; the suite may not.
       - name: Integration tests — real SQL Server via Testcontainers
         run: |
-          set -o pipefail
           dotnet test tests/Wasl.Api.IntegrationTests \
             --no-build --configuration Release \
-            --logger "console;verbosity=normal" | tee integration.log
+            --logger "trx;LogFileName=integration.trx" \
+            --results-directory TestResults
 
       # A green run with the suite absent is the failure AC-9 exists to prevent, and
-      # "the tests passed" does not distinguish it from a suite that ran. This does.
+      # "the tests passed" does not distinguish it from a suite that never ran. This does.
+      #
+      # It reads the TRX counters rather than the console text on purpose. The first
+      # version grepped for 'Passed!', which the default console logger prints and
+      # `console;verbosity=normal` does not — so the guard failed on a run where all nine
+      # tests passed. A guard that parses human-readable output is a guard that breaks
+      # when the output is reformatted. It failed in the safe direction, which is the one
+      # thing it got right.
       - name: Assert the integration suite actually ran
         run: |
-          if grep -qE 'Total:[[:space:]]*0' integration.log; then
+          trx=TestResults/integration.trx
+          if [ ! -f "$trx" ]; then
+            echo "::error::No test results file at $trx — the integration suite did not run."
+            exit 1
+          fi
+
+          total=$(sed -n 's/.*<Counters[^>]*total="\([0-9]*\)".*/\1/p' "$trx" | head -1)
+          passed=$(sed -n 's/.*<Counters[^>]*passed="\([0-9]*\)".*/\1/p' "$trx" | head -1)
+          failed=$(sed -n 's/.*<Counters[^>]*failed="\([0-9]*\)".*/\1/p' "$trx" | head -1)
+          echo "integration suite — total=${total:-?} passed=${passed:-?} failed=${failed:-?}"
+
+          if [ -z "$total" ] || [ "$total" -eq 0 ]; then
             echo "::error::The integration suite reported zero tests. AC-9 forbids a green run with the suite absent."
             exit 1
           fi
-          grep -E 'Passed!|Failed!' integration.log
