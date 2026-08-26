@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Wasl.Api.Common;
 using Wasl.Api.Common.Auth;
@@ -49,6 +50,49 @@ public static class DependencyInjection
                 // Registered once rather than per property: an attribute is a thing the next DTO
                 // forgets, and the resulting contract violation compiles.
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
+
+        // ── Model binding failures go through OUR factory, not the framework's ──────────
+        //
+        // Found by rehearsing the demo, not by a test. A malformed JSON body came back as
+        //
+        //   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1"
+        //
+        // instead of `errors/validation`. [ApiController]'s automatic model-state filter
+        // short-circuits BEFORE any handler and before UseExceptionHandler, so `002`'s AC-2
+        // guarantee — one producer of the envelope — had a hole nothing covered: an unparseable
+        // enum, a malformed Guid in the body, or a truncated payload all bypassed the factory.
+        //
+        // `002` A-2 assumed this would surface as a BadHttpRequestException. The observed
+        // behaviour is different and more mundane: it never becomes an exception at all.
+        //
+        // The messages here are the framework's English sentences rather than symbolic keys,
+        // because they describe a JSON parse failure and no catalogue could translate them
+        // usefully. That is the one place a sentence enters a response without passing through
+        // IProblemMessageSource, and it is `002b`'s to finish along with the rest of the
+        // malformed-request work.
+        services.Configure<ApiBehaviorOptions>(options =>
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var factory = context.HttpContext.RequestServices
+                    .GetRequiredService<ProblemDetailsFactory>();
+
+                var failures = context.ModelState
+                    .Where(entry => entry.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        entry => entry.Key,
+                        entry => entry.Value!.Errors
+                            .Select(error => error.ErrorMessage)
+                            .ToArray(),
+                        StringComparer.Ordinal);
+
+                var problem = factory.FromValidationFailures(context.HttpContext, failures);
+
+                return new ObjectResult(problem)
+                {
+                    StatusCode = problem.Status,
+                    ContentTypes = { "application/problem+json" },
+                };
             });
 
         // Who is asking, and about which request. Both scoped because both describe one request;
