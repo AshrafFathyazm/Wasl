@@ -1,0 +1,69 @@
+using MediatR;
+using Wasl.Application.Common;
+using Wasl.Application.Common.Abstractions;
+
+namespace Wasl.Application.Features.Tickets.GetTickets;
+
+/// <summary>
+/// One page, newest first, with the customer name joined in the same query.
+/// </summary>
+internal sealed class GetTicketsQueryHandler(IApplicationDbContext context)
+    : IRequestHandler<GetTicketsQuery, PagedResult<TicketListItem>>
+{
+    public async Task<PagedResult<TicketListItem>> Handle(
+        GetTicketsQuery request,
+        CancellationToken cancellationToken)
+    {
+        var page = Paging.ClampPage(request.Page);
+        var pageSize = Paging.ClampPageSize(request.PageSize);
+
+        // Counted on the UNPAGED query. Counting after Skip/Take would return at most the page
+        // size and make totalPages permanently 1 — a defect that looks like a working pager
+        // until someone reaches page 2.
+        var totalCount = await context.CountAsync(context.Tickets, cancellationToken);
+
+        var rows = await context.ToListAsync(
+            context.Tickets
+                // BR-7.1. Newest first — AND then by Id, which is AC-22 and not decoration.
+                //
+                // CreatedAtUtc is datetime2(3), so two tickets created in the same millisecond
+                // tie. SQL Server gives no stable order for a tie, so the engine may place the
+                // same row on page 1 and page 2, or on neither. The bug is invisible at small
+                // data and non-deterministic when it appears: a row silently missing from a list.
+                //
+                // Id is a UUIDv7, so it is monotonic with creation time — the tie-break agrees
+                // with the primary sort instead of fighting it.
+                .OrderByDescending(ticket => ticket.CreatedAtUtc)
+                .ThenByDescending(ticket => ticket.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+
+                // AC-12. One query, names included. A join expressed as a correlated subquery in
+                // the projection — the provider turns it into an OUTER APPLY, so an unassigned
+                // ticket still returns its row (the contract calls it a left join).
+                .Select(ticket => new TicketListItem(
+                    ticket.Id,
+                    ticket.TicketNumber,
+                    ticket.Subject,
+                    ticket.CustomerId,
+                    context.Customers
+                        .Where(customer => customer.Id == ticket.CustomerId)
+                        .Select(customer => customer.FullName)
+                        .FirstOrDefault() ?? string.Empty,
+                    ticket.Status,
+                    ticket.Priority,
+                    ticket.Category,
+                    ticket.Channel,
+                    ticket.AssignedToUserId,
+
+                    // Null until `004` creates dbo.SupportUsers. The contract already types it
+                    // nullable for the unassigned case, so the shape is right and only the value
+                    // is missing.
+                    null,
+                    ticket.IsEscalated,
+                    ticket.CreatedAtUtc)),
+            cancellationToken);
+
+        return new PagedResult<TicketListItem>(rows, page, pageSize, totalCount);
+    }
+}

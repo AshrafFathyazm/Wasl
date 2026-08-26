@@ -211,7 +211,7 @@ artifacts for it live.*
 | **1 · Customers** | `007-create-customer` | **US-001** | First write path end to end |
 | | `008-customer-list-and-profile` | **US-002** | |
 | **2 · Ticket core** | `009-create-ticket` | **US-005** | **✅ Backend done 2026-08-26** — 214 tests, 0 warnings. `Ticket` + `TicketHistory` + the sequence, `POST /api/tickets`, `GET /api/tickets/{id}`, the BR-1 map with all 36 cells. No auth (`004`), form is `024-frontend-create-ticket-form`. Gained two pieces by decision: the **BR-1 transition map + all 36 tests** (from `012`) because AC-10 consumes it, and **`GET /api/tickets/{id}`** (from `010`) because the frozen contract promises `Location` resolves. Four FKs to `SupportUsers` deferred to `004` — that table never existed |
-| | `010-ticket-list-and-detail` | **US-006** (read half) | The list and detail screens, unfiltered. See the split note below. **`GET /api/tickets/{id}` moved to `009`** 2026-08-25 — the list and both screens stay here |
+| | `010-ticket-list-and-detail` | **US-006** (read half) | **✅ Backend done 2026-08-26** — 263 tests, 0 warnings. `GET /api/tickets` with BR-7.2 clamping, newest-first, names projected in one query. `GET /api/tickets/{id}` shipped in `009`. Filters and search are `015`; both screens are the frontend lane's |
 | | `011-assign-ticket` | **US-007** | |
 | | `012-change-ticket-status` | **US-008** | **✅ Backend done 2026-08-26** — 250 tests, 0 warnings. `PUT /status`, three distinct `409` codes, optimistic concurrency, the two ordering decisions asserted. The map and its 36 tests were built in `009`, which consumes `allowedTransitions`. No auth (`004`) |
 | **3 · Collaboration** | `013-ticket-timeline-and-comments` | **US-010** | End of the committed demo flow |

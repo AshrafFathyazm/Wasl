@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Wasl.Api.Contracts.Tickets;
 using Wasl.Application.Features.Tickets.ChangeStatus;
 using Wasl.Application.Features.Tickets.CreateTicket;
+using Wasl.Application.Common;
 using Wasl.Application.Features.Tickets.GetTicketById;
+using Wasl.Application.Features.Tickets.GetTickets;
 using Wasl.Domain.Tickets;
 
 namespace Wasl.Api.Controllers;
@@ -48,6 +50,27 @@ public sealed class TicketsController(ISender sender) : ControllerBase
 
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
+
+    /// <summary>One page of the list, newest first. `010`, BR-7.</summary>
+    /// <remarks>
+    /// <para>
+    /// <c>page</c> and <c>pageSize</c> are clamped, never rejected (BR-7.2) — the response echoes
+    /// the values actually used, so a client that asked for 5000 rows is told it got 100 rather
+    /// than left computing pages from a number the server ignored.
+    /// </para>
+    /// <para>
+    /// No filter or search parameters, and that is `015`'s scope. Accepting them here and
+    /// ignoring them would be worse than not accepting them: a client would filter, get
+    /// everything back, and believe the filter matched.
+    /// </para>
+    /// </remarks>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<TicketListItem>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPage(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(new GetTicketsQuery(page, pageSize), cancellationToken));
 
     /// <summary>
     /// Reads one ticket. Moved here from `010` because the contract promises the `201`'s

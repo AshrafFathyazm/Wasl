@@ -71,9 +71,8 @@ public interface IApplicationDbContext
     //   AnyAsync            AC-4, does the customer exist
     //   FirstOrDefaultAsync GET /api/tickets/{id}, and 404 when it does not
     //
-    // ToListAsync is NOT here. There is no list endpoint in this feature; 010 adds one and
-    // declares it then, with paging decided against a real call site. An unused method on this
-    // interface is a method whose shape was guessed.
+    // ToListAsync and CountAsync arrived with `010`, which is the first feature that lists —
+    // against its two real call sites: one page of rows, and the total for the envelope.
 
     /// <summary>
     /// Whether any element matches. Wraps EF Core's extension so the handler need not see it.
@@ -92,6 +91,26 @@ public interface IApplicationDbContext
     /// already guarantees.
     /// </remarks>
     Task<TEntity?> FirstOrDefaultAsync<TEntity>(
+        IQueryable<TEntity> query,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Materialises one page. Added by `010`.
+    /// </summary>
+    Task<List<TEntity>> ToListAsync<TEntity>(
+        IQueryable<TEntity> query,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The total for the paged envelope, counted **before** <c>Skip</c>/<c>Take</c>.
+    /// </summary>
+    /// <remarks>
+    /// A separate round trip rather than a window function, and the cost is accepted: two simple
+    /// queries the engine can cache beat one the provider may not translate. What matters is that
+    /// the caller counts the <b>unpaged</b> query — counting after <c>Take</c> would return at
+    /// most the page size and make <c>totalPages</c> always 1.
+    /// </remarks>
+    Task<int> CountAsync<TEntity>(
         IQueryable<TEntity> query,
         CancellationToken cancellationToken);
 }

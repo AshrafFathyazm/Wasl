@@ -132,6 +132,14 @@ public sealed class WaslDbContext(
         where TEntity : default =>
         query.FirstOrDefaultAsync(cancellationToken);
 
+    Task<List<TEntity>> IApplicationDbContext.ToListAsync<TEntity>(
+        IQueryable<TEntity> query, CancellationToken cancellationToken) =>
+        query.ToListAsync(cancellationToken);
+
+    Task<int> IApplicationDbContext.CountAsync<TEntity>(
+        IQueryable<TEntity> query, CancellationToken cancellationToken) =>
+        query.CountAsync(cancellationToken);
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(WaslDbContext).Assembly);
