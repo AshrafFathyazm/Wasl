@@ -1,6 +1,7 @@
 using Wasl.Api;
 using Wasl.Api.Common;
 using Wasl.Api.Health;
+using Wasl.Api.Seed;
 using Wasl.Application;
 using Wasl.Infrastructure;
 
@@ -31,6 +32,18 @@ builder.Services
 builder.Services.AddWaslPipeline();
 
 var app = builder.Build();
+
+// ── One command for a demo from a known state ────────────────────────────────────
+// `dotnet run --project src/Wasl.Api -- --seed` applies migrations, writes three customers and
+// five tickets in five statuses through the real domain, and exits without serving.
+//
+// It exits rather than continuing to run: a seed that also starts the API makes "did the seed
+// work" and "is the app up" the same question, and the answer to the second hides the first.
+if (args.Contains(DemoSeeder.Switch))
+{
+    await DemoSeeder.RunAsync(app.Services);
+    return;
+}
 
 // ── Middleware order ─────────────────────────────────────────────────────────────
 // UseExceptionHandler goes FIRST, and it is first for a reason: it can only catch what
