@@ -14,7 +14,7 @@ specs reference rule IDs rather than restating them.
 | **New** | – | ✅ | ❌ | ❌ | ❌ | ✅ |
 | **Open** | ❌ | – | ✅ | ❌ | ❌ | ✅ |
 | **InProgress** | ❌ | ✅ | – | ✅ | ✅ | ❌ |
-| **PendingCustomer** | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| **PendingCustomer** | ❌ | ❌ | ✅ | – | ❌ | ❌ |
 | **Resolved** | ❌ | ❌ | ✅ | ❌ | – | ✅ |
 | **Closed** | ❌ | ❌ | ❌ | ❌ | ❌ | – |
 

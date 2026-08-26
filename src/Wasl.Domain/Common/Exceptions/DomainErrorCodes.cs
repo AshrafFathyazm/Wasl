@@ -35,6 +35,27 @@ public static class DomainErrorCodes
     /// <summary>The BR-1 matrix does not permit the requested transition.</summary>
     public const string InvalidStatusTransition = "invalid-status-transition";
 
+    /// <summary>
+    /// The requested status equals the current one. BR-1.9.
+    /// </summary>
+    /// <remarks>
+    /// <b>Its own code rather than folding into <see cref="InvalidStatusTransition"/></b>
+    /// (`012` `spec.md` Q-3). The client's correct reaction differs: a same-status `409` means
+    /// refetch quietly, because the user did nothing wrong and telling them they attempted
+    /// something forbidden is a lie about a double-click. A client cannot tell the two apart
+    /// without parsing an English sentence.
+    /// </remarks>
+    public const string SameStatusTransition = "same-status-transition";
+
+    /// <summary>
+    /// The target status is <c>InProgress</c> and the ticket has no assignee. BR-1.3.
+    /// </summary>
+    /// <remarks>
+    /// Also its own code, for the same reason: this one means "offer the Assign action", not
+    /// "offer a different transition".
+    /// </remarks>
+    public const string AssigneeRequired = "assignee-required";
+
     /// <summary><c>Closed</c> is terminal. BR-1.5.</summary>
     public const string TicketClosed = "ticket-closed";
 

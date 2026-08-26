@@ -87,6 +87,14 @@ internal static class ProblemTypes
         [DomainErrorCodes.TicketClosed] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.TicketClosed.Title"),
 
+        // Added by `012`. Three 409s that a client must be able to tell apart without reading
+        // English: refetch quietly, offer Assign, or offer a different transition.
+        [DomainErrorCodes.SameStatusTransition] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.SameStatusTransition.Title"),
+
+        [DomainErrorCodes.AssigneeRequired] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.AssigneeRequired.Title"),
+
         [DomainErrorCodes.AlreadyEscalated] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.AlreadyEscalated.Title"),
 

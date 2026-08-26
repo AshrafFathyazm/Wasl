@@ -213,7 +213,7 @@ artifacts for it live.*
 | **2 · Ticket core** | `009-create-ticket` | **US-005** | **✅ Backend done 2026-08-26** — 214 tests, 0 warnings. `Ticket` + `TicketHistory` + the sequence, `POST /api/tickets`, `GET /api/tickets/{id}`, the BR-1 map with all 36 cells. No auth (`004`), form is `024-frontend-create-ticket-form`. Gained two pieces by decision: the **BR-1 transition map + all 36 tests** (from `012`) because AC-10 consumes it, and **`GET /api/tickets/{id}`** (from `010`) because the frozen contract promises `Location` resolves. Four FKs to `SupportUsers` deferred to `004` — that table never existed |
 | | `010-ticket-list-and-detail` | **US-006** (read half) | The list and detail screens, unfiltered. See the split note below. **`GET /api/tickets/{id}` moved to `009`** 2026-08-25 — the list and both screens stay here |
 | | `011-assign-ticket` | **US-007** | |
-| | `012-change-ticket-status` | **US-008** | `PUT /status`, `allowedTransitions` on writes, optimistic concurrency. **The map and its 36 transition tests moved to `009`** 2026-08-25 — `009` returns `allowedTransitions`, so it owns the rule it reads |
+| | `012-change-ticket-status` | **US-008** | **✅ Backend done 2026-08-26** — 250 tests, 0 warnings. `PUT /status`, three distinct `409` codes, optimistic concurrency, the two ordering decisions asserted. The map and its 36 tests were built in `009`, which consumes `allowedTransitions`. No auth (`004`) |
 | **3 · Collaboration** | `013-ticket-timeline-and-comments` | **US-010** | End of the committed demo flow |
 | **4 · Language pass** | `014-language-preference-and-rtl` | **US-014** | Includes the manual Arabic pass as a deliverable |
 | **5 · Release 2** | `015-ticket-filters-and-search` | **US-006** (filter half) | First to be cut |

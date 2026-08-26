@@ -22,9 +22,9 @@ namespace Wasl.Application.Features.Tickets.CreateTicket;
 /// and `tests.md` records the gap rather than a validator pretending to cover it.
 /// </para>
 /// </remarks>
-internal sealed class CreateTicketValidator : AbstractValidator<CreateTicketCommand>
+internal sealed class CreateTicketCommandValidator : AbstractValidator<CreateTicketCommand>
 {
-    public CreateTicketValidator()
+    public CreateTicketCommandValidator()
     {
         RuleFor(command => command.CustomerId)
             .NotEmpty()

@@ -1,7 +1,10 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Wasl.Api.Contracts.Tickets;
+using Wasl.Application.Features.Tickets.ChangeStatus;
 using Wasl.Application.Features.Tickets.CreateTicket;
 using Wasl.Application.Features.Tickets.GetTicketById;
+using Wasl.Domain.Tickets;
 
 namespace Wasl.Api.Controllers;
 
@@ -60,4 +63,34 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken) =>
         Ok(await sender.Send(new GetTicketByIdQuery(id), cancellationToken));
+
+    /// <summary>Changes the status. `012`, BR-1.</summary>
+    /// <remarks>
+    /// <para>
+    /// A sub-resource <c>PUT</c>, not a <c>PATCH</c> on the ticket: a status change is a distinct
+    /// business action with its own rules and its own history row (`CLAUDE.md`).
+    /// </para>
+    /// <para>
+    /// The route id wins over any id in the body. Binding the two separately and letting the body
+    /// decide would make the URL a suggestion — and a client that sent a mismatched pair would
+    /// change a ticket it was not addressing.
+    /// </para>
+    /// <para>
+    /// Every rule lives below this method: the entity owns BR-1, the handler owns lookup and the
+    /// version check, and `002`'s handler maps each failure to its own `409` type. Nothing here
+    /// chooses a status code.
+    /// </para>
+    /// </remarks>
+    [HttpPut("{id:guid}/status")]
+    [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ChangeStatus(
+        Guid id,
+        [FromBody] ChangeTicketStatusRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(
+            new ChangeTicketStatusCommand(id, request.Status, request.ExpectedVersion, request.Note),
+            cancellationToken));
 }

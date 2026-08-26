@@ -97,7 +97,7 @@ wait for `BE-012-08`.
 | ID | Outcome | Depends on | Verified by | Serves | Agent | Skill |
 |---|---|---|---|---|---|---|
 | DOC-012-01 | `docs/sdd/documentation/api/overview.md` and `error-handling.md` list the endpoint and all five `409` types | BE-012-08 | Read them | DoD | main session | — |
-| DOC-012-02 | `05-api-conventions.md`'s `409` inventory gains `errors/same-status-transition` and `errors/assignee-required`; ADR-004 confirmed to match what was built, and corrected if not. **A blueprint edit — the product owner approves it, it is not committed quietly** | BE-012-05, `spec.md` Q-3 | Read them | DoD, Q-3 | main session | — |
+| DOC-012-02 **✅ done 2026-08-26** — BR-1's `PendingCustomer` diagonal corrected in `docs/sdd/04-business-rules.md` (it read ✅ where every other row reads `–`), by product-owner instruction. The `05-api-conventions.md` `409` inventory still needs the two new types | `05-api-conventions.md`'s `409` inventory gains `errors/same-status-transition` and `errors/assignee-required`; ADR-004 confirmed to match what was built, and corrected if not. **A blueprint edit — the product owner approves it, it is not committed quietly** | BE-012-05, `spec.md` Q-3 | Read them | DoD, Q-3 | main session | — |
 | DOC-012-03 | `summary.md`, `08-board.md`, and `12-delivery-log.md` updated; `tests.md` and `ai-notes.md` completed with **observed** output | All | The `verify-story` gate | DoD | main session | `verify-story` |
 
 ## Review

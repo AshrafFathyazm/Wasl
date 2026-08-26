@@ -158,4 +158,84 @@ public sealed class Ticket : IAuditableEntity
             // source of truth, and the one that gets it wrong.
         };
     }
+
+    /// <summary>
+    /// Moves the ticket to <paramref name="target"/>. BR-1, and the only way the status changes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The checks run in the order `012`'s frozen contract fixes</b>, because a request can
+    /// break more than one rule and a client must never have to guess which answer it gets. The
+    /// endpoint owns steps 1–4 and 6 (id, existence, body, authorization, version); this method
+    /// owns 5 and 7–9, in that sequence.
+    /// </para>
+    /// <para>
+    /// <b>Closed is checked before same-status</b>, so <c>Closed → Closed</c> reports
+    /// <c>ticket-closed</c> rather than <c>same-status-transition</c>: "this ticket is finished"
+    /// is more useful than "you sent the value it already has", and no amount of reloading
+    /// changes it.
+    /// </para>
+    /// <para>
+    /// <b>Three distinct error codes, not one</b> (`spec.md` Q-3). A same-status <c>409</c> means
+    /// refetch quietly — the user double-clicked and did nothing wrong. An assignee-required
+    /// <c>409</c> means offer the Assign action. A forbidden-transition <c>409</c> means offer a
+    /// different transition. A client cannot separate those by parsing an English sentence.
+    /// </para>
+    /// <para>
+    /// It does <b>not</b> touch <c>UpdatedAtUtc</c>: <c>SaveChangesAsync</c> stamps that for
+    /// every <see cref="IAuditableEntity"/>. <c>ClosedAtUtc</c> is different — a business fact
+    /// about the ticket rather than row metadata — so it is set here, from the instant passed in.
+    /// </para>
+    /// </remarks>
+    /// <returns>The history row for the accepted transition (AC-11).</returns>
+    public TicketHistoryEntry ChangeStatus(TicketStatus target, DateTime occurredAtUtc, string? note = null)
+    {
+        // 5. Terminal, and first among this method's checks. BR-1.5.
+        if (Status is TicketStatus.Closed)
+        {
+            throw new TicketClosedException();
+        }
+
+        // 7. Same status. BR-1.9 — a 409, never a no-op 200: a 200 would tell the client its
+        // request was applied when nothing happened.
+        if (target == Status)
+        {
+            throw new SameStatusTransitionException(Status);
+        }
+
+        // 8. The matrix, unconditioned — so a forbidden cell reports the transition rule rather
+        // than the assignee precondition, which is the distinction the client acts on.
+        if (!TicketStatusTransitions.RawAllows(Status, target))
+        {
+            throw new InvalidStatusTransitionException(
+                Status, TicketStatusTransitions.AllowedFrom(Status, AssignedToUserId is not null));
+        }
+
+        // 9. The precondition, last. BR-1.3 — a ticket cannot be "being worked on" by nobody.
+        if (target is TicketStatus.InProgress && AssignedToUserId is null)
+        {
+            throw new AssigneeRequiredException();
+        }
+
+        // BR-1.2. A note is required only when closing work that was never started. Q-1 declined
+        // to require one on Resolved → Closed: demanding a reason for the expected outcome trains
+        // people to type nothing useful.
+        if (target is TicketStatus.Closed
+            && Status is TicketStatus.New or TicketStatus.Open
+            && string.IsNullOrWhiteSpace(note))
+        {
+            throw new NoteRequiredException(Status);
+        }
+
+        var previous = Status;
+        Status = target;
+
+        // BR-1.7. Set here because it is a fact about the ticket, not about the row.
+        if (target is TicketStatus.Closed)
+        {
+            ClosedAtUtc = occurredAtUtc;
+        }
+
+        return TicketHistoryEntry.StatusChanged(Id, previous, target, occurredAtUtc, note);
+    }
 }

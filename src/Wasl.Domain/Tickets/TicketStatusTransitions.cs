@@ -70,7 +70,26 @@ public static class TicketStatusTransitions
             .ToArray();
 
     /// <summary>
-    /// Whether the transition is permitted. The single question `012`'s endpoint asks.
+    /// Whether the raw matrix has this cell, <b>ignoring the preconditions</b>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Exists for one caller: `012`'s <c>Ticket.ChangeStatus</c>, which must separate "that cell
+    /// is not in the matrix" from "that cell is in the matrix but this ticket has no assignee".
+    /// The two are different `409` codes and the client acts on each differently — offer a
+    /// different transition, or offer the Assign action.
+    /// </para>
+    /// <para>
+    /// <b>Not for computing <c>allowedTransitions</c>.</b> Use <see cref="AllowedFrom"/> there:
+    /// this method would offer <c>InProgress</c> on an unassigned ticket, and the client would
+    /// render a button whose only outcome is a `409`.
+    /// </para>
+    /// </remarks>
+    public static bool RawAllows(TicketStatus current, TicketStatus target) =>
+        RawMatrix[current].Contains(target);
+
+    /// <summary>
+    /// Whether the transition is permitted, preconditions included.
     /// </summary>
     /// <remarks>
     /// A same-status transition returns <c>false</c>, because <paramref name="current"/> never

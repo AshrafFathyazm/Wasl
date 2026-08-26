@@ -85,4 +85,38 @@ public sealed class TicketHistoryEntry
             PerformedByUserId = performedByUserId,
             PerformedAtUtc = performedAtUtc,
         };
+
+    /// <summary>
+    /// The row for an accepted status transition. `012` AC-11, BR-1.8.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both values are stored, not just the new one: a timeline showing "moved to Resolved" is
+    /// far less useful than "moved from PendingCustomer to Resolved", and the previous value
+    /// cannot be recovered afterwards — the column it came from has already been overwritten.
+    /// </para>
+    /// <para>
+    /// The <paramref name="note"/> is stored whenever it is supplied, not only when BR-1.2
+    /// required it. A volunteered reason is worth keeping, and discarding it because the rule did
+    /// not demand it would lose the one thing a reader wants.
+    /// </para>
+    /// </remarks>
+    public static TicketHistoryEntry StatusChanged(
+        Guid ticketId,
+        TicketStatus from,
+        TicketStatus to,
+        DateTime performedAtUtc,
+        string? note = null,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.StatusChanged,
+            OldValue = from.ToString(),
+            NewValue = to.ToString(),
+            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim(),
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
 }

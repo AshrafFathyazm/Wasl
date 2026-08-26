@@ -29,7 +29,7 @@ namespace Wasl.Application.Features.Tickets.CreateTicket;
 /// it to be the same instant the ticket got. One scoped value means the two are equal by
 /// construction rather than by two components agreeing.
 /// </remarks>
-internal sealed class CreateTicketHandler(
+internal sealed class CreateTicketCommandHandler(
     IApplicationDbContext context,
     ITicketNumberGenerator ticketNumbers,
     IRequestTimestamp timestamp) : IRequestHandler<CreateTicketCommand, CreateTicketResult>

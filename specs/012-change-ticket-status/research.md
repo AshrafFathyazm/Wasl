@@ -234,3 +234,28 @@ Recorded because the answer is "less than it looks, and one thing that matters".
 
 **No schema change means no migration**, which is why `data-model.md` is a statement
 rather than a table of new objects.
+
+---
+
+## Reconciled and implemented 2026-08-26 — three notes, kept short
+
+**R-A · Why the version check is explicit rather than caught from EF Core.**
+`DbUpdateConcurrencyException` only surfaces after the write is attempted, which puts the check
+*after* the transition rules. The contract fixes the opposite order and calls it the easiest to
+get wrong: judge the transition first and every stale UI reports a rule violation that does not
+exist, naming a `currentStatus` the user cannot reconcile with their screen. So the handler
+compares `RowVersion` to the decoded `expectedVersion` before touching the entity. Two tests hold
+that order — one at the endpoint, one in the domain.
+
+**R-B · Why three `409` codes and not one.** `spec.md` Q-3 settled it and implementation
+confirmed the cost is trivial: two registry rows and two domain codes. The value is that a client
+reacts differently to each — refetch quietly on same-status, offer Assign on assignee-required,
+offer a different transition on a forbidden cell — and it cannot separate them by parsing an
+English sentence. Folding them into `invalid-status-transition` would have compiled and shipped.
+
+**R-C · Where `009` left the work.** The 40 minutes this feature was budgeted for the BR-1 map and
+its 36 cells was spent in `009`, which consumes `allowedTransitions`. What remained here was the
+endpoint, the version check, the ordering, and the note rule — and the ordering turned out to be
+the part with the real risk, not the matrix. `RawAllows` was the one addition to the map: the
+endpoint must distinguish "that cell is not in the matrix" from "that cell is in the matrix but
+this ticket has no assignee", which `AllowedFrom` deliberately conflates for the client's benefit.

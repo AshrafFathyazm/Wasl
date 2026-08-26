@@ -278,7 +278,7 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `005-localization-core` | 0 | Authored |
 | `006-design-system` | 0 | Authored |
 | `007-create-customer` | 1 | Migrated from `US-001-create-customer` |
-| `008-customer-list-and-profile` | 1 | Migrated from `US-002-view-customer` |
+| `012-change-ticket-status` | 2 | Migrated from `US-008-change-status` — **✅ backend implemented 2026-08-26**, 250 tests |
 | `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` — **✅ backend implemented 2026-08-26**, 214 tests. Gained the BR-1 map + 36 tests (from `012`) and `GET /api/tickets/{id}` (from `010`). No auth (`004`); form is `024-frontend-create-ticket-form` |
 | `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-filter-tickets` (read half) |
 | `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` |
