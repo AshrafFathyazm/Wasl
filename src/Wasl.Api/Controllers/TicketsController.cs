@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wasl.Api.Contracts.Tickets;
 using Wasl.Application.Features.Tickets.ChangeStatus;
@@ -21,14 +22,25 @@ namespace Wasl.Api.Controllers;
 /// chosen at this layer.
 /// </para>
 /// <para>
-/// <b>No <c>[Authorize]</c>, and that is decision 1 rather than an omission.</b> `004` adds
-/// authentication and this attribute together; until then every request is anonymous, AC-13 is
-/// unverifiable, and `createdByUserId` comes back null. Written here so the absence reads as a
-/// decision to whoever opens this file next.
+/// <b><c>[Authorize]</c> arrived with `004`.</b> `009` shipped this controller without it and
+/// said so in this paragraph rather than leaving the absence to be discovered — which is the only
+/// reason the gap was closed on purpose instead of noticed in a review. With a token in play,
+/// <c>createdByUserId</c> now comes back populated with no change to any handler: <c>Ticket</c> is
+/// an <c>IAuditableEntity</c> and the stamping in <c>WaslDbContext.SaveChangesAsync</c> reads
+/// <c>ICurrentUser</c>.
 /// </para>
 /// </remarks>
 [ApiController]
 [Route("api/tickets")]
+
+// Every action needs a token. The fallback policy would refuse an unauthenticated request even
+// without this attribute, but AC-10 enumerates ENDPOINT METADATA — and a fallback policy is not
+// metadata. So the attribute is what makes the intent visible on the endpoint itself, and the
+// fallback is what catches the endpoint that forgets it.
+//
+// No [Authorize(Policy = ManagerOnly)] anywhere yet: BR-2 puts the role split on assignment, and
+// there is no assign endpoint until `011`.
+[Authorize]
 public sealed class TicketsController(ISender sender) : ControllerBase
 {
     /// <summary>Creates a ticket. AC-1.</summary>

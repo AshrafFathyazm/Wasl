@@ -15,21 +15,44 @@ not.
 | | |
 |---|---|
 | .NET SDK | `10.0.2xx` — pinned in `global.json`. `dotnet --version` must report `10.0.2*` |
-| SQL Server | 2022, or Express. A local instance is enough |
-| Docker | **Only for the integration tests.** The app itself never needs it |
+| Docker | For the database, and for the integration tests |
+| SQL Server | Only if you would rather use a local instance than the container — see below |
 | Node | 20+, only for the frontend |
 
-### Point it at a database
+### Start the database
 
-`src/Wasl.Api/appsettings.Development.json` holds the connection string:
-
-```json
-"ConnectionStrings": {
-  "Wasl": "Server=.\\SQLEXPRESS;Database=Wasl;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
-}
+```bash
+docker compose up -d db
 ```
 
-Change `Server=` if your instance is named differently. Windows auth, no password in any file.
+SQL Server 2022 on host port **14330**, from `docker-compose.yml`. Wait for
+`docker compose ps` to say `healthy` — the port accepts connections several seconds before the
+engine will answer a query, and that gap looks exactly like a wrong password.
+
+`src/Wasl.Api/appsettings.Development.json` points at that container and needs no editing. To use
+a local instance instead, change `Server=` there to e.g. `.\SQLEXPRESS` with
+`Trusted_Connection=True`.
+
+> This file used to default to `Server=.\SQLEXPRESS`, which existed on one developer's machine.
+> A clean clone that followed these instructions started a container the application never spoke
+> to. `/health` reported the database `Unhealthy` — correctly, which made it read like a broken
+> health check rather than a wrong address. Changed 2026-08-27; the `sa` password there is the
+> same throwaway already in `docker-compose.yml`.
+
+### Set the two secrets
+
+Nothing starts without them, on purpose. There is no default signing key and no default password
+— a random key per restart invalidates every token silently, and a default password is a committed
+credential wearing a different hat.
+
+```bash
+dotnet user-secrets set "Jwt:SigningKey" "any-string-of-at-least-32-bytes-please" -p src/Wasl.Api
+dotnet user-secrets set "Seed:ManagerPassword" "Manager#2026" -p src/Wasl.Api
+dotnet user-secrets set "Seed:AgentPassword"   "Agent#2026"   -p src/Wasl.Api
+```
+
+Omit any one of them and the host refuses to start with a message naming the configuration key
+and never the value.
 
 ### Create the schema and seed a demo
 
@@ -59,14 +82,31 @@ dotnet run --project src/Wasl.Api
 Then, on the port it prints:
 
 ```bash
-curl http://localhost:5272/health
-curl 'http://localhost:5272/api/tickets?pageSize=20'
+curl http://localhost:5272/health                          # anonymous — the only one
+
+# Everything under /api needs a token.
+curl -sX POST http://localhost:5272/api/auth/token \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"manager@wasl.local","password":"Manager#2026"}'
+
+curl 'http://localhost:5272/api/tickets?pageSize=20' \
+  -H "Authorization: Bearer <accessToken from above>"
 ```
+
+Two seeded users, and no screen to create more (`004`'s scope was the backend half):
+
+| Email | Role | Language |
+|---|---|---|
+| `manager@wasl.local` | Manager | `ar` — signs in to an Arabic interface |
+| `agent@wasl.local` | Agent | `en` |
+
+Passwords are whatever you set in `Seed:*` above. The email is case-insensitive by column
+collation, so `MANAGER@WASL.LOCAL` works.
 
 ### Run the tests
 
 ```bash
-dotnet test                                    # everything — 267 tests
+dotnet test                                    # everything — 303 tests
 dotnet test tests/Wasl.Domain.Tests            # no database, no Docker
 dotnet test tests/Wasl.Api.IntegrationTests    # needs Docker running
 ```
@@ -89,6 +129,7 @@ log. `200` is never returned with an error in the body.
 | | |
 |---|---|
 | `GET /health` | Liveness and a database check. Outside `/api`, and the one documented exception to the envelope |
+| `POST /api/auth/token` | Email and password for a JWT. Anonymous, and the only other one. A wrong password, an unknown email and a deactivated user return the **same** `401` — including the same response time |
 | `POST /api/tickets` | `201` with `Location`. Draws a ticket number from a SQL sequence, writes the first history row in the same transaction |
 | `GET /api/tickets?page=&pageSize=` | Paged, newest first. `pageSize` defaults to 20 and clamps at 100; `page` clamps up to 1 |
 | `GET /api/tickets/{id}` | The same resource shape the create returns |
@@ -161,7 +202,7 @@ feature folder that owns it.
 
 | Not built | Where it is specified | Why it was cut |
 |---|---|---|
-| **Authentication and roles** (`004`) | `specs/004-auth-and-roles/` | The most expensive item that is not on the demo path. `createdByUserId` is `null` and the endpoints are open. **The consequence is stated rather than hidden:** every audit row is anonymous, and BR-6's authorization checks have nothing to evaluate. The handler that needs one names the exact line the check goes on. A forgeable header was rejected outright — ADR-005 makes the argument: every authorization test would pass while proving nothing |
+| **Authentication and roles — the frontend half** (`004`) | `specs/004-auth-and-roles/` | The backend half **shipped 2026-08-27**: `POST /api/auth/token`, JWT with a role claim, two seeded users, real `ICurrentUser`, `RequireAuthenticatedUser` as the fallback policy so a forgotten `[Authorize]` cannot open an endpoint. What is missing is the login screen, the route guard, the `401` interceptor and sign-out — the frontend lane owns them. Until then, a token is obtained with `curl` and pasted into a header |
 | **Assignment** (`011`) | `specs/011-assign-ticket/` | The demo is create → list → change status. Assignment is a fourth verb on the same object, and BR-2's rules need `004`'s roles to mean anything |
 | **Filters and search** (`015`) | `specs/015-ticket-filters-and-search/` | Seven filters that combine with AND, repeated keys that combine with OR, and a search that must treat `%` and `_` as literals. Shipping half of it leaves a query surface that looks complete and silently ignores combinations |
 | **Timeline and comments** (`013`) | `specs/013-ticket-timeline-and-comments/` | `dbo.TicketHistory` is written and correct — `Created` and `StatusChanged` rows with notes. What is missing is the read surface |
@@ -177,6 +218,9 @@ feature folder that owns it.
 | OpenAPI generation | `002b` | The contract files are frozen and both lanes read them, but nothing automatically compares the generated document against them. The comparison is manual and recorded as such |
 | **`DENY UPDATE, DELETE` on `dbo.AuditLog`** | `003b` | **The audit log is append-only by application convention, not by database permission.** Deferred whole rather than halved: `DENY` on a connection that is a `sysadmin` is decorative, and shipping it without the test that proves the connection is restricted would be a claim with no evidence |
 | The customer write path (`007`, `008`) | `007`, `008` | Customers are seeded, not created through the UI. `Customer` is deliberately a shell with private setters so it cannot drift before it gets its invariants |
+| **An audit row on a `401` or a `403`** | `004b` | **A gap in BR-9.4, not a satisfied criterion.** Sign-in success and failure both write rows — `IssueTokenCommand` is an `IAuditableCommand`, so the existing pipeline does it. A *denial* by the authorization middleware writes nothing, because that needs an `IAuthorizationMiddlewareResultHandler`. So "who was refused access, and to what" is not in the log |
+| **Rate limiting and lockout on `POST /api/auth/token`** | `004b` | **Brute force is unimpeded.** Returning one identical `401` for every wrong input is the correct response shape and does nothing whatever to slow a script. There is also no password policy: the two seeded passwords are the only ones the system has, and nothing enforces a minimum beyond 8 characters on those |
+| **A CORS policy** | unowned | None is configured, deliberately. In development the frontend runs behind Vite's proxy, so no cross-origin request is made and a policy would be untested configuration. A deployment that serves the two from different origins needs one, and adding it without knowing that origin means either a wildcard or a guess |
 
 ### Concurrency and abuse — a sideways review
 
@@ -195,8 +239,8 @@ The four recorded:
 | Gap | Owner | Consequence |
 |---|---|---|
 | **`POST /api/tickets` is not idempotent** | Unowned by design | Two clicks create two tickets, with different numbers and no error. No acceptance criterion asks for idempotency, so this is not a deviation — but the question is now asked and this is the answer. A client-side guard is not the guarantee; the guarantee would be a request key or a business rule |
-| **A `404` for an unknown `customerId` on create is an enumeration oracle** | `004` | Harmless today because there is nothing to enumerate *against* — every endpoint is open. The moment authentication lands, any authenticated user can probe which customer ids exist by posting tickets. BR-4.4 forbids exactly this for the duplicate rule; the same reasoning applies here |
-| **`expectedVersion` is validated by allocating a buffer the size of the input** | `004` | A multi-megabyte token allocates before it is refused. A request body limit in Kestrel configuration is the cleaner fix than a length check in a validator, and `004` is where hardening belongs |
+| **A `404` for an unknown `customerId` on create is an enumeration oracle** | open, `007` | **No longer harmless. `004` landed, so the endpoint is authenticated and the oracle is live:** any signed-in Agent can now probe which customer ids exist by posting tickets and reading `404` against `201`. The review predicted this exact activation and named `004` as the trigger. BR-4.4 forbids exactly this for the duplicate rule; the same reasoning applies here |
+| **`expectedVersion` is validated by allocating a buffer the size of the input** | open, `004b` | A multi-megabyte token allocates before it is refused. A request body limit in Kestrel configuration is the cleaner fix than a length check in a validator, and `004b` is where that hardening belongs — `004` did not add it |
 | **`MultipleActiveResultSets=True` disables EF savepoints** | Unowned | Inherited from `001`'s connection string and used by nothing. Not a correctness defect — `TransactionBehaviour` rolls the whole transaction back, which is exactly what the warning prescribes — but it logs on every save, and a warning that always fires is a warning nobody reads |
 
 ### Known defects, not omissions
@@ -204,7 +248,6 @@ The four recorded:
 | | |
 |---|---|
 | A malformed `{id}` returns `404`, not the `400` its criterion asks for | The route constraint short-circuits before the action. `002b` owns it |
-| `errors` keys are PascalCase where the contract implies camelCase | Recorded in `002`'s evidence rather than smoothed over. A client mapping errors onto form fields by exact name will miss |
 | The list's stable-sort tie-break is unproven | The query orders by `CreatedAtUtc` then `Id`, and **no test fails without the tie-break** — three attempts are documented in `010`'s evidence. It stays because SQL Server promises no order for a tie; proving it needs a data volume the test strategy excludes |
 
 ---

@@ -274,6 +274,31 @@ entry here.
 Nothing existed before it, so nothing is broken. The heading stays even when empty — an
 empty contract-changes section is the statement that the contract did not move.
 
+### 2026-08-27 — the keys of `errors` are camelCase
+
+**Reported by the frontend lane from a live run, not from reading the contract.** Both lanes
+were told.
+
+The contract specifies field-name keys in camelCase — `errors.subject`, `errors.customerId`.
+The server was sending `errors.Subject` and `errors.CustomerId`: FluentValidation reports the
+**CLR property name**, and `ProblemDetailsFactory` passed it through untouched. So every
+client lookup by the contract's key found nothing, and a `400` rendered as a validation error
+with no fields attached — the form showing "something is wrong" and pointing at nothing.
+
+Fixed in `Wasl.Api/Common/Errors/ProblemDetailsFactory.cs`: one `CamelCase(field)` helper,
+applied in both `FromDomainException` and `FromValidationFailures`.
+
+**Not a contract change — a defect in the implementation, found from the other side of the
+contract.** It is recorded here because the contract is where the two lanes agree, and
+because of how it stayed hidden: `002`'s `ErrorEnvelopeTests` asserted
+`errors.TryGetProperty("FullName")`. **Those assertions were written from the implementation
+rather than from `contracts/`, so the suite agreed with the defect.** Two server tests were
+passing on the wrong casing while the client could not read a single key. Updated to
+`errors.fullName` / `errors.email` alongside the fix.
+
+The lesson is narrower than "test more": a test written by reading the code it tests
+can only confirm that the code does what it does.
+
 Two shape decisions in it are made **for later features**, deliberately, so the read
 shape does not change under a client that has already shipped:
 

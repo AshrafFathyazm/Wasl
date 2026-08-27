@@ -26,6 +26,12 @@ internal static class AuditProbeEndpoints
 
     public static void Map(IEndpointRouteBuilder routes)
     {
+        // AllowAnonymous, because `004` made RequireAuthenticatedUser the fallback policy and
+        // these are test scaffolding rather than product surface. Requiring a token here would
+        // make every probe return 401 and would test the fallback instead of the envelope.
+        // AC-10 asserts the PRODUCTION anonymous set separately, on a host without these.
+        routes = routes.MapGroup(string.Empty).AllowAnonymous();
+
         routes.MapPost(SucceedPath, async (
             Guid customerId, string company, ISender sender, CancellationToken token) =>
             Results.Ok(await sender.Send(new SucceedingProbeCommand(customerId, company), token)));

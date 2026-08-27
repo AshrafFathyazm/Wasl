@@ -86,4 +86,15 @@ public static class DomainErrorCodes
     /// </para>
     /// </remarks>
     public const string Forbidden = "forbidden";
+
+    /// <summary>
+    /// The credentials were not accepted, or no credentials were supplied. `004`.
+    /// </summary>
+    /// <remarks>
+    /// Added by `004` for the same reason `Forbidden` was added by `003`: `002` reserved the
+    /// registry row for a status the auth middleware produces, and a middleware `401` throws
+    /// nothing. This code is for the one `401` that IS raised in a handler — a rejected sign-in,
+    /// which is a domain outcome rather than an absent token.
+    /// </remarks>
+    public const string Unauthenticated = "unauthenticated";
 }

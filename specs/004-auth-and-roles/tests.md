@@ -1,0 +1,222 @@
+# `004-auth-and-roles` — test evidence
+
+**Scope:** the backend half only. The frontend half (AC-24 … AC-30) is not built and is not
+claimed here.
+
+**Run:** 2026-08-27, Windows 11, .NET 10.0.200 SDK, SQL Server 2022 via `Testcontainers.MsSql`
+(one container for the whole integration suite) plus one `docker compose` container for the
+manual verification.
+
+```text
+dotnet build --no-incremental      0 Warning(s)   0 Error(s)
+dotnet test --no-build
+
+Wasl.Domain.Tests            Failed: 0   Passed: 166   Total: 166   398 ms
+Wasl.Application.Tests       Failed: 0   Passed:   8   Total:   8   631 ms
+Wasl.Api.IntegrationTests    Failed: 0   Passed: 129   Total: 129    23 s
+                                         ─────────────────────────
+                                         Passed: 303   Total: 303
+```
+
+Before `004`: 267. `004` added 36.
+
+---
+
+## Acceptance criteria → named tests
+
+### Sign-in
+
+| AC | Test | Result |
+|---|---|---|
+| AC-1 | `IssueTokenTests.Correct_credentials_return_the_token_and_the_user_block` | pass |
+| AC-1 | `IssueTokenTests.No_response_field_anywhere_carries_the_password_hash` | pass |
+| AC-2 | `IssueTokenTests.The_token_carries_every_claim_by_name` | pass |
+| AC-3 | `IssueTokenTests.The_lifetime_is_eight_hours_and_the_body_agrees_with_the_token` | pass |
+| AC-4 | `IssueTokenTests.Wrong_password_and_unknown_email_are_indistinguishable` | pass |
+| AC-5 | `IssueTokenTests.Missing_input_is_a_validation_error_not_a_denial` (4 cases) | pass |
+| AC-5 | `IssueTokenTests.A_malformed_address_is_denied_not_rejected` | pass — **deviation, see below** |
+| AC-23 | `IssueTokenTests.An_email_that_differs_only_in_case_signs_in` | pass |
+
+### Token validation and the principal
+
+| AC | Test | Result |
+|---|---|---|
+| AC-6 | `TokenValidationTests.The_principal_carries_the_short_claim_names_and_no_federation_uris` | pass |
+| AC-7 | `TokenValidationTests.Manager_only_admits_the_manager_and_refuses_the_agent` | pass |
+| AC-8 | `TokenValidationTests.A_token_this_application_did_not_sign_is_rejected` (3 cases: foreign key · `alg: none` · HS512) | pass |
+| AC-9 | `TokenValidationTests.A_token_that_expired_one_second_ago_is_rejected` | pass |
+| — | `TokenValidationTests.No_token_is_unauthenticated_and_a_wrong_role_is_forbidden` | pass |
+
+### Authorization surface
+
+| AC | Test | Result |
+|---|---|---|
+| AC-10 | `AuthorizationSurfaceTests.Every_endpoint_is_authorized_and_exactly_two_are_anonymous` | pass |
+| AC-20 | `AuthorizationSurfaceTests.Health_answers_without_an_authorization_header` | pass |
+| AC-20 | `AuthAuditTests.Health_writes_no_audit_row` | pass |
+| AC-21 | `MiddlewareOrderTests.Authentication_is_registered_before_request_localization` | pass |
+| AC-21 | `MiddlewareOrderTests.Authentication_is_registered_before_authorization` | pass |
+| AC-21 | `MiddlewareOrderTests.The_exception_handler_stays_ahead_of_everything_it_must_catch` | pass |
+
+### Configuration and startup
+
+| AC | Test | Result |
+|---|---|---|
+| AC-11 | `StartupValidationTests.A_missing_signing_key_fails_the_host_and_names_the_configuration_key` | pass |
+| AC-11 | `StartupValidationTests.A_signing_key_shorter_than_thirty_two_bytes_fails_the_host` | pass |
+| AC-11 | `StartupValidationTests.The_startup_failure_never_echoes_the_value` | pass |
+| AC-12 | `StartupValidationTests.A_missing_seed_password_fails_the_host` (2 cases) | pass |
+
+### The table and the two rows
+
+| AC | Test | Result |
+|---|---|---|
+| AC-13 | `SupportUserSeedTests.Seeding_again_writes_nothing_and_leaves_both_hashes_untouched` | pass |
+| AC-14 | `SupportUserSeedTests.The_stored_value_is_a_verifiable_hash_and_not_the_password` | pass |
+| AC-22 | `SupportUserSeedTests.The_table_matches_the_data_model` | pass |
+| AC-23 | `SupportUserSeedTests.Arabic_in_a_name_round_trips_byte_identical` | pass |
+
+### Audit
+
+| AC | Test | Result |
+|---|---|---|
+| AC-15 | `AuthAuditTests.A_successful_sign_in_writes_one_row_naming_the_user_it_signed_in` | pass — **partial, see below** |
+| AC-16 | `AuthAuditTests.A_failed_sign_in_writes_one_row_carrying_the_email_and_no_secret` | pass |
+| AC-19 | asserted inside the AC-16 test (`row.TraceId == body.traceId`) | pass |
+| — | `AuthAuditTests.An_authenticated_write_stamps_the_real_actor_on_the_row_and_the_entity` | pass |
+| AC-17 | **NOT BUILT** — deferred to `004b` | — |
+| AC-18 | **NOT BUILT** — deferred to `004b` | — |
+
+`AC-17`/`AC-18` need an `IAuthorizationMiddlewareResultHandler` to write a row on a `401` and a
+`403`. **This is an open gap in BR-9.4, not a satisfied criterion.** The status codes themselves
+are asserted (`TokenValidationTests`), so what is missing is the audit row, not the denial.
+
+---
+
+## Negative controls — each setting reverted, and what went red
+
+The comments in `AddWaslAuthentication` claim each setting is load-bearing. Claim tested, not
+asserted from memory. Both defaults were restored in one pass:
+`MapInboundClaims = true`, `DefaultInboundClaimTypeMap` left populated, `ClockSkew` removed.
+
+```text
+dotnet test tests/Wasl.Api.IntegrationTests --filter "FullyQualifiedName~Auth"
+Failed: 4, Passed: 32, Total: 36
+
+  TokenValidationTests.A_token_that_expired_one_second_ago_is_rejected
+  TokenValidationTests.The_principal_carries_the_short_claim_names_and_no_federation_uris
+  TokenValidationTests.Manager_only_admits_the_manager_and_refuses_the_agent
+  AuthAuditTests.An_authenticated_write_stamps_the_real_actor_on_the_row_and_the_entity
+```
+
+Reverted, rebuilt with `--no-incremental`, re-ran: **36/36 pass.**
+
+Three of the four were predicted. **The fourth was not, and it is the most useful result here:**
+turning inbound claim mapping back on silently emptied the audit trail's actor columns. Nothing
+threw, no request failed, and `dbo.AuditLog` simply stopped naming who did anything — which is
+the failure this codebase's strongest claim (BR-9) would have died of quietly. It is also
+exactly the chain `spec.md` predicted in its "what fails silently" table, arriving through a
+path the table did not draw.
+
+`Manager_only` going red confirms the AC-7 note: with the mapping on, the role claim is no longer
+at `role`, so **every** Manager gets `403`. Asserting only the Manager's success would have
+looked identical to asserting only the Agent's refusal.
+
+---
+
+## Verified by running, not by reading
+
+### The clean path, on the compose container
+
+`appsettings.Development.json` pointed at `Server=.\SQLEXPRESS`. Changed to the
+`docker-compose.yml` container on port 14330 — see `summary.md`.
+
+```text
+docker compose up -d db                      wasl-db  healthy
+dotnet ef database drop -f                   Successfully dropped database 'Wasl'
+dotnet run --project src/Wasl.Api -- --seed
+    Users: 2 written (manager@wasl.local, agent@wasl.local).
+    Seeded 3 customers and 5 tickets, and wrote 14 audit rows.
+dotnet run --project src/Wasl.Api -- --seed  (again — AC-13)
+    Users: already seeded, nothing written.
+    Seed skipped: tickets already exist.
+```
+
+### The API, live
+
+```text
+GET  /health                       200  Content-Language: en
+     {"status":"Healthy","checks":[{"name":"database","status":"Healthy",...},
+                                   {"name":"self","status":"Healthy",...}]}
+
+GET  /api/tickets                  401   (no Authorization header)
+
+POST /api/auth/token               200
+     {"email":"MANAGER@WASL.LOCAL","password":"..."}   ← upper case, AC-23
+     accessToken     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+     tokenType       Bearer
+     expiresAtUtc    2026-08-28T04:08:10Z              ← +8h, AC-3
+     user.fullName   منى العتيبي                        ← nvarchar round-trip
+     user.role       Manager
+     user.preferredLanguage  ar
+
+GET  /api/tickets?page=1&pageSize=2   200   totalCount=5, TCK-2026-000005
+     (with the bearer token)
+```
+
+`Content-Language: en` on the response closes the frontend lane's second finding — it is
+`UseRequestLocalization` supplying it, and the header is absent without that call.
+
+### Three defects found by running, all of them by `004` breaking something older
+
+| Found | What it was | Where the fix is |
+|---|---|---|
+| `iat` missing from every token | `JwtSecurityToken` emits `nbf` and `exp` from its arguments but **not** `iat` — it is not derived from either. Decoded a real token from a running instance to see it. AC-2 would have passed against a token no client could read an issue time from | `JwtAccessTokenIssuer` writes the claim explicitly |
+| `Error Number:547` on the demo seed | `DemoSeeder.AssignAsync` wrote a fresh `Guid` as the assignee. `009` documented that as safe because no FK existed. `004` added `FK_Tickets_Assignee` and the seed died on the first run | assigns the seeded Agent |
+| Every `InProgress` test red, same FK | `ChangeTicketStatusTests.AssignAsync` did the same thing through reflection | assigns the seeded Agent |
+
+The last two are one defect in two places, and it is worth naming precisely: the fabricated id
+was **never** valid. It was an unenforced dangling reference for two features. `004` did not
+create it — `004` made it fail.
+
+### Two tests whose expectations `004` correctly invalidated
+
+Not "fixed to pass". The old assertion was right for a world without authentication and wrong
+for this one.
+
+| Test | Was | Now |
+|---|---|---|
+| `CreateTicketTests.A_valid_create_returns_201_with_a_location_that_resolves` | `createdByUserId` is `null` | non-null — the token's user, with no handler change |
+| `CreateTicketTests.A_created_by_in_the_body_is_ignored_and_arabic_round_trips` | body value ignored → `null` | body value ignored → **the token's user**, asserted `NotBe(smuggled)`. Strictly stronger: `null` could have meant "ignored" or "not implemented" |
+
+### Two tests that failed for the camelCase contract fix
+
+`ErrorEnvelopeTests.ValidationFailure_Returns400_WithFieldKeyedErrors` and
+`OneFieldBreakingTwoRules_YieldsTwoMessages` asserted `errors.FullName`. The keys are camelCase
+per `contracts/`; they were PascalCase in the implementation, and **these tests were written from
+the implementation rather than from the contract**, so they agreed with the defect. Updated to
+`errors.fullName`. Recorded under *Contract changes* in `specs/009-create-ticket/plan.md`.
+
+---
+
+## Deviations from the specification, and why
+
+| # | Spec says | Built | Reason |
+|---|---|---|---|
+| D-1 | AC-5: a malformed email returns `400` | `401` | A format check on a login form tells an attacker which inputs the server treats as real addresses, and separates "not an address" from "not a user". That is the same enumeration oracle AC-4 exists to close, arriving through the validator instead of the handler |
+| D-2 | BR-9 naming: `Auth.LoginSucceeded` and `Auth.LoginFailed` | one action, `Auth.SignIn`, with `Outcome` carrying the rest | `003`'s `AuditBehaviour` composes every row with `action: request.AuditAction` — one property, no knowledge of which path ran. The first version wrote `Auth.LoginSucceeded / Failed`, a row contradicting itself. Splitting it needs the distinction in two columns that must agree, and eventually would not |
+| D-3 | AC-15: `ActorEmail` and `ActorRole` snapshotted on the sign-in row | both `null`; the user is in `EntityId` + `EntityLabel` | A request to `POST /api/auth/token` is anonymous **by definition** — it is the request that establishes identity, so `ICurrentUser` has nothing to snapshot. No middleware order fixes it. The test asserts the null explicitly so the limit is visible in the suite rather than absent from it |
+| D-4 | `data-model.md`: `DF_SupportUsers_Active`, `DF_SupportUsers_Lang` | no column defaults | EF applies a database default whenever the property holds the CLR default, and for `bool` that is `false` — so deactivating a user would have stored them active. The identical defect shipped in `001` on `Customers.IsActive` and needed a migration to undo |
+| D-5 | BE-004-11: `INonTransactionalRequest` | not built | Sign-in opens a transaction over one `SELECT`. Harmless, and the failure path still writes its independent row, which is the behaviour the marker existed to protect |
+| D-6 | `001` AC-10: the application's connection string uses Windows auth and carries no password | `sa` against the compose container | The same throwaway credential is already committed in `docker-compose.yml`, so this adds no secret to the repository — while the criterion was making the documented quickstart path fail on any machine without a local named instance |
+
+## Not run, and therefore not claimed
+
+| What | Why |
+|---|---|
+| AC-17, AC-18 | Not built. `004b` |
+| AC-24 … AC-30 | The frontend half. Not built by this lane |
+| Brute-force resistance | There is no rate limit or lockout on `POST /api/auth/token`. Nothing tests for one because nothing implements one |
+| Password policy | Not implemented beyond `SeedOptions`' 8-character floor on the seeded values |
+| Concurrent startup of two instances | The unique index is the guarantee and is asserted (AC-22). The race itself was not run |
+| A token presented after a real 8 hours | `ClockSkew` is asserted against a token forged one second past expiry. Nothing waited eight hours |

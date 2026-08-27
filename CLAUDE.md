@@ -122,6 +122,11 @@ and `ar`.
 - **`001-solution-skeleton` delivered** 2026-08-25 — four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health`, CI green (17 tests)
 - **`002-error-contract` core delivered** 2026-08-25 — domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, `TraceContext`, `ValidationBehaviour` (33 tests). `002b` — `UseStatusCodePages`, malformed request, Swashbuckle — deferred with a reason per task
 - **`003-audit-trail` core delivered** 2026-08-25 — `dbo.AuditLog`, capture-only diff interceptor, BR-9.7 redaction, `TransactionBehaviour` + `AuditBehaviour` **in `Wasl.Infrastructure`**, one ordered behaviour registration in `Wasl.Api`, NFR-10 scanner + self-test (93 tests). `003b` — `wasl_app` role, `DENY`, restricted connection, AC-12/AC-13 — deferred whole: **append-only is an application property until then**
+- **`009-create-ticket` backend delivered** 2026-08-26 — `Ticket` + `TicketHistory` + `dbo.TicketNumberSeq`, `POST /api/tickets`, `GET /api/tickets/{id}`, the BR-1 map with **all 36 cells**, `IAuditableEntity` stamping in `SaveChangesAsync`, `IRequestTimestamp` (214 tests). Form is `024-frontend-create-ticket-form`
+- **`012-change-ticket-status` backend delivered** 2026-08-26 — `PUT /api/tickets/{id}/status`, three distinct `409` codes, explicit optimistic concurrency **before** the transition rules (250 tests)
+- **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
+- **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
+- **The development connection string points at the compose container**, port 14330, not `.\SQLEXPRESS`. Supersedes `001` AC-10 — see `12-delivery-log.md` 2026-08-27
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -298,6 +303,81 @@ present, would have stayed green on a broken audit trail.
 **A guard that has never been seen to fail has not been verified.** `001` shipped an
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
+
+**Verify a measurement with something below it.** A `grep` over `src/` cannot see what
+the framework builds inside itself — `002`'s AC-2 guard was green while three request
+shapes returned the framework's envelope. Four tools have lied here: that grep, a
+regex that matched the wrong table, a preview toggle that said `en` while rendering
+Arabic, and a measurement block that named the wrong label. Each produced a
+well-formed report about nothing. **A measurement that names the wrong thing is worse
+than no measurement, because it is believed.**
+
+## Correctness under concurrency and abuse — check these on every write
+
+Not a general security list. Every row below is a defect that this codebase
+has already had, or that the shape of a feature makes likely.
+
+| Before you finish a write endpoint | Why |
+|---|---|
+| **Does a duplicate request create a duplicate row?** `POST /api/tickets` is not idempotent. The client guard is not the guarantee — the guarantee is a unique index or a rule | Two clicks, two tickets, no error. Found by the support team, not the developer |
+| **Does the version check run on every path?** `PUT /status` and `/assignee` check `rowversion`. A new path that skips it loses the update silently | Last-write-wins is the default when nobody looks |
+| **Is a sequence relied on for uniqueness, or the code?** `ITicketNumberGenerator` under three parallel requests | If the code allocates, it races. If the sequence does, it does not |
+| **Does the DTO carry a field the client must not set?** `Id`, `TicketNumber`, `Status`, `CreatedByUserId`, `RowVersion` are server-owned | Mass assignment. The endpoint looks correct and the client controls state it should never touch |
+| **Does the error distinguish "not found" from "not permitted"?** BR-4.4 forbids it for customers | The distinction is an enumeration oracle. Applies to every resource, not just customers |
+| **Does anything write two tables without a transaction?** | A ticket with no history row is invisible to the timeline and nothing failed |
+| **Does the database compute a value the code also computes?** | `009` shipped `DEFAULT 'Normal'` that silently overrode the caller's `Low` |
+| **Is an enum stored as an int?** | A reordered enum rewrites the meaning of every existing row |
+| **Is `DateTime.UtcNow` called anywhere?** `IRequestTimestamp` or `TimeProvider`, never inline | Two timestamps in one request that should be one |
+| **Is `pageSize` clamped on every path?** BR-7.2 | An unclamped page size is a denial of service with one query string |
+| **Is any SQL built by interpolation?** `ExecuteSqlRaw`, `FromSqlRaw` | EF1002 is an analyser rule, and the habit formed in a test moves to `015`, which builds a query from user input |
+
+### Authentication — `004`'s backend half is built. Read this before touching it
+
+`ICurrentUser` returns real values from the token. It returns `null` **only** for a genuinely
+unauthenticated principal, which after the fallback policy can happen on exactly two endpoints:
+`GET /health` and `POST /api/auth/token`.
+
+**`RequireAuthenticatedUser` is the fallback policy.** An endpoint with no `[Authorize]` is
+closed, not open — so a forgotten attribute is a `401` in a test rather than an open door. Add
+`[Authorize]` anyway: `AuthorizationSurfaceTests` enumerates endpoint **metadata**, and a
+fallback policy is not metadata.
+
+Four settings in `AddWaslAuthentication` are load-bearing and every one of them fails silently
+if reverted. This was **measured**, not reasoned: reverting two of them turns four tests red,
+and one of the four is that `dbo.AuditLog` stops naming any actor while every request still
+succeeds.
+
+| Setting | Reverted, what breaks |
+|---|---|
+| `MapInboundClaims = false` | `sub` becomes a WS-Federation URI. `FindFirst("sub")` returns null, `ICurrentUser` returns null, **and every audit row's actor columns go null.** Nothing throws |
+| `RoleClaimType = "role"` | Every Manager gets `403`. Asserting only the Manager's success looks identical to asserting only the Agent's refusal — so AC-7 asserts both |
+| `ValidAlgorithms = [HS256]` | A token whose header says `alg: none` is accepted |
+| `ClockSkew = TimeSpan.Zero` | Expired tokens keep working for five minutes, and the expiry test passes or fails depending on when it runs |
+
+**BR-2 is still not implemented, and the distinction matters.** `004` built the identity BR-2
+stands on; the rules themselves need `PUT /api/tickets/{id}/assignee`, which is `011`. Role-only
+checks go on the endpoint as `[Authorize(Policy = WaslPolicies.ManagerOnly)]`; data-dependent
+checks ("is this user the assignee?") go in the handler off `ICurrentUser.UserId`.
+
+**Never fill any remaining gap with a fake actor** — a seeded "system" user, a header, a
+constant claim. ADR-005 rejects it by name, and the rule still applies: `004` closed the gap by
+building the identity, not by inventing one.
+
+**Two things are open and are not to be written up as done:**
+
+- **No audit row on a `401` or a `403`** (AC-17, AC-18). Sign-in success and failure both write
+  rows because `IssueTokenCommand` is an `IAuditableCommand`; a *denial* by the authorization
+  middleware writes nothing, which needs an `IAuthorizationMiddlewareResultHandler`. **This is a
+  gap in BR-9.4.** `004b`.
+- **No rate limit and no lockout on `POST /api/auth/token`.** One identical `401` per wrong
+  input is the correct response shape and does nothing to slow a script.
+
+The secrets have no defaults and the host refuses to start without them —
+`Jwt:SigningKey` (32 bytes minimum), `Seed:ManagerPassword`, `Seed:AgentPassword`. Set them with
+`dotnet user-secrets -p src/Wasl.Api`. Do not add a fallback value: a random key per restart
+invalidates every token silently, and a hard-coded one is a signing key in the repository.
+
+
 ## Definition of Done
 
 Full list: [docs/sdd/09-definition-of-done.md](docs/sdd/09-definition-of-done.md). The

@@ -4,6 +4,7 @@ using Wasl.Domain.Audit;
 using Wasl.Domain.Common;
 using Wasl.Domain.Customers;
 using Wasl.Domain.Tickets;
+using Wasl.Domain.Users;
 
 namespace Wasl.Infrastructure.Persistence;
 
@@ -114,7 +115,11 @@ public sealed class WaslDbContext(
     // DbSet<T> IS an IQueryable<T>, so this is an upcast and costs nothing.
     IQueryable<Customer> IApplicationDbContext.Customers => Customers;
 
+    public DbSet<SupportUser> SupportUsers => Set<SupportUser>();
+
     IQueryable<Ticket> IApplicationDbContext.Tickets => Tickets;
+
+    IQueryable<SupportUser> IApplicationDbContext.SupportUsers => SupportUsers;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
 

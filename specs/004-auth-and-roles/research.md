@@ -367,3 +367,190 @@ there is no house login screen or token endpoint to align with, and the login la
 extracted tokens.
 
 **Recorded as a question that turned out not to matter**, so nobody checks it twice.
+
+---
+
+# Post-implementation findings — R-16 onward
+
+R-1 … R-15 were written before any code. The five below came **out of the build**, three of
+them contradicting a research item above. They are appended rather than folded into the
+originals, because a research note that was wrong is more useful than a research note that was
+silently corrected.
+
+---
+
+## R-16 · `INonTransactionalRequest` was not needed, and R-6's conflict was smaller than it looked
+
+**R-6 above settled on an `INonTransactionalRequest` marker plus a dedicated auth-event writer.
+Neither was built, and the conflict R-6 described does not arise.**
+
+What R-6 got right: sign-in changes no state, and a failed sign-in must still write a row.
+
+What R-6 missed is that `003` already solved exactly this. `AuditBehaviour` has two paths:
+
+```csharp
+catch (Exception exception)
+{
+    var outcome = AuditOutcomeClassifier.Classify(exception, cancellationToken);
+    if (outcome is not null)
+    {
+        await writer.WriteIndependentAsync(...);   // no ambient transaction
+    }
+    throw;
+}
+```
+
+`WriteIndependentAsync` opens its own connection precisely so a denial's row survives the
+rollback of the thing that failed — BR-9.4, built in `003` and tested there. So
+`IssueTokenCommand` implements `IAuditableCommand` like every other command, the pipeline writes
+the success row in the transaction and the failure row outside it, and **nothing feature-specific
+exists at all**.
+
+The transaction opened around a single `SELECT` is the whole cost. R-6 treated it as a problem to
+design around; measured, it is one `BEGIN`/`COMMIT` on a request that already does a PBKDF2
+verification — three orders of magnitude cheaper than the work it wraps.
+
+**Why the original answer was worse.** An auth-event writer is a *second* way to write an audit
+row. Two writers agree on the day they are written; the second one is where a column stops being
+populated and nobody notices, because the tests for each are written against each. Reusing the
+one path means BR-9's guarantees hold for sign-in for the same reason they hold everywhere else.
+
+**Cost of the correction:** `INonTransactionalRequest` does not exist, so NFR-10's predicate is
+unchanged (`ICommand` ⇒ `IAuditableCommand`), and `BE-004-11` is not built. Recorded as D-5.
+
+---
+
+## R-17 · `JwtSecurityToken` does not emit `iat`
+
+**Not researched beforehand, and it should have been.** AC-2 lists nine claims by name; eight
+arrive from the constructor, and `iat` does not.
+
+```csharp
+new JwtSecurityToken(
+    issuer:, audience:, claims:,
+    notBefore: issuedAt,          // → nbf
+    expires:   expiresAt,         // → exp
+    signingCredentials:)
+```
+
+`nbf` and `exp` come from those two arguments. `iat` is **not derived from `notBefore`** — it is
+simply absent unless written as a claim.
+
+**Found by decoding a token from the running application** while writing the README's `curl`
+example, not by a test. The AC-2 test was written from the spec's claim list and would have
+caught it on its first run — but the point stands that a test written from a *checklist* found
+what a test written from the implementation never would have.
+
+**Fix:** the claim is written explicitly, as `Integer64`:
+
+```csharp
+new(JwtRegisteredClaimNames.IssuedAt,
+    new DateTimeOffset(issuedAt, TimeSpan.Zero).ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+    ClaimValueTypes.Integer64),
+```
+
+**Why it matters beyond the checklist.** A consumer computing `exp - iat` to discover the token's
+lifetime — which is the normal way to do it without hard-coding 8 hours — gets an exception on a
+missing claim, in the client, far from the server that omitted it.
+
+---
+
+## R-18 · One `AuditAction` per command, so the action name cannot encode the outcome
+
+**R-6's phrasing assumed the audit machinery could produce `Auth.LoginSucceeded` on one path and
+`Auth.LoginFailed` on the other. It cannot, and BR-9's naming table asks for exactly that.**
+
+`AuditBehaviour.Compose` reads `action: request.AuditAction` — one property, evaluated on both
+paths, with no parameter telling it which one ran. So the first implementation wrote:
+
+```text
+Action = Auth.LoginSucceeded   Outcome = Failed
+```
+
+A row that contradicts itself.
+
+**Three options, and why the third won.**
+
+1. **Two names via an outcome-dependent action.** Add `string AuditActionFor(AuditOutcome)` to
+   `IAuditableCommand`. Rejected: it puts the same distinction in two columns that must agree.
+   `Outcome` is a typed enum; the action is a free string. Nothing prevents
+   `LoginFailed / Success`, and the day it appears, an auditor cannot tell which column lied.
+2. **Keep `Auth.LoginSucceeded` and let `Outcome` disambiguate.** Rejected: the row still reads
+   wrongly to anyone scanning the `Action` column, which is the column an investigation filters
+   on first.
+3. **One outcome-neutral action, `Auth.SignIn`.** Chosen. The action names the *event*; the
+   outcome names how it went. That is the rule every other action in this codebase already
+   follows — `Ticket.Created` is written on the failure path too, with `Outcome = Failed`.
+
+**Deviation from BR-9's naming table, recorded as D-2.** Worth noting the table is not wrong so
+much as written from the perspective of a log format rather than of this schema: with a separate
+`Outcome` column, encoding the outcome in the name is redundancy, and redundancy between two
+columns is a disagreement waiting to happen.
+
+---
+
+## R-19 · The actor of a sign-in cannot be snapshotted from `ICurrentUser`
+
+**AC-15 asks for `ActorEmail` and `ActorRole` on the sign-in row. They come back null, and no
+amount of middleware ordering fixes it.**
+
+`AuditBehaviour` snapshots the actor from `ICurrentUser`, which reads the request's
+`ClaimsPrincipal`. A request to `POST /api/auth/token` **is anonymous by definition** — it is the
+request that establishes the identity. At the moment the row is composed, the principal is
+unauthenticated and `ICurrentUser` correctly returns null on all three members.
+
+**What would close it:** `AuditBehaviour` would have to learn the actor from the *response*
+rather than from the request — a change to `003`'s design, affecting every command, to serve one.
+
+**What the row carries instead.** `DescribeTarget(response)` puts the user in the entity columns:
+
+| Column | Value |
+|---|---|
+| `EntityType` | `SupportUser` |
+| `EntityId` | the user's id (null on failure — there is no user) |
+| `EntityLabel` | the email, including the *attempted* email on failure |
+| `Outcome` | `Success` / `Failed` |
+
+That is not a workaround. **For a sign-in, the user is the subject of the action, not an actor
+performing it on something else** — the same way `Ticket.Created` names the ticket in the entity
+columns and the creator in the actor columns. An investigation asking "who signed in, and did it
+work" reads three columns and gets a complete answer.
+
+**Recorded as D-3, and the test asserts the null explicitly** with the reason in its message —
+so the limit is visible in the suite rather than absent from it. An omitted assertion and a
+satisfied criterion look identical in a green run.
+
+---
+
+## R-20 · The four settings were measured, and one of them reaches further than the research predicted
+
+R-2 and R-3 above predicted what `MapInboundClaims` and `ClockSkew` break. Both were verified by
+reverting them and watching the suite, rather than by reasoning a second time.
+
+**Predicted and confirmed:**
+
+| Reverted | Went red |
+|---|---|
+| `MapInboundClaims = false` → `true` | `The_principal_carries_the_short_claim_names_and_no_federation_uris` |
+| the same revert | `Manager_only_admits_the_manager_and_refuses_the_agent` — R-2's "every Manager gets 403" |
+| `ClockSkew = Zero` removed | `A_token_that_expired_one_second_ago_is_rejected` |
+
+**Not predicted:**
+
+```text
+AuthAuditTests.An_authenticated_write_stamps_the_real_actor_on_the_row_and_the_entity   FAILED
+```
+
+Turning inbound claim mapping back on **empties the audit trail's actor columns**. Every request
+still succeeds. Nothing throws. `dbo.AuditLog` simply stops naming who did anything.
+
+The chain is `HttpCurrentUser` reads `sub` → `ICurrentUser.UserId` → `IAuditableEntity` stamping
+in `WaslDbContext.SaveChangesAsync` **and** `AuditBehaviour`'s actor snapshot. Four hops, three
+features apart from the setting that breaks them, and `spec.md`'s own "what fails silently" table
+did not draw it — because the table was written about authentication, and this is a consequence in
+auditing.
+
+**The general finding, which is the reason this note exists:** the test that caught it
+(`An_authenticated_write_stamps_...`) was written to demonstrate a *feature*, not to guard a
+setting. Negative controls find the edges of a change; a longer list of assertions written from
+the same mental model as the code does not.

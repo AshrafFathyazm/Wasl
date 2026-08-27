@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration)
-    .AddPresentation();
+    .AddPresentation(builder.Configuration);
 
 // ── The pipeline (003) — deliberately NOT inside any of the three above ──────────
 //
@@ -55,12 +55,39 @@ if (args.Contains(DemoSeeder.Switch))
 // the shape a client gets — and AC-13 is the test that keeps it off.
 app.UseExceptionHandler();
 
-// Reserved, deliberately not added yet: UseAuthentication (004) must come BEFORE
-// UseRequestLocalization (005). ADR-007 calls the wrong order the single most likely
-// defect in this build, because the culture provider then cannot see the user and fails
-// silently. Noted here so whoever adds the second one finds the constraint written down.
+// ── The order ADR-007 warns about, and both halves are now here ──────────────────
 //
-// Also deferred to 002b: UseStatusCodePages, which envelopes the statuses the framework
+// UseAuthentication BEFORE UseRequestLocalization. ADR-007 calls the wrong order the single
+// most likely defect in this build, and the reason is that it fails SILENTLY: the culture
+// provider cannot see a user who has not been authenticated yet, so a signed-in Arabic user
+// gets English and nothing anywhere reports a problem.
+//
+// They are registered together, in one commit, precisely so the constraint is satisfied by
+// whoever knew about it rather than inherited by whoever did not.
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Culture resolution only — `005` still owns the catalogues. This is here because the
+// frontend lane needs `Content-Language` on every response to tell an Arabic request that
+// answered in English from one that answered in Arabic, and without the header that check is
+// impossible from the client side.
+//
+// ApplyCurrentCultureToResponseHeaders defaults to true, which is what sends the header.
+// Named explicitly anyway: a behaviour this feature depends on should not rest on a default
+// someone may change.
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    ApplyCurrentCultureToResponseHeaders = true,
+}
+    .SetDefaultCulture("en")
+
+    // en and ar (BR-8.1). Both lists, because SupportedCultures governs formatting and
+    // SupportedUICultures governs resource lookup — setting only one gives Arabic text with
+    // English number formatting, or the reverse.
+    .AddSupportedCultures("en", "ar")
+    .AddSupportedUICultures("en", "ar"));
+
+// Still deferred to 002b: UseStatusCodePages, which envelopes the statuses the framework
 // short-circuits without throwing — 404 on a mistyped path, 405, 415. No exception
 // handler in any framework sees those, which 002's research.md R-1 calls its most
 // important finding.
@@ -71,7 +98,13 @@ app.MapControllers();
 
 // Outside /api, unauthenticated, and it returns the health report shape rather than
 // ProblemDetails — the one documented exception to the API conventions (002 AC-11).
-app.MapHealthChecks("/health", new() { ResponseWriter = HealthReportWriter.Write });
+app.MapHealthChecks("/health", new() { ResponseWriter = HealthReportWriter.Write })
+
+    // One of exactly two anonymous endpoints (AC-10, AC-20). Written as an explicit opt-out
+    // rather than relying on health checks being exempt, because they are not: the fallback
+    // policy applies to every endpoint, and a probe that answers 401 reports the application as
+    // unhealthy to a load balancer that is behaving correctly.
+    .AllowAnonymous();
 
 app.Run();
 

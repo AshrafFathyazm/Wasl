@@ -54,7 +54,7 @@ internal sealed class ProblemDetailsFactory(
         if (definition.CarriesErrors && exception.FieldErrors.Count > 0)
         {
             problem.Extensions["errors"] = exception.FieldErrors.ToDictionary(
-                field => field.Key,
+                field => CamelCase(field.Key),
                 field => field.Value
                     .Select(key => messages.Resolve(context, key))
                     .ToArray(),
@@ -63,6 +63,36 @@ internal sealed class ProblemDetailsFactory(
 
         return problem;
     }
+
+    /// <summary>
+    /// Lowercases the first character of a field name, so the keys of <c>errors</c> match the
+    /// request's field names.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The keys of <c>errors</c> are part of the contract.</b> A client maps them onto its form
+    /// fields by exact name, and the request fields are camelCase because that is how the JSON
+    /// arrives. FluentValidation and ASP.NET model state both report the **CLR property name**, so
+    /// without this the response says <c>Subject</c> where the request said <c>subject</c>.
+    /// </para>
+    /// <para>
+    /// <b>Found by the frontend lane running the real API, not by a test.</b> `002`'s own evidence
+    /// recorded the mismatch and left it — which was the wrong call: the failure is silent on the
+    /// server and visible only as a message that lands in a page-level banner instead of under
+    /// the field the user has to fix. Nothing 400s, nothing logs, and the form simply never
+    /// highlights anything.
+    /// </para>
+    /// <para>
+    /// Only the first character, and only when it is upper-case. A nested model-state key like
+    /// <c>$.subject</c> or <c>Items[0].Name</c> is left alone rather than half-transformed: the
+    /// first is already camelCase, and inventing a rule for the second without a call site that
+    /// produces one is guessing.
+    /// </para>
+    /// </remarks>
+    private static string CamelCase(string field) =>
+        field.Length == 0 || !char.IsUpper(field[0])
+            ? field
+            : char.ToLowerInvariant(field[0]) + field[1..];
 
     /// <summary>Builds the `400` for a validation failure, with field-level messages.</summary>
     public ProblemDetails FromValidationFailures(
@@ -74,8 +104,10 @@ internal sealed class ProblemDetailsFactory(
 
         problem.Detail = messages.Resolve(context, "Error.Validation.Detail");
 
+        // camelCase here too, and this is the path the frontend lane actually hit: a validation
+        // failure from FluentValidation reports `Subject`, and the form looks for `subject`.
         problem.Extensions["errors"] = failures.ToDictionary(
-            field => field.Key,
+            field => CamelCase(field.Key),
             field => field.Value
                 .Select(key => messages.Resolve(context, key))
                 .ToArray(),

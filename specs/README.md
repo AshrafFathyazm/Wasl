@@ -274,7 +274,7 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `001-solution-skeleton` | 0 | Authored — **✅ implemented 2026-08-25**, 17 tests, CI green |
 | `002-error-contract` | 0 | Authored — **✅ core implemented 2026-08-25**, 33 tests. `002b` deferred |
 | `003-audit-trail` | 0 | Authored — **✅ core implemented 2026-08-25**, 93 tests. `003b` deferred |
-| `004-auth-and-roles` | 0 | Authored |
+| `004-auth-and-roles` | 0 | **✅ Backend half implemented 2026-08-27**, 303 tests. `SupportUsers` + the four FKs `009` deferred, two seeded users, the token endpoint, real `ICurrentUser`, the two policies. `004b` owns the audit row on a `401`/`403` (a gap in BR-9.4) and rate limiting; the frontend half is the frontend lane's |
 | `005-localization-core` | 0 | Authored |
 | `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-tickets` — **✅ backend implemented 2026-08-26**, 263 tests. Filters and search deferred to `015` |
 | `007-create-customer` | 1 | Migrated from `US-001-create-customer` |

@@ -1,12 +1,29 @@
-# The Three-Day Plan
+# The Three-Day Plan — SUPERSEDED 2026-08-27
+
+> **This file is no longer the plan. `PHASES.md` governs.**
+>
+> The deadline moved: **three additional days** were granted on 2026-08-27, so the
+> nine-hour constraint this file was written for no longer applies. `PHASES.md` was always
+> the plan for the unconstrained build; it is now simply the plan.
+>
+> **Kept, not deleted, and for two reasons.** The cuts recorded below were argued rather
+> than assumed, and several of them are still the right answer at a larger budget —
+> `15-scope-coverage.md`'s product-level decisions did not change with the clock. And the
+> reasoning is the record: what was cut under a hard constraint, and why, is evidence about
+> how the constraint was handled. A deleted plan cannot show that.
+>
+> **Read it as history.** Where this file and `PHASES.md` disagree, `PHASES.md` wins. Where
+> this file says "cut" and `PHASES.md` says "build", the feature is back — but check
+> `12-delivery-log.md` first, because some of these deferrals were re-argued on grounds that
+> outlive the schedule.
+
+---
 
 Deadline **Wednesday 26 August**. Realistic working time: **about nine hours**, in three
 sessions of three.
 
-`PHASES.md` is the plan for the unconstrained build and assumes 21–25 hours. This file is
-the nine-hour cut of it. Under this constraint, **follow this file**; `PHASES.md` remains
-the reference for what the full build would be, and every cut below points at where its
-design already lives.
+`PHASES.md` is the plan for the unconstrained build and assumes 21–25 hours. This file was
+the nine-hour cut of it, and every cut below points at where its design already lives.
 
 Scope selection at the *product* level is `15-scope-coverage.md`. This file is the
 *schedule*. The two are different in kind: those cuts are decisions, these are deferrals.

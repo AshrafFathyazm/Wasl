@@ -37,7 +37,7 @@ public sealed class ModelBindingEnvelopeTests(WaslApiFactory factory)
         JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
 
     private Task<HttpResponseMessage> PostRawAsync(string json) =>
-        factory.CreateClient().PostAsync(
+        factory.CreateManagerClient().PostAsync(
             "/api/tickets", new StringContent(json, Encoding.UTF8, "application/json"));
 
     /// <summary>Truncated JSON — the body cannot be parsed at all.</summary>
@@ -85,7 +85,7 @@ public sealed class ModelBindingEnvelopeTests(WaslApiFactory factory)
     [Fact]
     public async Task The_envelope_is_the_same_on_a_put()
     {
-        var response = await factory.CreateClient().PutAsync(
+        var response = await factory.CreateManagerClient().PutAsync(
             $"/api/tickets/{Guid.NewGuid()}/status",
             new StringContent("""{"status":}""", Encoding.UTF8, "application/json"));
 
@@ -108,7 +108,7 @@ public sealed class ModelBindingEnvelopeTests(WaslApiFactory factory)
     {
         var binding = await BodyOf(await PostRawAsync("""{"subject":"""));
 
-        var rule = await BodyOf(await factory.CreateClient().PostAsJsonAsync("/api/tickets", new
+        var rule = await BodyOf(await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId = Guid.NewGuid(),
             subject = "",

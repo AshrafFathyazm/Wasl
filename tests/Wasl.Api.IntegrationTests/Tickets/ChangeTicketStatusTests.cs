@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wasl.Api.IntegrationTests.Audit;
 using Wasl.Domain.Audit;
+using Wasl.Api.Seed;
 using Wasl.Domain.Tickets;
 using Wasl.Infrastructure.Persistence;
 
@@ -16,7 +17,7 @@ namespace Wasl.Api.IntegrationTests.Tickets;
 /// </summary>
 /// <remarks>
 /// The BR-1 matrix itself is asserted 72 times in the domain suite; this class asserts the
-/// endpoint — which `409` code comes back, in what **order** when several rules match, and what
+/// endpoint â€” which `409` code comes back, in what **order** when several rules match, and what
 /// lands in `TicketHistory` and `AuditLog`.
 /// </remarks>
 [Collection(WaslApiCollection.Name)]
@@ -30,7 +31,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/tickets", new
+        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId,
             subject = "Cannot sign in",
@@ -47,7 +48,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
 
     private Task<HttpResponseMessage> PutAsync(
         Guid id, string status, string version, string? note = null) =>
-        factory.CreateClient().PutAsJsonAsync(
+        factory.CreateManagerClient().PutAsJsonAsync(
             $"/api/tickets/{id}/status",
             note is null
                 ? new { status, expectedVersion = version }
@@ -74,10 +75,21 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         var ticket = await context.Tickets.SingleAsync(candidate => candidate.Id == id);
 
         // `011` owns assignment and does not exist. Reflection here rather than an endpoint that
-        // has not been specified — confined to this helper, and the alternative is leaving AC-4's
+        // has not been specified â€” confined to this helper, and the alternative is leaving AC-4's
         // positive half and every InProgress transition untested until `011`.
+        //
+        // The SEEDED AGENT, not Guid.NewGuid(). This helper wrote a fresh Guid until `004` added
+        // FK_Tickets_Assignee, and then every test through it died on
+        // "The UPDATE statement conflicted with the FOREIGN KEY constraint". The fabricated id was
+        // never valid â€” it was an unenforced dangling reference, and the FK is what turned it from
+        // invisible into loud.
+        var assignee = await context.SupportUsers
+            .Where(user => user.Email == SupportUserSeeder.AgentEmail)
+            .Select(user => user.Id)
+            .SingleAsync();
+
         typeof(Ticket).GetProperty(nameof(Ticket.AssignedToUserId))!
-            .SetValue(ticket, Guid.NewGuid());
+            .SetValue(ticket, assignee);
 
         await context.SaveChangesAsync(CancellationToken.None);
     }
@@ -98,7 +110,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         body.GetProperty("allowedTransitions").EnumerateArray()
             .Select(value => value.GetString())
             .Should().Equal(["Closed"],
-                "AC-23 — recomputed for the NEW status, and the ticket has no assignee so "
+                "AC-23 â€” recomputed for the NEW status, and the ticket has no assignee so "
                 + "InProgress is excluded by BR-1.3. The client never derives its next actions "
                 + "from the set it just used");
 
@@ -124,7 +136,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
 
         var detail = problem.GetProperty("detail").GetString();
         detail.Should().Contain("PendingCustomer").And.Contain("InProgress",
-            "AC-3 — the current status and what IS permitted, so the client can offer a real "
+            "AC-3 â€” the current status and what IS permitted, so the client can offer a real "
             + "alternative instead of a dead end");
     }
 
@@ -189,7 +201,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
                 && entry.EventType == TicketHistoryEventType.StatusChanged)
             .ToListAsync();
 
-        history.Should().HaveCount(1, "AC-11 — exactly one row per accepted transition");
+        history.Should().HaveCount(1, "AC-11 â€” exactly one row per accepted transition");
         history[0].OldValue.Should().Be("New");
         history[0].NewValue.Should().Be("Closed");
         history[0].Note.Should().Be("Duplicate of TCK-2026-000041.", "AC-6");
@@ -208,7 +220,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         (await BodyOf(response)).GetProperty("type").GetString()
             .Should().Be("https://wasl.local/errors/same-status-transition",
-                "a 409, never a no-op 200 — and its own code, because the reaction is to refetch "
+                "a 409, never a no-op 200 â€” and its own code, because the reaction is to refetch "
                 + "quietly: the user double-clicked and did nothing wrong");
     }
 
@@ -230,11 +242,11 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
     }
 
     /// <summary>
-    /// **Ordering, decision one.** `Closed → Closed` is `ticket-closed`, not `same-status`.
+    /// **Ordering, decision one.** `Closed â†’ Closed` is `ticket-closed`, not `same-status`.
     /// </summary>
     /// <remarks>
     /// Two rules match. "This ticket is finished" is more useful than "you sent the value it
-    /// already has", and no amount of reloading changes it — get the order backwards and a client
+    /// already has", and no amount of reloading changes it â€” get the order backwards and a client
     /// is told to refetch a ticket that will never move.
     /// </remarks>
     [Fact]
@@ -260,7 +272,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         var first = await PutAsync(id, "Open", version);
         first.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        // The same token again — exactly what a second tab holding an old copy would send.
+        // The same token again â€” exactly what a second tab holding an old copy would send.
         var second = await PutAsync(id, "Closed", version, note: "closing");
 
         second.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -269,7 +281,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
     }
 
     /// <summary>
-    /// **Ordering, decision two — and the contract calls it the easiest to get wrong.**
+    /// **Ordering, decision two â€” and the contract calls it the easiest to get wrong.**
     /// </summary>
     /// <remarks>
     /// A stale client asks for a transition that is <i>also</i> forbidden from the ticket's real
@@ -286,7 +298,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         // Move the ticket on, so `staleVersion` is out of date.
         await PutAsync(id, "Open", staleVersion);
 
-        // Resolved is forbidden from both New and Open — so both rules match.
+        // Resolved is forbidden from both New and Open â€” so both rules match.
         var response = await PutAsync(id, "Resolved", staleVersion);
 
         (await BodyOf(response)).GetProperty("type").GetString()
@@ -306,17 +318,17 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
 
         var missing = await PutAsync(id, "Open", string.Empty);
         missing.StatusCode.Should().Be(HttpStatusCode.BadRequest,
-            "required, not optional — treating a missing token as 'no opinion' turns every "
+            "required, not optional â€” treating a missing token as 'no opinion' turns every "
             + "client that forgets it into a last-write-wins client, silently");
 
         var undecodable = await PutAsync(id, "Open", "not base64 !!");
         undecodable.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        var malformedId = await factory.CreateClient().PutAsJsonAsync(
+        var malformedId = await factory.CreateManagerClient().PutAsJsonAsync(
             "/api/tickets/not-a-guid/status", new { status = "Open", expectedVersion = "AAAAAAAAB9E=" });
         malformedId.StatusCode.Should().Be(HttpStatusCode.NotFound,
             "the route constraint {id:guid} rejects it before the action, so the framework "
-            + "answers 404 rather than 400. AC-22 asks for 400 — recorded in tests.md as a "
+            + "answers 404 rather than 400. AC-22 asks for 400 â€” recorded in tests.md as a "
             + "deviation owned by 002b, which envelopes the statuses routing short-circuits");
     }
 
@@ -335,7 +347,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
             .Where(entry => entry.Action == "Ticket.StatusChanged" && entry.EntityId == id)
             .ToListAsync();
 
-        rows.Should().HaveCount(1, "BR-9.1 — exactly one, asserted as 1 and not as > 0");
+        rows.Should().HaveCount(1, "BR-9.1 â€” exactly one, asserted as 1 and not as > 0");
         rows[0].Outcome.Should().Be(AuditOutcome.Success);
         rows[0].EntityType.Should().Be("Ticket");
         rows[0].EntityLabel.Should().StartWith("TCK-", "DescribeTarget reads the response");
@@ -350,7 +362,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
         fields.Should().ContainSingle(change => change.Field == "Status")
             .Which.Should().Match<(string? Field, string? Before, string? After)>(
                 change => change.Before == "New" && change.After == "Open",
-                "the diff is content, not presence — before and after, captured before the save");
+                "the diff is content, not presence â€” before and after, captured before the save");
 
         fields.Select(change => change.Field).Should().NotContain("UpdatedAtUtc")
             .And.NotContain("UpdatedByUserId",
@@ -360,7 +372,7 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
     /// <summary>A refused transition writes no history row and no audit row.</summary>
     /// <remarks>
     /// AC-12's shape: the change and its records are atomic. A `409` raised inside the entity
-    /// happens before any save, so there is nothing to roll back — and this asserts that nothing
+    /// happens before any save, so there is nothing to roll back â€” and this asserts that nothing
     /// leaked in anyway.
     /// </remarks>
     [Fact]
@@ -403,17 +415,18 @@ public sealed class ChangeTicketStatusTests(WaslApiFactory factory)
     {
         var (id, version) = await NewTicketAsync();
 
-        var response = await factory.CreateClient().PutAsJsonAsync(
+        var response = await factory.CreateManagerClient().PutAsJsonAsync(
             $"/api/tickets/{id}/status", new { status = "Archived", expectedVersion = version });
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
-            "400 listing the accepted values, not 409 — the value is not a state the machine has");
+            "400 listing the accepted values, not 409 â€” the value is not a state the machine has");
     }
 
     /// <summary>Reads the live version token, after a change made outside the API.</summary>
     private async Task<string> ReadVersionAsync(Guid id)
     {
-        var response = await factory.CreateClient().GetAsync($"/api/tickets/{id}");
+        var response = await factory.CreateManagerClient().GetAsync($"/api/tickets/{id}");
         return (await BodyOf(response)).GetProperty("version").GetString()!;
     }
 }
+

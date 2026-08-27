@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
 using Wasl.Api.IntegrationTests.Errors;
+using Wasl.Api.Seed;
 using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
 
@@ -58,6 +62,13 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         using var scope = Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
         await context.Database.MigrateAsync();
+
+        // The real seeder, not a fixture. `004` AC-13 and AC-23 are about THESE two rows, and a
+        // test-only insert would prove a test-only insert works.
+        await SupportUserSeeder.SeedAsync(Services);
+
+        ManagerToken = await SignInAsync(SupportUserSeeder.ManagerEmail, ManagerPassword);
+        AgentToken = await SignInAsync(SupportUserSeeder.AgentEmail, AgentPassword);
     }
 
     public new async Task DisposeAsync()
@@ -97,6 +108,16 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             $"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.ConnectionStringName}",
             _database.GetConnectionString());
 
+        // `004` configuration, on the same mechanism and for the same reason: JwtOptions.From and
+        // SeedOptions.From run during AddPresentation, so a value supplied any later than this is
+        // supplied after the host has already refused to build.
+        //
+        // A test-only key, and a real one — 40 bytes, so the 32-byte minimum is satisfied by a
+        // value rather than by a check being skipped.
+        builder.UseSetting("Jwt:SigningKey", TestSigningKey);
+        builder.UseSetting("Seed:ManagerPassword", ManagerPassword);
+        builder.UseSetting("Seed:AgentPassword", AgentPassword);
+
         // The 002 error-contract probes. Test-only routes, mapped here and never in src/,
         // so the envelope can be asserted against the frozen contract before any product
         // endpoint exists — which matters for the one feature whose whole job IS that
@@ -109,6 +130,9 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             // map, so a feature's probes are removable with the feature.
             services.AddSingleton<IStartupFilter>(new Audit.Probe.AuditProbeStartupFilter());
 
+            // `004`'s probes. Authenticated, unlike the other two.
+            services.AddSingleton<IStartupFilter>(new Auth.AuthProbeStartupFilter());
+
             // The probe's handler and validator live in THIS assembly, and
             // AddApplication only scans Wasl.Application — so without these the probe
             // request finds no handler and the pipeline throws, which surfaces as a 500
@@ -120,5 +144,63 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             services.AddValidatorsFromAssembly(
                 typeof(ProbeCommandValidator).Assembly, includeInternalTypes: true);
         });
+    }
+    // ── `004` credentials and tokens ─────────────────────────────────────────────────────
+    //
+    // Test-only values, and they are HERE rather than in each test class so there is exactly one
+    // place a password lives — the alternative is the same literal in twelve files and a rename
+    // that misses three of them.
+
+    /// <summary>40 bytes, so the 32-byte HS256 minimum is met by a value, not by a skipped check.</summary>
+    public const string TestSigningKey = "integration-tests-only-signing-key-40b!!";
+
+    public const string ManagerPassword = "Manager#2026";
+
+    public const string AgentPassword = "Agent#2026";
+
+    /// <summary>The seeded Manager's bearer token, obtained through the real endpoint.</summary>
+    /// <remarks>
+    /// <b>Issued by signing in, not by constructing a JWT in the test project.</b> A hand-built
+    /// token would be signed by the test and validated by the application, so every ticket test
+    /// would pass while <c>POST /api/auth/token</c> was broken — and the endpoint that every
+    /// other endpoint depends on would be the one thing nothing exercised.
+    /// </remarks>
+    public string ManagerToken { get; private set; } = string.Empty;
+
+    public string AgentToken { get; private set; } = string.Empty;
+
+    /// <summary>A client carrying the seeded Manager's token.</summary>
+    public HttpClient CreateManagerClient() => CreateClientWith(ManagerToken);
+
+    /// <summary>A client carrying the seeded Agent's token.</summary>
+    public HttpClient CreateAgentClient() => CreateClientWith(AgentToken);
+
+    private HttpClient CreateClientWith(string token)
+    {
+        var client = CreateClient();
+
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+
+        return client;
+    }
+
+    private async Task<string> SignInAsync(string email, string password)
+    {
+        var response = await CreateClient()
+            .PostAsJsonAsync("/api/auth/token", new { email, password });
+
+        if (!response.IsSuccessStatusCode)
+        {
+            // Named loudly. Every authenticated test depends on this call, so a failure here
+            // otherwise surfaces as twenty-six unrelated 401s.
+            throw new InvalidOperationException(
+                $"Sign-in failed for {email} during test-host initialisation: "
+                + $"{(int)response.StatusCode} {await response.Content.ReadAsStringAsync()}");
+        }
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        return body.GetProperty("accessToken").GetString()!;
     }
 }

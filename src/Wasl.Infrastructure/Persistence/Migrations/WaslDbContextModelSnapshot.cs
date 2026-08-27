@@ -218,8 +218,14 @@ namespace Wasl.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("CreatedByUserId");
+
                     b.HasIndex("CustomerId")
                         .HasDatabaseName("IX_Tickets_Customer");
+
+                    b.HasIndex("EscalatedByUserId");
 
                     b.HasIndex("TicketNumber")
                         .IsUnique()
@@ -262,24 +268,98 @@ namespace Wasl.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("PerformedByUserId");
+
                     b.HasIndex("TicketId", "PerformedAtUtc")
                         .HasDatabaseName("IX_TicketHistory_Ticket");
 
                     b.ToTable("TicketHistory", (string)null);
                 });
 
+            modelBuilder.Entity("Wasl.Domain.Users.SupportUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(320)")
+                        .UseCollation("Latin1_General_100_CI_AS");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("PreferredLanguage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasDatabaseName("UX_SupportUsers_Email");
+
+                    b.ToTable("SupportUsers", (string)null);
+                });
+
             modelBuilder.Entity("Wasl.Domain.Tickets.Ticket", b =>
                 {
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_Tickets_Assignee");
+
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_Tickets_CreatedBy");
+
                     b.HasOne("Wasl.Domain.Customers.Customer", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
                         .HasConstraintName("FK_Tickets_Customers");
+
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("EscalatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_Tickets_EscalatedBy");
                 });
 
             modelBuilder.Entity("Wasl.Domain.Tickets.TicketHistoryEntry", b =>
                 {
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_TicketHistory_PerformedBy");
+
                     b.HasOne("Wasl.Domain.Tickets.Ticket", null)
                         .WithMany()
                         .HasForeignKey("TicketId")

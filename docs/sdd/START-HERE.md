@@ -3,19 +3,21 @@
 The day-one runbook. Everything else in this repository is reference; this is the
 order to actually do things in.
 
-> **Under the three-day constraint, follow `16-three-day-plan.md`. The fuller phase plan in
-> `PHASES.md` remains the plan for an unconstrained build.**
+> **`PHASES.md` is the plan.** `16-three-day-plan.md` is superseded — see below.
 
-## The constraint, first
+## The schedule, first
 
-**Three calendar days. Deadline Wednesday 26 August. About nine hours of working time.**
+**Three additional days were granted on 2026-08-27.** The nine-hour constraint this file
+opened with is gone.
 
-That changes what this file is for. `PHASES.md` totals 21–25 hours, so it is no longer the
-schedule — it is the reference the schedule was cut from.
+**`PHASES.md` governs.** It totals 21–25 hours and is now simply the schedule rather than
+the reference a schedule was cut from. `16-three-day-plan.md` is marked superseded and kept
+as history: the cuts in it were argued, and the argument is worth more than the plan was.
 
 | Read this | For |
 |---|---|
-| **`16-three-day-plan.md`** | The nine-hour plan. Three sessions of three hours, task by task, with what is cut and where each cut's design lives |
+| **`PHASES.md`** | **The plan.** Phases, task by task |
+| `16-three-day-plan.md` | **Superseded 2026-08-27.** The nine-hour cut, kept as the record of what was deferred under a hard constraint and why |
 | **`15-scope-coverage.md`** | The twelve sections of the supplied scope document mapped to `Delivered` / `Partial` / `Designed, not built` / `Out of scope`, with a real argument for each of the seven cuts |
 
 **Committed scope:** US-005 create ticket, US-007 assign, US-008 change status, and US-001
@@ -27,9 +29,12 @@ Two things worth knowing before reading further:
 - **The scope document lists roughly sixty features and specifies no deliverables.** So
   scope selection is part of what is being assessed, not an obstacle to it
   (`11-open-questions.md` Q-16).
-- **The nine-hour plan cuts localization and the audit log**, and the compression section
-  of `08-board.md` says neither is ever cut. That conflict is real and it is documented in
-  `16-three-day-plan.md` rather than quietly resolved. It needs the product owner's call.
+- ~~**The nine-hour plan cuts localization and the audit log**, and the compression section
+  of `08-board.md` says neither is ever cut.~~ **Resolved twice.** First by reducing both to
+  their minimum useful form rather than cutting them, which is what shipped: `dbo.AuditLog`
+  and the audit behaviour are built, and every server-authored message is a symbolic key
+  rather than a sentence. Then by the constraint being lifted on 2026-08-27, which makes the
+  deferred halves — `005`'s catalogues, `019`'s read endpoint — buildable rather than cut.
 
 ---
 
@@ -39,7 +44,7 @@ Three go to the evaluator, one to whoever owns the design file. Ask them togethe
 
 | Ask | Why it matters now | If no answer comes |
 |---|---|---|
-| ~~How long is the session?~~ (Q-5) | **ANSWERED: three days, about nine hours.** See `16-three-day-plan.md` | — |
+| ~~How long is the session?~~ (Q-5) | **ANSWERED, then extended: three days, about nine hours — plus three more days granted 2026-08-27.** `PHASES.md` is the plan | — |
 | ~~Is SQL Server expected?~~ (Q-3) | **ANSWERED: SQL Server.** See `decisions/ADR-013-database-sql-server.md` | — |
 | **Is the demo live or recorded?** (Q-6) | `14-demo-script.md` is written for live | Assume live, seed a dataset anyway |
 | **Is reusing the house design system fine, and does that exclude client branding?** (Q-11) | You are about to build on their tokens | Tokens yes, no client logo or product name |
@@ -63,7 +68,7 @@ speculative, seven is a retrofit, one is free.
 
 ## The skeleton, in outline
 
-Under the nine-hour constraint this is **roughly the first session and a half**, not two
+Under the nine-hour constraint this was **roughly the first session and a half**, not two
 days — see `16-three-day-plan.md`. It is not a story. Nothing can be verified before it
 exists, and three of its parts cost almost nothing now and a rewrite later.
 
@@ -142,7 +147,7 @@ The Quality axis is a **gate**, not just points. When time runs short, cut scope
 | Q-1 | What Productivity measures | Blank in the assessment sheet — ask |
 | Q-2 | The 24/40 gate arithmetic | Inconsistent in the sheet — ask |
 | Q-3 | PostgreSQL or SQL Server | **RESOLVED — SQL Server** (ADR-013) |
-| Q-5 | Session length | **RESOLVED — three days, ~9 hours** (`16-three-day-plan.md`) |
+| Q-5 | Session length | **RESOLVED, then extended — three days at ~9 hours, plus three more granted 2026-08-27.** `PHASES.md` is the plan |
 | Q-6 | Demo live or recorded | Ask |
 | Q-16 | The scope document specifies no deliverables | Ask — the Week 4 brief is the working assumption |
 | Q-7 | Arabic search normalisation | Deferred with the fix written down |
@@ -162,7 +167,7 @@ was quietly guessed is a defect waiting to surface in the walkthrough.
 |---|---|
 | What we are building | `01-product-spec.md` |
 | **What is covered and what is cut, section by section** | **`15-scope-coverage.md`** |
-| **The nine-hour plan** | **`16-three-day-plan.md`** |
+| **The plan** | **`PHASES.md`** |
 | The rules, as testable propositions | `04-business-rules.md` |
 | Schema, ERD, indexes | `03-domain-model.md` |
 | Why anything is the way it is | `decisions/` — nine ADRs |

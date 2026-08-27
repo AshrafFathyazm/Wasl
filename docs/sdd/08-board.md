@@ -15,35 +15,23 @@ Last updated: *(update this line with every board change)*
 | `Done` | Definition of Done satisfied with evidence |
 | `Deferred` | Consciously cut, with a recorded reason |
 
-## Three-day constraint
+## The schedule constraint — lifted 2026-08-27
 
-**Deadline Wednesday 26 August. About nine hours of working time.** This answers
-`11-open-questions.md` Q-5, which had been open since before the deadline was known.
+**Three additional days were granted.** The nine-hour constraint this section used to carry
+is gone, and with it the narrowed commitment it described: `US-005` · `US-007` · `US-008`
+plus `US-001` seeded rather than built.
 
-The tables below are unchanged and remain the plan for the unconstrained build. Under nine
-hours the committed scope is narrower:
+**`PHASES.md` governs from here.** `16-three-day-plan.md` is marked superseded and kept as
+history — the cuts in it were argued, and the argument is the record.
 
-| Committed under nine hours | Note |
-|---|---|
-| **US-005** Create Ticket | |
-| **US-007** Assign Ticket | |
-| **US-008** Change Ticket Status | With the full BR-1 transition test set |
-| **US-001** Create Customer | **Seeded**, not built through the UI. The endpoint's spec is written and unbuilt |
+The tables below were always the plan for the unconstrained build, so they now stand
+without a caveat above them.
 
-**Everything else in Release 1 moves to Release 2** — US-002, US-006, US-010, US-014, and
-the localization and audit infrastructure. Authentication is split: the token endpoint,
-seeded users, and authorisation policies are **in**, because BR-2 and BR-6 have `403`
-acceptance criteria and a faked user would make them unverifiable (`ADR-005`). The login
-screen is out.
-
-The session-by-session plan is `16-three-day-plan.md`. It also records a real conflict
-this creates with the compression section further down this file, which says localization
-and the audit behaviour are never cut — under nine hours, two of those four are cut, and
-that contradiction is documented there rather than quietly resolved.
-
-Product-level scope selection against the twelve sections of the supplied scope document
-is a separate question and lives in `15-scope-coverage.md`. Those are decisions; these are
-schedule.
+**What does not change:** product-level scope selection against the twelve sections of the
+supplied scope document lives in `15-scope-coverage.md`. Those cuts are **decisions**, not
+deferrals — seven of twelve sections are out for reasons that would hold at four times the
+budget, and a longer clock is not an argument against any of them. The schedule moved; the
+scope document did not.
 
 ## Release 1 — the core flow
 
@@ -168,7 +156,14 @@ after the handlers exist is an audit log with holes in it, and the holes are inv
 English-only product against a stated requirement. Cutting the third means the central
 business rule is unproven.
 
-> **Superseded for the nine-hour build — see `16-three-day-plan.md`.**
+> **Superseded for the nine-hour build — and the constraint was lifted 2026-08-27.**
+>
+> Read in order: the paragraph above assumed 20–25 hours; the nine-hour cut below replaced
+> it; three extra days then restored the budget. So the paragraph above is the standing
+> position again, and the note below is the record of what was delivered under the
+> constraint — reduced form, which is what shipped and is still what exists today. The
+> deferred halves (`005`'s catalogues, `019`'s read endpoint) are now buildable rather than
+> cut. See `12-delivery-log.md` 2026-08-27.
 >
 > The paragraph above was written assuming 20–25 hours, where localization and audit are
 > roughly a tenth of the budget. At nine hours they are a third, and the answer is neither
@@ -205,7 +200,7 @@ artifacts for it live.*
 | **0 · Foundation** | `001-solution-skeleton` | — | **✅ Done 2026-08-25** — 17 tests, CI green (run 32828391167). Four projects, `IApplicationDbContext`, UTC converter, `Customers` + `InitialCreate`, `GET /health` |
 | | `002-error-contract` | — | **✅ Core done 2026-08-25** — 33 tests, 0 warnings. Domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, one `traceId` accessor, `ValidationBehaviour`. **`002b`** — status-code envelope (`404`/`405`/`415`), malformed request, Swashbuckle — deferred with a reason per task |
 | | `003-audit-trail` | — | **✅ Core done 2026-08-25** — 93 tests, 0 warnings. `dbo.AuditLog`, the capture-only diff interceptor, BR-9.7 redaction, `TransactionBehaviour` + `AuditBehaviour` in `Wasl.Infrastructure`, one ordered registration in `Wasl.Api`, NFR-10 scanner with its self-test. **`003b`** — the `wasl_app` role, `DENY`, the restricted connection, AC-12/AC-13 — deferred whole: **append-only is an application property until then** |
-| | `004-auth-and-roles` | Auth | PHASES 2.1–2.2. JWT, two seeded users, policies, `ICurrentUser` |
+| | `004-auth-and-roles` | Auth | **✅ Backend half done 2026-08-27** — 303 tests, 0 warnings. `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token` (HS256, role claim, 8h), real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, and `UseAuthentication` before `UseRequestLocalization` (ADR-007). **Named as open, not done:** AC-17/AC-18 — no audit row on a `401`/`403` — is a gap in BR-9.4, deferred to `004b`; no rate limit or lockout on the token endpoint. Login screen, route guard, `401` interceptor and sign-out belong to the frontend lane |
 | | `005-localization-core` | — | PHASES 2.3–2.4. Culture resolution, `.resx`, key-parity test |
 | | `006-design-system` | — | PHASES 1.7. Tokens + Button, Input, Badge. One day, hard stop (ADR-009) |
 | **1 · Customers** | `007-create-customer` | **US-001** | First write path end to end |

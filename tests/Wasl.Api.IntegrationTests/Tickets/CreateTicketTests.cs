@@ -45,7 +45,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     public async Task A_valid_create_returns_201_with_a_location_that_resolves()
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
 
         var response = await client.PostAsJsonAsync("/api/tickets", ValidBody(customerId));
 
@@ -65,10 +65,14 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
                 "AC-10, computed from the BR-1 map plus its conditions — a New ticket has no "
                 + "assignee, so InProgress is excluded by the rule rather than by the matrix");
 
-        // Decision 1. Present and null, not absent — removing the field and adding it back at
-        // 004 would be a breaking change for a client.
+        // Decision 1, now closed. `009` shipped this field present-and-null because there was no
+        // authentication; `004` supplied a token and the value filled itself, with no change to
+        // any handler — Ticket is an IAuditableEntity and the stamping lives in
+        // WaslDbContext.SaveChangesAsync. Keeping the field in the shape from the start is what
+        // made that a value change rather than a breaking contract change.
         created.TryGetProperty("createdByUserId", out var createdBy).Should().BeTrue();
-        createdBy.ValueKind.Should().Be(JsonValueKind.Null);
+        createdBy.GetGuid().Should().NotBeEmpty(
+            "the request carried the seeded Manager's token, so the creator is known");
 
         // Decision 3. The whole reason GET moved into this feature: a 201 whose Location
         // returns 404 is a broken API, and 010 lands after 012.
@@ -95,7 +99,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient()
+        var response = await factory.CreateManagerClient()
             .PostAsJsonAsync("/api/tickets", ValidBody(customerId, priority: null));
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -108,7 +112,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient()
+        var response = await factory.CreateManagerClient()
             .PostAsJsonAsync("/api/tickets", ValidBody(customerId, priority: "Low"));
 
         (await BodyOf(response)).GetProperty("priority").GetString().Should().Be("Low",
@@ -120,7 +124,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     [Fact]
     public async Task An_unknown_customer_returns_404_as_problem_details()
     {
-        var response = await factory.CreateClient()
+        var response = await factory.CreateManagerClient()
             .PostAsJsonAsync("/api/tickets", ValidBody(Guid.NewGuid()));
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -146,7 +150,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/tickets", new
+        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId,
             subject,
@@ -166,7 +170,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     public async Task A_subject_at_the_limit_is_accepted_and_one_over_is_not()
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
 
         var atLimit = await client.PostAsJsonAsync("/api/tickets", new
         {
@@ -203,7 +207,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/tickets", new
+        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId,
             subject = "s",
@@ -227,7 +231,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     public async Task Concurrent_creates_receive_different_ticket_numbers()
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
 
         var responses = await Task.WhenAll(
             Enumerable.Range(0, 8).Select(_ =>
@@ -254,7 +258,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient()
+        var response = await factory.CreateManagerClient()
             .PostAsJsonAsync("/api/tickets", ValidBody(customerId));
 
         var ticketId = (await BodyOf(response)).GetProperty("id").GetGuid();
@@ -296,7 +300,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient()
+        var response = await factory.CreateManagerClient()
             .PostAsJsonAsync("/api/tickets", ValidBody(customerId));
 
         var ticketId = (await BodyOf(response)).GetProperty("id").GetGuid();
@@ -340,7 +344,7 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     [Fact]
     public async Task Reading_an_unknown_ticket_returns_404_as_problem_details()
     {
-        var response = await factory.CreateClient().GetAsync($"/api/tickets/{Guid.NewGuid()}");
+        var response = await factory.CreateManagerClient().GetAsync($"/api/tickets/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
@@ -351,32 +355,36 @@ public sealed class CreateTicketTests(WaslApiFactory factory)
     /// <summary>AC-12's verifiable half, and Arabic through the whole stack.</summary>
     /// <remarks>
     /// <c>createdByUserId</c> is not a field on the command, so a value in the body has nowhere
-    /// to arrive. That property holds whether or not authentication exists — which is why `009`
-    /// can prove this half while the token half waits for `004`.
+    /// to arrive. `009` could prove that half with no authentication at all; with `004`'s token in
+    /// play the assertion gets stronger, because the response now carries a <b>different</b>
+    /// non-null value — the token's user — rather than the null that could have meant either
+    /// "ignored" or "not implemented".
     /// </remarks>
     [Fact]
     public async Task A_created_by_in_the_body_is_ignored_and_arabic_round_trips()
     {
         const string arabic = "لا يمكنني تسجيل الدخول";
 
+        var smuggled = Guid.CreateVersion7();
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateClient().PostAsJsonAsync("/api/tickets", new
+        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId,
             subject = arabic,
             description = "وصف المشكلة بالعربية",
             category = "Billing",
             channel = "Sms",
-            createdByUserId = Guid.NewGuid(),
+            createdByUserId = smuggled,
         });
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var created = await BodyOf(response);
 
-        created.GetProperty("createdByUserId").ValueKind.Should().Be(JsonValueKind.Null,
-            "AC-12 — the body is never the source. There is no field to bind it to");
+        created.GetProperty("createdByUserId").GetGuid().Should().NotBe(smuggled,
+            "AC-12 — the body is never the source. There is no field to bind it to, and the value "
+            + "comes from the token instead");
         created.GetProperty("subject").GetString().Should().Be(arabic,
             "nvarchar end to end. varchar would return ???? and look like a font bug");
         created.GetProperty("channel").GetString().Should().Be("Sms",

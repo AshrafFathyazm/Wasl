@@ -26,7 +26,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     private async Task<(Guid CustomerId, List<Guid> TicketIds)> SeedAsync(int count)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
         var ids = new List<Guid>();
 
         for (var i = 0; i < count; i++)
@@ -54,7 +54,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     {
         var (customerId, ids) = await SeedAsync(1);
 
-        var body = await BodyOf(await factory.CreateClient().GetAsync("/api/tickets?pageSize=100"));
+        var body = await BodyOf(await factory.CreateManagerClient().GetAsync("/api/tickets?pageSize=100"));
 
         body.EnumerateObject().Select(property => property.Name)
             .Should().BeEquivalentTo(["items", "page", "pageSize", "totalCount", "totalPages"],
@@ -105,7 +105,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
             query += $"&page={page}";
         }
 
-        var body = await BodyOf(await factory.CreateClient().GetAsync(query));
+        var body = await BodyOf(await factory.CreateManagerClient().GetAsync(query));
 
         body.GetProperty("pageSize").GetInt32().Should().Be(expected,
             "BR-7.2 clamps rather than rejecting — a 400 would make the boundary every client's "
@@ -118,7 +118,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     [InlineData(-1)]
     public async Task A_page_below_one_is_clamped_to_the_first_page(int page)
     {
-        var body = await BodyOf(await factory.CreateClient().GetAsync($"/api/tickets?page={page}"));
+        var body = await BodyOf(await factory.CreateManagerClient().GetAsync($"/api/tickets?page={page}"));
 
         body.GetProperty("page").GetInt32().Should().Be(1, "BR-7.2 — 1-based, clamped up");
     }
@@ -129,7 +129,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     {
         var (_, ids) = await SeedAsync(3);
 
-        var body = await BodyOf(await factory.CreateClient().GetAsync("/api/tickets?pageSize=100"));
+        var body = await BodyOf(await factory.CreateManagerClient().GetAsync("/api/tickets?pageSize=100"));
 
         var mine = body.GetProperty("items").EnumerateArray()
             .Where(item => ids.Contains(item.GetProperty("id").GetGuid()))
@@ -163,7 +163,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
         var (_, ids) = await SeedAsync(6);
         await ForceIdenticalCreationInstantAsync(ids);
 
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
 
         var first = await BodyOf(await client.GetAsync("/api/tickets?page=1&pageSize=3"));
         var second = await BodyOf(await client.GetAsync("/api/tickets?page=2&pageSize=3"));
@@ -230,7 +230,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     {
         await SeedAsync(2);
 
-        var body = await BodyOf(await factory.CreateClient()
+        var body = await BodyOf(await factory.CreateManagerClient()
             .GetAsync("/api/tickets?page=99999&pageSize=20"));
 
         body.GetProperty("items").GetArrayLength().Should().Be(0,
@@ -250,7 +250,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
     {
         await SeedAsync(1);
 
-        var body = await BodyOf(await factory.CreateClient().GetAsync("/api/tickets?pageSize=7"));
+        var body = await BodyOf(await factory.CreateManagerClient().GetAsync("/api/tickets?pageSize=7"));
 
         var totalCount = body.GetProperty("totalCount").GetInt32();
         var expected = (int)Math.Ceiling(totalCount / 7.0);
@@ -267,7 +267,7 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
         const string arabic = "لا يمكنني تسجيل الدخول";
 
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
-        var client = factory.CreateClient();
+        var client = factory.CreateManagerClient();
 
         var created = await client.PostAsJsonAsync("/api/tickets", new
         {

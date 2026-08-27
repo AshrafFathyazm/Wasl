@@ -1,5 +1,6 @@
 using Wasl.Domain.Customers;
 using Wasl.Domain.Tickets;
+using Wasl.Domain.Users;
 
 namespace Wasl.Application.Common.Abstractions;
 
@@ -44,6 +45,9 @@ public interface IApplicationDbContext
 
     /// <summary>Added by `009`, which creates the table.</summary>
     IQueryable<Ticket> Tickets { get; }
+
+    /// <summary>Added by `004`, which creates the table. Read at sign-in.</summary>
+    IQueryable<SupportUser> SupportUsers { get; }
 
     /// <summary>
     /// <c>TicketHistory</c> is deliberately <b>not</b> exposed.

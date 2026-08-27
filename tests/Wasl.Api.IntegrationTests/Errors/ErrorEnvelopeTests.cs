@@ -86,11 +86,15 @@ public sealed class ErrorEnvelopeTests(WaslApiFactory factory)
         body.GetProperty("type").GetString().Should().Be(TypeBase + "validation");
 
         var errors = body.GetProperty("errors");
-        errors.TryGetProperty("FullName", out var fullName).Should().BeTrue(
-            "the keys of `errors` are request field names and are part of the contract");
+        errors.TryGetProperty("fullName", out var fullName).Should().BeTrue(
+            "the keys of `errors` are request field names in camelCase and are part of the "
+            + "contract. They were PascalCase until 2026-08-27 — FluentValidation reports the "
+            + "PROPERTY name and it went out unchanged, so the frontend read every key as absent "
+            + "and no server test noticed, because this assertion was written from the "
+            + "implementation rather than from contracts/");
         fullName.EnumerateArray().Should().HaveCount(1);
 
-        errors.GetProperty("Email").EnumerateArray().Should().HaveCount(1,
+        errors.GetProperty("email").EnumerateArray().Should().HaveCount(1,
             "an empty-and-invalid email trips one rule; the two-rule case is asserted below");
     }
 
@@ -107,7 +111,7 @@ public sealed class ErrorEnvelopeTests(WaslApiFactory factory)
             .Parse(await response.Content.ReadAsStringAsync(CancellationToken.None))
             .RootElement;
 
-        body.GetProperty("errors").GetProperty("FullName").EnumerateArray()
+        body.GetProperty("errors").GetProperty("fullName").EnumerateArray()
             .Should().HaveCountGreaterThanOrEqualTo(1,
                 "each broken rule is its own entry — merging them into one string loses "
                 + "the ability to show a field's problems separately");

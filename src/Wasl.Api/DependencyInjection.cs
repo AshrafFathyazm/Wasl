@@ -4,6 +4,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Wasl.Api.Common;
 using Wasl.Api.Common.Auth;
 using Wasl.Api.Common.Errors;
+using Wasl.Api.Seed;
 using Wasl.Application.Common.Abstractions;
 
 namespace Wasl.Api;
@@ -32,7 +33,9 @@ namespace Wasl.Api;
 /// </remarks>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddPresentation(this IServiceCollection services)
+    public static IServiceCollection AddPresentation(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddControllers()
             .AddJsonOptions(options =>
@@ -102,6 +105,13 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
         AddErrorContract(services);
+
+        // `004`. Throws at startup if the signing key is missing or shorter than 32 bytes.
+        services.AddWaslAuthentication(configuration);
+
+        // `004` AC-12. Read at startup so a missing seed password fails the host build rather
+        // than the first sign-in, and so there is nowhere for a default to hide.
+        services.AddSingleton(SeedOptions.From(configuration));
 
         services.AddHealthChecks()
             // Liveness. Cheap, always true if the process is answering at all — and it is what

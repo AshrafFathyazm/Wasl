@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Infrastructure.Persistence;
+using Wasl.Infrastructure.Auth;
 using Wasl.Infrastructure.Persistence.Audit;
 
 namespace Wasl.Infrastructure;
@@ -62,6 +63,9 @@ public static class DependencyInjection
             provider => provider.GetRequiredService<WaslDbContext>());
 
         services.AddScoped<IAuditWriter, AuditWriter>();
+
+        // Singleton: it holds one cached dummy hash and no per-request state (`004`).
+        services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
         services.AddScoped<ITicketNumberGenerator, SequenceTicketNumberGenerator>();
 
         // Scoped, which is what makes one request one instant. See IRequestTimestamp.

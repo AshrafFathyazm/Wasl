@@ -9,6 +9,24 @@ Agents named here are **not dispatched until the plan is approved**. Naming is t
 dispatching without recording the result in `ai-notes.md` is the thing that turns evidence
 into a claim.
 
+> **Status 2026-08-27 — the backend half is delivered.** `BE-004-01` … `BE-004-08`,
+> `BE-004-12`, `BE-004-13`, `BE-004-14` are done. `TEST-004-01` … `TEST-004-14`,
+> `TEST-004-18` … `TEST-004-24` are written and green — see [tests.md](tests.md) for the
+> AC-to-test map and the recorded run.
+>
+> **Not done, and named as open rather than closed:**
+>
+> | Task | Why |
+> |---|---|
+> | `BE-004-09`, `BE-004-10` (`IAuthEventAuditor`, the authorization result handler) | Deferred to `004b`. Their acceptance criteria AC-17 and AC-18 are **a gap in BR-9.4**, not satisfied. Sign-in success and failure rows come free from the existing pipeline, because `IssueTokenCommand` is an `IAuditableCommand` — a *denial* by the middleware is what writes nothing |
+> | `BE-004-11` (`INonTransactionalRequest`) | Not built. Sign-in opens a transaction over one `SELECT`; harmless, and the failure path still writes its independent row |
+> | `TEST-004-15` … `TEST-004-17` | They test `BE-004-09`/`BE-004-10` |
+> | Every `FE-004-*` and `TEST-004-25` onward | The frontend half. The frontend lane owns it |
+>
+> No agent was dispatched for this feature — every task was implemented inline, under a
+> two-hour timebox. Recorded in [ai-notes.md](ai-notes.md) rather than left for the
+> **Agent** column to imply otherwise.
+
 ## Critical path
 
 ```text

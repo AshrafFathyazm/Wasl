@@ -57,6 +57,11 @@ internal static class DemoSeeder
         // can never run against a schema older than the code that seeds it.
         await context.Database.MigrateAsync();
 
+        // Users first, and OUTSIDE the tickets-exist early return below. They are not demo data —
+        // they are the only way to sign in — so a database that already has tickets must still get
+        // its users if a signing-key change or a manual delete left it without them.
+        await SupportUserSeeder.SeedAsync(services);
+
         if (await context.Tickets.AnyAsync())
         {
             Console.WriteLine("Seed skipped: tickets already exist.");
@@ -160,8 +165,16 @@ internal static class DemoSeeder
     /// Sets an assignee directly. Replaced by `011`.
     /// </summary>
     /// <remarks>
-    /// The id refers to no row: `dbo.SupportUsers` does not exist until `004`, which is precisely
-    /// why the column carries no foreign key yet — recorded in `009`'s `data-model.md`.
+    /// <para>
+    /// <b>The seeded Agent, not a fabricated id.</b> `009` wrote a fresh <c>Guid</c> here and said
+    /// so, because <c>dbo.SupportUsers</c> did not exist and the column carried no foreign key.
+    /// `004` added both, and the seed died on <c>Error Number:547</c> the first time it ran — the
+    /// FK doing exactly what an FK is for, on the exact row that was pointing at nothing.
+    /// </para>
+    /// <para>
+    /// Worth stating plainly: the fabricated id was never harmless. It was an unenforced dangling
+    /// reference, and `004` did not create the defect — it made the defect fail.
+    /// </para>
     /// </remarks>
     /// <returns>The ticket's version token <b>after</b> the update.</returns>
     private static async Task<string> AssignAsync(IServiceProvider services, Guid ticketId)
@@ -169,10 +182,14 @@ internal static class DemoSeeder
         using var scope = services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
 
-        var assignee = Guid.CreateVersion7();
+        var assignee = await context.SupportUsers
+            .Where(user => user.Email == SupportUserSeeder.AgentEmail)
+            .Select(user => user.Id)
+            .SingleAsync();
 
         await context.Database.ExecuteSqlAsync(
             $"UPDATE dbo.Tickets SET AssignedToUserId = {assignee} WHERE Id = {ticketId}");
+
 
         var rowVersion = await context.Tickets
             .AsNoTracking()
