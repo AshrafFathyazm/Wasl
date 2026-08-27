@@ -1,0 +1,96 @@
+/* ============================================================================
+ * Badge
+ * ============================================================================
+ * NO BRAND TOKEN, EVER. Status colour is meaning, not branding (DESIGN-BRIEF
+ * rule 2b). A tenant able to set "success" to red would have a product that lies
+ * to its users. Red stays reserved for "needs attention now" — never "this ended
+ * badly"; a closed thing is neutral (rule 15).
+ *
+ * Not interactive: a <span>, no tabindex, no focus ring. A badge that is not a
+ * filter chip must not look focusable.
+ * ============================================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  block-size: var(--chip-height);
+  padding-inline: var(--space-2);
+
+  border-width: var(--border-width);
+  border-style: solid;
+  border-color: transparent;
+  border-radius: var(--chip-radius);
+
+  font-size: var(--type-label-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking);
+  white-space: nowrap;
+}
+
+/* The dot IS the tone token; the pill is only its container. In a status tab bar
+ * the same dot appears bare beside a count. One idea, two presentations.
+ * Inline-start by flex order, so it moves side under dir="rtl" with no CSS
+ * change. */
+.dot {
+  flex: none;
+  inline-size: var(--badge-dot-size);
+  block-size: var(--badge-dot-size);
+  border-radius: var(--radius-pill);
+  background-color: currentcolor;
+}
+
+/* ---- Tones --------------------------------------------------------------- */
+
+.neutral {
+  color: var(--state-neutral-text);
+}
+
+.info {
+  color: var(--state-info-text);
+}
+
+.success {
+  color: var(--state-success-text);
+}
+
+.warning {
+  color: var(--state-warning-text);
+}
+
+.danger {
+  color: var(--state-danger-text);
+}
+
+/* ---- Appearance ---------------------------------------------------------- */
+
+/* `filled` is a TINTED background with coloured text and a coloured dot — not a
+ * solid block. The shipped app uses a tinted pill, and the solid block lost that
+ * comparison. */
+.filled.neutral {
+  background-color: var(--state-neutral-bg);
+}
+
+.filled.info {
+  background-color: var(--state-info-bg);
+}
+
+.filled.success {
+  background-color: var(--state-success-bg);
+}
+
+.filled.warning {
+  background-color: var(--state-warning-bg);
+}
+
+.filled.danger {
+  background-color: var(--state-danger-bg);
+}
+
+/* `outline` is transparent with a 1px border in the tone. */
+.outline {
+  background-color: transparent;
+  border-color: currentcolor;
+}

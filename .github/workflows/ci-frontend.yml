@@ -1,0 +1,91 @@
+name: CI — frontend
+
+# A SEPARATE FILE, not a job added to ci.yml.
+#
+# Two lanes are working the same repository at the same time. `ci.yml` is the
+# backend's, and adding a job to it means both lanes editing one file on the same
+# day for unrelated reasons — the merge conflict is the small cost, and the large
+# one is that a conflict resolved in a hurry silently drops a step.
+#
+# The path filter is what makes two workflows cheaper than one: a backend commit
+# does not run `npm ci`, and a frontend commit does not spin up SQL Server.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/wasl-web/**'
+      - '.github/workflows/ci-frontend.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/wasl-web/**'
+      - '.github/workflows/ci-frontend.yml'
+
+defaults:
+  run:
+    working-directory: src/wasl-web
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: src/wasl-web/package-lock.json
+
+      # `ci`, never `install`: `install` may resolve a different tree than the
+      # lockfile and a green CI on packages nobody has is worth nothing.
+      - name: Install
+        run: npm ci
+
+      # tsc first. Every gate below runs against source that already type-checks,
+      # so a type error is reported once as a type error rather than three times
+      # as three unrelated failures.
+      - name: Types
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Stylelint
+        run: npm run lint:css
+
+      - name: Formatting
+        run: npm run format:check
+
+      # BR-8: every key present in BOTH catalogues. A key missing from `ar`
+      # renders the English text, which looks deliberate and is the reason this
+      # is a gate rather than a review item.
+      - name: i18n catalogue parity
+        run: npm run lint:i18n
+
+      # ADR-011 §6 — no hand-written domain types outside the one provisional
+      # file. Proven by TEST-024-11: a deliberate violation exits non-zero naming
+      # the file and line.
+      - name: No hand-written domain types
+        run: npm run lint:types
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The production bundle must not contain the dev preview. A route guarded
+      # by `import.meta.env.DEV` still ships if the dynamic `import()` sits
+      # outside the branch — Rollup emits the chunk because it is reachable. That
+      # happened once, and grepping the built output is the only check that would
+      # have caught it.
+      - name: Assert the dev preview is absent from the bundle
+        run: |
+          if grep -rlE 'CreateTicketPreview|data-preview-state' dist/; then
+            echo "::error::Dev-only preview code reached the production bundle."
+            exit 1
+          fi
+          echo "dist/ is clean of dev-only preview code"

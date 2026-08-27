@@ -1,0 +1,68 @@
+/* ============================================================================
+ * Toast — ONE message. No stack, no portal, no timer registry.
+ * ============================================================================
+ * `006` deferred this on the grounds that a toast is "a system — a portal, a
+ * stack, a timer per item, a manual-dismiss path" rather than a component, and
+ * that is true of a general one. This screen needs one message, once, and
+ * building the system to deliver it would cost more than the screen.
+ *
+ * The reduction is recorded in the spec (Q-4) so the second consumer knows what
+ * it is inheriting rather than discovering it.
+ *
+ * TODO — no motion token exists (tokens.css note 11). Spec Q-8.
+ * ============================================================================ */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+  border: var(--border-width) solid;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+}
+
+.success {
+  background-color: var(--state-success-bg);
+  color: var(--state-success-text);
+  border-color: var(--state-success-text);
+}
+
+.error {
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  border-color: var(--state-danger-text);
+}
+
+.info {
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+  border-color: var(--state-info-text);
+}
+
+.body {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* Manual dismissal is not optional. An auto-dismissing message that cannot be
+ * dismissed by hand is a message someone reading slowly loses, and a message
+ * carrying a ticket number is exactly the one they are still reading. */
+.dismiss {
+  flex: none;
+  margin-inline-start: auto;
+  padding: 0 var(--space-2);
+  background-color: transparent !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentcolor !important;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-ui);
+  line-height: 1;
+}
+
+.dismiss:hover {
+  opacity: 0.7;
+}

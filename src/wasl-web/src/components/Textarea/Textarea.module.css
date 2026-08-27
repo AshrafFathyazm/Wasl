@@ -1,0 +1,152 @@
+/* ============================================================================
+ * Textarea
+ * ============================================================================
+ * ITS OWN PRIMITIVE, NOT A FLAG ON INPUT. The reason is in
+ * specs/024-frontend-create-ticket-form/spec.md §2, and the shape here is the
+ * evidence for it:
+ *
+ *   - There is NO height token. Input's height is `--field-height-sm/-md/-lg`,
+ *     three fixed values; this control's height comes from its rows and its
+ *     content, so it has nothing to consume and would have to ignore whatever
+ *     it was given.
+ *   - There is no `size`. There is a `rows`, and the two do not overlap.
+ *   - `resize: block` — the block axis only. Horizontal resize breaks the form's
+ *     column width, and a user dragging a textarea wider than its container has
+ *     caused a layout defect they will report as a bug.
+ *
+ * Everything else — the fill, the border, the focus lightening, the error
+ * treatment — is deliberately identical to Input. Two controls stacked in one
+ * form that disagree about what "focused" looks like is worse than either
+ * choice on its own.
+ * ============================================================================ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.label[data-required='true']::after {
+  content: '*';
+  margin-inline-start: var(--space-1);
+  color: var(--state-danger-text);
+}
+
+.control {
+  inline-size: 100%;
+
+  /* No block-size. See the header. */
+  block-size: auto;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+
+  background-color: var(--field-fill) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+
+  font-family: inherit;
+  font-size: var(--text-ui);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking);
+
+  resize: block;
+
+  transition:
+    background-color 100ms,
+    border-color 100ms,
+    box-shadow 100ms;
+}
+
+/* This is the one control in the set whose content wraps, so it takes Arabic's
+ * normal leading rather than the tight single-line value (tokens.css note 4). */
+[lang='ar'] .control {
+  line-height: var(--leading-ar-normal);
+}
+
+.control:hover:not(:disabled),
+[data-preview-state='hover'] .control:not(:disabled) {
+  border-color: var(--border-default);
+}
+
+.control:focus,
+.control:focus-visible,
+[data-preview-state='focus'] .control {
+  background-color: var(--surface-card) !important;
+  border-color: var(--brand);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 0;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.control:disabled {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+  resize: none;
+}
+
+.invalid,
+.invalid:hover:not(:disabled) {
+  border-color: var(--state-danger-text);
+}
+
+/* Error + focus keeps the red border and tints the ring red. A brand ring around
+ * a red border is two competing signals. */
+.invalid:focus,
+.invalid:focus-visible,
+[data-preview-state='focus'] .invalid {
+  background-color: var(--surface-card) !important;
+  border-color: var(--state-danger-text);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--state-danger-bg);
+}
+
+/* The counter sits at the inline-end, on the same line as the message, so a long
+ * helper and a counter cannot collide. */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.message {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+  min-inline-size: 0;
+}
+
+.messageError {
+  color: var(--state-danger-text);
+}
+
+.counter {
+  flex: none;
+  margin-inline-start: auto;
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+
+  /* Tabular figures, so the number does not jitter as it counts. */
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.counterNear {
+  color: var(--state-warning-text);
+}
+
+/* Same rule, same reason as Input.module.css: `dir="auto"` reads the value, and
+ * an empty description has no direction to read. Without this, the Arabic
+ * placeholder sits against the wrong edge until the first letter is typed. */
+.control:placeholder-shown {
+  direction: inherit;
+}

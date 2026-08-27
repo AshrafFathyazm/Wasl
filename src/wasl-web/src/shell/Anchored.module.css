@@ -1,0 +1,111 @@
+/* ============================================================================
+ * Anchored.module.css — the collapsed sidebar's tooltip and flyout
+ * ============================================================================
+ *
+ * SHELL-INTERNAL, NOT PRIMITIVES. component-inventory.md lists tooltip and
+ * popover under *Not built* — "no screen needs them" — and the eight-primitive
+ * cap applies to src/components/. The collapsed sidebar needs three of them, and
+ * putting them in components/ would spend three of the eight slots on something
+ * with exactly one consumer.
+ *
+ * The consequence, stated so it is a decision rather than a discovery: THESE ARE
+ * NOT GENERAL PURPOSE. No portal, no collision detection, no arbitrary
+ * placement. They anchor to the inline-end of the sidebar, in one direction, and
+ * they mirror under RTL because they are positioned logically. The first screen
+ * outside the shell that wants a tooltip promotes one of these to components/
+ * with a written reason — the same rule a ninth primitive follows.
+ *
+ * TODO — no motion or shadow token exists (tokens.css note 11). The 140ms close
+ * delay, the 100ms fade, and the panel shadow are literals. Spec Q-8.
+ * ============================================================================ */
+
+.anchor {
+  position: relative;
+  display: block;
+}
+
+/* Both open on FOCUS as well as hover. Without that a collapsed sidebar is
+ * unusable by keyboard: the icons carry no visible label and nothing reveals
+ * one. */
+.panel {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 100%;
+  margin-inline-start: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgb(13 38 38 / 12%);
+
+  font-size: var(--text-ui);
+  white-space: nowrap;
+
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 100ms,
+    visibility 100ms;
+}
+
+/* A tooltip is a LABEL for the icon beside it: dark pill, tight against the row,
+ * and vertically centred on it. The flyout is a panel and stays top-aligned,
+ * because it is a list that has to start where its parent does. */
+.tooltipPanel {
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  margin-inline-start: var(--space-1);
+  padding-block: var(--space-1);
+  color: var(--text-on-inverse);
+  background-color: var(--surface-inverse);
+  border-color: var(--surface-inverse);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  font-weight: var(--weight-medium);
+}
+
+.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.panel[data-z='tooltip'] {
+  z-index: var(--z-tooltip);
+}
+
+.panel[data-z='flyout'] {
+  z-index: var(--z-flyout);
+}
+
+/* The flyout carries the parent's name as a heading. An icon on its own is a
+ * guess; the heading is what makes the panel navigable rather than merely
+ * present. */
+/* The SAME treatment as the sidebar's MAIN caption — uppercase, letterspaced,
+ * muted. It is a section caption in a panel, not a title, and giving it a
+ * different voice from the caption it replaces makes the panel read as a
+ * separate product. No divider: the spacing carries it. */
+.flyoutHeading {
+  display: block;
+  padding-inline: var(--space-3);
+  margin-block-end: var(--space-2);
+  font-size: var(--text-helper);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-placeholder);
+}
+
+/* Arabic is cursive; positive tracking breaks the joins, permanently
+ * (tokens.css note 4). */
+[lang='ar'] .flyoutHeading {
+  letter-spacing: 0;
+}
+
+.flyoutList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 180px;
+}

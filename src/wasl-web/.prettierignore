@@ -1,0 +1,9 @@
+dist
+node_modules
+package-lock.json
+
+# Copied verbatim from docs/sdd/design/. Reformatting it would make the copy no
+# longer a copy, and the drift check compares them value for value.
+src/styles/tokens.css
+src/icons/icons.tsx
+src/brand/Mark.tsx

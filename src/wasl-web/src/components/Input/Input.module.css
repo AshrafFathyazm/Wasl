@@ -1,0 +1,171 @@
+/* ============================================================================
+ * Input
+ * ============================================================================
+ * Semantic tokens only. `!important` and `[data-preview-state]` are here for the
+ * same two reasons as Button — see Button.module.css for both.
+ *
+ * TODO — no motion token exists (tokens.css note 11). 100ms is a literal. Q-8.
+ * ============================================================================ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 10-shared-patterns.md gives the label gap as 7. 8 is used, deliberately: the
+ * 8pt grid is verified on layers all the way up (8, 16, 24, 56) and the 7 came
+ * from a measurement. One pixel, and the field stays on the same rhythm as
+ * everything beside it. */
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+/* The required marker is decorative — the native `required` attribute is what
+ * conveys it to assistive technology. Rendering it as CSS content also keeps a
+ * non-translatable glyph out of JSX. */
+.label[data-required='true']::after {
+  content: '*';
+  margin-inline-start: var(--space-1);
+  color: var(--state-danger-text);
+}
+
+.control {
+  inline-size: 100%;
+  padding-inline: var(--space-3);
+
+  background-color: var(--field-fill) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+
+  font-family: inherit;
+  font-size: var(--text-ui);
+  letter-spacing: var(--tracking);
+
+  transition:
+    background-color 100ms,
+    border-color 100ms,
+    box-shadow 100ms;
+}
+
+.sm {
+  block-size: var(--field-height-sm);
+}
+
+.md {
+  block-size: var(--field-height-md);
+}
+
+.lg {
+  block-size: var(--field-height-lg);
+}
+
+.control:hover:not(:disabled),
+[data-preview-state='hover'] .control:not(:disabled) {
+  border-color: var(--border-default);
+}
+
+/* The field LIGHTENS to white on focus. A second, non-colour signal that this is
+ * the active field — which matters for anyone who cannot distinguish the border
+ * colour change. */
+.control:focus,
+.control:focus-visible,
+[data-preview-state='focus'] .control {
+  background-color: var(--surface-card) !important;
+  border-color: var(--brand);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 0;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.control:disabled {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  /* Safari fades disabled input text regardless of `color` unless the fill colour
+   * is set explicitly. One browser, silently. */
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+}
+
+/* ---- Error --------------------------------------------------------------- */
+
+.invalid,
+.invalid:hover:not(:disabled) {
+  border-color: var(--state-danger-text);
+}
+
+/* Error + focus keeps the red border and tints the RING red. A brand ring around
+ * a red border is two competing signals, and the user needs to know both where
+ * they are and that it is wrong. */
+.invalid:focus,
+.invalid:focus-visible,
+[data-preview-state='focus'] .invalid {
+  background-color: var(--surface-card) !important;
+  border-color: var(--state-danger-text);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--state-danger-bg);
+}
+
+/* ---- Message ------------------------------------------------------------- */
+
+/* The error REPLACES the helper and never stacks below it. Two messages under one
+ * field means the user reads the wrong one. */
+.message {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--state-danger-text);
+}
+
+/* AN EMPTY FIELD FOLLOWS THE INTERFACE. A FILLED ONE FOLLOWS ITS CONTENT.
+ *
+ * `dir="auto"` on the control is deliberate and stays — a customer named
+ * "Gulf Logistics" and one named "أحمد" must each read correctly in either
+ * interface. But `auto` decides from the VALUE, and an empty value has no
+ * strong character in it, so the browser falls back to `ltr`. Measured in the
+ * Arabic walk: the search field rendered `direction: ltr` inside a form whose
+ * computed direction was `rtl`, putting an Arabic placeholder and the caret
+ * against the left edge of a right-aligned form — and flipping to the right the
+ * moment the first Arabic letter was typed.
+ *
+ * The placeholder is not the value, which is why `auto` ignores it and why this
+ * rule exists. `:placeholder-shown` is exactly the empty case, and `inherit`
+ * takes the direction from the form rather than naming `rtl` anywhere.
+ *
+ * Verified in both directions: empty → follows the interface; "Gulf" → ltr;
+ * "أحمد" → rtl; cleared → follows the interface again. */
+.control:placeholder-shown {
+  direction: inherit;
+}
+
+/* The counter sits at the inline-end, on the same line as the message, so a long
+ * helper and a counter cannot collide. Mirrors Textarea.module.css — the two
+ * fields sit next to each other on the create-ticket form and a counter that
+ * moved between them would read as a rendering bug. */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.counter {
+  flex: none;
+  margin-inline-start: auto;
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+
+  /* Tabular figures, so the number does not jitter as it counts. */
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.counterNear {
+  color: var(--state-warning-text);
+}

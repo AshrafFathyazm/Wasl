@@ -1,0 +1,76 @@
+/* ============================================================================
+ * Header
+ * ============================================================================
+ * THE INLINE-END PADDING IS 56 AND THE INLINE-START IS 24. That asymmetry is
+ * considered, not an oversight (tokens.css note 2): the 56 matches the content
+ * area's padding so right edges align all the way down the page, and the 24
+ * matches the sidebar's. Preserve it.
+ *
+ * No primary action here. The one create action lives at the top of the sidebar.
+ * ============================================================================ */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+
+  block-size: var(--header-height);
+  padding-block: var(--header-padding-block);
+  /* start 24, end 56 — the asymmetry, in one line where it is visible. */
+  padding-inline: var(--header-padding-inline-start) var(--header-padding-inline-end);
+
+  background-color: var(--surface-page);
+  border-block-end: var(--shell-border);
+}
+
+.menuButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  padding: 0;
+
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-label);
+  min-inline-size: 0;
+}
+
+.crumb {
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* The current page is not a link, and it is the only one at full weight. */
+.current {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The separator is a logical chevron, so it reverses with the direction and the
+ * trail reads outward-in in both. */
+.separator {
+  display: inline-flex;
+  color: var(--text-placeholder);
+  transform: rotate(-90deg);
+}
+
+[dir='rtl'] .separator {
+  transform: rotate(90deg);
+}

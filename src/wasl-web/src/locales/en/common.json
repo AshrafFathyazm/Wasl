@@ -1,0 +1,23 @@
+{
+  "productName": "Wasl",
+  "nav": {
+    "main": "Main",
+    "dashboard": "Dashboard",
+    "tickets": "Tickets",
+    "allTickets": "All tickets",
+    "myTickets": "My tickets",
+    "unassigned": "Unassigned",
+    "customers": "Customers",
+    "settings": "Settings",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
+  },
+  "role": {
+    "agent": "Agent",
+    "manager": "Manager"
+  },
+  "cancel": "Cancel",
+  "back": "Back",
+  "dismiss": "Dismiss",
+  "errors.maxLength": "Must be {{max}} characters or fewer"
+}

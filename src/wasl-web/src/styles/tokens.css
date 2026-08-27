@@ -1,0 +1,331 @@
+/* ============================================================================
+ * Abyan house style — design tokens
+ * ============================================================================
+ *
+ * Consolidated from every source available. Each value is labelled with where it
+ * came from, because a token whose provenance is unrecorded gets "corrected" later
+ * by whoever compares it against a different source.
+ *
+ *   (A) Vector exports — 7 SVGs from the Figma file. Colours exact, geometry exact
+ *       at 1:1. Text is outlined, so no typography.
+ *   (B) Shipped app — screenshots of abyan-qc.azm.sa. Indicative only; every value
+ *       measured this way that was later checked against a layer turned out wrong.
+ *   (C) Figma layer inspect — exact, and authoritative wherever it disagrees.
+ *   (D) Our decision, because the source system has no answer.
+ *
+ * Rule: components consume SEMANTIC tokens only. The primitives exist so the
+ * semantics have something to point at.
+ * ============================================================================ */
+
+:root {
+
+  /* ==== PRIMITIVES ======================================================== */
+
+  /* Named by them, confirmed on layers (C) */
+  --Main-White-White: #FFFFFF;
+  --Neutral-00:       #F9FAFB;
+  --Neutral-200:      #DEE5E7;
+  --Neutral-800:      #606873;
+  --Text-Primary:     #0D2626;
+
+  /* Neutrals — exact values (A), token names not yet read */
+  --neutral-25:   #F9FAFB;   /* = Neutral/00 */
+  --neutral-50:   #F5F8F8;
+  --neutral-75:   #EDF1F2;
+  --neutral-100:  #E5E7EB;
+  --neutral-200:  #DEE5E7;   /* = Neutral/200 */
+  --neutral-300:  #CAD3D7;
+  --neutral-350:  #B3BFC6;
+  --neutral-400:  #9FABB5;
+  --neutral-500:  #76818C;
+  --neutral-600:  #677489;
+  --neutral-700:  #606873;   /* = Neutral/800 */
+  --neutral-800:  #4A5567;
+  --neutral-900:  #1F2A37;
+  --ink:          #0D2626;   /* = Text/Primary */
+
+  /* Brand navy (A, and confirmed on the Primary button via inspect) */
+  --navy-900:   #1D174D;
+  --navy-950:   #282447;   /* darker — the plausible hover/pressed, unconfirmed */
+
+  /* Accent purple — icon strokes and fills. NOT the navy (A) */
+  --purple-700: #4D46AF;
+  --purple-600: #5250C0;
+  --purple-500: #6469CD;
+  --purple-300: #828CD8;
+  --purple-50:  #F3F3FB;
+
+  /* Brand accent (D) — teal. Presence, never state. See design/brand.md */
+  --teal-600:   #4A9E96;
+  --teal-400:   #6FBFB0;
+
+  /* Status — all four pairs now complete (A) */
+  --blue-600:   #387AD8;
+  --blue-500:   #1570EF;
+  --blue-400:   #4B94E4;
+  --blue-50:    #F1F7FD;
+  --green-700:  #2E7D32;
+  --green-50:   #E8F5E9;
+  --amber-500:  #FFAF36;
+  --amber-50:   #FFFAE8;
+  --red-600:    #E54545;
+  --red-500:    #F04438;
+  --red-50:     #FDE9EB;
+
+  /* Icon strokes (A) */
+  --icon-ink:   #292D32;
+  --icon-dark:  #2F3237;
+
+  /* ==== BRAND — themeable (ADR-012) ======================================= */
+
+  /* The ONE value a tenant sets. Everything below is derived from it, so a brand
+   * change is one variable and not a palette. Fixed tokens — status, neutral,
+   * text, border, surface — must never point in here. See design/theming.md. */
+  --brand:        var(--navy-900);          /* (C) — today's value is the house navy */
+  --on-brand:     var(--Main-White-White);  /* (D) — static default; COMPUTED at runtime */
+
+  --brand-hover:  color-mix(in oklab, var(--brand) 88%, white);    /* (D) */
+  --brand-active: color-mix(in oklab, var(--brand) 82%, black);    /* (D) */
+  --brand-subtle: color-mix(in oklab, var(--brand)  8%, white);    /* (D) */
+  --brand-border: color-mix(in oklab, var(--brand) 24%, white);    /* (D) */
+  --brand-ring:   color-mix(in oklab, var(--brand) 22%, transparent); /* (D) */
+
+  /* ==== SEMANTIC ========================================================== */
+
+  --surface-page:    var(--Main-White-White);   /* sidebar and header */
+  --surface-content: var(--Neutral-00);         /* the content area is the sunken one */
+  --surface-card:    var(--Main-White-White);
+  --surface-subtle:  var(--neutral-50);
+  --surface-sunken:  var(--neutral-75);
+  --surface-inverse: var(--navy-900);
+
+  --text-primary:     var(--Text-Primary);
+  --text-secondary:   var(--Neutral-800);
+  --text-muted:       var(--neutral-500);
+  --text-placeholder: var(--neutral-400);
+  --text-on-inverse:  var(--Main-White-White);
+  --text-link:        var(--blue-500);
+
+  --border-subtle:  var(--Neutral-200);
+  --border-default: var(--neutral-300);
+  --border-focus:   var(--blue-500);
+
+  /* One ring intensity, everywhere. Two intensities in one interface is exactly
+   * the inconsistency a token layer exists to remove. */
+  --focus-ring: color-mix(in oklab, var(--action-primary-bg) 22%, transparent); /* (D) */
+  --focus-ring-width: 3px;   /* (D) */
+
+  --action-primary-bg:       var(--brand);
+  --action-primary-border:   var(--brand);
+  --action-primary-text:     var(--on-brand);
+  --action-secondary-bg:     var(--Main-White-White);
+
+  /* Was --Neutral-200 / --Text-Primary. #DEE5E7 on #FFFFFF is a border you have
+   * to look for, so the default Secondary-Outline read as white-on-white and the
+   * control disappeared. Both now derive from the brand, which also means a
+   * tenant colour change is visible on the outline button rather than only on the
+   * filled one. (C) -> (D). */
+  --action-secondary-border: var(--brand-border);
+  --action-secondary-text:   var(--brand);
+  --action-danger-bg:        var(--red-600);
+
+  --state-success-bg:   var(--green-50);
+  --state-success-text: var(--green-700);
+  --state-warning-bg:   var(--amber-50);
+  --state-warning-text: #8A5A00;             /* (D) — no readable amber text in source */
+  --state-danger-bg:    var(--red-50);
+  --state-danger-text:  var(--red-600);
+  --state-info-bg:      var(--blue-50);
+  --state-info-text:    var(--blue-500);
+  --state-neutral-bg:   var(--neutral-75);
+  --state-neutral-text: var(--Neutral-800);
+
+  /* ==== TYPOGRAPHY (C) ==================================================== */
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-ar:   'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;  /* (D) */
+
+  --weight-regular: 400;
+  --weight-medium:  500;    /* named in the scale, not yet seen on a layer */
+  --weight-bold:    700;
+
+  --type-h1: 36px;  --type-h2: 30px;  --type-h3: 24px;
+  --type-h4: 20px;  --type-h5: 16px;  --type-h6: 14px;
+  --type-title-1: 22px;  --type-title-2: 18px;  --type-title-3: 16px;
+  --type-body-lg: 18px;  --type-body-md: 16px;  --type-body-sm: 12px;
+  --type-label-lg: 16px; --type-label-md: 14px; --type-label-sm: 12px;
+  --type-caption: 12px;
+
+  --tracking: 0;              /* and it stays 0 — note 4 */
+
+  --leading-tight:   1.0;     /* source value; single-line only */
+  --leading-normal:  1.5;     /* (D) */
+  --leading-heading: 1.25;    /* (D) */
+  --leading-ar-tight:   1.3;  /* (D) */
+  --leading-ar-normal:  1.75; /* (D) */
+  --leading-ar-heading: 1.45; /* (D) */
+
+  --text-page-title:    var(--type-h2);
+  --text-section-title: var(--type-title-1);
+  --text-card-title:    var(--type-title-3);
+  --text-body:          var(--type-body-md);
+  --text-ui:            var(--type-label-md);
+  --text-label:         var(--type-label-md);
+  --text-helper:        var(--type-caption);
+
+  /* ==== SPACING — 8pt grid (C) ============================================ */
+
+  --space-1: 4px;    /* button internal gap */
+  --space-2: 8px;
+  --space-3: 12px;   /* button padding */
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-7: 56px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* ==== GEOMETRY ========================================================== */
+
+  /* Radius is a named token in Figma: SM / MD / LG. SM is the one used on buttons
+   * and fields. Measured at 3.5-4.5 across exports; 4px is the working value. */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-pill: 999px;
+
+  --border-width: 1px;
+  --icon-stroke-width: 1.5px;   /* universal — note 5 */
+
+  /* ==== COMPONENTS ======================================================== */
+
+  /* Button — component API confirmed by inspect (C):
+   * Type: Primary | Secondary-Outline · Size: MD · Status: Default
+   * With left icon / With Right Icon / With Text: booleans · Text: string */
+  --button-height-md:  40px;
+  --button-padding:    var(--space-3);   /* 12 */
+  --button-gap:        var(--space-1);   /* 4 — icon to label */
+  --button-radius:     var(--radius-sm);
+  --button-border:     1px;
+  /* width: hug */
+
+  /* Field / bordered row — consistent across every width observed (A) */
+  --field-height-sm:  39px;
+  --field-height-md:  47px;
+  --field-height-lg:  51px;
+  --field-radius:     var(--radius-sm);
+  --field-fill:       var(--Neutral-00);
+  --field-border:     1px solid var(--Neutral-200);
+
+  /* Chip / tag — pill, subtle (A) */
+  --chip-height: 20px;
+  --chip-radius: var(--radius-pill);
+  --chip-fill:   var(--neutral-50);
+  --chip-border: 1px solid var(--neutral-300);
+
+  /* The dot IS the status token; the pill is only its container. */
+  --badge-dot-size: 7px;   /* (D) */
+
+  --checkbox-size:   23px;
+  --checkbox-radius: var(--radius-sm);
+  --checkbox-border: 1px solid var(--neutral-100);
+
+  --avatar-size: 32px;   /* (C) — the sidebar user block. See note 10 */
+  --avatar-fill: var(--navy-900);
+
+  --progress-height: 6px;
+  --progress-track:  var(--neutral-75);
+  --progress-radius: var(--radius-sm);
+
+  --list-row-height:  48px;   /* the most common row height across exports */
+  --table-row-height: 61px;
+
+  /* ==== APP SHELL (C) — exact, arithmetic closes ========================== */
+
+  --frame-width:   1440px;
+  --frame-height:  1024px;
+  --sidebar-width: 288px;
+  --sidebar-width-collapsed:  68px;   /* (C) — 02-app-shell.md Collapse table */
+  --nav-item-height:          48px;   /* (C) */
+  --nav-child-height:         40px;   /* (C) */
+  --header-height: 68px;
+  --content-width:  1152px;
+  --content-height: 956px;
+  --content-padding: var(--space-7);   /* 56 */
+  --content-gap:     var(--space-6);   /* 24 */
+  --sidebar-padding-block:  var(--space-4);
+  --sidebar-padding-inline: var(--space-6);
+  --sidebar-gap:            var(--space-4);
+  --header-padding-block:        var(--space-4);
+  --header-padding-inline-start: var(--space-6);
+  --header-padding-inline-end:   var(--space-7);
+  --shell-border: 1px solid var(--Neutral-200);
+
+  /* ==== Z-INDEX =========================================================== */
+
+  /* Four layers, ordered by what may cover what. A modal must sit above a flyout
+   * because a flyout can open a dialog; a tooltip sits above everything because
+   * it never takes focus and never blocks. Nothing else gets a z-index. */
+  --z-drawer:   100;   /* (D) — the sidebar below 780px */
+  --z-flyout:   200;   /* (D) — collapsed-sidebar flyout, user popover */
+  --z-modal:    300;   /* (D) */
+  --z-tooltip:  400;   /* (D) */
+}
+
+/* ============================================================================
+ * NOTES — the things that are not obvious from the values
+ * ============================================================================
+ *
+ * 1. THE SHELL ARITHMETIC CLOSES EXACTLY.
+ *    288 + 1152 = 1440. 68 + 956 = 1024. Earlier figures of 226/320 for the sidebar
+ *    and 60 for the header were both wrong, and both came from measuring a
+ *    rendering rather than reading a layer. Never sample geometry off a picture.
+ *
+ * 2. HEADER PADDING IS DELIBERATELY ASYMMETRIC.
+ *    16 block, 24 inline-start, 56 inline-end. The 56 matches the content area's
+ *    padding, so right edges align down the page. Preserve it.
+ *
+ * 3. ONLY TWO SURFACES IN THE SHELL, AND THE CONTENT IS THE SUNKEN ONE.
+ *    Sidebar and header are white; content is Neutral/00. Most people assume the
+ *    reverse.
+ *
+ * 4. LINE HEIGHT 100% + VERTICAL TRIM "CAP HEIGHT" CLIPS ARABIC.
+ *    Arabic glyphs sit well below the baseline (final ي ج ع) and carry marks above
+ *    cap height (ث ض). The source has no per-locale answer, so --leading-ar-* are
+ *    ours, and cap-height trim is not applied to Arabic at all.
+ *    LETTER SPACING STAYS 0 FOR ARABIC PERMANENTLY — Arabic is cursive, and
+ *    positive tracking breaks the joins.
+ *
+ * 5. ICON STROKE WIDTH IS 1.5px IN EVERY EXPORT, WITHOUT EXCEPTION.
+ *    That makes it a token. Any icon set adopted must be drawn at 1.5, or it reads
+ *    as a different weight beside everything else.
+ *
+ * 6. THE ACCENT PURPLE IS NOT THE NAVY.
+ *    Navy #1D174D is the primary action colour, confirmed on the Primary button.
+ *    The purple family appears on content-area icons. Collapsing them into one
+ *    token means a brand change moves both, and they are not the same role.
+ *
+ * 7. RADIUS IS A NAMED TOKEN — "SM" — NOT A NUMBER.
+ *    Inspect reports Radius: SM on buttons. Exports measure 3.5, 4, and 4.5 for
+ *    what is probably the same token. 4px is the working value; if the real number
+ *    matters, read it from the variable rather than from a rect.
+ *
+ * 8. #006C35 IS NOT A TOKEN. It is the Saudi flag green inside a logo asset.
+ *    Likewise the 1px #000000 border on one artboard is a canvas annotation.
+ *
+ * 9. --state-warning-text IS DERIVED, NOT EXTRACTED.
+ *    The source has no readable text colour for amber backgrounds. Everything else
+ *    in the state set is real: success, danger, and info pairs all came from the
+ *    exports.
+ *
+ * 10. THE AVATAR IS 32, NOT 27.
+ *    27 is what the vector export measures; design/screens/02-app-shell.md reads
+ *    32 off the layer for the sidebar user block, and note 1's rule applies —
+ *    never sample geometry off a picture. One size, and it is 32.
+ *
+ * 11. NO SHADOW TOKENS AND NO MOTION TOKENS EXIST YET.
+ *    DESIGN-BRIEF rule 21 asks for a shadow between two distant planes and rule 18
+ *    caps motion at 300ms, but neither has an extracted value. Until they do, the
+ *    two durations the app shell needs — 220ms collapse, 140ms flyout close — are
+ *    literals in the component that owns them, each marked TODO. Deliberate: an
+ *    invented token is indistinguishable from a real one (rule 3).
+ * ============================================================================ */

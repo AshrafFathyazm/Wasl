@@ -1,0 +1,368 @@
+/* ============================================================================
+ * CreateTicketPreview — FE-024-00
+ * ============================================================================
+ * A DEVELOPMENT ARTIFACT. Not in the production bundle.
+ *
+ * It exists to answer questions before anything is wired, and one question in
+ * particular: do three selects fit on one row at 720px with ARABIC labels?
+ * `009/frontend-spec.md` predicts they do not. A preview costs minutes; changing
+ * a screen that already has tests, keys, and query wiring costs hours (ADR-009).
+ *
+ * Everything here is a token. A preview rendered in values the product does not
+ * use answers a question nobody asked.
+ * ============================================================================ */
+
+.page {
+  min-block-size: 100vh;
+  padding: var(--space-8);
+  background-color: var(--surface-content);
+  color: var(--text-primary);
+}
+
+.toolbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-flyout);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  margin-block-end: var(--space-8);
+  padding: var(--space-3);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.toolbarLabel {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+[lang='ar'] .toolbarLabel {
+  letter-spacing: 0;
+}
+
+/* Single column, max 720. A form wider than that makes the eye travel between
+ * label and field (05-create-ticket.md). */
+.frame {
+  max-inline-size: 720px;
+  margin-inline: auto;
+}
+
+.stateBlock {
+  margin-block-end: var(--space-12);
+}
+
+.stateName {
+  display: block;
+  margin-block-end: var(--space-3);
+  padding-block-end: var(--space-2);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+  font-size: var(--text-helper);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+[lang='ar'] .stateName {
+  letter-spacing: 0;
+}
+
+/* ---- Screen chrome -------------------------------------------------------- */
+
+.pageHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--text-page-title);
+  font-weight: var(--weight-bold);
+}
+
+.backLink {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: var(--text-ui);
+}
+
+/* ---- The section card — previews FE-024-05 -------------------------------- */
+
+.card {
+  padding: var(--space-6);
+  margin-block-end: var(--space-4);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.cardTitle {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-card-title);
+  font-weight: var(--weight-medium);
+}
+
+/* A disabled SECTION, not a disabled control. `fieldset[disabled]` disables
+ * every control inside it natively, so the state is in the accessibility tree
+ * rather than only in the paint. It is rendered, never hidden — a section that
+ * appears after a selection reads as a page that was broken until it wasn't. */
+.fieldset {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.fieldset:disabled .cardTitle,
+.fieldset:disabled .label {
+  color: var(--text-placeholder);
+}
+
+.disabledNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  margin-block-end: var(--space-4);
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-helper);
+}
+
+/* ---- Fields --------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+}
+
+.required::after {
+  content: '*';
+  margin-inline-start: var(--space-1);
+  color: var(--state-danger-text);
+}
+
+.control {
+  inline-size: 100%;
+}
+
+.textarea {
+  min-block-size: 120px;
+  block-size: auto;
+  padding-block: var(--space-2);
+  resize: block;
+}
+
+/* THE QUESTION THIS PREVIEW EXISTS TO ANSWER.
+ * Three selects on one row inside a 720px column. `minmax(0, 1fr)` and not
+ * `1fr`: a bare `1fr` refuses to shrink below its content, so an over-long
+ * Arabic option would push the row wider than the frame instead of revealing
+ * that it does not fit. */
+.selectRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.helper {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.errorText {
+  font-size: var(--text-helper);
+  color: var(--state-danger-text);
+}
+
+.invalid {
+  border-color: var(--state-danger-text) !important;
+}
+
+/* The counter sits at the inline-end of its field. */
+.counterRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.counter {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.counterNear {
+  color: var(--state-warning-text);
+}
+
+/* ---- Customer picker ------------------------------------------------------ */
+
+.searchRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.searchField {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.searchSpinner {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-3);
+  margin-block-start: -8px;
+  color: var(--text-muted);
+}
+
+.searchAnchor {
+  position: relative;
+}
+
+.results {
+  margin-block-start: var(--space-2);
+  padding: 0;
+  list-style: none;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.result:hover,
+.resultActive {
+  background-color: var(--brand-subtle);
+}
+
+.resultName {
+  font-size: var(--text-ui);
+}
+
+.resultMeta {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  margin-block-start: var(--space-2);
+  background-color: var(--surface-content);
+  border: var(--border-width) dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  color: var(--text-muted);
+}
+
+/* `/customers/new` does not exist yet (007). A link to nowhere is worse than no
+ * link, so it renders visibly unavailable with the reason beside it — the same
+ * pattern as the disabled ticket section. Spec Q-3. */
+.linkDisabled {
+  color: var(--text-placeholder);
+  text-decoration: underline;
+  cursor: not-allowed;
+}
+
+.selected {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--surface-content);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.selectedBody {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Footer --------------------------------------------------------------- */
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-block-start: var(--space-6);
+}
+
+/* ---- Toast — previews FE-024-04 ------------------------------------------- */
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-4);
+  background-color: var(--state-success-bg);
+  color: var(--state-success-text);
+  border: var(--border-width) solid var(--state-success-text);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+}
+
+.toastNumber {
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.toastDismiss {
+  margin-inline-start: auto;
+  padding: 0;
+  background-color: transparent !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentcolor !important;
+  border: 0;
+  cursor: pointer;
+  font-size: var(--text-ui);
+}
+
+.notice {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  margin-block-end: var(--space-4);
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+}
+
+.measure {
+  margin-block-start: var(--space-4);
+  padding: var(--space-3);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: monospace;
+  font-size: var(--text-helper);
+  white-space: pre-wrap;
+}

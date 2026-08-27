@@ -1,0 +1,204 @@
+/* ============================================================================
+ * base.css — element defaults
+ * ============================================================================
+ *
+ * Two jobs, and the second one is the important one.
+ *
+ * 1. A bare <button>, <input>, <select>, or <textarea> is already token-styled.
+ *    That is the degradation floor: a half-built primitive can be DELETED and the
+ *    native element used directly, and the result still looks intentional.
+ *
+ * 2. DESIGN-BRIEF rule 17 is discharged here, once, instead of per component.
+ *
+ * Consumes semantic tokens only. Literal values are permitted in src/styles/ and
+ * nowhere else — that is what makes the no-literals gate over src/components/
+ * enforceable rather than aspirational.
+ * ============================================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* This product has ONE appearance. There is no dark palette to switch to.
+   * DESIGN-BRIEF rule 16. */
+  color-scheme: light;
+
+  /* Both forms. iOS Safari honours only the prefixed one, and without it the
+   * drawer breakpoint below 780px gets its text resized by the OS.
+   * stylelint flags the prefix because a standard property exists; it exists and
+   * is not enough. */
+  text-size-adjust: 100%;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--surface-content);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----------------------------------------------------------------------------
+ * DESIGN-BRIEF rule 17 — native controls never inherit the host's appearance
+ * ----------------------------------------------------------------------------
+ *
+ * `color-scheme: light` alone is NOT enough, and neither is an explicit hex: a
+ * host stylesheet can win on specificity. The reliable form is background-color,
+ * color, and -webkit-text-fill-color, all with !important. In a dark-mode browser
+ * an unstyled control otherwise renders on a dark canvas — black inputs,
+ * white-on-white buttons — and it reads as "this design is bad" rather than "this
+ * CSS is missing a rule", so it survives review. Caught in a preview three times,
+ * twice AFTER the rule was written down.
+ *
+ * HOW A COMPONENT OVERRIDES THESE — read before adding a primitive:
+ * these are ELEMENT selectors. A component's CSS Module uses a CLASS selector and
+ * repeats the same three properties with !important. Among !important declarations
+ * the normal cascade still applies, and a class (0,1,0) beats an element (0,0,1) —
+ * so the component wins. Omitting !important in the component does NOT win.
+ * -------------------------------------------------------------------------- */
+
+button,
+input,
+select,
+textarea {
+  background-color: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--text-ui);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking);
+}
+
+input,
+select,
+textarea {
+  block-size: var(--field-height-md);
+  padding-inline: var(--space-3);
+  background-color: var(--field-fill) !important;
+  inline-size: 100%;
+}
+
+textarea {
+  block-size: auto;
+  padding-block: var(--space-2);
+  resize: block;
+}
+
+button {
+  block-size: var(--button-height-md);
+  padding-inline: var(--button-padding);
+  background-color: var(--action-primary-bg) !important;
+  color: var(--action-primary-text) !important;
+  -webkit-text-fill-color: var(--action-primary-text) !important;
+  border-color: var(--action-primary-border);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+/* -webkit-text-fill-color INHERITS, and it beats a descendant's `color`. On a
+ * control containing only text that is exactly what rule 17 wants. On a control
+ * containing STRUCTURE — an avatar, a name, a muted email — it silently repaints
+ * every child in the control's colour, and the fix looks like a colour bug in
+ * the child. Making the fill track `color` inside a control restores the normal
+ * cascade while keeping the host-override protection on the control itself.
+ * Found in the shell's user block: white initials on navy rendered invisible. */
+button *,
+input *,
+select *,
+textarea * {
+  -webkit-text-fill-color: currentcolor;
+}
+
+/* Safari fades disabled input text regardless of `color` unless the fill colour is
+ * set explicitly. One browser, silently. */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+}
+
+::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1; /* Firefox dims placeholders by default */
+}
+
+/* ----------------------------------------------------------------------------
+ * Visually hidden, and ONLY visually
+ * ----------------------------------------------------------------------------
+ * NOT `display: none` and not `visibility: hidden` — both remove the element
+ * from the accessibility tree, which is the opposite of what this is for.
+ *
+ * The case it exists for: a search field whose visible label is its placeholder.
+ * A placeholder disappears the moment the user types, so someone listening loses
+ * the field's name halfway through using it. The label stays; only its paint
+ * goes.
+ * -------------------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Focus — one ring, everywhere
+ * ----------------------------------------------------------------------------
+ * A focus ring removed for aesthetics is a defect, not a style choice
+ * (DESIGN-BRIEF rule 9). It affects only keyboard users, who are not in the room.
+ *
+ * box-shadow, not outline: box-shadow follows border-radius and outline does not
+ * on every engine, and a square ring around a 4px-rounded control looks like a
+ * rendering fault. outline-offset is still set so forced-colours mode shows
+ * something.
+ * -------------------------------------------------------------------------- */
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+a {
+  color: var(--text-link);
+}
+
+/* ----------------------------------------------------------------------------
+ * Reduced motion — honoured globally
+ * ----------------------------------------------------------------------------
+ * For some people motion is nausea, not taste (DESIGN-BRIEF rule 20).
+ * -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

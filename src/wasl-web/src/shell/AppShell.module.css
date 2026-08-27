@@ -1,0 +1,31 @@
+/* ============================================================================
+ * AppShell
+ * ============================================================================
+ * 288 + 1152 = 1440. 68 + 956 = 1024. The arithmetic closes exactly.
+ *
+ * Two surfaces only, and the CONTENT is the sunken one: sidebar and header are
+ * --surface-page (white), the content area is --surface-content (Neutral/00).
+ * Most people assume the reverse (tokens.css note 3).
+ * ============================================================================ */
+
+.shell {
+  display: flex;
+  min-block-size: 100vh;
+  background-color: var(--surface-content);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: var(--content-gap);
+  padding: var(--content-padding);
+  background-color: var(--surface-content);
+}

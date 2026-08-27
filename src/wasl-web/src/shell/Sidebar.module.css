@@ -1,0 +1,584 @@
+/* ============================================================================
+ * Sidebar
+ * ============================================================================
+ *
+ * 288 expanded · 68 collapsed · overlay below 780. Semantic tokens only.
+ *
+ * ONLY TWO SURFACES IN THE SHELL, AND THE CONTENT IS THE SUNKEN ONE. The sidebar
+ * and header are white; the content area is Neutral/00. Most people assume the
+ * reverse (tokens.css note 3).
+ *
+ * TODO — literals here, each because tokens.css has no token for it (note 11) and
+ * DESIGN-BRIEF rule 3 forbids inventing one: the 26px toggle circle, the 3px
+ * active bar, the 220ms collapse, and the 12px lockup fade. Spec Q-8.
+ * ============================================================================ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: var(--sidebar-gap);
+
+  inline-size: var(--sidebar-width);
+  min-block-size: 100vh;
+  padding-block: var(--sidebar-padding-block);
+  padding-inline: var(--sidebar-padding-inline);
+
+  background-color: var(--surface-page);
+  border-inline-end: var(--shell-border);
+
+  /* A DELIBERATE EXCEPTION to DESIGN-BRIEF rule 19, which bans animating width
+   * because it forces a layout pass per frame. That rule exists to stop
+   * per-frame layout on many elements during scroll or list rendering. This is
+   * ONE container, ONCE, on a deliberate user action, over 220ms. Transforming a
+   * fixed-width panel instead would overlay the content rather than letting it
+   * reclaim the space, which is the wrong behaviour for a persistent sidebar.
+   * Any other place wanting to animate a size needs the same written argument. */
+  /* `transition: inline-size` DOES NOT WORK in Chrome: the class swap applies
+   * every other declaration — the padding, the centred icons — while the width
+   * stays at its old value, so the rail LOOKS collapsed at 288px and nothing
+   * errors. Proven by killing the transition from the console, at which point it
+   * resolved to 68px instantly. `width` is the physical name of the same box in
+   * horizontal-tb, it is NOT direction-dependent, and it interpolates. */
+  transition: width 220ms cubic-bezier(0.4, 0, 0.5, 1);
+}
+
+.collapsed {
+  inline-size: var(--sidebar-width-collapsed);
+  padding-inline: var(--space-2);
+}
+
+/* Below 780 the sidebar leaves the flow entirely. */
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: var(--z-drawer);
+  transform: translateX(-100%);
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.5, 1);
+}
+
+[dir='rtl'] .drawer {
+  transform: translateX(100%);
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+[dir='rtl'] .drawerOpen {
+  transform: translateX(0);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-drawer) - 1);
+  background-color: rgb(13 38 38 / 40%);
+  border: 0;
+}
+
+/* ---- Lockup -------------------------------------------------------------- */
+
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--space-8);
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  border-radius: var(--radius-md);
+  background-color: var(--action-primary-bg);
+  color: var(--action-primary-text);
+}
+
+/* Collapsed: the tile stays, the wordmark fades AND its width collapses — a
+ * wordmark that only fades still reserves 200px of a 68px rail. */
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  max-inline-size: 200px;
+  opacity: 1;
+  transition:
+    opacity 120ms,
+    max-inline-size 220ms;
+}
+
+.wordmarkPrimary {
+  font-size: var(--type-label-lg);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-ar-tight);
+  color: var(--text-primary);
+}
+
+/* Small, uppercase, letterspaced, muted — the second line of the lockup, not a
+ * descriptor. "Customer support" is the descriptor and it is optional
+ * (design/brand.md, Lockups); this is the name in the other script. */
+.wordmarkSecondary {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+}
+
+.collapsed .wordmark {
+  max-inline-size: 0;
+  opacity: 0;
+}
+
+/* Collapsed, the lockup is the TILE ALONE (design/brand.md, Lockups) — so it has
+ * to sit on the same axis as everything under it. Without this the wordmark's
+ * box collapses to zero width but the tile stays pinned to the flex line's
+ * inline-start, 10px off the rail's centre while the CTA, the icons and the
+ * avatar are all centred. It does not read as a spacing problem; it reads as the
+ * button being adrift, which is how it was reported. */
+.collapsed .lockup {
+  justify-content: center;
+
+  /* The wordmark's width goes to zero but the flex GAP after the tile does not,
+   * so the line stays 8px wider than the tile and centring it leaves the tile
+   * 4px off axis. Four pixels, and the column still looks wrong. */
+  gap: 0;
+}
+
+/* ---- Primary CTA --------------------------------------------------------- */
+
+/* The one create action for the whole section, and it does NOT disappear when
+ * the sidebar collapses — 02-app-shell.md turns it into an icon with an
+ * aria-label. Hiding the most frequent action in the product at the moment the
+ * window gets smaller, automatically and without being asked, is backwards.
+ *
+ * What DID need fixing is the shape: at 51.2 × 40 against a 32 × 32 tile, two
+ * navy blocks stacked read as a repeated tile rather than as mark-then-action.
+ * Square, and it reads as a button with the same rhythm as the icons below it. */
+.cta {
+  display: flex;
+}
+
+.cta > button {
+  inline-size: 100%;
+}
+
+.collapsed .cta {
+  justify-content: center;
+}
+
+.collapsed .cta > button {
+  /* Square BY CONSTRUCTION: one button height on both axes, so it cannot drift
+   * out of square if the height token changes. */
+  inline-size: var(--button-height-md);
+  padding-inline: 0;
+}
+
+/* ---- Collapse toggle ----------------------------------------------------- */
+
+/* A 26px circle ON THE SIDEBAR'S OUTER EDGE, half-overlapping the border. Under
+ * RTL it mirrors, and so does the direction of collapse — both fall out of the
+ * logical properties, with no second rule. */
+.toggle {
+  position: absolute;
+  /* Aligned with the LOCKUP, above the primary action — not level with it.
+   * Derived from the tile: padding-block + half the difference between the 32px
+   * tile and the 26px circle. */
+  inset-block-start: calc(var(--sidebar-padding-block) + (var(--space-8) - 26px) / 2);
+  inset-inline-end: -13px;
+  z-index: 1;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 26px;
+  block-size: 26px;
+  padding: 0;
+
+  background-color: var(--surface-card) !important;
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.toggleIcon {
+  transform: rotate(90deg);
+  transition: transform 220ms;
+}
+
+.collapsed .toggleIcon {
+  transform: rotate(-90deg);
+}
+
+[dir='rtl'] .toggleIcon {
+  transform: rotate(-90deg);
+}
+
+[dir='rtl'] .collapsed .toggleIcon {
+  transform: rotate(90deg);
+}
+
+/* ---- Nav ----------------------------------------------------------------- */
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+/* Uppercase, letterspaced, muted. Hidden when collapsed, with its height
+ * animated to 0 rather than display:none — otherwise the items below jump. */
+.caption {
+  display: block;
+  padding-inline: var(--space-3);
+  font-size: var(--text-helper);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-placeholder);
+  overflow: hidden;
+  max-block-size: var(--space-6);
+  opacity: 1;
+  transition:
+    max-block-size 220ms,
+    opacity 120ms;
+}
+
+.collapsed .caption {
+  max-block-size: 0;
+  opacity: 0;
+}
+
+/* Arabic is cursive: positive tracking breaks the joins, permanently
+ * (tokens.css note 4). The caption is the one place tracking is used at all. */
+[lang='ar'] .caption {
+  letter-spacing: 0;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+
+  /* A nav GROUP is a <button> and a nav LEAF is an <a>. An <a> with display:flex
+   * is block-level and fills the rail; a <button> keeps its shrink-to-fit sizing
+   * and collapses onto its icon — 18px instead of 52px. The active bar then sits
+   * ON TOP of the icon and overflow:hidden clips the rest, which reads as a
+   * broken glyph rather than as a sizing bug. Caught in the collapsed rail. */
+  inline-size: 100%;
+
+  block-size: var(--nav-item-height);
+  padding-inline: var(--space-3);
+
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+
+  /* A nav GROUP is a <button>, so base.css hands it the Primary button's navy
+   * fill with !important. Without these three it renders as a filled button in
+   * the middle of the navigation. See base.css, "HOW A COMPONENT OVERRIDES
+   * THESE" — a class beats an element, but only if it is also !important. */
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  border: 0;
+  cursor: pointer;
+}
+
+.item:hover {
+  background-color: var(--surface-content) !important;
+}
+
+.collapsed .item {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex: none;
+}
+
+.itemLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.collapsed .itemLabel,
+.collapsed .itemChevron {
+  display: none;
+}
+
+.itemChevron {
+  margin-inline-start: auto;
+  display: inline-flex;
+  transition: transform 200ms;
+}
+
+.itemChevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ---- Child items --------------------------------------------------------- */
+
+.children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.child {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  block-size: var(--nav-child-height);
+  /* Inset 32 under its parent, per 02-app-shell.md. */
+  padding-inline: var(--space-8) var(--space-3);
+
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.child:hover {
+  background-color: var(--surface-content);
+}
+
+/* The active bar is `inset-inline-start`, so it follows the direction with no
+ * second rule. Inset moves 0 → 2px when collapsed so it does not touch the
+ * edge. */
+/* THE BAR AND THE TINT TOGETHER, not one or the other.
+ * The bar is the only indicator that survives greyscale and forced-colours; a
+ * tinted background disappears in both. The tint is what makes the row read as
+ * selected at a glance. Each covers what the other cannot. */
+.active {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  background-color: var(--brand-subtle) !important;
+  font-weight: 600;
+}
+
+.active::before {
+  content: '';
+  position: absolute;
+  inset-block: var(--space-1);
+  inset-inline-start: 0;
+  inline-size: 3px;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-primary-bg);
+}
+
+.collapsed .active::before {
+  inset-inline-start: 2px;
+}
+
+/* ---- User block ---------------------------------------------------------- */
+
+.user {
+  margin-block-start: auto;
+  padding-block-start: var(--space-4);
+  border-block-start: var(--shell-border);
+}
+
+.userButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  block-size: auto;
+  padding: var(--space-2);
+
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  border: 0;
+  border-radius: var(--radius-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.userButton:hover {
+  background-color: var(--surface-content) !important;
+}
+
+.collapsed .userButton {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: var(--avatar-size);
+  block-size: var(--avatar-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--avatar-fill);
+  color: var(--text-on-inverse);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  flex: 1;
+}
+
+.collapsed .identity,
+.collapsed .userChevron {
+  display: none;
+}
+
+.identityName {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+/* A long email truncates with an ellipsis and keeps the full value in `title`.
+ * The text is wrapped in <bdi>, so the run is isolated and the ellipsis lands at
+ * the end of the STRING rather than at the end of the paragraph — without that,
+ * an RTL page truncates a Latin address from the wrong side and shows the wrong
+ * half of it. */
+.identityEmail,
+.popoverEmail {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userChevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* ---- User popover -------------------------------------------------------- */
+
+/* Opens UPWARD from the user block — there is nothing below it. */
+.popover {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline-start: 0;
+  z-index: var(--z-flyout);
+  min-inline-size: 220px;
+  margin-block-end: var(--space-2);
+  padding: var(--space-2);
+
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: 0 6px 20px rgb(13 38 38 / 12%);
+}
+
+.popoverAnchor {
+  position: relative;
+}
+
+.popoverHeader {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+}
+
+.popoverName {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+}
+
+.divider {
+  block-size: var(--border-width);
+  margin-block: var(--space-2);
+  background-color: var(--border-subtle);
+}
+
+.popoverRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  block-size: var(--nav-child-height);
+  padding-inline: var(--space-2);
+
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-ui);
+  text-align: start;
+  cursor: pointer;
+}
+
+.popoverRow:hover {
+  background-color: var(--surface-content) !important;
+}
+
+.rowIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* The sign-out arrow is DIRECTIONAL: it points out of the frame, so under RTL it
+ * has to point the other way or it reads as signing in. design/icons.md assigns
+ * mirroring to the consumer, and this is the consumer. The gear is rotational
+ * and must NOT mirror — mirroring an icon that has no direction is how a set
+ * ends up with two versions of the same glyph. */
+[dir='rtl'] .signOut .rowIcon {
+  transform: scaleX(-1);
+}
+
+.signOut .rowIcon {
+  color: inherit;
+}
+
+.roleCheck {
+  margin-inline-start: auto;
+  display: inline-flex;
+  color: var(--state-success-text);
+}
+
+/* The ONLY red item in the navigation. Red means "needs attention now" and
+ * destructive actions — never "this ended badly" (DESIGN-BRIEF rule 15). */
+.signOut,
+.signOut:hover {
+  color: var(--state-danger-text) !important;
+  -webkit-text-fill-color: var(--state-danger-text) !important;
+}
+
+/* ---- Children rendered inside the flyout --------------------------------- */
+
+.childInFlyout {
+  padding-inline: var(--space-3);
+}
+
+/* A filled row, not the inline-start bar. See ChildLink in Sidebar.tsx. */
+.activeInFlyout::before {
+  content: none;
+}
+
+.activeInFlyout {
+  background-color: var(--brand-subtle);
+}

@@ -1,0 +1,4 @@
+# Copied verbatim from docs/sdd/design/tokens.css. Linting it would mean editing
+# it, and then it is no longer a verbatim copy. It is guarded by the drift check
+# instead.
+src/styles/tokens.css

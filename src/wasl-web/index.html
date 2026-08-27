@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+  `lang` and `dir` are written here as the static default and are overwritten
+  BEFORE FIRST PAINT by the inline script below. Never in a useEffect — that runs
+  after paint, and the result is a flash of LTR on every load for every Arabic
+  user: everyone sees it and nobody files it.
+-->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--
+      Fonts from the Google CDN rather than self-hosted — a time decision, recorded
+      as Q-1 in the spec, not an engineering preference. The cost: offline, the CDN
+      fails silently into a fallback face, and for Arabic that reproduces the Q-15
+      defect exactly. The fallback stacks in tokens.css are documented so the
+      substitution is recognisable rather than mysterious.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap"
+    />
+
+    <!--
+      Lower case, as the brand is written. Not localized and not templated: the
+      document title is read before any module runs, so there is no catalogue to
+      resolve it against yet — and a product name is not copy anyway.
+    -->
+    <title>wasl</title>
+
+    <script>
+      /*
+       * PRE-PAINT. Inline and synchronous on purpose.
+       *
+       * `dir` and `lang` must be on <html> before ANYTHING paints. Doing this in a
+       * useEffect runs it AFTER paint, and the result is a visible flash of LTR on
+       * every load for every Arabic user — everyone sees it and nobody files it
+       * (ADR-007). The sidebar's collapsed state is restored in the same breath,
+       * for the same reason: otherwise it renders wide and snaps narrow.
+       *
+       * THIS DUPLICATES src/lib/direction.ts ON PURPOSE. A module cannot run before
+       * first paint, so the resolution order lives in two places and they must
+       * agree: localStorage -> navigator.language -> 'en'. If one changes, change
+       * both. Every write AFTER this one goes through direction.ts and nowhere else.
+       */
+      (function () {
+        var lang = 'en';
+        try {
+          var stored = localStorage.getItem('wasl.lang');
+          if (stored === 'en' || stored === 'ar') {
+            lang = stored;
+          } else if ((navigator.language || '').toLowerCase().indexOf('ar') === 0) {
+            lang = 'ar';
+          }
+        } catch (e) {
+          /* A private window can throw on localStorage. 'en' is correct. */
+        }
+
+        var root = document.documentElement;
+        root.lang = lang;
+        root.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+        try {
+          if (localStorage.getItem('wasl.sidebar') === 'collapsed') {
+            root.dataset.sidebar = 'collapsed';
+          }
+        } catch (e) {
+          /* Defaults are correct. */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

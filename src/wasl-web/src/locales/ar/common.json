@@ -1,0 +1,23 @@
+{
+  "productName": "وصل",
+  "nav": {
+    "main": "التنقّل",
+    "dashboard": "لوحة التحكم",
+    "tickets": "التذاكر",
+    "allTickets": "كل التذاكر",
+    "myTickets": "تذاكري",
+    "unassigned": "تذاكر غير مسندة",
+    "customers": "العملاء",
+    "settings": "الإعدادات",
+    "collapse": "طي القائمة الجانبية",
+    "expand": "توسيع القائمة الجانبية"
+  },
+  "role": {
+    "agent": "موظف الدعم",
+    "manager": "مدير"
+  },
+  "cancel": "إلغاء",
+  "back": "رجوع",
+  "dismiss": "إغلاق",
+  "errors.maxLength": "يجب ألا يزيد عن {{max}} حرفاً"
+}

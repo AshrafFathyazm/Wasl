@@ -1,0 +1,208 @@
+/* ============================================================================
+ * Button — Type × Status
+ * ============================================================================
+ *
+ * Semantic tokens only. No literal colour, spacing, radius, or font size.
+ *
+ * TWO THINGS THAT LOOK ODD AND ARE DELIBERATE
+ *
+ * 1. `!important` on background-color, color, and -webkit-text-fill-color.
+ *    base.css sets those on the bare `button` ELEMENT with !important, to stop a
+ *    dark host winning on specificity (DESIGN-BRIEF rule 17). Among !important
+ *    declarations the normal cascade still applies, so this CLASS (0,1,0) beats
+ *    that ELEMENT (0,0,1) — but only if it is also !important. Dropping it here
+ *    means the button renders in base.css's colours and the Type prop does
+ *    nothing. See base.css, "HOW A COMPONENT OVERRIDES THESE".
+ *
+ * 2. `[data-preview-state='…'] .button`.
+ *    :hover and :active cannot be forced, so every state would otherwise be
+ *    unverifiable in isolation — which is component-inventory.md's definition of
+ *    done for a primitive. The attribute is set ONLY by src/dev/PreviewPage, which
+ *    is stripped from the production bundle by `import.meta.env.DEV`. It adds no
+ *    prop to the component's frozen contract.
+ *
+ * TODO — no motion token exists (tokens.css note 11). The 100ms transition and the
+ * 1.45s indicator below are literals. DESIGN-BRIEF rule 3 forbids inventing a
+ * token, so the debt is visible rather than hidden. Spec Q-8.
+ * ============================================================================ */
+
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--button-gap);
+
+  block-size: var(--button-height-md);
+  padding-inline: var(--button-padding);
+
+  border-width: var(--button-border);
+  border-style: solid;
+  border-radius: var(--button-radius);
+
+  font-family: inherit;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking);
+
+  /* The button hugs its content and never wraps. An Arabic label is frequently
+   * longer than its English counterpart, and a wrapping 40px button breaks the row
+   * height for everything beside it. The PARENT owns the overflow. */
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    background-color 100ms,
+    border-color 100ms,
+    box-shadow 100ms;
+}
+
+/* ---- Primary ------------------------------------------------------------- */
+
+.primary {
+  background-color: var(--action-primary-bg) !important;
+  color: var(--action-primary-text) !important;
+  -webkit-text-fill-color: var(--action-primary-text) !important;
+  border-color: var(--action-primary-border);
+}
+
+.primary:hover:not(:disabled),
+[data-preview-state='hover'] .primary:not(:disabled) {
+  background-color: var(--brand-hover) !important;
+  border-color: var(--brand-hover);
+}
+
+.primary:active:not(:disabled),
+[data-preview-state='active'] .primary:not(:disabled) {
+  background-color: var(--brand-active) !important;
+  border-color: var(--brand-active);
+}
+
+.primary:disabled {
+  background-color: var(--brand-subtle) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+}
+
+/* ---- Secondary-Outline --------------------------------------------------- */
+
+.secondaryOutline {
+  background-color: var(--action-secondary-bg) !important;
+  color: var(--action-secondary-text) !important;
+  -webkit-text-fill-color: var(--action-secondary-text) !important;
+  border-color: var(--action-secondary-border);
+}
+
+/* The hover tint is brand, not neutral. It is the cheapest place for a theme
+ * change to be visible on a control the user touches constantly — a fully neutral
+ * secondary makes a brand change invisible on most of the buttons in the product. */
+.secondaryOutline:hover:not(:disabled),
+[data-preview-state='hover'] .secondaryOutline:not(:disabled) {
+  background-color: var(--brand-subtle) !important;
+  border-color: var(--brand-border);
+}
+
+.secondaryOutline:active:not(:disabled),
+[data-preview-state='active'] .secondaryOutline:not(:disabled) {
+  background-color: var(--surface-sunken) !important;
+  border-color: var(--border-default);
+}
+
+.secondaryOutline:disabled {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+}
+
+/* ---- Loading keeps its Type's colours --------------------------------- */
+
+/* `loading` implies the native `disabled` attribute, so a double-click sends one
+ * action. But a loading button is WORKING, not unavailable, and must not wear the
+ * disabled appearance — the first render of this component did, and it read as a
+ * dead control. These follow the :disabled rules deliberately: same specificity
+ * (0,2,0), so source order decides and these win. */
+.primary[aria-busy='true'] {
+  background-color: var(--action-primary-bg) !important;
+  color: var(--action-primary-text) !important;
+  -webkit-text-fill-color: var(--action-primary-text) !important;
+  border-color: var(--action-primary-border);
+  cursor: progress;
+}
+
+.secondaryOutline[aria-busy='true'] {
+  background-color: var(--action-secondary-bg) !important;
+  color: var(--action-secondary-text) !important;
+  -webkit-text-fill-color: var(--action-secondary-text) !important;
+  border-color: var(--action-secondary-border);
+  cursor: progress;
+}
+
+/* ---- Focus-visible ------------------------------------------------------- */
+
+/* box-shadow, not outline: box-shadow follows border-radius and outline does not
+ * on every engine, and a square ring around a 4px-rounded button looks like a
+ * rendering fault. outline-offset is set anyway so forced-colours mode shows
+ * something. A ring removed for aesthetics is a defect (DESIGN-BRIEF rule 9). */
+.button:focus-visible,
+[data-preview-state='focus'] .button {
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+[data-preview-state='focus'] .secondaryOutline {
+  border-color: var(--brand);
+}
+
+/* ---- Disabled ------------------------------------------------------------ */
+
+/* NOT opacity. `opacity` also fades the focus ring and any icon, and a faint focus
+ * ring is an accessibility defect that reads as a style choice. */
+.button:disabled {
+  cursor: not-allowed;
+}
+
+/* A loading button is working, not unavailable. This follows :disabled so it
+ * wins on order at equal specificity. */
+.button[aria-busy='true'] {
+  cursor: progress;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--button-gap);
+}
+
+/* ---- Loading ------------------------------------------------------------- */
+
+/* The width does not change between default and loading. The label keeps
+ * reserving its own width with `visibility: hidden`, and the indicator is
+ * absolutely positioned over it. A button that shrinks while loading moves
+ * everything after it in the row. */
+.contentHidden {
+  visibility: hidden;
+}
+
+.indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+/* The indicator is the system loader — components/Loader. It is NOT a spinner,
+ * and it is not the Button's own: the same one runs on a list, a detail page,
+ * and every mutation. design/brand.md §2. */
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}

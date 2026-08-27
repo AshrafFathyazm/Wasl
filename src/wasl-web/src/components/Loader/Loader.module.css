@@ -1,0 +1,180 @@
+/* ============================================================================
+ * Loader — "Converge"
+ * ============================================================================
+ *
+ * Three dots travel 31px and are absorbed into a node; the node pulses as they
+ * arrive. THIS REPLACES THE SPINNER EVERYWHERE (design/brand.md §2): the loader
+ * appears far more often than the logo does, so it is the most-seen brand asset
+ * in the product, and shipping a default spinner wastes it.
+ *
+ * THE SLANT COMES FROM THE DELAY, NOT FROM DIFFERENT START POSITIONS.
+ * All three dots start at `inset-inline-start: 0` — same x, different y (22% /
+ * 50% / 78% of a 16px container, deliberately close together). The staggered
+ * delay — 0 / .13s / .26s — puts the first ahead and the third behind, so they
+ * describe a diagonal WHILE MOVING. Do not "fix" the positions to make the slant;
+ * that would freeze it into a static comma.
+ *
+ * THE CONTAINER MUST FIT THE FULL TRAVEL: 46 × 16, for 31px of travel plus the
+ * 9px node. Narrower and the dots start a few pixels from the node, the 31px has
+ * nowhere to happen, and it reads as a static comma rather than as motion.
+ *
+ * The @keyframes are COPIED VERBATIM from design/brand.md §2. Do not tidy the
+ * percentages — 12 / 78 / 92 are the arrival shape, and 31 lands on the node
+ * while 34 is the overshoot into it.
+ *
+ * TODO — tokens.css has no motion token and no loader geometry token (note 11).
+ * The durations, the travel, and the dot and node sizes are literals. DESIGN-BRIEF
+ * rule 3 forbids inventing a token, so the debt is visible rather than hidden.
+ * Spec Q-8.
+ * ============================================================================ */
+
+.loader {
+  position: relative;
+  display: inline-block;
+  inline-size: 46px;
+  block-size: 16px;
+  color: inherit;
+
+  /* THE INTERNAL FRAME IS PINNED TO LTR, AND THAT IS WHAT MAKES THE MIRROR WORK.
+   *
+   * The keyframes are PHYSICAL — `translateX(31px)` — because they are copied
+   * verbatim from design/brand.md §2 and CSS has no logical transform. Mixing a
+   * physical animation with logical positioning inside the same assembly gives
+   * two mirrors that cancel: `inset-inline-end` moved the node to the left under
+   * rtl, then `scaleX(-1)` moved it back to the right, while the dots' physical
+   * travel was flipped only once. Measured: in rtl the node stayed on the RIGHT
+   * and the dots ran right→left, AWAY from it.
+   *
+   * With the frame pinned, everything inside is authored in one direction and the
+   * single scaleX below mirrors the whole assembly at once. brand.md: "the
+   * threads arrive from the inline-start, which in Arabic is the right." */
+  direction: ltr;
+}
+
+/* The travel is written in the physical direction the copied keyframes use.
+ * Mirroring the whole container is one line and leaves them untouched —
+ * `transform` has no logical form. */
+[dir='rtl'] .loader {
+  transform: scaleX(-1);
+}
+
+/* Reduced travel for a 40px control: the same three dots, the same 1.45s, the
+ * same easing, a shorter distance. Scaling the container keeps ONE set of
+ * keyframes rather than a second, divergent copy (spec Q-F). */
+.sm {
+  transform: scale(0.62);
+  transform-origin: center;
+}
+
+[dir='rtl'] .sm {
+  transform: scaleX(-1) scale(0.62);
+}
+
+.dot {
+  position: absolute;
+  inset-inline-start: 0; /* ← all three. Same x, different y */
+  inline-size: 5px;
+  block-size: 5px;
+  margin-block-start: -2.5px;
+  border-radius: 50%;
+  background-color: currentcolor;
+  opacity: 0;
+}
+
+.dot:nth-child(1) {
+  inset-block-start: 22%;
+  animation-delay: 0s;
+}
+
+.dot:nth-child(2) {
+  inset-block-start: 50%;
+  animation-delay: 0.13s;
+}
+
+.dot:nth-child(3) {
+  inset-block-start: 78%;
+  animation-delay: 0.26s;
+}
+
+/* Nearly double the dot — it is the destination, not a fourth dot. */
+.node {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  inline-size: 9px;
+  block-size: 9px;
+  margin-block-start: -4.5px;
+  border-radius: 50%;
+  background-color: currentcolor;
+}
+
+/* VERBATIM from design/brand.md §2. */
+@keyframes converge {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+
+  12% {
+    opacity: 0.85;
+  }
+
+  78% {
+    transform: translateX(31px);
+    opacity: 0.85;
+  }
+
+  92%,
+  100% {
+    transform: translateX(34px);
+    opacity: 0;
+  }
+}
+
+/* Peaks as the first dot lands. Same 1.45s as the dots, so the pulse stays in
+ * sync with the arrival instead of drifting against it. */
+@keyframes node-pulse {
+  0%,
+  58%,
+  100% {
+    transform: scale(1);
+  }
+
+  70% {
+    transform: scale(1.32);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dot {
+    animation: converge 1.45s cubic-bezier(0.4, 0, 0.5, 1) infinite;
+  }
+
+  .node {
+    animation: node-pulse 1.45s cubic-bezier(0.4, 0, 0.5, 1) infinite;
+  }
+}
+
+/* brand.md §2: "Under prefers-reduced-motion, the three dots AND the node render
+ * statically." Gating the animations behind `no-preference` alone would leave the
+ * dots at their declared `opacity: 0`, stacked at x=0 — so the loader would show a
+ * lone node and two thirds of the mark would silently disappear for exactly the
+ * people who cannot ask for the motion back. This block is what makes them
+ * static rather than absent. For some people motion is nausea, not taste. */
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    opacity: 0.85;
+  }
+
+  .dot:nth-child(1) {
+    transform: translateX(22px);
+  }
+
+  .dot:nth-child(2) {
+    transform: translateX(15px);
+  }
+
+  .dot:nth-child(3) {
+    transform: translateX(8px);
+  }
+}

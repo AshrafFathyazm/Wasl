@@ -1,0 +1,56 @@
+/* ============================================================================
+ * locale.css — per-locale typography
+ * ============================================================================
+ *
+ * Imported LAST, so these win.
+ *
+ * Per-locale metrics are not per-component. One block, and every primitive
+ * inherits it. Without this file the Arabic pass opens by discovering that every
+ * line of Arabic in the product is clipped — and it presents as a font rendering
+ * fault rather than a missing token, which is why it survives review.
+ * ============================================================================ */
+
+/* The `body` element carries an explicit font-family and line-height in base.css, so an
+ * inherited value from <html lang="ar"> LOSES to it — a direct declaration beats
+ * inheritance regardless of where the ancestor rule sits. Without the second
+ * selector, any Arabic that is not itself tagged lang="ar" renders in --font-sans,
+ * which has no Arabic glyphs: the Q-15 defect reproduced by a specificity gap.
+ * Caught in the preview, not by reading. */
+[lang='ar'],
+[lang='ar'] body {
+  font-family: var(--font-ar);
+
+  /* tokens.css note 4. Arabic glyphs sit well below the baseline (final ي ج ع)
+   * and carry marks above cap height (ث ض). Line-height 1.0 clips both. */
+  line-height: var(--leading-ar-normal);
+
+  /* NO cap-height trim under Arabic. Not reduced — absent. The source system has
+   * no per-locale answer, so --leading-ar-* are ours. */
+  text-box-trim: none;
+
+  /* PERMANENT. Arabic is cursive and positive tracking breaks the joins.
+   * This is not a value to tune later. */
+  letter-spacing: 0;
+
+  /* ADR-007 §7. Latin digits and the Gregorian calendar under `ar`: a ticket
+   * number is read aloud on the phone, pasted into an email, and searched for.
+   * TCK-٢٠٢٦-٠٠٠٠٤٢ is unsearchable against the stored value. */
+  font-variant-numeric: lining-nums;
+}
+
+[lang='ar'] h1,
+[lang='ar'] h2,
+[lang='ar'] h3,
+[lang='ar'] h4,
+[lang='ar'] h5,
+[lang='ar'] h6 {
+  line-height: var(--leading-ar-heading);
+}
+
+/* Single-line contexts only — a table cell, a badge, a button label. Anywhere the
+ * text cannot wrap, so the tight leading cannot collide with a second line. */
+[lang='ar'] button,
+[lang='ar'] input,
+[lang='ar'] select {
+  line-height: var(--leading-ar-tight);
+}
