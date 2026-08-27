@@ -197,3 +197,31 @@ unexplained red run.
 | **No test asserts the ticket-number sequence's gap behaviour** | A rolled-back create consumes a value; that is documented in `ITicketNumberGenerator` and accepted in `research.md`, not tested. Asserting a gap requires forcing a rollback and reading the next value, which tests the sequence rather than the feature |
 | **`IRequestTimestamp`'s frozen-clock limit is untested** | Every scope here is a request, so nothing exercises a long-lived one. The constraint is written at the implementation for whoever adds a hosted service |
 | **Deliberately untested** | That EF Core saves, that MediatR dispatches, that SQL Server honours a sequence. Load, volume, and index selectivity — no stated requirement (`docs/sdd/testing/test-strategy.md`) |
+
+---
+
+## Recorded later: a `404` that becomes an enumeration oracle at `004`
+
+Found by the concurrency-and-abuse review on 2026-08-27, not by a test.
+
+`CreateTicketCommandHandler` throws `NotFoundException("Error.Ticket.CustomerNotFound")` when the
+`customerId` does not exist (AC-4). The message key carries no id and the response leaks no
+customer data, which is why the review did not call it a defect **today**: every endpoint is open,
+so there is nothing to enumerate *against*.
+
+**It becomes one the moment `004` lands.** An authenticated user with no right to see a customer
+can discover which customer ids exist by posting tickets and reading the status — `404` means no
+such customer, `201` means it exists. BR-4.4 forbids exactly this shape for the duplicate rule:
+the response names the field and nothing else, because the distinction between "no such thing" and
+"a thing you may not see" is the oracle.
+
+**Owner: `004-auth-and-roles`**, and the fix belongs there rather than here — it needs a notion of
+who may see which customer, which is what `004` introduces. Two shapes are available to it:
+
+| Option | Cost |
+|---|---|
+| Return `404` for both "no such customer" and "a customer you cannot see" | The honest one, and the one BR-4.4's reasoning points at. Costs a permission check before the existence check |
+| Keep the distinction and accept it | Defensible in an internal tool where every actor is staff — `docs/sdd/15-scope-coverage.md` says every actor in scope is internal. Should be a written decision, not a leftover |
+
+Recorded here rather than fixed, because fixing it now would mean inventing the authorization
+model `004` owns.

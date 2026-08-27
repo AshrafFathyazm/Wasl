@@ -208,7 +208,13 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
         var context = scope.ServiceProvider
             .GetRequiredService<Wasl.Infrastructure.Persistence.WaslDbContext>();
 
-        var instant = new DateTime(2026, 8, 26, 10, 0, 0, DateTimeKind.Utc);
+        // A far-future instant, so these rows are unambiguously the newest in a database this
+        // suite shares. The first version used a past date and the test failed for a reason that
+        // had nothing to do with the tie: pages 1 and 2 filled with tickets another test class
+        // had created since. That is the shared-database constraint `CLAUDE.md` records — an
+        // assertion about "the newest six" is an assertion about every other test's timing unless
+        // it pins its own rows to the top.
+        var instant = new DateTime(2099, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         foreach (var id in ids)
         {

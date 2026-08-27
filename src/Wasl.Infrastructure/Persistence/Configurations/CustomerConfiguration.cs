@@ -43,8 +43,20 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.Notes)
             .HasColumnType("nvarchar(2000)");
 
-        builder.Property(c => c.IsActive)
-            .HasDefaultValue(true);
+        // NO column default, and this is a correction to what `001` shipped.
+        //
+        // `HasDefaultValue(true)` on a non-nullable bool is the same defect `009` found on
+        // `Priority`: EF applies a database default whenever the property holds the CLR default,
+        // and the CLR default for bool is false. So a caller explicitly deactivating a
+        // customer would have been stored as ACTIVE — no error, the value simply changes on the
+        // way in, and the row then contradicts the request that wrote it.
+        //
+        // Unreachable today, because `Customer` has no factory until `007`. `007` is also the
+        // feature where deactivation starts to matter, so it would have walked straight into it.
+        //
+        // `IsActive` is set explicitly by whatever creates a customer. One source of truth for a
+        // default, and the database was the wrong place for it.
+        builder.Property(c => c.IsActive).IsRequired();
 
         // rowversion, maintained by the database. Not xmin, not a manual int counter —
         // the one that gets forgotten is the one that breaks (ADR-006 as amended).

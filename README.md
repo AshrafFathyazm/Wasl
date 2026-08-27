@@ -45,9 +45,10 @@ than by a claim.
 Running it twice is a no-op. It exits without serving, so "did the seed work" and "is the app up"
 stay two separate questions.
 
-The tickets are created through the **real domain** — `Ticket.Create`, the BR-1 state machine, the
-number sequence, the history rows. A status the state machine forbids makes the seed fail rather
-than writing a ticket the product could not produce.
+The tickets go through the **real pipeline** — validation, the transaction boundary, the audit row,
+the BR-1 state machine, the number sequence. So a status the machine forbids fails the seed rather
+than writing a ticket the product could not produce — and anything that breaks the pipeline breaks
+the seed, before a demo rather than during one. It writes 14 audit rows.
 
 ### Run it
 
@@ -65,7 +66,7 @@ curl 'http://localhost:5272/api/tickets?pageSize=20'
 ### Run the tests
 
 ```bash
-dotnet test                                    # everything — 263 tests
+dotnet test                                    # everything — 267 tests
 dotnet test tests/Wasl.Domain.Tests            # no database, no Docker
 dotnet test tests/Wasl.Api.IntegrationTests    # needs Docker running
 ```
@@ -144,7 +145,7 @@ boundaries are the whole return on four projects, so they are checked rather tha
 | `012` change status — `PUT /status`, four refusal types, optimistic concurrency | Backend done |
 | `010` ticket list — paged, newest first | Backend done |
 
-**263 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
+**267 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
 recorded in each feature's `tests.md` rather than asserted from memory.
 
 ---
@@ -176,6 +177,27 @@ feature folder that owns it.
 | OpenAPI generation | `002b` | The contract files are frozen and both lanes read them, but nothing automatically compares the generated document against them. The comparison is manual and recorded as such |
 | **`DENY UPDATE, DELETE` on `dbo.AuditLog`** | `003b` | **The audit log is append-only by application convention, not by database permission.** Deferred whole rather than halved: `DENY` on a connection that is a `sysadmin` is decorative, and shipping it without the test that proves the connection is restricted would be a claim with no evidence |
 | The customer write path (`007`, `008`) | `007`, `008` | Customers are seeded, not created through the UI. `Customer` is deliberately a shell with private setters so it cannot drift before it gets its invariants |
+
+### Concurrency and abuse — a sideways review
+
+`CLAUDE.md` carries a twelve-row checklist for write endpoints, each row a defect this codebase
+has already had or that a feature's shape makes likely. **Reviewed across `002`, `003`, `009`,
+`010` and `012`: one defect fixed, four gaps recorded, eight items accepted with reasons.**
+
+The one fixed: `Customers.IsActive` carried a column `DEFAULT 1` while the CLR default for `bool`
+is `false` — so any code deactivating a customer would have stored them as **active**, with no
+error. Identical in shape to the `Priority` defect `009` found, sitting in `001`'s configuration
+since day one, unreachable only because `Customer` has no factory until `007` — which is also the
+feature where deactivation starts to matter.
+
+The four recorded:
+
+| Gap | Owner | Consequence |
+|---|---|---|
+| **`POST /api/tickets` is not idempotent** | Unowned by design | Two clicks create two tickets, with different numbers and no error. No acceptance criterion asks for idempotency, so this is not a deviation — but the question is now asked and this is the answer. A client-side guard is not the guarantee; the guarantee would be a request key or a business rule |
+| **A `404` for an unknown `customerId` on create is an enumeration oracle** | `004` | Harmless today because there is nothing to enumerate *against* — every endpoint is open. The moment authentication lands, any authenticated user can probe which customer ids exist by posting tickets. BR-4.4 forbids exactly this for the duplicate rule; the same reasoning applies here |
+| **`expectedVersion` is validated by allocating a buffer the size of the input** | `004` | A multi-megabyte token allocates before it is refused. A request body limit in Kestrel configuration is the cleaner fix than a length check in a validator, and `004` is where hardening belongs |
+| **`MultipleActiveResultSets=True` disables EF savepoints** | Unowned | Inherited from `001`'s connection string and used by nothing. Not a correctness defect — `TransactionBehaviour` rolls the whole transaction back, which is exactly what the warning prescribes — but it logs on every save, and a warning that always fires is a warning nobody reads |
 
 ### Known defects, not omissions
 
