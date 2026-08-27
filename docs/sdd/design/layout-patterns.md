@@ -1,5 +1,7 @@
 # Layout Patterns
 
+> **The numbers here are stale. `design/tokens.css` is the reference.**
+
 Read off the Abyan "All Requests" module export. These are the **conventions** to
 inherit (ADR-009 level 3) — not screens to copy.
 

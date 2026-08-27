@@ -76,6 +76,20 @@
   --icon-ink:   #292D32;
   --icon-dark:  #2F3237;
 
+  /* ==== BRAND — themeable (ADR-012) ======================================= */
+
+  /* The ONE value a tenant sets. Everything below is derived from it, so a brand
+   * change is one variable and not a palette. Fixed tokens — status, neutral,
+   * text, border, surface — must never point in here. See design/theming.md. */
+  --brand:        var(--navy-900);          /* (C) — today's value is the house navy */
+  --on-brand:     var(--Main-White-White);  /* (D) — static default; COMPUTED at runtime */
+
+  --brand-hover:  color-mix(in oklab, var(--brand) 88%, white);    /* (D) */
+  --brand-active: color-mix(in oklab, var(--brand) 82%, black);    /* (D) */
+  --brand-subtle: color-mix(in oklab, var(--brand)  8%, white);    /* (D) */
+  --brand-border: color-mix(in oklab, var(--brand) 24%, white);    /* (D) */
+  --brand-ring:   color-mix(in oklab, var(--brand) 22%, transparent); /* (D) */
+
   /* ==== SEMANTIC ========================================================== */
 
   --surface-page:    var(--Main-White-White);   /* sidebar and header */
@@ -96,12 +110,23 @@
   --border-default: var(--neutral-300);
   --border-focus:   var(--blue-500);
 
-  --action-primary-bg:       var(--navy-900);
-  --action-primary-border:   var(--navy-900);
-  --action-primary-text:     var(--Main-White-White);
+  /* One ring intensity, everywhere. Two intensities in one interface is exactly
+   * the inconsistency a token layer exists to remove. */
+  --focus-ring: color-mix(in oklab, var(--action-primary-bg) 22%, transparent); /* (D) */
+  --focus-ring-width: 3px;   /* (D) */
+
+  --action-primary-bg:       var(--brand);
+  --action-primary-border:   var(--brand);
+  --action-primary-text:     var(--on-brand);
   --action-secondary-bg:     var(--Main-White-White);
-  --action-secondary-border: var(--Neutral-200);
-  --action-secondary-text:   var(--Text-Primary);
+
+  /* Was --Neutral-200 / --Text-Primary. #DEE5E7 on #FFFFFF is a border you have
+   * to look for, so the default Secondary-Outline read as white-on-white and the
+   * control disappeared. Both now derive from the brand, which also means a
+   * tenant colour change is visible on the outline button rather than only on the
+   * filled one. (C) -> (D). */
+  --action-secondary-border: var(--brand-border);
+  --action-secondary-text:   var(--brand);
   --action-danger-bg:        var(--red-600);
 
   --state-success-bg:   var(--green-50);
@@ -197,11 +222,14 @@
   --chip-fill:   var(--neutral-50);
   --chip-border: 1px solid var(--neutral-300);
 
+  /* The dot IS the status token; the pill is only its container. */
+  --badge-dot-size: 7px;   /* (D) */
+
   --checkbox-size:   23px;
   --checkbox-radius: var(--radius-sm);
   --checkbox-border: 1px solid var(--neutral-100);
 
-  --avatar-size: 27px;
+  --avatar-size: 32px;   /* (C) — the sidebar user block. See note 10 */
   --avatar-fill: var(--navy-900);
 
   --progress-height: 6px;
@@ -216,6 +244,9 @@
   --frame-width:   1440px;
   --frame-height:  1024px;
   --sidebar-width: 288px;
+  --sidebar-width-collapsed:  68px;   /* (C) — 02-app-shell.md Collapse table */
+  --nav-item-height:          48px;   /* (C) */
+  --nav-child-height:         40px;   /* (C) */
   --header-height: 68px;
   --content-width:  1152px;
   --content-height: 956px;
@@ -228,6 +259,16 @@
   --header-padding-inline-start: var(--space-6);
   --header-padding-inline-end:   var(--space-7);
   --shell-border: 1px solid var(--Neutral-200);
+
+  /* ==== Z-INDEX =========================================================== */
+
+  /* Four layers, ordered by what may cover what. A modal must sit above a flyout
+   * because a flyout can open a dialog; a tooltip sits above everything because
+   * it never takes focus and never blocks. Nothing else gets a z-index. */
+  --z-drawer:   100;   /* (D) — the sidebar below 780px */
+  --z-flyout:   200;   /* (D) — collapsed-sidebar flyout, user popover */
+  --z-modal:    300;   /* (D) */
+  --z-tooltip:  400;   /* (D) */
 }
 
 /* ============================================================================
@@ -275,4 +316,16 @@
  *    The source has no readable text colour for amber backgrounds. Everything else
  *    in the state set is real: success, danger, and info pairs all came from the
  *    exports.
+ *
+ * 10. THE AVATAR IS 32, NOT 27.
+ *    27 is what the vector export measures; design/screens/02-app-shell.md reads
+ *    32 off the layer for the sidebar user block, and note 1's rule applies —
+ *    never sample geometry off a picture. One size, and it is 32.
+ *
+ * 11. NO SHADOW TOKENS AND NO MOTION TOKENS EXIST YET.
+ *    DESIGN-BRIEF rule 21 asks for a shadow between two distant planes and rule 18
+ *    caps motion at 300ms, but neither has an extracted value. Until they do, the
+ *    two durations the app shell needs — 220ms collapse, 140ms flyout close — are
+ *    literals in the component that owns them, each marked TODO. Deliberate: an
+ *    invented token is indistinguishable from a real one (rule 3).
  * ============================================================================ */
