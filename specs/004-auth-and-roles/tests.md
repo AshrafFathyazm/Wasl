@@ -220,3 +220,126 @@ the implementation rather than from the contract**, so they agreed with the defe
 | Password policy | Not implemented beyond `SeedOptions`' 8-character floor on the seeded values |
 | Concurrent startup of two instances | The unique index is the guarantee and is asserted (AC-22). The race itself was not run |
 | A token presented after a real 8 hours | `ClockSkew` is asserted against a token forged one second past expiry. Nothing waited eight hours |
+
+---
+
+# `004b` — the `401` body, and what fixing it uncovered
+
+**Run:** 2026-08-28. Reported by the frontend lane from a live run, not by any server test.
+
+```text
+dotnet build --no-incremental      0 Warning(s)   0 Error(s)
+dotnet test --no-build
+
+Wasl.Domain.Tests            Failed: 0   Passed: 177   Total: 177
+Wasl.Application.Tests       Failed: 0   Passed:  17   Total:  17
+Wasl.Api.IntegrationTests    Failed: 0   Passed: 161   Total: 161
+                                         ─────────────────────────
+                                         Passed: 355   Total: 355
+```
+
+340 before. `004b` added 15 — 9 integration, 6 unit.
+
+## The defect, reproduced before it was fixed
+
+```json
+{"type":"https://wasl.local/errors/unauthenticated",
+ "title":"Authentication is required.",
+ "detail":"Error.Auth.InvalidCredentials",
+ "status":401,"instance":"/api/auth/token","traceId":"00-804a280e..."}
+```
+
+Two faults in one body. `title` is the wrong one of the two the contract specifies for this
+`type`, and `detail` is a raw resource key rendered verbatim on the login screen — BR-8.6 says
+the server localizes the strings it authors.
+
+## Fixed, and verified live
+
+```json
+{"type":"https://wasl.local/errors/unauthenticated",
+ "title":"Email or password is incorrect.",
+ "status":401,"instance":"/api/auth/token","traceId":"00-da827559..."}
+```
+
+An unknown email returns the same body apart from `traceId`, so AC-4 still holds — checked in the
+same run rather than assumed, because a change to this response is exactly where that criterion
+would break.
+
+Mechanism, in `plan.md` under *Post-delivery contract notes*: an optional `TitleKey` on
+`DomainException`, null by default, preferred by the factory over the registry's; and
+`CarriesDetail: false` on the `unauthenticated` row. The `type` did not change.
+
+## The guard, and what it found on its first run
+
+A single missing catalogue entry is a typo. This was the **second** occurrence — `012` AC-3 caught
+a `409` whose `detail` came back as `Error.Ticket.InvalidTransition` — so the fix included a guard
+rather than one more entry.
+
+`ResourceKeyLeakTests` asserts that no `title`, `detail`, or `errors` message in any error response
+matches the *shape* of a resource key: `Word.Word.Word`, no spaces. No English sentence matches it.
+
+**On its first run it failed twice more, and those two were the whole API:**
+
+```text
+400 sign-in validation:       errors.email    → "Validation.Auth.EmailRequired"
+400 create-ticket validation: errors.subject  → "Validation.Ticket.SubjectRequired"
+```
+
+Every FluentValidation message in the codebase was unresolved. Seventeen keys, enumerated by
+diffing the literals in `Wasl.Application` and `Wasl.Domain` against the catalogue:
+
+```text
+Error.Auth.InvalidCredentials              Validation.Ticket.DescriptionRequired
+Error.Ticket.CustomerNotFound              Validation.Ticket.DescriptionTooLong
+Validation.Auth.EmailRequired              Validation.Ticket.ExpectedVersionRequired
+Validation.Auth.PasswordRequired           Validation.Ticket.ExpectedVersionUndecodable
+Validation.Ticket.CategoryInvalid          Validation.Ticket.NoteRequiredToClose
+Validation.Ticket.ChannelInvalid           Validation.Ticket.NoteTooLong
+Validation.Ticket.CustomerRequired         Validation.Ticket.PriorityInvalid
+Validation.Ticket.StatusInvalid            Validation.Ticket.SubjectRequired
+                                           Validation.Ticket.SubjectTooLong
+```
+
+Every form field on every screen was rendering a key. **Not one server test noticed**, because
+each asserted that `errors.subject` was *present* and carried one entry — `CLAUDE.md`'s "assert
+content, not presence", failing in the one direction the existing tests were blind to.
+
+Live, after:
+
+```json
+"errors":{"email":["Enter your email address."],"password":["Enter your password."]}
+```
+
+## The build-time half
+
+`ResourceKeyLeakTests` can only see the paths the suite exercises. `MessageKeyCoverageTests`
+(`Wasl.Application.Tests`, no database) scans both lower projects for literals shaped like a
+message key and asserts each is in the catalogue — so a key on a rare branch fails on the commit
+that introduces it rather than on the request that renders it.
+
+It also asserts its own scanner: six inputs, three keys and three sentences, because `001` shipped
+an architecture test that was a false negative until someone broke it on purpose, and a regex that
+matches nothing reports success.
+
+The reverse direction is deliberately not asserted. An unused catalogue entry is harmless, and
+`002` registered titles for statuses it did not yet raise **on purpose** — failing on those would
+punish the discipline that made this fix a catalogue edit rather than a redesign.
+
+## Negative control
+
+One entry deleted — `Validation.Ticket.SubjectRequired` — rebuilt with `--no-incremental`:
+
+```text
+Wasl.Application.Tests       Failed: 1   (MessageKeyCoverageTests)
+Wasl.Api.IntegrationTests    Failed: 1   (ResourceKeyLeakTests, filtered)
+```
+
+Both halves red, at both times. Restored, rebuilt, re-ran the whole suite: 355/355.
+
+## Not claimed
+
+| What | Why |
+|---|---|
+| That no key can ever leak | `ResourceKeyLeakTests` covers six error responses. A path nothing exercises is covered only by the build-time scanner, which reads literals — a key composed at runtime would evade both |
+| Arabic messages | The catalogue is English-only. `005` moves it to `.resx` with Arabic alongside; the keys do not change |
+| That the middleware `401`/`403` bodies are correct | They are **empty** — no `type`, no `traceId`. `002b`, unchanged by this work and unrelated to it |

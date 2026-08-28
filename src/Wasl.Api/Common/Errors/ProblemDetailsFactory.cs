@@ -43,6 +43,16 @@ internal sealed class ProblemDetailsFactory(
 
         var problem = Create(context, exception.ErrorCode, definition);
 
+        // `004b`. One `type` can describe two situations with different correct titles —
+        // errors/unauthenticated covers both "no credentials supplied" and "credentials
+        // rejected", and the frozen contract gives them different titles. The registry row
+        // carries the default; an exception may override it. The `type` never varies, because
+        // that is what a client branches on.
+        if (exception.TitleKey is { } titleKey)
+        {
+            problem.Title = messages.Resolve(context, titleKey);
+        }
+
         if (definition.CarriesDetail)
         {
             problem.Detail = messages.Resolve(context, exception.MessageKey, exception.MessageArguments);

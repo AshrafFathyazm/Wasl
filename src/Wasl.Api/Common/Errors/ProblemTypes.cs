@@ -71,8 +71,18 @@ internal static class ProblemTypes
             StatusCodes.Status415UnsupportedMediaType, CarriesErrors: false, TitleKey: "Error.UnsupportedMediaType.Title"),
 
         // ── Registered here, raised by 004 ──────────────────────────────────────────
+        // CarriesDetail: false — `004b`. The frozen contract shows NO detail on either 401, and
+        // the omission is the point: a rejected sign-in must say the same thing whichever of the
+        // three causes it was, and every sentence added to that response is a sentence that can
+        // accidentally distinguish them. The title carries the whole message, and
+        // UnauthenticatedException overrides it so "credentials rejected" and "no credentials"
+        // read differently while sharing one `type`.
+        //
+        // It also closes a leak: `004` shipped detail = "Error.Auth.InvalidCredentials", a raw
+        // resource key rendered verbatim on the login screen (BR-8.6).
         [Unauthenticated] = new(
-            StatusCodes.Status401Unauthorized, CarriesErrors: false, TitleKey: "Error.Unauthenticated.Title"),
+            StatusCodes.Status401Unauthorized, CarriesErrors: false,
+            TitleKey: "Error.Unauthenticated.Title", CarriesDetail: false),
 
         [Forbidden] = new(
             StatusCodes.Status403Forbidden, CarriesErrors: false, TitleKey: "Error.Forbidden.Title"),

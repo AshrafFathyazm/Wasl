@@ -127,6 +127,7 @@ and `ar`.
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
+- **`004b` partial** 2026-08-28 — the `401` body's `title` was the wrong one of the two this `type` carries, and `detail` was a **raw resource key** on the login screen. Fixed with an optional `TitleKey` on `DomainException` and `CarriesDetail: false`; the `type` did not change. **The guard written to stop it recurring found seventeen more:** every FluentValidation message in the API was unresolved (355 tests). AC-17/AC-18 — the audit row on a middleware denial — are still open
 - **The development connection string points at the compose container**, port 14330, not `.\SQLEXPRESS`. Supersedes `001` AC-10 — see `12-delivery-log.md` 2026-08-27
 
 <!-- MANUAL ADDITIONS START -->
@@ -265,7 +266,14 @@ Every non-2xx is RFC 7807 `ProblemDetails` with a `traceId` matching the server 
 `errors` appears only on `400` and `409`. `detail` never contains a stack trace, SQL, an
 exception type name, or a connection string.
 
-Pagination response: `{ items, page, pageSize, totalCount, totalPages }`.
+**Two pagination shapes, deliberately.** An **envelope** —
+`{ items, page, pageSize, totalCount, totalPages }` — for stable, jumpable lists: `GET /api/tickets`,
+and `015` takes the envelope. A **cursor** — `?before=<cursor>&limit=` — for feeds that grow at the
+point the reader is looking: `GET /api/tickets/{id}/timeline` (`013`). The difference is not a
+preference. A ticket list grows at the end the user is *not* reading, so page 2 stays page 2; a
+timeline grows at the end they *are* reading, so a page number silently skips or repeats entries
+between two requests. Without this paragraph the first person to meet both reads it as an
+inconsistency and unifies them.
 
 Sub-resource `PUT` (`/status`, `/assignee`) instead of `PATCH` on the ticket — each is a
 distinct business action with its own rules and its own history row.
@@ -312,6 +320,23 @@ present, would have stayed green on a broken audit trail.
 **A guard that has never been seen to fail has not been verified.** `001` shipped an
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
+
+**`errors[field]` with one entry is not a content assertion — it is a shape assertion.** Read the
+message. Six assertion sites across the suite checked a `400` this way — `TryGetProperty("subject")
+is true`, `EnumerateArray().HaveCount(1)` — and **all seventeen unresolved keys went out under
+them**, because a raw key is exactly one array entry under exactly the right field name. Counting
+entries proves the envelope; only reading the string proves the message.
+
+**A missing message key is invisible, and it has shipped three times.** `002`'s message source
+resolves an unknown key by **returning the key** rather than throwing — correct at runtime, since a
+missing translation must not turn a `400` into a `500`, and it makes the response well-formed and
+useless. `012` AC-3 caught one `409`; the frontend lane caught a `401` rendering
+`Error.Auth.InvalidCredentials` on the login screen; and the guard written for that second one
+found that **every** FluentValidation message in the API was a raw key — seventeen of them, under
+every form field, with no server test noticing because each asserted the field was *present*.
+Two guards now, and neither is optional: `ResourceKeyLeakTests` asserts no response field matches
+the *shape* of a key, and `MessageKeyCoverageTests` scans the source for key-shaped literals and
+requires each in the catalogue. **Add the message in the same commit as the key.**
 
 **A stale binary reports a green build.** `Copy-Item` preserves the source file's
 `LastWriteTime`, so reverting a change from a backup can make the source look **older** than the

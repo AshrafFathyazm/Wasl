@@ -543,3 +543,91 @@ Stated in `spec.md`, in the contract, and here, because it is the sentence most 
 be softened. There is no revocation. A stolen token works for up to 8 hours. Rotating the
 signing key signs out every user simultaneously and is not a per-user mechanism. The
 lifetime is a weak mitigation and calling it anything else would be a false statement.
+
+---
+
+### Post-delivery contract notes — 2026-08-28
+
+The contract did not move. Two entries, both defects in the **implementation** found from the
+other side of the contract — `CLAUDE.md`: *a difference is a defect in one of the two, never
+fixed silently.*
+
+#### The `401` body did not match the contract it was built from
+
+**Reported by the frontend lane from a live run.** The login screen was displaying the wrong
+sentence, because the contract tells it to render what it is given.
+
+```jsonc
+// what shipped
+{
+  "type": "https://wasl.local/errors/unauthenticated",
+  "title": "Authentication is required.",          // ← the contract says "Email or password is incorrect."
+  "detail": "Error.Auth.InvalidCredentials",       // ← a raw resource key. BR-8.6.
+  ...
+}
+```
+
+Two separate causes, and neither is a contract change.
+
+**1 · One `type`, two situations, one title.** `errors/unauthenticated` legitimately covers both
+*no credentials were supplied* — produced by the authentication middleware — and *the credentials
+you supplied were rejected*, produced by the handler. The frozen contract gives them different
+titles on purpose and shows both, at two places in `auth-api.md`. The registry has one row per
+`type` with one `TitleKey`, so the first title went out on the second response.
+
+Fixed by adding an optional `TitleKey` to `DomainException`, null by default, which the factory
+prefers over the registry's. `UnauthenticatedException` overrides it.
+**The `type` deliberately did not change**: splitting it was the other available fix and it is
+worse — `type` is the identifier a client branches on and it is frozen, so a new one breaks every
+consumer to solve a wording problem. The title is the translated half that no client should branch
+on, so the title is what varies.
+
+**2 · `detail` carried a raw resource key**, and now carries nothing. `Error.Auth.InvalidCredentials`
+had no entry in `StaticProblemMessageSource`, and `002`'s message source resolves an unknown key by
+**returning the key** rather than throwing. The registry row is now `CarriesDetail: false`, which
+matches the contract's examples — neither `401` shows a `detail` — and is the stronger answer for
+this endpoint specifically: a rejected sign-in must read identically whichever of the three causes
+it was, and every extra sentence is a sentence that can accidentally distinguish them.
+
+Verified live afterwards, both bodies byte-identical apart from `traceId`:
+
+```json
+{"type":"https://wasl.local/errors/unauthenticated",
+ "title":"Email or password is incorrect.","status":401,
+ "instance":"/api/auth/token","traceId":"..."}
+```
+
+#### 2026-08-28 — and the guard written for that found seventeen more
+
+A single missing entry is a typo. It had now happened twice — `012` AC-3 caught a `409` whose
+`detail` was `Error.Ticket.InvalidTransition`, and this was the second — so the fix included a
+guard rather than only a catalogue entry.
+
+`ResourceKeyLeakTests` asserts that no `title`, `detail`, or `errors` message in any error response
+matches the **shape** of a resource key (`Word.Word.Word`, no spaces — no English sentence matches
+it). **On its first run it failed on two more cases, and those two turned out to be the whole
+API:** every FluentValidation message key was unresolved. Seventeen keys, every form field on every
+screen, rendering `Validation.Ticket.SubjectRequired` to the user.
+
+```text
+errors.subject  →  ["Validation.Ticket.SubjectRequired"]      before
+errors.subject  →  ["Enter a subject."]                       after
+```
+
+**This is a client-visible change to every `400` in the API**, which is why it is recorded here
+rather than only in `tests.md`. No key changed and no shape changed — the `errors` dictionary still
+maps a camelCase field name to an array of strings — but the strings were keys and are now
+sentences. A frontend that had hard-coded its own copy of a message against a key should stop.
+
+A second guard was added at build time: `MessageKeyCoverageTests` scans `Wasl.Application` and
+`Wasl.Domain` for string literals shaped like a message key and asserts each appears in the
+catalogue. It needs no database and fails on the commit that introduces the key rather than on the
+request that renders it. Both guards were verified by deleting one entry and watching each go red.
+
+**The reverse direction is deliberately not asserted** — a catalogue entry with no raiser is
+harmless, and `002` registered titles for statuses it did not yet raise on purpose.
+
+**Still open, and unchanged by this:** `005-localization-core` moves these messages to `.resx`
+with Arabic alongside. The keys do not change, which is the entire return on having authored them
+as symbolic keys from the first line of code (ADR-007 §5). Until then the catalogue is
+English-only and `Content-Language` correctly reports `en`.

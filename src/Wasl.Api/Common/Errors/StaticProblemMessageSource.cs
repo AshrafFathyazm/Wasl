@@ -33,6 +33,11 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         ["Error.MethodNotAllowed.Title"] = "That method is not allowed on this path.",
         ["Error.UnsupportedMediaType.Title"] = "The request body must be JSON.",
         ["Error.Unauthenticated.Title"] = "Authentication is required.",
+
+        // `004b`. The OTHER title under the same `type`: this one answers a request that supplied
+        // credentials, and it names neither which field was wrong nor whether the account exists —
+        // one sentence for a wrong password, an unknown email, and a deactivated user alike.
+        ["Error.Auth.InvalidCredentials.Title"] = "Email or password is incorrect.",
         ["Error.Forbidden.Title"] = "You do not have permission to do that.",
         ["Error.DuplicateCustomer.Title"] = "A customer with this value already exists.",
         ["Error.InvalidStatusTransition.Title"] = "That status change is not permitted.",
@@ -54,6 +59,44 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         ["Error.Ticket.AssigneeRequired"] = "Assign the ticket before starting work on it.",
         ["Error.Ticket.ConcurrencyConflict"] = "Reload the ticket and try again.",
         ["Error.Ticket.NotFound"] = "No ticket was found with that id.",
+
+        // ── `004b` — seventeen keys that were reaching clients unresolved ────────────
+        //
+        // Found by ResourceKeyLeakTests on its first run, immediately after it was written to
+        // stop the login-screen defect recurring. It did not merely confirm that one: it found
+        // that EVERY FluentValidation message in this API was a raw key, so a 400 rendered
+        // "Validation.Ticket.SubjectRequired" under the subject field on every form.
+        //
+        // The mechanism is `002`'s deliberate key-instead-of-throw fallback, which is the right
+        // runtime behaviour — a missing translation must not turn a 400 into a 500 — and which
+        // makes the failure invisible in every server test that asserts a field is *present*.
+        //
+        // English here, as the fallback catalogue. `005` moves these to .resx with Arabic
+        // alongside; the keys do not change, which is the whole point of having authored them
+        // as keys from the first line of code (ADR-007 §5).
+
+        ["Error.Auth.InvalidCredentials"] = "Email or password is incorrect.",
+        ["Error.Ticket.CustomerNotFound"] = "No customer was found with that id.",
+
+        ["Validation.Auth.EmailRequired"] = "Enter your email address.",
+        ["Validation.Auth.PasswordRequired"] = "Enter your password.",
+
+        ["Validation.Ticket.CustomerRequired"] = "Choose a customer.",
+        ["Validation.Ticket.SubjectRequired"] = "Enter a subject.",
+        ["Validation.Ticket.SubjectTooLong"] = "The subject is too long.",
+        ["Validation.Ticket.DescriptionRequired"] = "Describe the problem.",
+        ["Validation.Ticket.DescriptionTooLong"] = "The description is too long.",
+        ["Validation.Ticket.CategoryInvalid"] = "Choose a valid category.",
+        ["Validation.Ticket.ChannelInvalid"] = "Choose a valid channel.",
+        ["Validation.Ticket.PriorityInvalid"] = "Choose a valid priority.",
+        ["Validation.Ticket.StatusInvalid"] = "Choose a valid status.",
+        ["Validation.Ticket.NoteRequiredToClose"] = "Add a note explaining why this is being closed.",
+        ["Validation.Ticket.NoteTooLong"] = "The note is too long.",
+
+        // No length or format is quoted in either of these. The client holds the token opaquely
+        // and cannot act on "it must be base64" — the only useful instruction is to reload.
+        ["Validation.Ticket.ExpectedVersionRequired"] = "Reload the ticket and try again.",
+        ["Validation.Ticket.ExpectedVersionUndecodable"] = "Reload the ticket and try again.",
 
         // ── `011` ───────────────────────────────────────────────────────────────────
         ["Error.AssigneeUnchanged.Title"] = "This ticket is already assigned to that user.",

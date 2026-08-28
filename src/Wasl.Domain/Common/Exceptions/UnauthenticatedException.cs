@@ -17,4 +17,18 @@ namespace Wasl.Domain.Common.Exceptions;
 /// </para>
 /// </remarks>
 public sealed class UnauthenticatedException()
-    : DomainException(DomainErrorCodes.Unauthenticated, "Error.Auth.InvalidCredentials");
+    : DomainException(DomainErrorCodes.Unauthenticated, "Error.Auth.InvalidCredentials")
+{
+    /// <summary>
+    /// <i>Email or password is incorrect.</i> — not the registry's <i>Authentication is
+    /// required.</i>, which describes the other situation this `type` covers. `004b`.
+    /// </summary>
+    /// <remarks>
+    /// The frozen contract specifies both titles under one `type`: a request with no credentials
+    /// is told authentication is required, and a request with wrong ones is told they are wrong.
+    /// `004` shipped the first on both, so the login screen displayed *Authentication is
+    /// required.* to a user who had just supplied credentials — reported by the frontend lane
+    /// from a real run.
+    /// </remarks>
+    public override string TitleKey => "Error.Auth.InvalidCredentials.Title";
+}

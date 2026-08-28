@@ -60,4 +60,32 @@ public abstract class DomainException : Exception
     /// </remarks>
     public virtual IReadOnlyDictionary<string, string[]> FieldErrors { get; }
         = new Dictionary<string, string[]>();
+
+    /// <summary>
+    /// A message key overriding the registry's title for this <b>specific</b> failure, or
+    /// <c>null</c> to use the title the <c>type</c> is registered with. Added by `004b`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Because one <c>type</c> can legitimately describe two situations with different correct
+    /// titles, and `004` shipped exactly that.</b> `errors/unauthenticated` covers both "no
+    /// credentials were supplied" — produced by the authentication middleware — and "the
+    /// credentials you supplied were rejected", produced by the sign-in handler. The frozen
+    /// contract gives them different titles on purpose: *Authentication is required.* against
+    /// *Email or password is incorrect.* A single registry row cannot say both, so `004` shipped
+    /// the first title on the second response and the login screen displayed it.
+    /// </para>
+    /// <para>
+    /// <b>The <c>type</c> deliberately does not change.</b> Splitting it would have been the other
+    /// fix and it is worse: <c>type</c> is the identifier a client branches on and it is frozen in
+    /// the contract, so a new one breaks every consumer to solve a wording problem. The title is
+    /// the human-readable half — the half that is translated (BR-8.6) and that no client should
+    /// branch on — so the title is what varies.
+    /// </para>
+    /// <para>
+    /// Null by default, so every existing exception keeps the registry's title and nothing that
+    /// worked before had to change.
+    /// </para>
+    /// </remarks>
+    public virtual string? TitleKey => null;
 }

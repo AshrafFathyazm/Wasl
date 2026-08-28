@@ -63,6 +63,25 @@ endpoint (AC-7), which is the criterion the spec wrote for exactly this reason.
 | 5 | AC-15's literal wording is not met: the sign-in row's actor columns are null. See D-3 in `tests.md` | recorded |
 | 6 | The frontend half — login screen, route guard, `401` interceptor, sign-out | the frontend lane |
 
+## Post-delivery — `004b`, 2026-08-28
+
+The frontend lane reported that the login screen displayed the wrong sentence. Two faults in the
+`401` body: the wrong one of the two titles this `type` carries, and a **raw resource key** in
+`detail`. Both fixed; the `type` did not change. Mechanism and reasoning in `plan.md` under
+*Post-delivery contract notes*, evidence in `tests.md`.
+
+**The guard written to stop it recurring found seventeen more keys on its first run** — every
+FluentValidation message in the API was unresolved, so every form field on every screen was
+rendering `Validation.Ticket.SubjectRequired` and its siblings. No server test had noticed,
+because each asserted the field was *present* rather than what it said.
+
+Two guards now, and both were verified by deleting an entry and watching them go red:
+`ResourceKeyLeakTests` over real responses, and `MessageKeyCoverageTests` over the source with no
+database. 355 tests.
+
+**AC-17 and AC-18 remain open.** This work touched the `401` body's content, not the missing
+audit row on a denial — that is still `004b`'s other half.
+
 ## Deviations
 
 Six, each with its reason, in [tests.md](tests.md) § *Deviations*. The two that change something
