@@ -108,7 +108,7 @@ collation, so `MANAGER@WASL.LOCAL` works.
 ### Run the tests
 
 ```bash
-dotnet test                                    # everything — 378 tests
+dotnet test                                    # everything — 408 tests
 dotnet test tests/Wasl.Domain.Tests            # no database, no Docker
 dotnet test tests/Wasl.Api.IntegrationTests    # needs Docker running
 ```
@@ -139,6 +139,8 @@ log. `200` is never returned with an error in the body.
 | `PUT /api/tickets/{id}/assignee` | Assign, reassign, or unassign (`assigneeId: null`). BR-2 in full — a Manager assigns anyone, an Agent may only take an **unassigned** ticket for themselves |
 | `POST /api/tickets/{id}/comments` | `201`. Append-only — there is no edit and no delete, by design (BR-5.3) |
 | `GET /api/tickets/{id}/timeline` | Comments and recorded changes merged into one ascending feed. **Cursor-paged**, not page-numbered — see below |
+| `GET /api/customers?search=&page=&pageSize=` | The directory. Substring search over name, email and phone, case-insensitive **by column collation**, with pattern characters treated literally |
+| `GET /api/customers/{id}` | The full record, with a `version` for a future edit to send back |
 | `GET /api/support-users` | The assignee picker. Active users only, three fields — id, name, role |
 
 ### Five things worth looking at
@@ -214,8 +216,9 @@ boundaries are the whole return on four projects, so they are checked rather tha
 | `004` auth — `dbo.SupportUsers`, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + an authenticated **fallback** policy | **Backend half done.** `004b` deferred, see below |
 | `011` assign ticket — `PUT /assignee`, `GET /api/support-users`, BR-2 in full | Backend done |
 | `013` timeline and comments — `dbo.TicketComments`, `POST /comments`, `GET /timeline` (cursor-paged) | Backend done |
+| `008` customer list and profile — `GET /api/customers` with search, `GET /api/customers/{id}` | Backend done |
 
-**378 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
+**408 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
 recorded in each feature's `tests.md` rather than asserted from memory.
 
 ---
@@ -244,7 +247,7 @@ feature folder that owns it.
 | `UseStatusCodePages` — enveloping `404`, `405`, `415` | `002b` | A mistyped URL returns an **empty-bodied** `404`. No exception handler in any framework sees those, which is the finding that split the feature |
 | OpenAPI generation | `002b` | The contract files are frozen and both lanes read them, but nothing automatically compares the generated document against them. The comparison is manual and recorded as such |
 | **`DENY UPDATE, DELETE` on `dbo.AuditLog`** | `003b` | **The audit log is append-only by application convention, not by database permission.** Deferred whole rather than halved: `DENY` on a connection that is a `sysadmin` is decorative, and shipping it without the test that proves the connection is restricted would be a claim with no evidence |
-| The customer write path (`007`, `008`) | `007`, `008` | Customers are seeded, not created through the UI. `Customer` is deliberately a shell with private setters so it cannot drift before it gets its invariants |
+| The customer **write** path (`007`) | `007` | Customers are seeded, not created through the UI. **The read path shipped in `008`** — the list and profile are live, so `024`'s picker no longer runs on a stub. `Customer` is still a shell with private setters, so it cannot drift before it gets its invariants |
 | **An audit row on a `401` or a `403`** | `004b` | **A gap in BR-9.4, not a satisfied criterion.** Sign-in success and failure both write rows — `IssueTokenCommand` is an `IAuditableCommand`, so the existing pipeline does it. A *denial* by the authorization middleware writes nothing, because that needs an `IAuthorizationMiddlewareResultHandler`. So "who was refused access, and to what" is not in the log |
 | **Rate limiting and lockout on `POST /api/auth/token`** | `004b` | **Brute force is unimpeded.** Returning one identical `401` for every wrong input is the correct response shape and does nothing whatever to slow a script. There is also no password policy: the two seeded passwords are the only ones the system has, and nothing enforces a minimum beyond 8 characters on those |
 | **A CORS policy** | unowned | None is configured, deliberately. In development the frontend runs behind Vite's proxy, so no cross-origin request is made and a policy would be untested configuration. A deployment that serves the two from different origins needs one, and adding it without knowing that origin means either a wildcard or a guess |

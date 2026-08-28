@@ -511,7 +511,62 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
             .StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    /// <summary>
+    /// `013` AC-14 — **no longer open.** Closed by `008`'s query counter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This criterion was delivered as *argued, not asserted*: the actor name is resolved by a
+    /// <c>JOIN</c> in both branches of the union and no code path can loop, so it was almost
+    /// certainly met — and nothing proved it. `013`'s `tests.md` recorded it under *Not claimed*
+    /// rather than ticking it.
+    /// </para>
+    /// <para>
+    /// `008` built the <c>DbCommandInterceptor</c> the whole category needed. This is the
+    /// assertion that was missing: the round-trip count must not grow with the number of entries,
+    /// which is measured over one entry and over fourteen.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task The_timeline_costs_the_same_number_of_queries_whatever_the_entry_count()
+    {
+        var (sparse, _) = await NewTicketAsync();
+
+        var client = factory.CreateManagerClient();
+
+        var probeSparse = factory.CountQueries();
+        await client.GetAsync($"/api/tickets/{sparse}/timeline");
+        var withOneEntry = probeSparse.Count;
+
+        var (busy, _) = await NewTicketAsync();
+
+        // Seven comments, each writing a comment row and a CommentAdded row: fifteen entries
+        // including Created.
+        for (var index = 0; index < 7; index++)
+        {
+            (await CommentAsync(busy, $"Comment {index}")).StatusCode
+                .Should().Be(HttpStatusCode.Created);
+        }
+
+        var probeBusy = factory.CountQueries();
+        var response = await client.GetAsync($"/api/tickets/{busy}/timeline");
+        var withFifteenEntries = probeBusy.Count;
+
+        (await BodyOf(response)).GetProperty("items").EnumerateArray().Should().HaveCount(15,
+            "the page really did return fifteen entries — otherwise the count below is measuring "
+            + "an empty result and proving nothing");
+
+        withFifteenEntries.Should().Be(withOneEntry,
+            "AC-14. The actor name is resolved by a JOIN in each branch of the union, so fifteen "
+            + $"entries cost {withFifteenEntries} round trips and one costs {withOneEntry}. A "
+            + "difference means something resolves per entry");
+
+        withOneEntry.Should().BeLessThanOrEqualTo(3,
+            "the existence check, the union, and at most one more");
+    }
+
     /// <summary>AC-13 — there is no route to edit or delete a comment.</summary>
+
     /// <remarks>
     /// Asserted against the endpoint metadata rather than by trying verbs and reading `405`,
     /// because a `405` from a route that does not exist proves nothing about a route that might.

@@ -105,6 +105,12 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         ["Validation.Comment.BodyTooLong"] = "The comment is too long.",
         ["Validation.Comment.ChannelInvalid"] = "Choose a valid channel.",
 
+        // ── `008` ───────────────────────────────────────────────────────────────────
+        // Names no id and no field: a 404 that distinguishes "no such customer" from "a customer
+        // you may not see" is an enumeration oracle, which BR-4.4 forbids for duplicates and the
+        // same reasoning covers here.
+        ["Error.Customer.NotFound"] = "No customer was found with that id.",
+
         // ── `011` ───────────────────────────────────────────────────────────────────
         ["Error.AssigneeUnchanged.Title"] = "This ticket is already assigned to that user.",
         ["Error.AssigneeNotFound.Title"] = "No such support user.",

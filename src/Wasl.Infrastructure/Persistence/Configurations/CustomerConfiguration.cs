@@ -26,19 +26,38 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
 
         // nvarchar, not varchar, for everything a human writes. varchar under a
         // non-Arabic collation returns ???? and presents as a font bug (ADR-013 row 4).
+        // ── The collation is EXPLICIT on every searched column — `008` AC-16 ─────────
+        //
+        // `001` gave Email an explicit CI collation and left these three inheriting the database
+        // default, which made two thirds of `008`'s search surface case-insensitive BY LUCK OF
+        // THE SERVER. On a `_CS_AS` instance — the default in several installers — searching
+        // `ahmed` would silently miss `Ahmed`, and nothing in the code would look wrong: the LINQ
+        // is identical, no exception is thrown, and the result set is simply smaller.
+        //
+        // Fixed in the schema rather than with COLLATE in the query, and the reason is measurable:
+        // an in-query COLLATE makes the column expression non-sargable, so every search becomes a
+        // scan — and it would have to be repeated in `015` and `017`, which search the same
+        // columns. AC-16 asserts the collation by reading COLLATION_NAME back from
+        // INFORMATION_SCHEMA, not from this file.
         builder.Property(c => c.FullName)
             .HasColumnType("nvarchar(200)")
+            .UseCollation(CaseInsensitiveCollation)
             .IsRequired();
 
         builder.Property(c => c.Email)
             .HasColumnType("nvarchar(320)")
             .UseCollation(CaseInsensitiveCollation);
 
+        // Digits and a plus sign have no case, so this one is for consistency rather than
+        // correctness — and consistency is the point: three columns searched by one LIKE, with one
+        // collation, so nobody has to remember which of them is safe.
         builder.Property(c => c.PhoneE164)
-            .HasColumnType("nvarchar(20)");
+            .HasColumnType("nvarchar(20)")
+            .UseCollation(CaseInsensitiveCollation);
 
         builder.Property(c => c.CompanyName)
-            .HasColumnType("nvarchar(200)");
+            .HasColumnType("nvarchar(200)")
+            .UseCollation(CaseInsensitiveCollation);
 
         builder.Property(c => c.Notes)
             .HasColumnType("nvarchar(2000)");

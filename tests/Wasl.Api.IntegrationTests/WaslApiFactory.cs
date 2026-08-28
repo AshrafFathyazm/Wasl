@@ -135,6 +135,13 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             // `004`'s probes. Authenticated, unlike the other two.
             services.AddSingleton<IStartupFilter>(new Auth.AuthProbeStartupFilter());
 
+            // `008`. Registered as IInterceptor, which is the seam AddInfrastructure enumerates —
+            // production registers nothing under that interface, so this is the only thing it
+            // finds. Singleton, because the counter spans requests and the probe reads a delta.
+            services.AddSingleton<QueryCountingInterceptor>();
+            services.AddSingleton<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor>(
+                provider => provider.GetRequiredService<QueryCountingInterceptor>());
+
             // The probe's handler and validator live in THIS assembly, and
             // AddApplication only scans Wasl.Application — so without these the probe
             // request finds no handler and the pipeline throws, which surfaces as a 500
@@ -185,6 +192,17 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     /// <summary>A client carrying the second seeded Agent's token.</summary>
     public HttpClient CreateAgentTwoClient() => CreateClientWith(AgentTwoToken);
+
+    /// <summary>
+    /// Opens a query-count measurement window. `008` AC-11, and general.
+    /// </summary>
+    /// <remarks>
+    /// <c>using var probe = factory.CountQueries();</c> then do the thing, then read
+    /// <c>probe.Count</c>. It throws rather than returning zero if the interceptor is not
+    /// attached, because zero satisfies every "no more than N" assertion.
+    /// </remarks>
+    public QueryCountProbe CountQueries() =>
+        new(Services.GetRequiredService<QueryCountingInterceptor>());
 
     private HttpClient CreateClientWith(string token)
     {

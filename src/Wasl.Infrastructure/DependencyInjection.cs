@@ -57,7 +57,30 @@ public static class DependencyInjection
             // would need its own accumulator and would capture into a list nobody reads —
             // producing an empty diff on every command, which is research.md R-1's silent
             // failure arriving by a different route.
-            .AddInterceptors(provider.GetRequiredService<AuditDiffInterceptor>()));
+            .AddInterceptors(provider.GetRequiredService<AuditDiffInterceptor>())
+
+            // ── The seam the integration suite hangs a query counter on ──────────────
+            //
+            // Anything registered in DI as IInterceptor is added here too. Production registers
+            // NOTHING as IInterceptor — AuditDiffInterceptor is registered as its concrete type
+            // above, so this resolves to an empty sequence at run time and costs one enumeration
+            // at startup.
+            //
+            // It exists because `008` AC-11 — and `013` AC-14, `010`'s same-query projection, and
+            // `020`'s per-widget aggregate — assert that a query does not issue one round trip per
+            // row, and **nothing in this codebase could assert that**. Every such criterion was
+            // met by reading the LINQ, which is not verification. A DbCommandInterceptor counting
+            // commands is the only way to measure it, and it has to be attached where the context
+            // is configured.
+            //
+            // The alternative was for the test host to call AddDbContext a second time, which
+            // duplicates the connection string, the migrations assembly and the audit
+            // interceptor — three things that would then have to be kept in step with this method
+            // by whoever edits it, without being reminded.
+            //
+            // Same category as `Program` being public for WebApplicationFactory: a named,
+            // commented seam rather than a hidden one.
+            .AddInterceptors(provider.GetServices<Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor>()));
 
         // The second connection BR-9.4's failure path writes on (research.md R-2). A factory,
         // not another AddDbContext: the point is a context whose lifetime and connection are

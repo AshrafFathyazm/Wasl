@@ -130,6 +130,7 @@ and `ar`.
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
+- **`008-customer-list-and-profile` backend delivered** 2026-08-28 — `GET /api/customers` with search, `GET /api/customers/{id}`, explicit CI collation on every searched column (408 tests, run twice). Built the **query counter** and used it to close `013` AC-14 and `010` AC-12 as well as its own AC-11. **AC-3 recorded unmet** — a malformed id returns `404`, `002b` owns it
 - **`013-ticket-timeline-and-comments` backend delivered** 2026-08-28 — `dbo.TicketComments`, `POST /api/tickets/{id}/comments`, `GET /api/tickets/{id}/timeline` **cursor-paged**, `TicketTimelineQuery` in `Infrastructure/Queries/` (378 tests, run twice). First feature able to exercise `003`'s comment-body redaction and to make `010`'s stable-sort guard provable — every comment writes two rows from one memoized instant, so the tie is guaranteed. **AC-14 is open with an argument and no test:** nothing counts query round trips
 - **`004b` partial** 2026-08-28 — the `401` body's `title` was the wrong one of the two this `type` carries, and `detail` was a **raw resource key** on the login screen. Fixed with an optional `TitleKey` on `DomainException` and `CarriesDetail: false`; the `type` did not change. **The guard written to stop it recurring found seventeen more:** every FluentValidation message in the API was unresolved (355 tests). AC-17/AC-18 — the audit row on a middleware denial — are still open
 - **The development connection string points at the compose container**, port 14330, not `.\SQLEXPRESS`. Supersedes `001` AC-10 — see `12-delivery-log.md` 2026-08-27
@@ -324,6 +325,15 @@ present, would have stayed green on a broken audit trail.
 **A guard that has never been seen to fail has not been verified.** `001` shipped an
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
+
+**"The query does not issue one round trip per row" is measurable, and there is a tool for it.**
+`factory.CountQueries()` returns a probe; assert the count over a small result **equals** the count
+over a larger one, never that it is under a threshold — a threshold drifts with every unrelated
+change to the request. Built in `008` after the whole category had been met by reading the LINQ,
+which cannot see a lazy load, a client-side `ToList` added later, or a projection that stops being
+translatable. It closed three criteria in three features on the day it was written, and **it throws
+rather than returning zero** when the interceptor is unattached, because `BeLessThan(3)` is
+satisfied by zero.
 
 **A test proving two results are identical does not prove the order is determined — it proves the
 engine agreed with itself twice.** `013` deleted its tie-break and the repeatability test still

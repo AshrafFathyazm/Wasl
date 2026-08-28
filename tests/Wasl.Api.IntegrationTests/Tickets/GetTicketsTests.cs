@@ -287,4 +287,68 @@ public sealed class GetTicketsTests(WaslApiFactory factory)
             .GetProperty("subject").GetString()
             .Should().Be(arabic, "nvarchar through the projection as well as the write");
     }
+    /// <summary>
+    /// `010` AC-12's other half — **measured, not read.** Closed by `008`'s query counter.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The assertion above proves <c>customerName</c> arrives on the row. It does <b>not</b> prove
+    /// the name was projected in the same query rather than resolved per row — a lazy load or a
+    /// client-side loop would produce an identical response and identical assertions.
+    /// </para>
+    /// <para>
+    /// `008` built the <c>DbCommandInterceptor</c> the whole category needed, so the property can
+    /// now be measured: the round-trip count must not grow with the number of rows.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task The_list_costs_the_same_number_of_queries_whatever_the_row_count()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory, "query-count probe");
+        var client = factory.CreateManagerClient();
+
+        // One ticket, to establish the constant.
+        await CreateAsync(customerId, "Counted one");
+
+        var probeOne = factory.CountQueries();
+        await client.GetAsync("/api/tickets?pageSize=1");
+        var withOneRow = probeOne.Count;
+
+        for (var index = 0; index < 9; index++)
+        {
+            await CreateAsync(customerId, $"Counted {index}");
+        }
+
+        var probeMany = factory.CountQueries();
+        var response = await client.GetAsync("/api/tickets?pageSize=10");
+        var withTenRows = probeMany.Count;
+
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+        body.GetProperty("items").EnumerateArray().Should().HaveCount(10,
+            "ten rows really came back — otherwise the count below measures an empty page");
+
+        body.GetProperty("items").EnumerateArray()
+            .Should().OnlyContain(item => item.GetProperty("customerName").GetString() != null,
+                "every row carries a name, so a per-row resolution would have had ten chances");
+
+        withTenRows.Should().Be(withOneRow,
+            $"AC-12. Ten rows cost {withTenRows} round trips and one row cost {withOneRow} — the "
+            + "customer name is joined in the same statement, not fetched per row");
+    }
+
+    /// <summary>Creates a ticket and returns nothing — a helper for the count probe.</summary>
+    private async Task CreateAsync(Guid customerId, string subject)
+    {
+        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
+        {
+            customerId,
+            subject,
+            description = "Seeded for the query-count probe.",
+            category = "Technical",
+            channel = "Email",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
 }

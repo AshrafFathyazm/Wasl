@@ -21,6 +21,24 @@ What this migration changed, task by task:
 | A `Review` section added, including the OpenAPI-versus-contract comparison | `specs/README.md` gates |
 | All `src/Wasl.Application/...` and `src/Wasl.Infrastructure/...` paths replaced | ADR-010: two projects, vertical slices, minimal APIs |
 
+> **Status 2026-08-28 — the backend is delivered.** 408 tests, 0 warnings, run twice. See
+> [tests.md](tests.md) for the AC-to-test map and the two negative controls.
+>
+> **One criterion is recorded UNMET rather than ticked:** AC-3 wants `400` for a malformed id and
+> the delivered behaviour is `404`, because `{id:guid}` fails the route match before any action
+> runs. Q-A ruled for consistency across the API — dropping the constraint would leave two
+> resources answering the same malformed input differently — and `002b` fixes every route at once.
+>
+> **Beyond this feature's scope, on the product owner's ruling:** `008` built the
+> `DbCommandInterceptor` the whole project needed and used it to close `013` AC-14 and `010`
+> AC-12's second half in the same commit. Both had shipped as *argued from the LINQ*.
+>
+> **Not done:** every `FE-008-*` task — the list and profile screens, with loading, error,
+> not-found and empty states. The frontend lane owns them.
+>
+> No agent was dispatched — every task was implemented inline, recorded in
+> [ai-notes.md](ai-notes.md).
+
 ## Critical path
 
 ```text
