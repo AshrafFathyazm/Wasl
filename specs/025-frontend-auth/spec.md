@@ -195,6 +195,7 @@ was actually built stay separable.
 | 1 | The form-side brand lockup, field placeholders, the reference's subtitle copy, "Email address" as the label, and the footer | **Not new scope.** These are the plain build's own content, from `01-login.md`'s Elements table and the login reference — and they were **missed**. The mesh panel remains Phase 6 |
 | 2 | A show/hide toggle on the password field | Product owner, 2026-08-28. **Not in the reference** and not in any screen spec, so it is genuinely new. Built into the `Input` primitive rather than the screen |
 | 3 | **Submit disabled until both fields are non-empty** | Product owner, 2026-08-28. **Overrides** `004/frontend-spec.md`'s States table, which gives Idle as "empty form, submit enabled" |
+| 4 | **A `401` from `POST /api/auth/token` renders our catalogue string, not the server's `title`** | Product owner, 2026-08-28. **TEMPORARY — it has a removal condition, below.** |
 
 Change 3 has one consequence worth stating plainly: a form with no enabled submit control
 has no implicit submission, so **Enter does not submit while the form is incomplete**. It
@@ -209,6 +210,35 @@ it if the form is submittable.
 The password is checked **without trimming** — a password of three spaces is a password,
 and trimming here would leave the button dead for exactly the person whose password that
 is.
+
+### Change 4 — a temporary deviation, with the condition for removing it
+
+**What it does.** A `401` from the sign-in endpoint renders `auth:error.invalid` from our
+own catalogue. Every other response, on every other endpoint, still renders the server's
+sentence as received (BR-8.6) — that rule is unchanged.
+
+**Why.** `POST /api/auth/token` currently answers a rejected credential with
+`title: "Authentication is required."`, which is the sentence for a *missing token on a
+protected endpoint*. The frozen contract specifies `"Email or password is incorrect."` So
+the screen was telling someone who had just typed a password that authentication is
+required. Rendering the server's text is right as a principle; it stops being right when
+the text itself is the defect, because the principle exists to keep one sentence in one
+catalogue — not to carry a wrong sentence to a user unchallenged.
+
+**One correction to how this was described.** The screen renders `ProblemDetails.title`,
+and always has. `detail` — which carries the raw resource key
+`Error.Auth.InvalidCredentials`, untranslated in both locales — was never displayed. Both
+are defects in `004`; only the first one reached a user.
+
+> **REMOVAL CONDITION.** When `004` returns the contract's `401` title, delete the
+> `status === 401` branch in `LoginPage`'s `onError` and the *TEMPORARY* describe block in
+> `LoginPage.test.tsx`. The line beneath the branch already does the right thing: it
+> renders `problem.title` and falls back to the catalogue only when the body carried
+> nothing usable. **The screen then shows the server's sentence again, like every other
+> error in the product.**
+
+The defect itself is **not fixed here** and nothing under `src/Wasl.*` was touched. The
+product owner is reporting it to the backend lane (2026-08-28).
 
 ---
 

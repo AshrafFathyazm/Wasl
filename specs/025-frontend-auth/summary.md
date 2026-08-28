@@ -77,6 +77,7 @@ jumps ends mid-entry under RTL. A password is not language content.
 | **The form-side lockup, placeholders, subtitle copy, and footer were missing** | Caught by the product owner comparing the screen against `wasl_login_final_with_brand.html`. Not Phase 6 content — the plain build owed all four, and `01-login.md`'s Elements table names the mark tile. The cause is mine: I built from the two spec documents and never opened the reference beside them |
 | **A password show/hide toggle** | Asked for 2026-08-28. Not in the reference and not in any screen spec. `IconEye` / `IconEyeOff` authored in `icons-added.tsx` — the inherited set has no eye — and labelled `(D)` per DESIGN-BRIEF rule 3. The toggle lives in the `Input` primitive because it is a property of a password field, not of one form |
 | **Submit disabled until both fields are non-empty** | Asked for 2026-08-28, and it **overrides** `004/frontend-spec.md`'s "empty form, submit enabled". Gated on presence, never validity. See `spec.md` §7b for the Enter-key consequence |
+| **A `401` from the sign-in endpoint renders our catalogue string** | **Temporary, with a written removal condition** — see `spec.md` §7b. `004` returns the wrong `401` title, and the screen was showing it. The defect is reported, not patched; nothing under `src/Wasl.*` was touched |
 | **`auth:validation.*` keys instead of the shared `errors.maxLength`** | That key is stored **flat with a dot in its name** while i18next's separator is also `.`, so which one a lookup resolves is ambiguous — and it interpolates `{{max}}` while `024`'s `message()` helper passes no variables. Raised as Q-7, not fixed here |
 
 ---
@@ -108,11 +109,24 @@ the full comparison. **It needs a decision from the backend lane.**
 
 ---
 
+## Regression tests
+
+**71 tests across 9 files**, up from 11. Every defect in the table above now has one, and
+**all 12 guards were observed failing** before being trusted — each fix was reverted on
+purpose, the test was watched go red, and the fix was restored. `tests.md` §9 has the
+table.
+
+The three CSS defects (D-3, D-6, D-7) are covered by **source-level proxies, not layout
+assertions**, and the test file says so in its header: jsdom does no layout and will not
+tell you that `-webkit-text-fill-color` beat `color`. They catch the fix being deleted,
+which is the realistic regression. They do not catch the defect returning by another
+route. A browser-driven visual check in CI is the honest answer and does not exist yet.
+
+---
+
 ## Known limitations
 
-1. **No automated test was written for this feature.** Every result in `tests.md` is a
-   manual observation. The five defects above are the ones that most deserve regression
-   tests.
+1. **The three CSS regressions are proxied, not measured.** See above.
 2. **The screen below 780px has never been rendered.** The `@container` breakpoint is
    implemented and unseen — the same limitation `023` carries for its drawer.
 3. **A real Caps Lock keypress was never made.** The hint was driven by a synthetic

@@ -103,10 +103,41 @@ export default function LoginPage() {
        * inventing a field-level message here would tell the user the email
        * exists.
        *
-       * The server's own `title` is rendered when there is one: it arrives
-       * translated, and it is the sentence the backend chose. `auth:error.invalid`
-       * is the client mirror, for the case where the body carried nothing
-       * usable. */
+       * ================= TEMPORARY OVERRIDE — REMOVE WHEN 004 IS FIXED =========
+       *
+       * A `401` from THIS endpoint renders our own catalogue string instead of
+       * the server's `title`. Everywhere else the server's sentence is still
+       * rendered as received (BR-8.6), and that is still the rule.
+       *
+       * WHY. `POST /api/auth/token` currently answers a rejected credential with
+       * `title: "Authentication is required."` — the sentence for a MISSING token
+       * on a protected endpoint, not for a wrong password. The frozen contract
+       * specifies `"Email or password is incorrect."`. So the screen was telling
+       * someone who had just typed a password that authentication is required.
+       * Its `detail` is worse — the raw resource key `Error.Auth.InvalidCredentials`,
+       * untranslated in both locales — but `detail` is not rendered here and never
+       * was, so it is not what this override is about.
+       *
+       * Rendering the server's text is right as a principle. It stops being right
+       * when the text itself is the defect: the principle exists so one sentence
+       * lives in one catalogue, not so a wrong sentence reaches a user unchallenged.
+       *
+       * THE CONDITION FOR REMOVING THIS, stated so it is not permanent by
+       * accident: **when `004` returns the contract's `401` title, delete the
+       * `status === 401` branch below.** The line under it already does the right
+       * thing — it renders `problem.title` and falls back to the catalogue only
+       * when the body carried nothing usable.
+       *
+       * The defect is reported to the backend lane by the product owner
+       * (2026-08-28). It is NOT fixed here, and nothing in `src/Wasl.*` was
+       * touched. Recorded in spec.md §7b, summary.md, and tests.md §6.
+       * =========================================================================
+       */
+      if (error.status === 401) {
+        setErrorMessage(t('auth:error.invalid'));
+        return;
+      }
+
       setErrorMessage(
         error.problem.title !== '' ? error.problem.title : t('auth:error.invalid'),
       );

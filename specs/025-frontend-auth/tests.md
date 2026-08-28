@@ -207,3 +207,70 @@ the native value setter so React's `onChange` fires:
 `tsc` clean · ESLint clean · stylelint clean after one fix
 (`declaration-block-no-redundant-longhand-properties` on `margin-block`) ·
 locale parity `87 keys` · domain types clean.
+
+---
+
+## 9 · Regression tests — 2026-08-28
+
+**71 tests across 9 files** (`11 → 71`). The rule this closes is the house one: *a defect
+found by manual observation, with no test, comes back and nobody notices.*
+
+### Every guard was observed failing before it was trusted
+
+CLAUDE.md: *a guard that has never been seen to fail has not been verified.* Each fix below
+was reverted on purpose, its test was watched go red, and the fix was restored. The tree
+was then checked clean of the deliberate breakage.
+
+| # | What was broken | Verdict |
+|---|---|---|
+| 1 | Removed `path !== SIGN_IN_PATH` from the interceptor | **RED** |
+| 2 | Removed the burst guard, so every 401 fires the handler | **RED** |
+| 3 | Hard-coded `Bearer ` instead of composing from `tokenType` | **RED** |
+| 4 | Made `clearSession` write to one backend | **RED** |
+| 5 | Made the `pageshow` handler re-use the in-memory session | **RED** |
+| 6 | Removed the focus call after a rejected credential | **RED** |
+| 7 | Reverted `invalid` back to `error=""` | **RED** |
+| 8 | Removed the checkbox's `padding: 0` reset | **RED** |
+| 9 | Removed `-webkit-text-fill-color` from the language button | **RED** |
+| 10 | Removed `direction: ltr` from the panel | **RED** |
+| 11 | Removed the `//host` check from `safeReturnPath` | **RED** |
+| 12 | Removed the temporary 401 catalogue branch | **RED** |
+
+`12/12 guards observed failing.`
+
+### What is covered
+
+| File | Tests | Covers |
+|---|---|---|
+| `lib/tokenStorage.test.ts` | 10 | AC-28 both-storage clear · the remember→session switch · malformed and hostile stored shapes · Arabic name round-trip |
+| `lib/api.test.ts` | 9 | **AC-27** the `SIGN_IN_PATH` exclusion, including that it is a path match and not a substring · **AC-025-05** burst collapse and re-arm · **AC-025-03** the header follows a *changed* `tokenType` |
+| `features/auth/guards.test.ts` | 11 | The open redirect: `//host`, `/\host`, absolute URLs, `javascript:`, `data:` · query and hash preserved |
+| `features/auth/AuthContext.test.tsx` | 4 | **D-2 bfcache** · that a non-persisted `pageshow` is ignored · that the session is read on the *first* render, not in an effect |
+| `features/auth/LoginForm.test.tsx` | 13 | **D-1** focus · **D-4** `aria-invalid` on both fields with no field message · AC-26 `name`/`autocomplete` · the submit gate incl. a whitespace-only password · the reveal toggle |
+| `features/auth/LoginPage.test.tsx` | 5 | AC-27 at screen level · the **temporary** 401 override · a transport failure saying something different |
+| `features/auth/styleRegressions.test.ts` | 8 | D-3, D-6, D-7 — **as source proxies, not layout** |
+
+### The honest limit on three of them
+
+D-3, D-6 and D-7 were all found by **measuring a real browser**, and jsdom can reproduce
+none of them: it does no layout, `getBoundingClientRect()` returns zeroes, and it will not
+tell you that `-webkit-text-fill-color` beat `color`. `styleRegressions.test.ts` therefore
+asserts that the **fix is still in the stylesheet** — it catches the fix being deleted,
+renamed, or refactored away, which is the realistic regression for a one-line change whose
+purpose is not obvious from reading it. It does **not** catch the defect returning by
+another route: a new rule re-introducing the padding, a different selector winning, a token
+changing underneath.
+
+The file says this in its own header, because a measurement that names the wrong thing is
+worse than no measurement. The real answer is a browser-driven visual check in CI, and that
+does not exist in this project.
+
+### Two test-authoring mistakes worth recording
+
+- The first D-1 test focused the submit button on an **empty** form — where the button is
+  disabled and cannot take focus. The test failed for its own reason, not the code's.
+  Rewritten to the realistic sequence: both fields filled, submit focused, then the 401.
+- The first `LoginPage` suite rendered without `AuthProvider`, and `useAuth` threw. That is
+  the guard working as designed — it throws rather than returning a signed-out default,
+  precisely so a component mounted outside the tree does not silently look logged out.
+
