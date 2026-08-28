@@ -20,7 +20,7 @@ tables and only one of them is new.
 |---|---|---|
 | `dbo.Tickets` | `009-create-ticket` | Read, and the parent of the new FK. **Not written** — see *Not touched* below |
 | `dbo.TicketHistory` | `009-create-ticket` | Read for the history branch of the union; one row **appended** per comment (BR-5.5) |
-| `IX_TicketHistory_Ticket_Time` on `(TicketId, PerformedAtUtc)` | `009-create-ticket` | Serves the history branch unchanged. No new index needed on that side |
+| **`IX_TicketHistory_Ticket`** on `(TicketId, PerformedAtUtc)` | `009-create-ticket` | Serves the history branch unchanged. No new index needed on that side. **Name corrected 2026-08-28** — this file said `IX_TicketHistory_Ticket_Time`, which does not exist; same columns, and `011` hit the identical class of error with the assignee index. An index named in a document and not in the database makes every statement about it unverifiable |
 | `dbo.SupportUsers` | `004-auth-and-roles` | Joined once per branch to resolve `actorName` (AC-14) |
 | `dbo.AuditLog` | `003-audit-trail` | One row appended per accepted comment, by the pipeline behaviour |
 
@@ -39,7 +39,7 @@ CREATE TABLE dbo.TicketComments (
     AuthorUserId  uniqueidentifier NOT NULL
         CONSTRAINT FK_TicketComments_Author  REFERENCES dbo.SupportUsers (Id) ON DELETE NO ACTION,
     Body          nvarchar(4000)   NOT NULL,
-    IsInternal    bit              NOT NULL CONSTRAINT DF_TicketComments_Internal DEFAULT 0,
+    IsInternal    bit              NOT NULL,   -- no DEFAULT: see the note below
     Channel       nvarchar(20)     NULL,
     CreatedAtUtc  datetime2(3)     NOT NULL,
     CONSTRAINT CK_TicketComments_Body CHECK (LEN(LTRIM(RTRIM(Body))) > 0)
@@ -62,7 +62,7 @@ CREATE INDEX IX_TicketComments_Ticket_Time
 ### `IX_TicketComments_Ticket_Time`
 
 Serves the comment branch of the timeline union: seek on `TicketId`, then an ordered scan
-on `CreatedAtUtc`. It is the mirror of `IX_TicketHistory_Ticket_Time`, and the two
+on `CreatedAtUtc`. It is the mirror of `IX_TicketHistory_Ticket`, and the two
 together are what remove the per-branch sort from the union's plan.
 
 `Body` is deliberately **not** an `INCLUDE` column. At `nvarchar(4000)` it would nearly
@@ -177,3 +177,21 @@ Offset paging over a union means the engine produces the ordered set up to
 is nothing. At tens of thousands of entries per ticket it costs, and the fix is keyset
 pagination — which changes the contract shape and which nothing in this project asks for.
 Recorded as a known limitation rather than pre-built (`plan.md`, Risks).
+
+---
+
+## Corrections — 2026-08-28
+
+Unlike `009`'s and `011`'s, this file was **accurate** about who created what: `dbo.SupportUsers`
+is correctly attributed to `004` and `dbo.TicketHistory` to `009`. Two changes:
+
+| # | Was | Now | Why |
+|---|---|---|---|
+| 1 | The history index is `IX_TicketHistory_Ticket_Time` | **`IX_TicketHistory_Ticket`** | Same columns `(TicketId, PerformedAtUtc)`, wrong name. `011` hit the identical class of error with the assignee index, where the file also offered advice about an index that did not exist. Corrected in both places it appears |
+| 2 | `IsInternal bit NOT NULL CONSTRAINT DF_TicketComments_Internal DEFAULT 0` | `IsInternal bit NOT NULL`, no default | **House rule since `004` D-4: no column defaults.** EF applies a database default whenever the property holds the CLR default, and `001` shipped `Customers.IsActive DEFAULT 1` where the CLR default for `bool` is `false` — so deactivating a customer would have stored them active, with no error, and undoing it needed a migration. Here `false` and `0` happen to agree, so this one is harmless **today**. It goes anyway: a value with two sources of truth that currently match is the same defect waiting for one of them to move, and the factory sets it explicitly |
+
+**Unchanged and deliberate:** `CK_TicketComments_Body` stays. It is a constraint rather than a
+computed value, so the `009` lesson does not apply — nothing is being computed twice. The cost is
+stated rather than hidden: a body that reaches it produces a `DbUpdateException` and therefore a
+`500`, so the FluentValidation rule remains the thing that produces BR-5.1's `400`. The check is
+the guarantee of last resort for a caller that is not the API.

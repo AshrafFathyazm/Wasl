@@ -98,6 +98,13 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         ["Validation.Ticket.ExpectedVersionRequired"] = "Reload the ticket and try again.",
         ["Validation.Ticket.ExpectedVersionUndecodable"] = "Reload the ticket and try again.",
 
+        // ── `013` ───────────────────────────────────────────────────────────────────
+        // Added in the same commit as the keys, which is the rule `004b` wrote into CLAUDE.md
+        // after seventeen went out without one.
+        ["Validation.Comment.BodyRequired"] = "Write something before posting.",
+        ["Validation.Comment.BodyTooLong"] = "The comment is too long.",
+        ["Validation.Comment.ChannelInvalid"] = "Choose a valid channel.",
+
         // ── `011` ───────────────────────────────────────────────────────────────────
         ["Error.AssigneeUnchanged.Title"] = "This ticket is already assigned to that user.",
         ["Error.AssigneeNotFound.Title"] = "No such support user.",

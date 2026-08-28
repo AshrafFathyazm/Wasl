@@ -183,4 +183,39 @@ public sealed class TicketHistoryEntry
             PerformedByUserId = performedByUserId,
             PerformedAtUtc = performedAtUtc,
         };
+    /// <summary>
+    /// The row that records a comment. `013` AC-8, BR-5.5.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>NewValue</c> is the comment's ID, never a word of its text.</b> BR-5.5 says the
+    /// history records that a comment happened, not its content — and `013` AC-18 proves the
+    /// same holds for <c>dbo.AuditLog</c>, where `003` registered <c>TicketComment.Body</c> for
+    /// redaction before any comment existed.
+    /// </para>
+    /// <para>
+    /// The id rather than nothing at all, because `spec.md` Q-1 asked and answered: the client
+    /// merges two branches into one feed, and without the link it cannot tell that a
+    /// <c>CommentAdded</c> row and the comment beside it are the same event — so it renders both
+    /// and the timeline says everything twice.
+    /// </para>
+    /// <para>
+    /// <c>OldValue</c> stays null. A comment has no previous version; BR-5.3 makes sure of it.
+    /// </para>
+    /// </remarks>
+    public static TicketHistoryEntry CommentAdded(
+        Guid ticketId,
+        Guid commentId,
+        DateTime performedAtUtc,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.CommentAdded,
+            OldValue = null,
+            NewValue = commentId.ToString(),
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
 }

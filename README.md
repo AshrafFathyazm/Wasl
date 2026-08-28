@@ -108,7 +108,7 @@ collation, so `MANAGER@WASL.LOCAL` works.
 ### Run the tests
 
 ```bash
-dotnet test                                    # everything — 340 tests
+dotnet test                                    # everything — 378 tests
 dotnet test tests/Wasl.Domain.Tests            # no database, no Docker
 dotnet test tests/Wasl.Api.IntegrationTests    # needs Docker running
 ```
@@ -137,9 +137,11 @@ log. `200` is never returned with an error in the body.
 | `GET /api/tickets/{id}` | The same resource shape the create returns |
 | `PUT /api/tickets/{id}/status` | The BR-1 state machine, with optimistic concurrency on `expectedVersion` |
 | `PUT /api/tickets/{id}/assignee` | Assign, reassign, or unassign (`assigneeId: null`). BR-2 in full — a Manager assigns anyone, an Agent may only take an **unassigned** ticket for themselves |
+| `POST /api/tickets/{id}/comments` | `201`. Append-only — there is no edit and no delete, by design (BR-5.3) |
+| `GET /api/tickets/{id}/timeline` | Comments and recorded changes merged into one ascending feed. **Cursor-paged**, not page-numbered — see below |
 | `GET /api/support-users` | The assignee picker. Active users only, three fields — id, name, role |
 
-### Four things worth looking at
+### Five things worth looking at
 
 **`allowedTransitions` comes from the server.** Every ticket read and every status write returns
 the transitions permitted *right now*, computed from one map in the domain and its preconditions.
@@ -162,7 +164,17 @@ and writes nothing. **Measured, not assumed:** moving the check into a policy an
 suite reports `found 0: {empty}` for the audit row, while the API still answers a perfectly
 correct `403`. Role-only checks stay on the endpoint, where they belong.
 
+**Two pagination shapes, and the difference is a failure mode rather than a preference.** The
+ticket list returns `{ items, page, pageSize, totalCount, totalPages }`; the ticket timeline
+returns a cursor. A list grows at the end the reader is not looking at, so page 2 stays page 2. A
+timeline grows at the end they *are* reading, so a page number silently skips or repeats entries
+between two requests. **The first implementation of that cursor did exactly that** — it ordered by
+`Id` and compared the id as text, and SQL Server orders `uniqueidentifier` by a byte order of its
+own, so one comment appeared on two consecutive pages. Caught by a test asserting that no entry
+appears twice; a test counting entries per page would have passed.
+
 **Every state change writes an audit row in the same transaction as the change.**
+
  A rollback takes
 the row with it. A *denial* or a *failure* writes its row on a second connection, so it survives
 the rollback of the thing that failed — which is the half that is invisible when it is wrong.
@@ -201,8 +213,9 @@ boundaries are the whole return on four projects, so they are checked rather tha
 | `010` ticket list — paged, newest first | Backend done |
 | `004` auth — `dbo.SupportUsers`, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + an authenticated **fallback** policy | **Backend half done.** `004b` deferred, see below |
 | `011` assign ticket — `PUT /assignee`, `GET /api/support-users`, BR-2 in full | Backend done |
+| `013` timeline and comments — `dbo.TicketComments`, `POST /comments`, `GET /timeline` (cursor-paged) | Backend done |
 
-**340 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
+**378 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
 recorded in each feature's `tests.md` rather than asserted from memory.
 
 ---
@@ -220,7 +233,6 @@ feature folder that owns it.
 |---|---|---|
 | **Authentication and roles — the frontend half** (`004`) | `specs/004-auth-and-roles/` | The backend half **shipped 2026-08-27**: `POST /api/auth/token`, JWT with a role claim, two seeded users, real `ICurrentUser`, `RequireAuthenticatedUser` as the fallback policy so a forgotten `[Authorize]` cannot open an endpoint. What is missing is the login screen, the route guard, the `401` interceptor and sign-out — the frontend lane owns them. Until then, a token is obtained with `curl` and pasted into a header |
 | **Filters and search** (`015`) | `specs/015-ticket-filters-and-search/` | Seven filters that combine with AND, repeated keys that combine with OR, and a search that must treat `%` and `_` as literals. Shipping half of it leaves a query surface that looks complete and silently ignores combinations |
-| **Timeline and comments** (`013`) | `specs/013-ticket-timeline-and-comments/` | `dbo.TicketHistory` is written and correct — `Created` and `StatusChanged` rows with notes. What is missing is the read surface |
 | **Escalation** (`016`) | `specs/016-escalate-ticket/` | The columns exist so no second migration is needed. The verb does not |
 | **Localization catalogues** (`005`) | `specs/005-localization-core/` | The seam is built and every server-authored message is a **symbolic key**, not a sentence — so there is no retrofit later, only a catalogue to fill. Arabic content already round-trips through `nvarchar` end to end and the seed includes it. What is missing is `.resx` files and a language switcher |
 | **The audit read endpoint** (`019`) | `specs/019-audit-log-access/` | The table is queryable today and four indexed SQL queries are written down in that folder. A screen for it is not on the demo path |

@@ -29,7 +29,8 @@ specs/NNN-feature/                   one folder per feature — see specs/README
 src/
   Wasl.Domain/                       no EF, no HTTP, no MediatR, no packages at all
     Customers/                       Customer, EmailAddress, PhoneNumber
-    Tickets/                         Ticket, TicketStatus, TicketStatusTransitions
+    Tickets/                         Ticket, TicketComment, TicketHistoryEntry,
+                                     TicketStatus, TicketStatusTransitions
     Communications/                  Interaction, CommunicationChannel
     Audit/                           AuditEntry
   Wasl.Application/                  depends only on Wasl.Domain
@@ -101,8 +102,10 @@ through every async path. One use case = one folder under `Application/Features/
 `Infrastructure/Persistence/WaslDbContext`. `DbSet<T>` is already a repository; the
 interface exists to keep EF Core out of the Application layer, not to re-implement it.
 Query it with LINQ at the call site. A named query class only where a query is genuinely
-non-trivial, in `Infrastructure/Queries/` — two exist (`TicketTimelineQuery`,
-`DashboardAggregatesQuery`) and a third needs a written reason.
+non-trivial, in `Infrastructure/Queries/`. **`TicketTimelineQuery` is built** (`013`) — it unions
+`dbo.TicketComments` and `dbo.TicketHistory`, neither of which is on `IApplicationDbContext`, and
+keeping it there is what stops the tie-break having two implementations. `DashboardAggregatesQuery`
+is the second and is not built. **A third needs a written reason.**
 
 Controllers bind, authorise, dispatch, and map. Domain exceptions for invariant
 violations, mapped to `ProblemDetails` in one middleware — no hand-built error responses,
@@ -127,6 +130,7 @@ and `ar`.
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
+- **`013-ticket-timeline-and-comments` backend delivered** 2026-08-28 — `dbo.TicketComments`, `POST /api/tickets/{id}/comments`, `GET /api/tickets/{id}/timeline` **cursor-paged**, `TicketTimelineQuery` in `Infrastructure/Queries/` (378 tests, run twice). First feature able to exercise `003`'s comment-body redaction and to make `010`'s stable-sort guard provable — every comment writes two rows from one memoized instant, so the tie is guaranteed. **AC-14 is open with an argument and no test:** nothing counts query round trips
 - **`004b` partial** 2026-08-28 — the `401` body's `title` was the wrong one of the two this `type` carries, and `detail` was a **raw resource key** on the login screen. Fixed with an optional `TitleKey` on `DomainException` and `CarriesDetail: false`; the `type` did not change. **The guard written to stop it recurring found seventeen more:** every FluentValidation message in the API was unresolved (355 tests). AC-17/AC-18 — the audit row on a middleware denial — are still open
 - **The development connection string points at the compose container**, port 14330, not `.\SQLEXPRESS`. Supersedes `001` AC-10 — see `12-delivery-log.md` 2026-08-27
 
@@ -320,6 +324,23 @@ present, would have stayed green on a broken audit trail.
 **A guard that has never been seen to fail has not been verified.** `001` shipped an
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
+
+**A test proving two results are identical does not prove the order is determined — it proves the
+engine agreed with itself twice.** `013` deleted its tie-break and the repeatability test still
+passed: SQL Server returned the same order on two consecutive requests over nine rows. `010` found
+the same thing after three attempts and had to record its stable-sort guard as unproven. **What
+catches a missing tie-break is an assertion about a specific order.** Repeatability earns its place
+by proving a tie **exists** — which is what stops the order assertion passing on data that never
+tied. `013` has both, and only one of them went red.
+
+**A cursor compares exactly the keys the `ORDER BY` sorts by, in the same sequence.** `013`
+ordered by `Id` and filtered the cursor on the id **as text** — and SQL Server orders
+`uniqueidentifier` by a byte order of its own, not lexically, which is not readable from the code.
+The two disagreed, and one comment appeared on two consecutive pages. Caught by an assertion that
+no entry appears twice; counting entries per page passed. Both directions of the mismatch were then
+broken deliberately and both produced a broken feed.
+
+**`errors[field]` with one entry is not a content assertion
 
 **`errors[field]` with one entry is not a content assertion — it is a shape assertion.** Read the
 message. Six assertion sites across the suite checked a `400` this way — `TryGetProperty("subject")

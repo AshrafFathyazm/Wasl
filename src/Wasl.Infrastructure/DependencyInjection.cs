@@ -35,6 +35,16 @@ public static class DependencyInjection
 
         // Scoped, so it spans the request. The interceptor fills it across however many
         // SaveChanges calls the handler makes, and AuditBehaviour reads it once at the end.
+        // `013`. Registered by hand because MediatR scans Wasl.Application only, so a handler in
+        // this project is invisible to it. The same situation `003` met with its two behaviours,
+        // and the same answer: register the one type rather than scanning a second assembly and
+        // pulling every internal class in this project into the container.
+        services.AddScoped<
+            MediatR.IRequestHandler<
+                Wasl.Application.Features.Tickets.GetTimeline.GetTicketTimelineQuery,
+                Wasl.Application.Features.Tickets.GetTimeline.TimelinePage>,
+            Queries.TicketTimelineQuery>();
+
         services.AddScoped<AuditDiffAccumulator>();
         services.AddScoped<AuditDiffInterceptor>();
 

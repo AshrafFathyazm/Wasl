@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wasl.Api.Contracts.Tickets;
+using Wasl.Application.Features.Tickets.AddComment;
 using Wasl.Application.Features.Tickets.AssignTicket;
+using Wasl.Application.Features.Tickets.GetTimeline;
 using Wasl.Application.Features.Tickets.ChangeStatus;
 using Wasl.Application.Features.Tickets.CreateTicket;
 using Wasl.Application.Common;
@@ -164,4 +166,58 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         Ok(await sender.Send(
             new AssignTicketCommand(id, request.AssigneeId, request.ExpectedVersion),
             cancellationToken));
+
+    /// <summary>Adds a comment. `013` AC-1 to AC-8, AC-15, AC-16.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A `201` on a sub-collection, not a `PUT` on the ticket</b>, and the difference is real
+    /// rather than cosmetic: a comment creates a new resource and does not modify the ticket, so
+    /// there is no <c>expectedVersion</c> and no concurrency conflict between two people
+    /// commenting at once. <c>/status</c> and <c>/assignee</c> are `PUT`s because each changes a
+    /// field of the ticket itself.
+    /// </para>
+    /// <para>
+    /// <b>No role policy, and BR-5 asks for none.</b> Any authenticated support user may comment
+    /// on any open ticket, including one assigned to someone else — a colleague adding context is
+    /// the point of the feature. Stated here because the absence of a rule beside `011`'s four is
+    /// a decision.
+    /// </para>
+    /// </remarks>
+    [HttpPost("{id:guid}/comments")]
+    [ProducesResponseType(typeof(TicketCommentResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddComment(
+        Guid id,
+        [FromBody] AddTicketCommentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var comment = await sender.Send(
+            new AddTicketCommentCommand(id, request.Body, request.IsInternal, request.Channel),
+            cancellationToken);
+
+        // Location points at the timeline rather than at the comment: BR-5.3 makes a comment
+        // append-only, so there is no GET for one and inventing a route that returns 404 would be
+        // worse than pointing at the feed the client is about to reload anyway.
+        return Created($"/api/tickets/{id}/timeline", comment);
+    }
+
+    /// <summary>The merged feed. `013` AC-9 to AC-12, AC-16. BR-5.7.</summary>
+    /// <remarks>
+    /// <b>A cursor, not `010`'s page envelope</b>, and `CLAUDE.md` records the distinction under
+    /// *API contract*. A ticket list grows at the end the reader is not looking at, so page 2 stays
+    /// page 2; a timeline grows at the end they are reading, so a page number silently skips or
+    /// repeats entries between two requests. <c>before</c> comes from the previous page's
+    /// <c>nextCursor</c> and is opaque.
+    /// </remarks>
+    [HttpGet("{id:guid}/timeline")]
+    [ProducesResponseType(typeof(TimelinePage), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Timeline(
+        Guid id,
+        [FromQuery] string? before,
+        [FromQuery] int limit = GetTicketTimelineQuery.DefaultLimit,
+        CancellationToken cancellationToken = default) =>
+        Ok(await sender.Send(new GetTicketTimelineQuery(id, before, limit), cancellationToken));
 }

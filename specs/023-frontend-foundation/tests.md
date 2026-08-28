@@ -409,10 +409,14 @@ in §9.
 
 ---
 
-## 12 · The measurement tools lied — three times, one pattern
+## 12 · The measurement tools lied — six times, one pattern
 
-Recorded as a **category**, not as three incidents. Each on its own reads as a slip; together
+Recorded as a **category**, not as separate incidents. Each on its own reads as a slip; together
 they are a rule about how anything in this document was established.
+
+**Count kept current across both lanes**, because the category is the point and a count that
+stops being maintained stops being evidence. Three were found building `023`, two more building
+`024`, and the sixth came from the backend lane on 2026-08-28 — listed at the end.
 
 **What happened, in one line each.**
 
@@ -462,3 +466,25 @@ code.
 report success if it cannot find the declarations it is *required* to find in
 `api-types.provisional.ts`, and throws rather than passing when the contract enum list comes
 back empty. A gate that matches nothing otherwise reports a clean tree.
+
+**The sixth, from the backend lane — 2026-08-28, feature `013`.**
+
+A manual check with PowerShell's `Invoke-RestMethod` posted an Arabic comment body, and the
+database came back holding `?????`. That is the exact signature of ADR-013's most expensive
+defect: a `varchar` column under a non-Arabic collation, which presents as a font or encoding
+problem rather than a schema one. In a table created that same hour, it read as a real fault in
+brand-new code.
+
+**The tool was the liar.** PowerShell 5.1 encodes a string request body as ASCII unless a charset
+is named, so the mangling happened before the request left the machine. The column is
+`nvarchar(4000)` and was always correct.
+
+**The evidence was already on screen, which is the part worth keeping.** The author's Arabic name
+`منى العتيبي` rendered correctly in the *response*, from the same console, in the same request.
+One tool, two directions, one of them working — so the tool could not be trusted about either.
+Settled by asserting the round-trip through `PostAsJsonAsync`, which sends UTF-8; that assertion
+is now a permanent test in `TicketTimelineTests`.
+
+Same shape as the other five: confident, well-formatted, wrong, and pointing at the wrong lane.
+Had it been filed rather than checked, it would have been a defect report against a column that
+does not have the defect.

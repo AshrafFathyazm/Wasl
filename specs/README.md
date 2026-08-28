@@ -8,12 +8,11 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Eight backend features are delivered: `001` · `002` core · `003` core · `004` backend half ·
-`009` · `010` · `011` · `012`. `006` was delivered **inside `023`** — see its row below.
+Nine backend features are delivered: `001` · `002` core · `003` core · `004` backend half ·
+`009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
-```text
-013-ticket-timeline-and-comments    next
-008-customer-list-and-profile       then
+013-ticket-timeline-and-comments    DONE 2026-08-28
+008-customer-list-and-profile       NEXT
 007-create-customer                 then
 004b · 002b · 003b                  the deferred halves
 005-localization-core               LAST
@@ -23,11 +22,11 @@ Eight backend features are delivered: `001` · `002` core · `003` core · `004`
 
 | # | Feature | Reason it is here |
 |---|---|---|
-| 1 | `013` | It makes a ticket read as a conversation rather than a row in a table. `dbo.TicketHistory` is already written and correct — `Created`, `StatusChanged`, `Assigned`, `Unassigned`, each with both values and now with an actor — so this is the read surface over data that exists. `CLAUDE.md` names `TicketTimelineQuery` as one of only two sanctioned named query classes |
-| 2 | `008` | **It removes a stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
-| 3 | `007` | Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
-| 4 | `004b` · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
-| 5 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
+| ✅ | `013` | **Done.** It makes a ticket read as a conversation rather than a row in a table. `dbo.TicketHistory` is already written and correct — `Created`, `StatusChanged`, `Assigned`, `Unassigned`, each with both values and now with an actor — so this is the read surface over data that exists. `CLAUDE.md` names `TicketTimelineQuery` as one of only two sanctioned named query classes |
+| 1 | `008` | **NEXT. It removes a stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
+| 2 | `007` | Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
+| 3 | `004b` (the audit row on a denial — the `401` body half is **done**) · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
+| 4 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
 
 The ordering rule visible in that list is not "hardest first" or "most valuable first" — it is
 **what unblocks something else, first.** `011` was chosen over `004b` on the same grounds: it was
@@ -311,7 +310,7 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `012-change-ticket-status` | 2 | Migrated from `US-008-change-status` — **✅ backend implemented 2026-08-26**, 250 tests |
 | `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` — **✅ backend implemented 2026-08-26**, 214 tests. Gained the BR-1 map + 36 tests (from `012`) and `GET /api/tickets/{id}` (from `010`). No auth (`004`); form is `024-frontend-create-ticket-form` |
 | `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` — **✅ backend implemented 2026-08-28**, 340 tests. BR-2 in full, `GET /api/support-users`, no migration. `data-model.md` had four false statements and `plan.md` rested on the rejected ADR-010; both corrected in tables before implementation. Picker UI is the frontend lane's |
-| `013-ticket-timeline-and-comments` | 3 | **← NEXT.** Migrated from `US-010-ticket-timeline-comments`. `dbo.TicketHistory` is already written and correct — four event types, both values on each, and an actor since `011` — so this is the read surface over data that exists. `CLAUDE.md` sanctions `TicketTimelineQuery` as one of only two named query classes |
+| `013-ticket-timeline-and-comments` | 3 | **✅ Backend implemented 2026-08-28**, 378 tests. `dbo.TicketComments`, `POST /comments`, `GET /timeline` with a cursor, `TicketTimelineQuery`. AC-18 proved `003`'s comment-body redaction fires — it never had. **AC-14 is open with an argument and no test**: nothing counts query round trips. Timeline UI is the frontend lane's |
 | `014-language-preference-and-rtl` | 4 | Migrated from `US-014-language-preference` |
 | `015-ticket-filters-and-search` | 5 | Migrated from `US-006-list-filter-tickets` (filter half) |
 | `016-escalate-ticket` | 5 | Migrated from `US-009-escalate-ticket` |
@@ -350,3 +349,48 @@ one before the work happens would make it a false statement.
 
 Nothing here claims to be implemented. `docs/sdd/08-board.md` and
 `docs/sdd/12-delivery-log.md` are where delivery is recorded, and neither says so yet.
+
+---
+
+## A cross-feature test utility, unbuilt and worth one entry rather than four
+
+**A `DbCommandInterceptor` that counts round trips per request** — recorded here, in the plan that
+owns the delivery order, because **four features have an acceptance criterion it would close and
+each of them is currently arguing the criterion by inspection instead of asserting it.**
+
+| Feature | The criterion | Its current status |
+|---|---|---|
+| `013` | AC-14 — the timeline query must not issue a query per entry to resolve actor names | **Open, argued not asserted.** The name is resolved by a `JOIN` in both branches of the union and no code path can loop, so it is almost certainly met — and nothing proves it. Recorded in `013/tests.md` under *Not claimed* |
+| `010` | The list projects the customer name in the same query rather than per row | Asserted only by reading the LINQ |
+| `008` | The customer list must not fetch a ticket count per customer — the classic N+1 in this product's shape | Not yet built. **It should arrive with the guard, not after it** |
+| `020` | The dashboard aggregates in one query per widget, not one per row | Not built. `DashboardAggregatesQuery` is the second sanctioned named query class and this is the criterion that justifies it |
+
+**Why one utility and not four assertions.** Each feature could count queries its own way — a
+logger scan, a stopwatch, a hand-rolled interceptor in one test class — and then there are four
+mechanisms measuring the same property, of which the ones written later agree with the earlier ones
+until they do not. `003` learned the same thing about audit writers: the second way to do something
+is where the drift lives.
+
+**What it has to be, to be worth building.** A `DbCommandInterceptor` registered only in the test
+host, accumulating a per-scope count, exposed as something a test can read after a request:
+
+```text
+using var probe = factory.CountQueries();
+await client.GetAsync($"/api/tickets/{id}/timeline");
+probe.Count.Should().BeLessThanOrEqualTo(2);   // the existence check, then the union
+```
+
+**And it must fail loudly when it measures nothing** — `023`'s §12 rule and `001`'s false-negative
+architecture test both point at the same failure: a counter that is never wired reports zero, and
+zero passes every "no more than N queries" assertion ever written. So the utility asserts its own
+lower bound (`Count > 0`) before any test reads it.
+
+**Not built now, and the reason is scope rather than doubt.** `013` is a delivered feature and its
+one open criterion is recorded as open. Adding a test-infrastructure component during it would be
+scope this feature was not approved for — the working agreement's gate 1 applies to utilities as
+much as to endpoints. The right moment is **`008`**, which is next and which needs the same guard
+for its own N+1: built there, it closes `008`'s criterion on delivery and retires `013`'s and
+`010`'s open ones in the same commit.
+
+Raised for the product owner rather than assumed: this is a **fifth** thing `008` would carry, and
+whether that is worth it is a scheduling decision, not a technical one.

@@ -4,6 +4,28 @@
 
 Agents named here are **not dispatched until the plan is approved**. Naming is the plan.
 
+> **Status 2026-08-28 — the backend is delivered.** 378 tests, 0 warnings, run twice. See
+> [tests.md](tests.md) for the AC-to-test map, the three negative controls, and the live run.
+>
+> **Not done:**
+>
+> | | |
+> |---|---|
+> | Every `FE-013-*` task | The timeline UI — distinct rendering per entry type, empty/loading/error states, never `dangerouslySetInnerHTML`. The frontend lane owns it |
+> | `DOC-013-01` | The two new endpoints in `docs/sdd/documentation/api/`. Open |
+>
+> **One AC has an argument and no test: AC-14.** The actor name is resolved by a `JOIN` in both
+> branches of the union and no code path can loop, but nothing asserts the query count — that
+> needs a command interceptor counting round trips per request, which no test in this suite does
+> for any feature. Recorded in `tests.md` under *Not claimed* rather than counted as passing.
+>
+> **Three deviations, in [tests.md](tests.md) § *Deviations*:** the cursor instead of `010`'s page
+> envelope (approved as Q-B, now a rule in `CLAUDE.md`), no column default on `IsInternal`
+> (approved as Q-C), and `hasMore` instead of a total count.
+>
+> No agent was dispatched — every task was implemented inline, recorded in
+> [ai-notes.md](ai-notes.md).
+
 ## Migration note
 
 Migrated from `docs/sdd/story-artifacts/US-010-ticket-timeline-comments/tasks.md`. Same

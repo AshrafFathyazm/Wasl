@@ -308,4 +308,42 @@ public sealed class Ticket : IAuditableEntity
             // than a comment — Unassigned takes a non-nullable Guid.
             : TicketHistoryEntry.Unassigned(Id, previous!.Value, occurredAtUtc);
     }
+    /// <summary>
+    /// Accepts a comment and returns the history row that records it. `013` AC-4, AC-8 — BR-5.2,
+    /// BR-5.5.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ticket is not modified.</b> Nothing on this entity changes, so <c>RowVersion</c> does
+    /// not move and no <c>expectedVersion</c> is required on the endpoint — commenting is not an
+    /// edit of the ticket and two people commenting at once are not in conflict. That is why
+    /// <c>POST /comments</c> is a `201` on a sub-collection rather than a `PUT` on the ticket.
+    /// </para>
+    /// <para>
+    /// <b>It exists on <c>Ticket</c> anyway, because BR-5.2 is the ticket's rule.</b> "A closed
+    /// ticket accepts no comment" is a fact about the ticket's state, true for every caller, and
+    /// putting it in the handler would leave a seeder or an importer free to comment on closed
+    /// work. Same placement, same argument, as BR-2.5 in <see cref="Assign"/>.
+    /// </para>
+    /// <para>
+    /// <b>The history row carries the comment's id and never its text</b> (BR-5.5). The audit trail
+    /// and the timeline both record <i>that</i> a comment happened; the text lives in one place, so
+    /// there is one row to redact and one row to correct if it ever must be.
+    /// </para>
+    /// </remarks>
+    /// <param name="commentId">The comment's id, which exists before <c>SaveChanges</c> because
+    /// the entity generates it — so both rows can be written in one unit of work.</param>
+    /// <param name="occurredAtUtc">The same instant the comment carries. AC-10 depends on it.</param>
+    public TicketHistoryEntry AcceptComment(Guid commentId, DateTime occurredAtUtc)
+    {
+        // BR-5.2. Terminal, like every other write on a closed ticket — reported as
+        // ticket-closed rather than a generic conflict, so the client can say why instead of
+        // offering a retry that cannot succeed. BR-1.5.
+        if (Status is TicketStatus.Closed)
+        {
+            throw new TicketClosedException();
+        }
+
+        return TicketHistoryEntry.CommentAdded(Id, commentId, occurredAtUtc);
+    }
 }

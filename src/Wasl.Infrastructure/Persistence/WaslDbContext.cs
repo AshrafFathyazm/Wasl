@@ -115,6 +115,24 @@ public sealed class WaslDbContext(
                 entry.CurrentValues[nameof(TicketHistoryEntry.PerformedByUserId)] = actor;
             }
         }
+
+        // `013`. Same reason, same place — a comment's author is "who wrote this", not "who last
+        // edited this row", so TicketComment is not an IAuditableEntity either and the loop above
+        // does not see it. AC-15: the author comes from the token and there is no field on the
+        // command a client could set it through, so this is the only line that assigns it.
+        //
+        // No null-guard, unlike the history loop: TicketComment.AuthorUserId is non-nullable and
+        // the factory never sets it, so an unstamped comment would arrive here as Guid.Empty and
+        // FK_TicketComments_Author would refuse it at SaveChanges. That is the desired failure —
+        // loud — but it should never be reached, because the endpoint is behind the fallback
+        // authentication policy and a handler cannot run without a principal.
+        foreach (var entry in ChangeTracker.Entries<TicketComment>())
+        {
+            if (entry.State is EntityState.Added)
+            {
+                entry.CurrentValues[nameof(TicketComment.AuthorUserId)] = actor;
+            }
+        }
     }
 
     public DbSet<Customer> Customers => Set<Customer>();
@@ -139,6 +157,19 @@ public sealed class WaslDbContext(
     /// and will add it then; `009` only writes it, which needs no <c>IQueryable</c>.
     /// </summary>
     public DbSet<TicketHistoryEntry> TicketHistory => Set<TicketHistoryEntry>();
+
+    /// <summary>
+    /// `013`. Like <see cref="TicketHistory"/>, deliberately <b>not</b> on
+    /// <c>IApplicationDbContext</c>.
+    /// </summary>
+    /// <remarks>
+    /// The write path reaches comments through <c>IApplicationDbContext.Add</c>, which needs no
+    /// <c>DbSet</c>. The read path is <c>TicketTimelineQuery</c>, which lives in this project and
+    /// uses this context directly — one of the two named query classes `CLAUDE.md` sanctions.
+    /// Exposing an <c>IQueryable</c> here would let any handler build its own union and the
+    /// tie-break would have two implementations.
+    /// </remarks>
+    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
 
     // IApplicationDbContext exposes IQueryable, not DbSet — see that interface for why.
     // DbSet<T> IS an IQueryable<T>, so this is an upcast and costs nothing.
