@@ -19,5 +19,12 @@
   "cancel": "إلغاء",
   "back": "رجوع",
   "dismiss": "إغلاق",
-  "errors.maxLength": "يجب ألا يزيد عن {{max}} حرفاً"
+  "errors.maxLength": "يجب ألا يزيد عن {{max}} حرفاً",
+  "lang": {
+    "english": "English",
+    "arabic": "العربية",
+    "switchTo": "تغيير اللغة إلى {{language}}",
+    "codeEn": "EN",
+    "codeAr": "AR"
+  }
 }

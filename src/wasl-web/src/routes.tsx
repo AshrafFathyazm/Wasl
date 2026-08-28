@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
 
+import { RedirectIfSignedIn, RequireAuth } from './features/auth/guards';
 import { AppShell } from './shell/AppShell';
 import { NAV_PATHS } from './shell/navItems';
 
@@ -57,15 +58,41 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
     })()
   : [];
 
+const LoginPage = lazy(() => import('./features/auth/LoginPage'));
+
+/*
+ * TWO GROUPS, AND THE GUARD IS THE BOUNDARY (`025`).
+ *
+ * `/login` is the only public route in the product. Everything else sits under
+ * `RequireAuth`, which is deliberately wrapped OUTSIDE `AppShell` rather than
+ * inside it: a signed-out visitor must never see the shell paint — not the
+ * sidebar, not their absence of a name in the user block — before the redirect
+ * takes effect. Guarding inside the layout renders the frame first and replaces
+ * it a moment later, which is AC-25's flash wearing different clothes.
+ *
+ * The nesting is also what makes a new screen protected BY DEFAULT: a route
+ * added to the children below inherits the guard, and forgetting to protect one
+ * requires deliberately moving it out. The backend's fallback policy works the
+ * same way round, and for the same reason.
+ */
 export const routes: RouteObject[] = [
   {
-    element: <AppShell />,
+    element: <RedirectIfSignedIn />,
+    children: [{ path: '/login', element: <LoginPage /> }],
+  },
+  {
+    element: <RequireAuth />,
     children: [
-      /* The nav destinations that have no screen yet keep their placeholder, so
-       * the active state and the breadcrumb stay verifiable (`023`). */
-      ...NAV_PATHS.map((path) => ({ path, element: <HomePage /> })),
-      { path: '/tickets/new', element: <CreateTicketPage /> },
-      { path: '/tickets/:id', element: <TicketCreatedPage /> },
+      {
+        element: <AppShell />,
+        children: [
+          /* The nav destinations that have no screen yet keep their placeholder,
+           * so the active state and the breadcrumb stay verifiable (`023`). */
+          ...NAV_PATHS.map((path) => ({ path, element: <HomePage /> })),
+          { path: '/tickets/new', element: <CreateTicketPage /> },
+          { path: '/tickets/:id', element: <TicketCreatedPage /> },
+        ],
+      },
     ],
   },
   ...devRoutes,

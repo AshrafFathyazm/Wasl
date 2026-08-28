@@ -64,3 +64,43 @@ export const IconSignOut = ({ size = 18, ...p }: IconProps) => (
     <path d="M19.4 12h-8.8m0 0 2.6-2.6M10.6 12l2.6 2.6" />
   </svg>
 );
+
+/**
+ * (D) Eye / Eye-off — the password reveal toggle. Added by `025`.
+ *
+ * WHY THESE EXIST. The product owner asked for a show/hide control on the
+ * password field. The inherited set has no eye, and neither does the login
+ * reference — so this is not a glyph that was missed in extraction, it is one
+ * the product does not have. DESIGN-BRIEF rule 3 says say so rather than invent
+ * silently; it is said here, and they are labelled (D).
+ *
+ * THE ALMOND IS TWO MIRRORED ARCS, not an ellipse. An ellipse reads as a rugby
+ * ball at 16px because its curvature is constant; an eye is pointed at the
+ * corners and flat across the lid, which only two arcs give.
+ *
+ * The keyline is 16 wide and 10 tall, so the glyph optically matches the 16-unit
+ * square the rest of the set sits in — a full-width eye looks larger than every
+ * icon beside it even when the box is identical.
+ */
+export const IconEye = ({ size = 16, ...props }: IconProps) => (
+  <svg {...base(size)} {...props}>
+    <path d="M4 12s3.2-5 8-5 8 5 8 5-3.2 5-8 5-8-5-8-5z" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+);
+
+/**
+ * (D) Eye-off — the same eye with a slash.
+ *
+ * THE SLASH RUNS CORNER TO CORNER AND IS PHYSICAL, not logical. It is a glyph,
+ * not a layout: a struck-through eye is struck the same way in Arabic, and
+ * mirroring it under RTL would make the two states differ by direction rather
+ * than by meaning (ADR-007 §6 names this exception).
+ */
+export const IconEyeOff = ({ size = 16, ...props }: IconProps) => (
+  <svg {...base(size)} {...props}>
+    <path d="M4 12s3.2-5 8-5c1.2 0 2.3.3 3.2.8M20 12s-3.2 5-8 5c-1.2 0-2.3-.3-3.2-.8" />
+    <path d="M9.9 9.9a2.5 2.5 0 003.5 3.5" />
+    <path d="M4.5 19.5l15-15" />
+  </svg>
+);

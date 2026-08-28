@@ -198,3 +198,61 @@ export interface PagedResult<T> {
   totalCount: number;
   totalPages: number;
 }
+
+/* ---- Auth — 025 ------------------------------------------------------------
+ * TRANSCRIBED FROM specs/004-auth-and-roles/contracts/auth-api.md — FROZEN
+ * 2026-08-23. Not from the guide and not from the example body.
+ *
+ * `accessToken` IS OPAQUE. The contract says so by name: everything the UI needs
+ * is in `expiresAtUtc` and `user`. A client that decodes the JWT to read `role`
+ * starts depending on claim names, which are a server-side detail, and gains a
+ * JSON parser pointed at attacker-influenced input for no benefit. There is
+ * deliberately no `JwtClaims` type in this file — the shape it would describe is
+ * one nothing here is allowed to read.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against specs/004-auth-and-roles/
+// contracts/auth-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** CASED AS THE SERVER CASES THEM. `023` recorded that the ADR-011 §6 gate
+ *  caught this lowercase in `shell/currentUser.ts`, and that the compiler could
+ *  not have: `'manager'` type-checks against `'manager'` everywhere in the app,
+ *  right up to the first request that sends it. */
+export type SupportRole = 'Agent' | 'Manager';
+
+// PROVISIONAL — hand-written against specs/004-auth-and-roles/
+// contracts/auth-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `preferredLanguage` is an ENUM VALUE, never translated (BR-8.7). It is
+ *  applied to the client immediately on sign-in (AC-30). */
+export interface AuthenticatedUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: SupportRole;
+  preferredLanguage: 'en' | 'ar';
+}
+
+// PROVISIONAL — hand-written against specs/004-auth-and-roles/
+// contracts/auth-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** There is NO `rememberMe` field, deliberately. *Remember me* on the screen
+ *  chooses where the CLIENT keeps the token; the server issues the same token
+ *  either way, with the same lifetime. */
+export interface SignInRequest {
+  email: string;
+  password: string;
+}
+
+// PROVISIONAL — hand-written against specs/004-auth-and-roles/
+// contracts/auth-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+export interface SignInResponse {
+  accessToken: string;
+  /** Constant `"Bearer"`. Present so the client composes
+   *  `${tokenType} ${accessToken}` rather than hard-coding the scheme. */
+  tokenType: string;
+  /** Equals the token's `exp`. Issued so the client never decodes the JWT. */
+  expiresAtUtc: string;
+  user: AuthenticatedUser;
+}

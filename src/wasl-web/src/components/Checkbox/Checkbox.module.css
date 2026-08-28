@@ -1,0 +1,148 @@
+/* ============================================================================
+ * Checkbox
+ * ============================================================================
+ * Semantic tokens only. `!important` on the colour properties and
+ * `[data-preview-state]` for the states that cannot be forced — both for the
+ * same reasons as Button. See base.css, "HOW A COMPONENT OVERRIDES THESE".
+ *
+ * The tick and the dash are CSS, not an icon import: both are two strokes, and
+ * routing them through `icons.tsx` would put a React component inside a control
+ * whose whole job is to be a native input.
+ *
+ * TODO — no motion token exists (tokens.css note 11). 100ms is a literal, and it
+ * matches Input and Select rather than being chosen again. Q-8.
+ * ============================================================================ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+/* `flex-wrap` per 01-login.md: the remember-me row shares a line with the
+ * forgot-password link, and the Arabic label is longer. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.control {
+  /* `flex: none` — the box must never be squeezed by a long label. Without it a
+   * 23px square becomes an 11px rectangle at the narrow end of the drawer and
+   * reads as a rendering fault. */
+  flex: none;
+  inline-size: var(--checkbox-size);
+  block-size: var(--checkbox-size);
+  margin: 0;
+
+  /* MEASURED, not precautionary. `base.css` gives every `input` a
+   * `padding-inline: var(--space-3)` — correct for a text field, and here it is
+   * 12px on each side of a 23px box. With `box-sizing: border-box` the box
+   * cannot shrink below its own padding plus border, so the control came out
+   * 26.4 × 23: a checkbox that is visibly wider than it is tall, which reads as
+   * a broken glyph rather than as a padding rule. */
+  padding: 0;
+
+  appearance: none;
+
+  background-color: var(--field-fill) !important;
+  border: var(--checkbox-border);
+  border-radius: var(--checkbox-radius);
+
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+
+  transition:
+    background-color 100ms,
+    border-color 100ms,
+    box-shadow 100ms;
+}
+
+/* The tick. A rotated two-sided box is the cheapest stroke pair that scales with
+ * the control and stays crisp at 1x — drawn on a pseudo-element so the input
+ * keeps a single box. */
+.control::before {
+  content: '';
+  inline-size: 0.3em;
+  block-size: 0.6em;
+  border-style: solid;
+  border-width: 0 2px 2px 0;
+  border-color: transparent;
+  /* PHYSICAL, and deliberately so. This is a glyph, not a layout: a tick is the
+   * same shape in Arabic, and a logical property here would mirror it into a
+   * backwards check under RTL. ADR-007 §6 names exactly this exception. */
+  transform: rotate(45deg) translate(-1px, -1px);
+  transition: border-color 100ms;
+}
+
+.control:checked {
+  background-color: var(--brand) !important;
+  border-color: var(--brand);
+}
+
+.control:checked::before {
+  border-color: var(--on-brand);
+}
+
+/* Indeterminate wins over checked, because a control can be both and the mixed
+ * state is the one that must show. A dash, not a tick. */
+.control:indeterminate {
+  background-color: var(--brand) !important;
+  border-color: var(--brand);
+}
+
+.control:indeterminate::before {
+  inline-size: 0.55em;
+  block-size: 0;
+  border-width: 0 0 2px;
+  border-color: var(--on-brand);
+  transform: none;
+}
+
+.control:hover:not(:disabled),
+[data-preview-state='hover'] .control:not(:disabled) {
+  border-color: var(--border-default);
+}
+
+.control:checked:hover:not(:disabled) {
+  border-color: var(--brand);
+}
+
+.control:focus-visible,
+[data-preview-state='focus'] .control {
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 0;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.control:disabled {
+  background-color: var(--surface-sunken) !important;
+  border-color: var(--border-subtle);
+  cursor: not-allowed;
+}
+
+.control:disabled:checked {
+  background-color: var(--border-subtle) !important;
+}
+
+.control:disabled ~ .label {
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+}
+
+.label {
+  font-size: var(--text-ui);
+  color: var(--text-primary);
+  cursor: pointer;
+  min-inline-size: 0;
+}
+
+.message {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}

@@ -23,6 +23,7 @@ import './styles/locale.css';
  * `dir`/`lang`, and hands lib/api.ts its language resolver. The FIRST write of
  * dir/lang already happened inline in index.html, before paint. */
 import './lib/i18n';
+import { AuthProvider } from './features/auth/AuthContext';
 import { routes } from './routes';
 
 const container = document.getElementById('root');
@@ -49,11 +50,16 @@ const queryClient = new QueryClient({
 createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      {/* Route-level code splitting only (ADR-011 §7). Anything finer is
-          optimisation without a measurement. */}
-      <Suspense fallback={null}>
-        <RouterProvider router={router} />
-      </Suspense>
+      {/* OUTSIDE the router, so the session is read once for the application's
+          whole life rather than per navigation — and so `RequireAuth` sees a
+          settled answer on its very first render (`025`). */}
+      <AuthProvider>
+        {/* Route-level code splitting only (ADR-011 §7). Anything finer is
+            optimisation without a measurement. */}
+        <Suspense fallback={null}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

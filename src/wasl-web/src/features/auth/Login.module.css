@@ -1,0 +1,548 @@
+/* ============================================================================
+ * Login — the PLAIN build
+ * ============================================================================
+ * Semantic tokens only. Everything Phase 6 adds — the mesh, the aurora, the
+ * blur, the grain, the channel tiles, the hub, every entrance animation — is
+ * absent here by decision, not by omission (004/frontend-spec.md).
+ *
+ * TODO — no motion or shadow token exists (tokens.css note 11). The seam's
+ * shadow and the 100ms transitions are literals, each marked. Q-8.
+ * ============================================================================ */
+
+.screen {
+  display: flex;
+  min-block-size: 100vh;
+  /* A CONTAINER, not a media query: 01-login.md specifies the breakpoint on the
+   * component's own width so the screen works wherever it is placed. */
+  container-type: inline-size;
+  container-name: login;
+  background-color: var(--surface-card);
+}
+
+/* ---- The panel ------------------------------------------------------------
+ * The channel mesh. Layer order is the reference's and is load-bearing:
+ *
+ *   1 aurora · 2 mesh · 5 vignette · 6 grain · 7 scrim · 8 copy
+ *
+ * The grain sits ABOVE the vignette and BELOW the scrim. Moved above the scrim
+ * it textures the copy; moved below the vignette it is washed out and the panel
+ * goes back to looking like a smooth gradient, which is the thing it exists to
+ * prevent.
+ *
+ * Nothing here animates, so there is no reduced-motion branch to write — see
+ * the note in BrandPanel.tsx.
+ * -------------------------------------------------------------------------- */
+
+.panel {
+  flex: 1 1 50%;
+  min-inline-size: 0;
+  position: relative;
+  overflow: hidden;
+  /* A new stacking context, so the z-indexes below cannot interleave with the
+   * form column's. */
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  background-color: #12121f;
+  color: var(--on-brand);
+
+  /* THE MESH DOES NOT MIRROR, AND THIS IS WHERE THAT IS DECIDED.
+   *
+   * The hub and the five nodes are positioned with `inset-inline-start: 0` and
+   * then moved by a `translate()` whose numbers come from canvas coordinates —
+   * and a canvas has no writing mode. Under RTL the logical inset flips to the
+   * right edge while the transform keeps pushing right, so every node was
+   * carried straight off the panel and the icons vanished. Measured: the same
+   * class of defect `023` recorded on the loader, where a logical property
+   * inside an assembly that is mirrored as a whole made it mirror twice.
+   *
+   * Pinning the panel to `ltr` makes the insets resolve physically, which is
+   * what the coordinate space needs. The COPY is put back on the interface's
+   * direction below — it is text, and text mirrors. */
+  direction: ltr;
+}
+
+.aurora {
+  position: absolute;
+  /* Inset NEGATIVE by half: an 80px blur on a box that stops at the edge leaves
+   * a visibly lighter rim all the way round. The gradient has to start outside
+   * the frame for the blur to have something to pull in. */
+  inset: -50%;
+  z-index: 1;
+  background: conic-gradient(from 0deg, #1b1838, #2a2657, #20423f, #332e63, #1b1838);
+  filter: blur(80px);
+  opacity: 0.62;
+}
+
+.halo {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 260px;
+  block-size: 260px;
+  margin: -130px 0 0 -130px;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(
+    circle,
+    rgb(96 86 170 / 30%),
+    rgb(96 86 170 / 7%) 48%,
+    transparent 70%
+  );
+  filter: blur(26px);
+  z-index: 1;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* The interactive layer. It takes pointer events; every layer above it does not,
+ * or the nodes would be undraggable through the vignette. */
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.node,
+.hub {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+  cursor: grab;
+  /* The browser's own drag gesture would otherwise pan the page on touch and
+   * fight the pointer handler on desktop. */
+  touch-action: none;
+}
+
+.node:active,
+.hub:active {
+  cursor: grabbing;
+}
+
+.node {
+  inline-size: 54px;
+  block-size: 54px;
+  border-radius: 17px;
+  background: rgb(255 255 255 / 5.5%);
+  border: 1px solid rgb(255 255 255 / 13%);
+  backdrop-filter: blur(8px);
+  color: #b9bbd1;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+  transition:
+    background 300ms,
+    border-color 300ms,
+    color 300ms;
+}
+
+/* `data-hot` rather than `:hover`: the state has to persist while a node is
+ * being DRAGGED, and the pointer leaves the element the moment it moves faster
+ * than the spring follows. A `:hover` rule flickers off mid-drag. */
+.node[data-hot] {
+  background: rgb(120 110 190 / 20%);
+  border-color: rgb(170 162 225 / 50%);
+  color: #edebf7;
+}
+
+.hub {
+  inline-size: 74px;
+  block-size: 74px;
+  border-radius: 21px;
+  background: linear-gradient(150deg, #3b3577, #211c4c);
+  border: 1px solid rgb(150 142 205 / 40%);
+  color: #edebf7;
+  box-shadow:
+    0 14px 40px rgb(0 0 0 / 50%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
+  transition:
+    box-shadow 350ms,
+    border-color 350ms;
+}
+
+.hub[data-hot] {
+  border-color: rgb(178 170 230 / 60%);
+  box-shadow:
+    0 16px 44px rgb(0 0 0 / 55%),
+    0 0 34px rgb(110 98 190 / 32%);
+}
+
+/* Nothing moves under reduced motion, so nothing advertises that it can be
+ * grabbed. The physics loop is not started either — see BrandPanel.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  .node,
+  .hub {
+    cursor: default;
+    transition: none;
+  }
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: radial-gradient(126% 74% at 50% 34%, transparent 42%, rgb(11 11 22 / 78%) 100%);
+  pointer-events: none;
+}
+
+/* Inline SVG turbulence rather than a raster: it is a few hundred bytes, it
+ * scales, and it needs no asset pipeline. */
+.grain {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  opacity: 0.15;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.scrim {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: 34%;
+  z-index: 7;
+  background: linear-gradient(180deg, transparent, rgb(11 11 22 / 90%) 66%);
+  pointer-events: none;
+}
+
+/* Put back what `.panel` above turned off: this block is copy, not geometry. */
+[dir='rtl'] .panelText {
+  direction: rtl;
+}
+
+.panelText {
+  position: relative;
+  z-index: 8;
+  /* Pushes the copy to the bottom of the panel, under the mesh. */
+  margin-block-start: auto;
+  padding: 0 40px 38px;
+  pointer-events: none;
+}
+
+.panelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  margin-block-end: var(--space-4);
+  background: rgb(255 255 255 / 6%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  color: #b4b8ce;
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+}
+
+.chipDot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: var(--radius-pill);
+  background: #6fbfb0;
+  flex: none;
+}
+
+.chipAr {
+  font-family: var(--font-ar);
+  /* The reference sets 600 here. The scale has 400 / 500 / 700 and no 600, and
+   * DESIGN-BRIEF rule 3 forbids inventing a token — so this inherits the chip's
+   * own 500 rather than faking a weight. TODO, Q-6. */
+}
+
+.panelHeadline {
+  margin: 0;
+  color: #f2f1f7;
+  font-size: var(--type-h3);
+  font-weight: var(--weight-bold);
+  line-height: 1.24;
+  letter-spacing: -0.4px;
+  max-inline-size: 20ch;
+}
+
+.panelBody {
+  margin: 11px 0 0;
+  color: #8e92aa;
+  font-size: var(--text-ui);
+  line-height: 1.6;
+  max-inline-size: 300px;
+  /* The line swaps to a longer sentence while a channel is held. Without a
+   * floor the copy block jumps every time, which reads as the layout breaking
+   * rather than as the text changing. */
+  min-block-size: 42px;
+}
+
+/* ---- The form side -------------------------------------------------------- */
+
+.formColumn {
+  flex: 1 1 50%;
+  min-inline-size: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7) var(--space-8);
+  background-color: var(--surface-card);
+
+  /* THE SEAM — a contact shadow, not a gradient (01-login.md).
+   *
+   * `box-shadow` HAS NO LOGICAL FORM. Under RTL the panel and the form swap
+   * sides, so an unflipped `inset 16px` puts the contact shadow on the OUTSIDE
+   * edge of the form — where it reads as a stray vertical line rather than as a
+   * bug. This is one of the few places a direction check is unavoidable, and
+   * 004/frontend-spec.md names it for exactly that reason.
+   *
+   * TODO — literal, no shadow token exists. Q-8. */
+  box-shadow: inset 16px 0 26px -14px rgb(13 20 38 / 18%);
+}
+
+[dir='rtl'] .formColumn {
+  box-shadow: inset -16px 0 26px -14px rgb(13 20 38 / 18%);
+}
+
+.formWrap {
+  inline-size: 100%;
+  max-inline-size: 340px;
+}
+
+/* ---- The form ------------------------------------------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-title-1);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: 0;
+  font-size: var(--text-ui);
+  color: var(--text-muted);
+}
+
+.error {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  font-size: var(--text-ui);
+  /* `text-align: start`, never `left` — the block follows the interface. */
+  text-align: start;
+}
+
+.passwordBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.capsLock {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-warning-bg);
+  color: var(--text-primary);
+  font-size: var(--text-helper);
+  align-self: start;
+}
+
+.formRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* `<details>`, styled to read as a link. There is no reset flow (ADR-005), so
+ * the disclosure holds the whole answer. */
+.forgot {
+  font-size: var(--text-helper);
+}
+
+.forgotSummary {
+  color: var(--brand);
+  text-decoration: underline;
+  cursor: pointer;
+  /* The default triangle is a physical marker that does not mirror. */
+  list-style: none;
+}
+
+.forgotSummary::-webkit-details-marker {
+  display: none;
+}
+
+.forgotSummary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.forgotAnswer {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  max-inline-size: 30ch;
+}
+
+/* Full width without `Button` growing a layout prop — the wrapper owns the
+ * sizing, the primitive owns the painting. */
+.submit > button {
+  inline-size: 100%;
+}
+
+/* ---- Below 780px: the panel goes above the form --------------------------- */
+
+@container login (max-width: 780px) {
+  .screen {
+    flex-direction: column;
+  }
+
+  .panel {
+    flex: none;
+    padding: var(--space-8);
+  }
+
+  .panelInner {
+    max-inline-size: none;
+  }
+
+  .formColumn {
+    flex: 1 1 auto;
+    padding: var(--space-8);
+    /* The seam is horizontal now — the panel is ABOVE the form, so a shadow on
+     * the inline edge would point at nothing. Block-start, and it needs no
+     * RTL variant because the two halves no longer swap sides. */
+    box-shadow: inset 0 16px 26px -14px rgb(13 20 38 / 18%);
+  }
+
+  [dir='rtl'] .formColumn {
+    box-shadow: inset 0 16px 26px -14px rgb(13 20 38 / 18%);
+  }
+}
+
+/* ---- The lockup and the footer -------------------------------------------
+ * Geometry from the login reference: 40px tile, radius 9, 11px gap, 26px below.
+ * The Arabic wordmark leads and the Latin one sits under it at 10px / .19em —
+ * the same lockup the shell's sidebar uses, at the size this screen asks for.
+ * -------------------------------------------------------------------------- */
+
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-block-end: var(--space-6);
+}
+
+.lockupTile {
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: 9px;
+  background-color: var(--navy-900);
+  color: var(--on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.lockupText {
+  display: flex;
+  flex-direction: column;
+  /* The lockup is a MARK, so it does not follow the interface direction — the
+   * Arabic and Latin halves keep their own stacking in both locales. */
+  align-items: flex-start;
+}
+
+.wordmarkAr {
+  font-family: var(--font-ar);
+  font-size: 19px;
+  font-weight: var(--weight-bold);
+  color: var(--navy-900);
+  line-height: 1.05;
+}
+
+.wordmarkLatin {
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.19em;
+  color: var(--text-muted);
+  margin-block-start: 1px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-block: var(--space-6) 0;
+  font-size: var(--text-helper);
+  color: var(--text-placeholder);
+}
+
+.footerMark {
+  display: inline-flex;
+  color: var(--text-placeholder);
+}
+
+/* ---- Language switch — 025 ------------------------------------------------
+ * Top corner of the FORM side, per the reference. `inset-inline-end` so it
+ * follows the interface: under RTL the form column moves to the left and the
+ * button has to move with it, not stay pinned to a physical corner.
+ * -------------------------------------------------------------------------- */
+
+.lang {
+  position: absolute;
+  inset-block-start: 22px;
+  inset-inline-end: 26px;
+
+  block-size: 32px;
+  padding-inline: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+
+  border: var(--field-border);
+  border-radius: var(--radius-sm);
+  /* !important for the same reason Button and the reveal toggle use it:
+   * base.css gives every `button` the primary fill. */
+  background-color: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  /* `-webkit-text-fill-color` INHERITS AND BEATS `color`.
+   *
+   * `base.css` sets it on buttons so the primary button's label stays white
+   * against its fill. This button is white-on-white, so it inherited a white
+   * fill and rendered NOTHING — the text was in the DOM with the right font and
+   * the right `color`, and the box was empty. `023` recorded this exact defect
+   * on the avatar initials; it is the second time it has cost a screen. */
+  -webkit-text-fill-color: var(--text-primary) !important;
+
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.lang:hover {
+  border-color: var(--border-default);
+}
+
+.lang:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}

@@ -140,6 +140,71 @@ export function setLanguageResolver(resolver: () => string): void {
   resolveLanguage = resolver;
 }
 
+/* ---- Auth — 025 ------------------------------------------------------------
+ * The credential and the `401` response are wired here through resolvers, for
+ * the same reason the language is: this module must not import `AuthContext`,
+ * `tokenStorage`, or the router. It knows there is a credential and that a `401`
+ * has a consequence; it does not know what a session is or how to navigate.
+ * -------------------------------------------------------------------------- */
+
+/** What `Authorization` carries, already composed. `null` = send no header. */
+export interface Credential {
+  /** From the sign-in response, NEVER a hard-coded `'Bearer'` (AC-025-03). */
+  tokenType: string;
+  accessToken: string;
+}
+
+let resolveCredential: () => Credential | null = () => null;
+
+export function setCredentialResolver(resolver: () => Credential | null): void {
+  resolveCredential = resolver;
+}
+
+let onUnauthenticated: (() => void) | null = null;
+
+/**
+ * Called when an authenticated request comes back `401`.
+ *
+ * The handler clears the session and redirects. It is NOT called for a `401`
+ * from the sign-in endpoint — see `SIGN_IN_PATH` below.
+ */
+export function setUnauthenticatedHandler(handler: (() => void) | null): void {
+  onUnauthenticated = handler;
+}
+
+/**
+ * THE ONE PATH THE INTERCEPTOR MUST NOT ACT ON. AC-27, and it is the whole
+ * reason the exclusion is written as a constant rather than a condition at the
+ * call site.
+ *
+ * Without it: a wrong password returns `401`, the interceptor clears a session
+ * that does not exist and redirects to `/login` — the page the user is already
+ * on. React Router replaces the route, the `LoginPage` remounts, its form state
+ * and its error block go with it, and the screen looks like the submit button
+ * does nothing at all. No error appears anywhere; nothing is logged. It is the
+ * single most expensive defect available in this feature and it costs one
+ * comparison to avoid.
+ */
+export const SIGN_IN_PATH = '/api/auth/token';
+
+/**
+ * Guarded so the handler fires ONCE per burst (AC-025-05).
+ *
+ * A screen with three parallel queries and a stale token gets three `401`s
+ * within a few milliseconds. Un-guarded, that is three clears and three
+ * redirects; React Router coalesces the navigations but the third arrives after
+ * the first has already unmounted the caller, and the visible result is a
+ * `/login` that flickers. The flag is released on the next successful request,
+ * which is the first thing that happens after a fresh sign-in.
+ */
+let unauthenticatedHandled = false;
+
+/** Exported for the test that proves the burst is collapsed, and called by
+ *  `AuthContext` after a successful sign-in. */
+export function resetUnauthenticatedGuard(): void {
+  unauthenticatedHandled = false;
+}
+
 function buildUrl(path: string, query: Record<string, QueryValue> | undefined): string {
   const url = new URL(path, BASE_URL);
 
@@ -241,9 +306,14 @@ export async function apiFetchDetailed<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  /* TODO — 004-auth-and-roles: the bearer token is attached here, and a 401 is
-   * intercepted here rather than in a screen. Nothing is stored yet, so there is
-   * nothing to attach. */
+  /* 025. The scheme comes from the RESPONSE's `tokenType`, never from a literal
+   * here: the contract issues that field precisely so the client does not
+   * hard-code `'Bearer '`, and a concatenated literal keeps working until the
+   * day it silently does not. */
+  const credential = resolveCredential();
+  if (credential !== null) {
+    headers['Authorization'] = `${credential.tokenType} ${credential.accessToken}`;
+  }
 
   let response: Response;
   try {
@@ -273,8 +343,30 @@ export async function apiFetchDetailed<T>(
   const contentLanguage = response.headers.get('Content-Language');
 
   if (!response.ok) {
+    /* THE INTERCEPTOR. AC-27.
+     *
+     * `path`, not the built URL: the exclusion compares what the caller asked
+     * for, and `buildUrl` has already turned that into an absolute string with
+     * an origin and a query on it. Comparing the built URL would mean matching
+     * a substring, which is how `/api/auth/tokens-audit` would one day be
+     * excluded by accident.
+     *
+     * The handler still runs BEFORE the throw, not instead of it: the caller
+     * gets its `ApiError` either way, so a screen that wants to render
+     * something on the way out still can. */
+    if (response.status === 401 && path !== SIGN_IN_PATH) {
+      if (!unauthenticatedHandled) {
+        unauthenticatedHandled = true;
+        onUnauthenticated?.();
+      }
+    }
     throw new ApiError(await problemFrom(response), contentLanguage);
   }
+
+  /* A successful request means the credential is good again — release the burst
+   * guard so a LATER expiry is still intercepted. Without this, one `401` in a
+   * session would disarm the interceptor for the rest of the page's life. */
+  unauthenticatedHandled = false;
 
   const location = response.headers.get('Location');
 

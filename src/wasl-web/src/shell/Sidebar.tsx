@@ -8,8 +8,9 @@ import { IconSettings, IconSignOut } from '../icons/icons-added';
 import { Mark } from '../brand/Mark';
 import { WORDMARK_AR, WORDMARK_LATIN } from '../brand/wordmark';
 import { cx } from '../lib/cx';
+import { useAuth } from '../features/auth/AuthContext';
 import { Anchored, anchoredStyles } from './Anchored';
-import { CURRENT_USER, initialsOf } from './currentUser';
+import { initialsOf } from './currentUser';
 import { NAV_ITEMS, type NavEntry, type NavLeaf } from './navItems';
 import styles from './Sidebar.module.css';
 import type { SidebarMode } from './useSidebarState';
@@ -244,6 +245,7 @@ function ChildLink({
 
 function UserBlock({ collapsed }: { collapsed: boolean }) {
   const { t } = useTranslation();
+  const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const anchor = useRef<HTMLDivElement>(null);
 
@@ -263,8 +265,28 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
     };
   }, [open]);
 
-  const roleKey =
-    CURRENT_USER.role === 'Manager' ? 'common:role.manager' : 'common:role.agent';
+  /* `AppShell` only ever renders inside `RequireAuth`, so `user` is non-null in
+   * practice. Returning null rather than asserting: an assertion would crash the
+   * shell during the one frame between a sign-out clearing the context and the
+   * redirect committing. */
+  if (user === null) return null;
+
+  const roleKey = user.role === 'Manager' ? 'common:role.manager' : 'common:role.agent';
+
+  /* AC-28. `signOut` clears BOTH storages and drops the context.
+   *
+   * IT DOES NOT NAVIGATE, and that is deliberate. `RequireAuth` wraps this
+   * shell and redirects the moment `isSignedIn` goes false, so an explicit
+   * `navigate` here is a SECOND mechanism racing the first — which is exactly
+   * what it was, and the race was visible: the guard won, and the URL came out
+   * as `/login?returnUrl=%2Ftickets` rather than the `/login` this line asked
+   * for. One mechanism, and it is the guard.
+   *
+   * The popover is closed first so it is not left open behind the redirect. */
+  const onSignOut = () => {
+    setOpen(false);
+    signOut();
+  };
 
   return (
     <div className={styles.user}>
@@ -281,10 +303,10 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
                   lands at the right end (ADR-007 §8). dir="auto" on the span
                   itself did the second half and broke the first. */}
               <span className={styles.popoverName}>
-                <bdi>{CURRENT_USER.name}</bdi>
+                <bdi>{user.fullName}</bdi>
               </span>
-              <span className={styles.popoverEmail} title={CURRENT_USER.email}>
-                <bdi>{CURRENT_USER.email}</bdi>
+              <span className={styles.popoverEmail} title={user.email}>
+                <bdi>{user.email}</bdi>
               </span>
             </div>
 
@@ -313,6 +335,7 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
               type="button"
               className={cx(styles.popoverRow, styles.signOut)}
               role="menuitem"
+              onClick={onSignOut}
             >
               <span className={styles.rowIcon} aria-hidden="true">
                 <IconSignOut size={16} />
@@ -326,7 +349,7 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
           id="user-tooltip"
           kind="tooltip"
           enabled={collapsed}
-          panel={CURRENT_USER.name}
+          panel={user.fullName}
         >
           <button
             type="button"
@@ -334,17 +357,17 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-haspopup="menu"
-            aria-label={collapsed ? CURRENT_USER.name : undefined}
+            aria-label={collapsed ? user.fullName : undefined}
           >
             <span className={styles.avatar} aria-hidden="true">
-              {initialsOf(CURRENT_USER.name)}
+              {initialsOf(user.fullName)}
             </span>
             <span className={styles.identity}>
               <span className={styles.identityName}>
-                <bdi>{CURRENT_USER.name}</bdi>
+                <bdi>{user.fullName}</bdi>
               </span>
-              <span className={styles.identityEmail} title={CURRENT_USER.email}>
-                <bdi>{CURRENT_USER.email}</bdi>
+              <span className={styles.identityEmail} title={user.email}>
+                <bdi>{user.email}</bdi>
               </span>
             </span>
             <span className={styles.userChevron} aria-hidden="true">

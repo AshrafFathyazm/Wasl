@@ -1,5 +1,6 @@
-import { forwardRef, useId } from 'react';
+import { forwardRef, useId, useState, type KeyboardEvent } from 'react';
 
+import { IconEye, IconEyeOff } from '../../icons/icons-added';
 import { cx } from '../../lib/cx';
 import styles from './Input.module.css';
 
@@ -45,9 +46,64 @@ export interface InputProps {
    *  tells them they are wrong before they have finished being right. */
   error?: string | undefined;
 
+  /** Invalid, WITH NO MESSAGE OF ITS OWN. Added by `025`.
+   *
+   *  The sign-in form needs both inputs to carry the danger border while the
+   *  only explanation sits in one block above the submit — because the server
+   *  returns one `401` for three causes and a per-field message would say which
+   *  field was wrong, which is the enumeration that response shape exists to
+   *  prevent.
+   *
+   *  Passing `error=""` was the obvious way to express that and it silently does
+   *  nothing: `hasError` tests `!== ''`, so an empty string reads as "no error",
+   *  the border stays neutral and `aria-invalid` never appears. Measured in the
+   *  browser, not deduced — the form looked correct and announced nothing.
+   *
+   *  `error` still wins when both are supplied: a real message is more specific
+   *  than a bare state. */
+  invalid?: boolean | undefined;
+
   disabled?: boolean | undefined;
   size?: InputSize | undefined;
   inputMode?: 'text' | 'email' | 'tel' | 'numeric' | undefined;
+
+  /* ---- Native attributes, added by 025 --------------------------------------
+   * Three attributes and a handler, all of which a text field has always had and
+   * none of which had a consumer until the sign-in form. Added rather than
+   * worked around: the alternative was a hand-rolled `<input>` on `/login`, and
+   * a second implementation of a field is how the two come to disagree about
+   * focus, error rendering, and bidi.
+   * -------------------------------------------------------------------------- */
+
+  /** `password` is why this exists. It was hard-coded to `text`, which is fine
+   *  for every field built so far and wrong for exactly one — and a password
+   *  field that renders its value is not a styling defect. */
+  type?: 'text' | 'email' | 'password' | undefined;
+
+  /** REQUIRED for a password manager to fill, together with `autoComplete`.
+   *  Also what a native form post uses as the field name. */
+  name?: string | undefined;
+
+  /** `email` · `current-password` · `new-password` · `off`. AC-26 names the
+   *  first two by value: without them every sign-in becomes manual, which is
+   *  the largest usability loss available on that screen for two attributes. */
+  autoComplete?: string | undefined;
+
+  /** For `getModifierState('CapsLock')` on the password field. A hint, not
+   *  validation — the component neither knows nor cares what the caller does. */
+  onKeyUp?: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined;
+
+  /** Show / hide toggle. Only meaningful with `type="password"`. Added by `025`.
+   *
+   *  It lives in the PRIMITIVE, not on the sign-in screen, because it is a
+   *  property of a password field rather than of one form — and the next
+   *  password field in the product would otherwise re-implement the toggle,
+   *  the icon swap, and the announcement slightly differently.
+   *
+   *  The accessible name is supplied by the caller: this component holds no
+   *  strings (BR-8.8), and a literal here fails the build. */
+  revealLabel?: string | undefined;
+  hideLabel?: string | undefined;
 
   /** The native attribute only. Not a validator. */
   maxLength?: number | undefined;
@@ -86,9 +142,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     placeholder,
     helperText,
     error,
+    invalid = false,
     disabled = false,
     size = 'md',
     inputMode,
+    type = 'text',
+    name,
+    autoComplete,
+    onKeyUp,
+    revealLabel,
+    hideLabel,
     maxLength,
     counterFrom,
   },
@@ -98,8 +161,21 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   const controlId = id ?? generatedId;
   const messageId = `${controlId}-message`;
 
-  const hasError = error !== undefined && error !== '';
-  const message = hasError ? error : helperText;
+  const [revealed, setRevealed] = useState(false);
+  /* Offered only when the caller supplied both names AND the field is a
+   * password. A reveal button on an email field is a control with nothing to
+   * reveal. */
+  const canReveal =
+    type === 'password' && revealLabel !== undefined && hideLabel !== undefined;
+  /* The RENDERED type. `type` stays the caller's declaration, so `dir` below
+   * still resolves from it — a revealed password must not start following
+   * `dir="auto"` and jump ends the moment it becomes visible. */
+  const renderedType = canReveal && revealed ? 'text' : type;
+
+  const hasMessage = error !== undefined && error !== '';
+  /* Either a message or a bare invalid state paints the control as invalid. */
+  const hasError = hasMessage || invalid;
+  const message = hasMessage ? error : helperText;
 
   /* `maxLength` on the control makes over-typing impossible, which is exactly
    * why the counter is worth having: input simply STOPS, with nothing on screen
@@ -132,6 +208,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {label}
       </label>
 
+      <span className={cx(styles.anchor, canReveal && styles.hasAffix)}>
       <input
         ref={ref}
         id={controlId}
@@ -140,16 +217,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           styles[sizeClass[size]],
           hasError && styles.invalid,
         )}
-        type="text"
-        /* ALWAYS. An Arabic name typed into an English form is normal, and without
-         * this the punctuation lands at the wrong end and reads as a typo
-         * (ADR-007 §8). */
-        dir="auto"
+        type={renderedType}
+        name={name}
+        autoComplete={autoComplete}
+        /* ALWAYS — EXCEPT on a password.
+         *
+         * `dir="auto"` decides direction from the first strong character, and a
+         * password field renders dots: there is no strong character to read, so
+         * the browser falls back to the paragraph direction and the caret jumps
+         * to the other end mid-entry under RTL. A password is also not language
+         * content — it is an opaque secret, and it has no direction to detect.
+         *
+         * Everything else keeps it: an Arabic name typed into an English form is
+         * normal, and without it the punctuation lands at the wrong end and reads
+         * as a typo (ADR-007 §8). */
+        dir={type === 'password' ? 'ltr' : 'auto'}
         value={value}
         placeholder={placeholder}
         disabled={disabled}
         required={required}
         inputMode={inputMode}
+        onKeyUp={onKeyUp}
         maxLength={maxLength}
         aria-invalid={hasError || undefined}
         /* Points at whichever of helper or error is currently rendered, so a test
@@ -165,6 +253,27 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
       />
+
+      {canReveal ? (
+        <button
+          type="button"
+          className={styles.reveal}
+          /* `aria-pressed` rather than two different labels for one control:
+           * the button IS the same control in both states, and its state is
+           * what changed. The label still swaps so the name says what the
+           * next press will do. */
+          aria-pressed={revealed}
+          aria-label={revealed ? hideLabel : revealLabel}
+          aria-controls={controlId}
+          /* Out of the tab order is WRONG here — a keyboard-only user has no
+           * other way to check what they typed. It is reachable, and it is
+           * the last stop in the field. */
+          onClick={() => setRevealed((current) => !current)}
+        >
+          {revealed ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+        </button>
+      ) : null}
+      </span>
 
       {message === undefined && !showCounter ? null : (
         <span className={styles.footer}>

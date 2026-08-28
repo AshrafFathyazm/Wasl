@@ -96,6 +96,67 @@ vector export; `02-app-shell.md` reads 32 off the layer). Added notes 10 and 11.
 
 ---
 
+## A generated Dropdown reference — five deltas, and none of them move a token
+
+A Dropdown component reference **generated from Claude Design** was read on 2026-08-27:
+a canvas document carrying a live demo, anatomy, three sizes, twelve states, seven
+variants, menu behaviour, the WAI-ARIA combobox mapping, a React props API, and its own
+token list.
+
+**The values below are transcribed; the naming is not.** Q-11 puts tokens, spacing,
+typography, and component specifications in scope and keeps client product names and
+marks out of it, so the reference is described by what it is rather than named, and its
+token identifiers are not reproduced. The numbers are the useful part.
+
+**Every colour in it matches `tokens.css` exactly** — `#F9FAFB` `#DEE5E7` `#CAD3D7`
+`#1D174D` `#EDF1F2` `#F5F8F8` `#0D2626` `#9FABB5` `#76818C` `#E54545` — and so does the
+font stack. The geometry does not, in five places.
+
+**Precedence applied, and it is why nothing changed.** ADR-009 §*Two sources, and they
+disagree* settles shipped app over Figma export. A generated reference is a **third**
+source ADR-009 does not name; the product owner extended the rule on 2026-08-27:
+**shipped app › Figma › generated.** The reference loses all five, and it loses them on
+provenance rather than on the merits.
+
+| # | Value | Reference | `tokens.css` | Source of each number |
+|---|---|---|---|---|
+| 1 | `--field-height-sm` · `-md` · `-lg` | `32` · `40` · `48` | **`39` · `47` · `51`** | Reference: generated, never seen in a running app. `tokens.css`: labelled **(A)** — vector export from the Figma file, exact at 1:1, "consistent across every width observed". One decision, three numbers |
+| 2 | Menu container radius | `6px` | **`--radius-md` = `8px`** | Reference: generated. `tokens.css`: Figma's own named SM/MD/LG radius scale. `--field-radius` is `--radius-sm` `4px` and the reference **agrees** there — only the menu disagrees |
+| 3 | Chip / tag radius | `2px` | **`--chip-radius` = `--radius-pill` `999px`** | Reference: generated. `tokens.css`: **(A)**, "chip / tag — pill, subtle". No `--radius-xs` exists in this system and DESIGN-BRIEF rule 3 forbids inventing one |
+| 4 | Focus ring | `0 0 0 3px rgba(29,23,77,.18)` | **`color-mix(in oklab, var(--action-primary-bg) 22%, transparent)`, width `3px`** | Reference: generated. `tokens.css`: labelled **(D)** — our decision, because the source system has no answer. Width agrees at `3px`; only the alpha differs, 18% against 22% |
+| 5 | Menu shadow · transition | `0 4px 12px rgba(13,38,38,.08)` · `150ms ease-out` | **no token exists** — `Select.module.css` carries `100ms` as a marked literal | Reference: generated. `tokens.css` **note 11**: no shadow and no motion token has been extracted, and rule 3 forbids inventing one. The pre-existing gap under spec Q-8, not a new finding |
+
+**One correction to the record.** The heights were attributed in conversation to **(C)**,
+Figma layer inspect. `tokens.css` labels them **(A)**, vector export. Both are the Figma
+file and both are described as exact, so the verdict above is unchanged — but ADR-009's
+whole reason for labelling provenance is that a mislabelled token gets "corrected" later
+by whoever happens to open a different source. The label in the file is (A) and stands.
+
+**Nothing was changed.** No token moved; `Select.tsx` and `Select.module.css` were not
+touched. This section is the record.
+
+### Where the reference does have a use
+
+Not here, and not as a replacement for `Select`. `Select` is a native `<select>` by
+decision — it brings the platform's own open state, keyboard model, and mobile picker,
+and for a single-select form field that is cleaner than a custom combobox doing the same
+job. It is not a lesser Dropdown; it is a different component with a different purpose.
+
+The custom Dropdown's first real consumer is **`FE-015-03`** in
+`015-ticket-filters-and-search` — multi-select for status, priority, category, and
+channel. When that feature is built:
+
+- The reference is an **input to the spec, not the spec**.
+- **Take** — the ARIA structure (`role="combobox"` with `aria-activedescendant`, focus
+  never leaving the trigger) · typeahead on a 500ms window covering `ا–ي` as well as
+  `A–Z` · the flip-up rule below 200px of space · the menu's internal structure.
+- **Leave** — `async`, `virtualized`, `creatable`. No consumer asks for any of them.
+- **Geometry from `tokens.css`, not from the reference.** The five rows above are why.
+
+The two coexist: **`Select` for form fields, `Dropdown` for filters.**
+
+---
+
 ## Known limitations
 
 1. **`prefers-reduced-motion` has never been seen.** The CSS exists in `base.css` and

@@ -19,5 +19,12 @@
   "cancel": "Cancel",
   "back": "Back",
   "dismiss": "Dismiss",
-  "errors.maxLength": "Must be {{max}} characters or fewer"
+  "errors.maxLength": "Must be {{max}} characters or fewer",
+  "lang": {
+    "english": "English",
+    "arabic": "العربية",
+    "switchTo": "Switch language to {{language}}",
+    "codeEn": "EN",
+    "codeAr": "AR"
+  }
 }

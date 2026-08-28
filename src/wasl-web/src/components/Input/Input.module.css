@@ -169,3 +169,53 @@
 .counterNear {
   color: var(--state-warning-text);
 }
+
+/* ---- Reveal toggle — 025 --------------------------------------------------
+ * The button sits INSIDE the field box at the inline-end, so the control keeps
+ * one visual boundary. `.hasAffix` reserves the room; without it the text runs
+ * under the icon and only for long values, which is the kind of defect that
+ * shows up in one language and not the other.
+ * -------------------------------------------------------------------------- */
+
+.anchor {
+  position: relative;
+  display: flex;
+  min-inline-size: 0;
+}
+
+.hasAffix .control {
+  padding-inline-end: var(--space-8);
+}
+
+.reveal {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-2);
+  transform: translateY(-50%);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  /* !important for the same reason Button uses it: base.css gives every
+   * `button` the primary fill, and this one is an affix inside a field, not an
+   * action. Without it the toggle renders as a solid navy square sitting in the
+   * password box. Measured — rgb(29,23,77) on a control that asked for none. */
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+}
+
+.reveal:hover {
+  color: var(--text-primary) !important;
+}
+
+.reveal:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}

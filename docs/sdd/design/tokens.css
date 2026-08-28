@@ -1,5 +1,5 @@
 /* ============================================================================
- * Abyan house style — design tokens
+ * House style — design tokens
  * ============================================================================
  *
  * Consolidated from every source available. Each value is labelled with where it
@@ -8,8 +8,8 @@
  *
  *   (A) Vector exports — 7 SVGs from the Figma file. Colours exact, geometry exact
  *       at 1:1. Text is outlined, so no typography.
- *   (B) Shipped app — screenshots of abyan-qc.azm.sa. Indicative only; every value
- *       measured this way that was later checked against a layer turned out wrong.
+ *   (B) Shipped app — screenshots of the house QC environment. Indicative only; every
+ *       value measured this way that was later checked against a layer turned out wrong.
  *   (C) Figma layer inspect — exact, and authoritative wherever it disagrees.
  *   (D) Our decision, because the source system has no answer.
  *
