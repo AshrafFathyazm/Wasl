@@ -16,12 +16,12 @@ Full schema reference: [`docs/sdd/03-domain-model.md`](../../docs/sdd/03-domain-
 | Object | Definition | Created by | Used here for |
 |---|---|---|---|
 | `dbo.Tickets.AssignedToUserId` | `uniqueidentifier NULL` | `009-create-ticket` | The field this feature writes. `NULL` is the unassigned state, which is why it is nullable and why `null` in the request is a legal target |
-| `FK_Tickets_Assignee` | `REFERENCES dbo.SupportUsers (Id) ON DELETE NO ACTION` | `009-create-ticket` | The database-level guarantee that an assignee is a real support user. `ON DELETE NO ACTION`, **not** `ON DELETE RESTRICT` — `RESTRICT` is not SQL Server syntax, and `NO ACTION` is the same behaviour (ADR-013) |
-| `IX_Tickets_Assignee` | `CREATE INDEX IX_Tickets_Assignee ON dbo.Tickets (AssignedToUserId)` | `009-create-ticket` | Not read by this feature. It serves the "my tickets" filter in `010` / `015`, and is named here so nobody adds a second one |
+| `FK_Tickets_Assignee` | `REFERENCES dbo.SupportUsers (Id) ON DELETE NO ACTION` | **`004-auth-and-roles`** (corrected — see below) | The database-level guarantee that an assignee is a real support user. `ON DELETE NO ACTION`, **not** `ON DELETE RESTRICT` — `RESTRICT` is not SQL Server syntax, and `NO ACTION` is the same behaviour (ADR-013) |
+| **`IX_Tickets_AssignedToUserId`** | `CREATE INDEX IX_Tickets_AssignedToUserId ON dbo.Tickets (AssignedToUserId)` | **`004-auth-and-roles`** (corrected — the name was wrong too) | Not read by this feature. It serves the "my tickets" filter in `010` / `015`, and is named here so nobody adds a second one |
 | `dbo.Tickets.RowVersion` | `rowversion NOT NULL`, mapped with `.IsRowVersion()` | `009-create-ticket` | `expectedVersion`. Maintained by SQL Server, never incremented by application code (ADR-006 as amended by ADR-013) |
 | `dbo.TicketHistory` | `EventType nvarchar(30)`, `OldValue`/`NewValue nvarchar(200) NULL`, `PerformedByUserId`, `PerformedAtUtc datetime2(3)`, cascade from `Tickets` | `009-create-ticket` | The `Assigned` and `Unassigned` rows (BR-2.6, AC-9) |
-| `dbo.SupportUsers.IsActive` | `bit NOT NULL DEFAULT 1` | `001-solution-skeleton`, seeded by `004-auth-and-roles` | BR-2.4, and the filter behind `GET /api/support-users` |
-| `dbo.AuditLog` | `bigint IDENTITY` key, no foreign keys, `Changes nvarchar(max)` with `CHECK (ISJSON(Changes) = 1)` | `003-audit-trail` | The `Ticket.Assigned`, `Ticket.Unassigned`, and `Auth.Forbidden` rows |
+| `dbo.SupportUsers.IsActive` | `bit NOT NULL` — **no column default** | **`004-auth-and-roles`** (corrected twice — see below) | BR-2.4, and the filter behind `GET /api/support-users` |
+| `dbo.AuditLog` | `bigint IDENTITY` key, no foreign keys, `Changes nvarchar(max)` with `CHECK (ISJSON(Changes) = 1)` | `003-audit-trail` | The `Ticket.Assigned` and `Ticket.Unassigned` rows, on **both** the success and the denial path. **Not `Auth.Forbidden`** — nothing writes that row; `004` AC-18 is deferred to `004b`, and the reconciliation table in `spec.md` explains why that decides where a BR-2 check lives |
 
 Table names are PascalCase in the `dbo` schema — `dbo.Tickets`, `dbo.TicketHistory`,
 `dbo.SupportUsers`. There are no snake_case object names anywhere in this schema; the
@@ -119,3 +119,27 @@ key nor the concurrency token, which are two of the three things this feature re
 `now` is passed in rather than read inside the entity, because the time comes from the
 injected `TimeProvider` and never from `DateTime.UtcNow` — that is what lets a test pin
 `PerformedAtUtc` and assert history ordering.
+
+---
+
+## Corrections — 2026-08-27
+
+This file was written 2026-08-23, before `004` and `009` existed, and four of its rows
+described a database that did not exist. Corrected in place above and explained here,
+because a specification stating false facts makes every decision after it stand on
+invented ground — the exact failure `009` hit and recorded.
+
+| # | Said | Actually | Why it matters |
+|---|---|---|---|
+| 1 | `FK_Tickets_Assignee` created by `009` | Created by **`004`**, 2026-08-27 | `009` deferred all four FKs by name, because `dbo.SupportUsers` did not exist. The consequence was live for two features: `DemoSeeder.AssignAsync` and one integration helper both wrote a fabricated assignee `Guid`, documented as safe *because there was no FK*. `004` added the constraint and both died on `Error Number:547`. The fabricated id was never valid — it was an unenforced dangling reference, and `004` did not create the defect, it made the defect fail |
+| 2 | The index is `IX_Tickets_Assignee`, created by `009` | It is **`IX_Tickets_AssignedToUserId`**, created by `004` | EF generated it from the foreign key rather than from a declared `HasIndex`, so it carries EF's convention name. The original row's advice — "named here so nobody adds a second one" — was pointing at an index that does not exist, which is the one thing worse than not naming it |
+| 3 | `dbo.SupportUsers.IsActive` is `bit NOT NULL DEFAULT 1`, created by `001` | `dbo.SupportUsers` created by **`004`**; `IsActive` has **no column default** | Wrong twice. `001` created `Customers` alone. And the missing default is deliberate: `004` D-4 removed every column default because EF applies one whenever the property holds the CLR default, and for `bool` that is `false` — so an entity being deactivated would have been stored as **active**, with no error. The identical defect shipped in `001` on `Customers.IsActive` and needed a migration to undo. Nothing here changes: BR-2.4 reads the column and never writes it |
+| 4 | `dbo.AuditLog` carries this feature's `Auth.Forbidden` rows | **Nothing writes `Auth.Forbidden`** | `004` AC-18 is deferred to `004b` and is recorded as a gap in BR-9.4. This is not cosmetic — it decides where BR-2's data-dependent checks live. A handler-thrown `ForbiddenException` is classified `AuditOutcome.Denied` by `003` and written by `AuditBehaviour` outside the transaction; a `403` from the authorization middleware writes nothing. So the checks belong in the handler, and `spec.md` AC-17 asserts the row rather than trusting the argument |
+
+**Still true, and re-verified rather than assumed:** `dbo.Tickets.AssignedToUserId` is
+`uniqueidentifier NULL` from `009`; `dbo.Tickets.RowVersion` is `rowversion` mapped with
+`.IsRowVersion()`; `dbo.TicketHistory` has `EventType nvarchar(30)` stored **as a string**
+with `OldValue`/`NewValue nvarchar(200) NULL` and cascades from `Tickets`; and
+`TicketHistoryEventType` already contains `Assigned` and `Unassigned`, so this feature
+needs **no migration and no enum change** — which is what "Migration: none" at the top of
+this file now means, having been checked rather than inherited.

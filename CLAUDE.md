@@ -126,6 +126,7 @@ and `ar`.
 - **`012-change-ticket-status` backend delivered** 2026-08-26 — `PUT /api/tickets/{id}/status`, three distinct `409` codes, explicit optimistic concurrency **before** the transition rules (250 tests)
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
+- **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
 - **The development connection string points at the compose container**, port 14330, not `.\SQLEXPRESS`. Supersedes `001` AC-10 — see `12-delivery-log.md` 2026-08-27
 
 <!-- MANUAL ADDITIONS START -->
@@ -222,13 +223,21 @@ Anything not `yes` is `409 Conflict`. `Closed` is terminal — no reopen, reassi
 escalate, or comment. A same-status transition is `409`, not `200`. `InProgress` requires
 an assignee. `PendingCustomer → Resolved` is not permitted directly.
 
-- **BR-2 assignment** — a `Manager` assigns anyone; an `Agent` may only self-assign an
-  unassigned ticket. Assigning a `New` ticket does not move it to `Open`.
+- **BR-2 assignment — implemented by `011`** — a `Manager` assigns anyone; an `Agent` may only
+  self-assign an unassigned ticket. Assigning a `New` ticket does not move it to `Open`. The
+  endpoint carries **no role policy** and cannot: `ManagerOnly` there would refuse every Agent.
 - **BR-4 duplicate customer** — email and phone each optional but unique when present,
   case-insensitive on email. A second create returns `409 duplicate-customer` naming the
   field and **nothing else** — no id, no name.
 - **BR-6 authorization** — server-side. Role-only checks as endpoint policies;
-  data-dependent checks ("is this user the assignee?") in the handler.
+  data-dependent checks ("is this user the assignee?") in the handler. **The split is not a
+  style choice, and `011` measured it: a handler denial is audited, a policy denial is not.** A
+  `ForbiddenException` reaches `AuditBehaviour`, which classifies it `Denied` and writes an
+  independent row; a `403` from the authorization middleware throws nothing, so MediatR never sees
+  it and no row exists — `004` AC-18, open. Moving BR-2 into `ManagerOnly` and re-running the
+  suite reported `found 0: {empty}` for that row while the API still answered a correct `403`. A
+  policy `403` also has an **empty body** (no `type`, no `traceId` — `002b`), and a policy cannot
+  express a check ordering at all, because it runs before every handler.
 - **BR-7.2** — `pageSize` above 100 clamps to 100; `page` is 1-based, clamps up to 1.
 - **BR-8 localization** — the server localizes only strings it authors. Never localized:
   `ProblemDetails.type`, the keys of `errors`, enum values, `TicketNumber`, `traceId`.
@@ -304,11 +313,21 @@ present, would have stayed green on a broken audit trail.
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
 
-**Verify a measurement with something below it.** A `grep` over `src/` cannot see what
+**A stale binary reports a green build.** `Copy-Item` preserves the source file's
+`LastWriteTime`, so reverting a change from a backup can make the source look **older** than the
+compiled DLL — MSBuild then skips recompiling it and `dotnet build` prints `0 Errors`. `011`
+measured its second negative control against the first one's binary and nearly recorded
+"swapping the check order breaks five tests": specific, plausible, and wrong. The only tell was
+that the failures did not match the change. **Re-measure every negative control with
+`--no-incremental`**, and kill stray `Wasl.Api` processes first — a file lock turns the same
+build into `MSB3061`, which at least fails loudly.
+
+**Verify a measurement with something below it.**
+ A `grep` over `src/` cannot see what
 the framework builds inside itself — `002`'s AC-2 guard was green while three request
-shapes returned the framework's envelope. Four tools have lied here: that grep, a
+shapes returned the framework's envelope. Five tools have lied here: that grep, a
 regex that matched the wrong table, a preview toggle that said `en` while rendering
-Arabic, and a measurement block that named the wrong label. Each produced a
+Arabic, a measurement block that named the wrong label, and the **build** (see above). Each produced a
 well-formed report about nothing. **A measurement that names the wrong thing is worse
 than no measurement, because it is believed.**
 
@@ -354,10 +373,16 @@ succeeds.
 | `ValidAlgorithms = [HS256]` | A token whose header says `alg: none` is accepted |
 | `ClockSkew = TimeSpan.Zero` | Expired tokens keep working for five minutes, and the expiry test passes or fails depending on when it runs |
 
-**BR-2 is still not implemented, and the distinction matters.** `004` built the identity BR-2
-stands on; the rules themselves need `PUT /api/tickets/{id}/assignee`, which is `011`. Role-only
-checks go on the endpoint as `[Authorize(Policy = WaslPolicies.ManagerOnly)]`; data-dependent
-checks ("is this user the assignee?") go in the handler off `ICurrentUser.UserId`.
+**BR-2 was `011`, and it is built.** `004` built the identity BR-2 stands on; `011` built the
+rules, in `PUT /api/tickets/{id}/assignee`. Role-only checks go on the endpoint as
+`[Authorize(Policy = WaslPolicies.ManagerOnly)]`; data-dependent checks ("is this user the
+assignee?") go in the handler off `ICurrentUser.UserId` — and the reason is in BR-6 above, because
+`011` measured what happens when you put them in the wrong place.
+
+**`ManagerOnly` still has no production consumer.** `011` deliberately did not use it: BR-2.2 lets
+an Agent self-assign, so a role gate on that endpoint would refuse the legitimate case. It is
+proven by `004` AC-7 against a test-host endpoint, which is honest and is not the same as proven in
+the product. The first endpoint that is genuinely Manager-only should carry it.
 
 **Never fill any remaining gap with a fake actor** — a seeded "system" user, a header, a
 constant claim. ADR-005 rejects it by name, and the rule still applies: `004` closed the gap by

@@ -10,7 +10,7 @@ using Wasl.Infrastructure.Persistence;
 namespace Wasl.Api.IntegrationTests.Auth;
 
 /// <summary>
-/// <c>dbo.SupportUsers</c> and the two rows in it. `004` AC-13, AC-14, AC-22, AC-23.
+/// <c>dbo.SupportUsers</c> and the rows in it — two from `004`, a third from `011`. AC-13, AC-14, AC-22, AC-23.
 /// </summary>
 [Collection(WaslApiCollection.Name)]
 public sealed class SupportUserSeedTests(WaslApiFactory factory)
@@ -31,7 +31,10 @@ public sealed class SupportUserSeedTests(WaslApiFactory factory)
 
         var after = await SnapshotAsync();
 
-        after.Should().HaveCount(2);
+        // Three since `011` seeded a second Agent, so BR-2.3's "someone else" is a colleague
+        // rather than a Manager. The count is asserted rather than left open on purpose: this
+        // assertion going red is how a fourth seeded user announces itself.
+        after.Should().HaveCount(3);
         after.Should().BeEquivalentTo(before,
             "the seeder is idempotent by email, and re-hashing would change the value silently");
     }

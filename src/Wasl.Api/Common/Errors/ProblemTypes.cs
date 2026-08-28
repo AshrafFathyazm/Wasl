@@ -100,6 +100,17 @@ internal static class ProblemTypes
 
         [DomainErrorCodes.ConcurrencyConflict] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.ConcurrencyConflict.Title"),
+
+        // Added by `011`. Two more that a client must tell apart without reading English:
+        // assignee-unchanged means refetch quietly (a double-click on the picker), and
+        // assignee-not-found means the PICKER is stale — distinct from errors/not-found, which
+        // means the TICKET is stale and the page should be reloaded. One 404 for both would force
+        // the client to guess which of the two it is holding out of date.
+        [DomainErrorCodes.AssigneeUnchanged] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.AssigneeUnchanged.Title"),
+
+        [DomainErrorCodes.AssigneeNotFound] = new(
+            StatusCodes.Status404NotFound, CarriesErrors: false, TitleKey: "Error.AssigneeNotFound.Title"),
     };
 
     /// <summary>Every registered code. Used by the completeness test (AC-14, AC-15).</summary>

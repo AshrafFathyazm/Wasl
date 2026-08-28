@@ -49,6 +49,7 @@ credential wearing a different hat.
 dotnet user-secrets set "Jwt:SigningKey" "any-string-of-at-least-32-bytes-please" -p src/Wasl.Api
 dotnet user-secrets set "Seed:ManagerPassword" "Manager#2026" -p src/Wasl.Api
 dotnet user-secrets set "Seed:AgentPassword"   "Agent#2026"   -p src/Wasl.Api
+dotnet user-secrets set "Seed:AgentTwoPassword" "Agent2#2026" -p src/Wasl.Api
 ```
 
 Omit any one of them and the host refuses to start with a message naming the configuration key
@@ -99,6 +100,7 @@ Two seeded users, and no screen to create more (`004`'s scope was the backend ha
 |---|---|---|
 | `manager@wasl.local` | Manager | `ar` — signs in to an Arabic interface |
 | `agent@wasl.local` | Agent | `en` |
+| `agent2@wasl.local` | Agent | `ar` — a second Agent, so BR-2.3 (an Agent may not take a **colleague's** ticket) is provable rather than asserted |
 
 Passwords are whatever you set in `Seed:*` above. The email is case-insensitive by column
 collation, so `MANAGER@WASL.LOCAL` works.
@@ -106,7 +108,7 @@ collation, so `MANAGER@WASL.LOCAL` works.
 ### Run the tests
 
 ```bash
-dotnet test                                    # everything — 303 tests
+dotnet test                                    # everything — 340 tests
 dotnet test tests/Wasl.Domain.Tests            # no database, no Docker
 dotnet test tests/Wasl.Api.IntegrationTests    # needs Docker running
 ```
@@ -134,8 +136,10 @@ log. `200` is never returned with an error in the body.
 | `GET /api/tickets?page=&pageSize=` | Paged, newest first. `pageSize` defaults to 20 and clamps at 100; `page` clamps up to 1 |
 | `GET /api/tickets/{id}` | The same resource shape the create returns |
 | `PUT /api/tickets/{id}/status` | The BR-1 state machine, with optimistic concurrency on `expectedVersion` |
+| `PUT /api/tickets/{id}/assignee` | Assign, reassign, or unassign (`assigneeId: null`). BR-2 in full — a Manager assigns anyone, an Agent may only take an **unassigned** ticket for themselves |
+| `GET /api/support-users` | The assignee picker. Active users only, three fields — id, name, role |
 
-### Three things worth looking at
+### Four things worth looking at
 
 **`allowedTransitions` comes from the server.** Every ticket read and every status write returns
 the transitions permitted *right now*, computed from one map in the domain and its preconditions.
@@ -149,7 +153,17 @@ can start, and offering it would render a button whose only outcome is a `409`.
 reaction differs for each — refetch quietly, offer Assign, offer a different transition — and it
 cannot tell them apart by parsing an English sentence.
 
-**Every state change writes an audit row in the same transaction as the change.** A rollback takes
+**A permission check's placement decides whether the refusal is recorded.** BR-2's
+data-dependent rules — "may this Agent take this ticket?" — are enforced in the handler, not in an
+authorization policy, and that is not a style choice. A handler denial is a domain exception, so
+the audit pipeline classifies it `Denied` and writes a row naming the actor, the ticket, and the
+`traceId` the caller received. A denial produced by the authorization middleware throws nothing
+and writes nothing. **Measured, not assumed:** moving the check into a policy and re-running the
+suite reports `found 0: {empty}` for the audit row, while the API still answers a perfectly
+correct `403`. Role-only checks stay on the endpoint, where they belong.
+
+**Every state change writes an audit row in the same transaction as the change.**
+ A rollback takes
 the row with it. A *denial* or a *failure* writes its row on a second connection, so it survives
 the rollback of the thing that failed — which is the half that is invisible when it is wrong.
 
@@ -185,8 +199,10 @@ boundaries are the whole return on four projects, so they are checked rather tha
 | `009` create ticket — entity, history, sequence, `POST`, `GET /{id}`, the BR-1 map with all 36 cells | Backend done |
 | `012` change status — `PUT /status`, four refusal types, optimistic concurrency | Backend done |
 | `010` ticket list — paged, newest first | Backend done |
+| `004` auth — `dbo.SupportUsers`, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + an authenticated **fallback** policy | **Backend half done.** `004b` deferred, see below |
+| `011` assign ticket — `PUT /assignee`, `GET /api/support-users`, BR-2 in full | Backend done |
 
-**267 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
+**340 tests, 0 warnings.** Every acceptance criterion maps to a named test, and the run output is
 recorded in each feature's `tests.md` rather than asserted from memory.
 
 ---
@@ -203,7 +219,6 @@ feature folder that owns it.
 | Not built | Where it is specified | Why it was cut |
 |---|---|---|
 | **Authentication and roles — the frontend half** (`004`) | `specs/004-auth-and-roles/` | The backend half **shipped 2026-08-27**: `POST /api/auth/token`, JWT with a role claim, two seeded users, real `ICurrentUser`, `RequireAuthenticatedUser` as the fallback policy so a forgotten `[Authorize]` cannot open an endpoint. What is missing is the login screen, the route guard, the `401` interceptor and sign-out — the frontend lane owns them. Until then, a token is obtained with `curl` and pasted into a header |
-| **Assignment** (`011`) | `specs/011-assign-ticket/` | The demo is create → list → change status. Assignment is a fourth verb on the same object, and BR-2's rules need `004`'s roles to mean anything |
 | **Filters and search** (`015`) | `specs/015-ticket-filters-and-search/` | Seven filters that combine with AND, repeated keys that combine with OR, and a search that must treat `%` and `_` as literals. Shipping half of it leaves a query surface that looks complete and silently ignores combinations |
 | **Timeline and comments** (`013`) | `specs/013-ticket-timeline-and-comments/` | `dbo.TicketHistory` is written and correct — `Created` and `StatusChanged` rows with notes. What is missing is the read surface |
 | **Escalation** (`016`) | `specs/016-escalate-ticket/` | The columns exist so no second migration is needed. The verb does not |

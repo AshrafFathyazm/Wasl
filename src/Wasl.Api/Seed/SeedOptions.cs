@@ -32,12 +32,25 @@ internal sealed class SeedOptions
 
     public string AgentPassword { get; init; } = string.Empty;
 
+    /// <summary>
+    /// A second Agent. Added by `011` for one reason, and it is a testing reason stated plainly.
+    /// </summary>
+    /// <remarks>
+    /// BR-2.3 says an Agent may not reassign a ticket that belongs to <b>someone else</b>. With
+    /// only one Agent seeded, "someone else" is always the Manager — so a test cannot distinguish
+    /// "not mine" from "belongs to a Manager", and the narrower and more likely case in production
+    /// (agent takes a colleague's ticket) would have gone unproven while AC-4 read as satisfied.
+    /// One row makes the rule provable instead of asserted.
+    /// </remarks>
+    public string AgentTwoPassword { get; init; } = string.Empty;
+
     public static SeedOptions From(IConfiguration configuration)
     {
         var options = configuration.GetSection(Section).Get<SeedOptions>() ?? new SeedOptions();
 
         Require(options.ManagerPassword, nameof(ManagerPassword));
         Require(options.AgentPassword, nameof(AgentPassword));
+        Require(options.AgentTwoPassword, nameof(AgentTwoPassword));
 
         return options;
     }

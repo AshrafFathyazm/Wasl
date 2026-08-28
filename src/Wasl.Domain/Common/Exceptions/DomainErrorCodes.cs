@@ -59,7 +59,40 @@ public static class DomainErrorCodes
     /// <summary><c>Closed</c> is terminal. BR-1.5.</summary>
     public const string TicketClosed = "ticket-closed";
 
-    /// <summary>The ticket is already escalated. BR-3.4.</summary>
+    /// <summary>
+    /// The requested assignee is already the ticket's assignee, or <c>null</c> was sent for an
+    /// already-unassigned ticket. `011` AC-11.
+    /// </summary>
+    /// <remarks>
+    /// Its own code for the reason <see cref="SameStatusTransition"/> is: the client's correct
+    /// reaction is to refetch quietly, because the user did nothing wrong. It is what a
+    /// double-click on the picker produces, and reporting a rule violation for a double-click is
+    /// a lie about the interaction.
+    /// </remarks>
+    public const string AssigneeUnchanged = "assignee-unchanged";
+
+    /// <summary>
+    /// The support user named as the target of an assignment does not exist. `011` AC-7.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Distinct from <see cref="NotFound"/>, which addresses the ticket.</b> One request can
+    /// fail either way and the client's reaction differs completely: an unknown ticket means the
+    /// page is stale and should be reloaded; an unknown assignee means the picker is stale and
+    /// should be refreshed. Both as `404 errors/not-found` would force the client to guess which
+    /// of the two it is holding out of date.
+    /// </para>
+    /// <para>
+    /// <b>The enumeration-oracle question was asked and answered.</b> This does distinguish "no
+    /// such user" from "a user you may not assign" — but the picker at
+    /// <c>GET /api/support-users</c> already lists every active user to every authenticated
+    /// caller, so there is nothing here to enumerate that is not already published. BR-4.4's
+    /// prohibition applies to customers, whose existence is not otherwise disclosed.
+    /// </para>
+    /// </remarks>
+    public const string AssigneeNotFound = "assignee-not-found";
+
+/// <summary>The ticket is already escalated. BR-3.4.</summary>
     public const string AlreadyEscalated = "already-escalated";
 
     /// <summary><c>expectedVersion</c> is stale. ADR-006.</summary>

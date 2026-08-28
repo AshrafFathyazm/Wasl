@@ -285,3 +285,89 @@ that exists in a response and not in the registry is how a client ends up with a
 
 The frontend lane reads [`FRONTEND-API-GUIDE.md`](FRONTEND-API-GUIDE.md) and may start
 as soon as that file exists; it does not wait for `BE-011-05`.
+
+### 2026-08-28 — three entries from implementation
+
+Both endpoints shipped. The contract did not move; three things about the agreement between the
+lanes changed or were clarified, and each is here rather than in a commit message.
+
+#### 1 · `assignee` is an added field, not a replaced one — `spec.md` Q-5
+
+The frozen contract shows the `200` body carrying `assignee` as a nested object
+`{ id, fullName, role }`. `009`'s and `010`'s frozen contracts show a bare
+`assignedToUserId`. Three shapes existed for one concept, and the product owner ruled: return
+the nested object and change nothing else, because **aligning all three would be a breaking
+change to two frozen contracts the frontend has already built against** — `024` reads a
+hand-written `api-types.provisional.ts` derived from them.
+
+Implemented as an **addition** to the one shared ticket DTO:
+
+| Endpoint | `assignedToUserId` | `assignee` |
+|---|---|---|
+| `POST /api/tickets` | present | present, `null` — a create never has one (BR-2.7) |
+| `GET /api/tickets/{id}` | present | present, populated when assigned |
+| `PUT /api/tickets/{id}/status` | present | present, populated when assigned |
+| `PUT /api/tickets/{id}/assignee` | present | present — the contract's shape |
+| `GET /api/tickets` (paged list) | — | — flat `assigneeId` + `assigneeName`, **unchanged** |
+
+Adding a field is backward-compatible; replacing one is not. So no client breaks and no frozen
+contract is amended. The alternative — a second seventeen-field DTO for this endpoint with its own
+mapper — is the "second shape to keep in step" `012` declined for the same reason, and it would
+have meant `allowedTransitions` and `version` computed in two places.
+
+**Known limitation, stated so it is not discovered:** `assignedToUserId` is now redundant with
+`assignee.id`, and the paged list still uses a third shape because it is a single-query projection.
+Removing the redundant field and aligning the list **will be a breaking change** when it happens.
+**Owner: `010-ticket-list-and-detail`**, which owns the read shape. Nothing in `011` should be read
+as having settled it.
+
+#### 2 · A malformed route `Guid` returns `404`, and the contract says `400` — `spec.md` Q-6
+
+The contract states: *"A malformed `Guid` in the route is `400`, not `404`."* The observed
+behaviour is `404`. ASP.NET Core's `:guid` route constraint fails the route match before any
+action runs, so nothing `002` built ever sees the request.
+
+**`CLAUDE.md`: "a difference is a defect in one of the two, never fixed silently."** It is a defect
+in the implementation, not in the contract — the contract's answer is the better one, because a
+client cannot distinguish "this ticket does not exist" from "you sent nonsense" and the two need
+different reactions. It is **not** fixed here: enveloping the statuses the framework
+short-circuits is `002b`'s task and was split out with a written reason.
+
+`AssignTicketTests.A_malformed_route_id_returns_404_which_the_contract_says_should_be_400` asserts
+today's behaviour and names the contract it violates in its own remarks, so the day `002b` lands
+the test goes red at the line that says why. Asserting the contract's `400` instead would have
+failed immediately for a reason unconnected to this feature.
+
+Also recorded in the README's known defects. This entry exists because the README is where a
+reader looks and `plan.md` is where the two lanes agree.
+
+#### 3 · The `403` body, and what it deliberately does not contain
+
+Unchanged from the contract, restated because the live response is now available and a reviewer
+will compare them:
+
+```json
+{
+  "type": "https://wasl.local/errors/forbidden",
+  "title": "You do not have permission to do that.",
+  "status": 403,
+  "detail": "You are not permitted to change this ticket's assignee.",
+  "instance": "/api/tickets/01a04526-0109-.../assignee",
+  "traceId": "00-ca21e64965cd04a6e98e08d84a492460-209b7734f58180ed-00"
+}
+```
+
+No `errors` dictionary, and the `detail` names neither the current assignee nor the permitted
+target. An Agent could otherwise learn who owns every ticket they are refused, one request at a
+time. The client branches on `type`; a client branching on `title` was already broken, because
+`title` is translated and `type` is not.
+
+---
+
+## Deviations from this plan
+
+| # | The plan said | Built | Why |
+|---|---|---|---|
+| D-1 | A separate `TicketAssignmentPolicy` class in `Wasl.Domain`, unit-testable without a database, **because ADR-010 removed the `Wasl.Application` test project** | A private `EnsurePermitted` in `AssignTicketCommandHandler` | **The premise is gone: ADR-010 was rejected and `Wasl.Application.Tests` exists.** The plan's own reasoning was that a policy class in `Wasl.Api` would only be reachable from the integration suite. That is no longer true, and the plan's original objection — which it quotes and then overrules — was right: BR-2.1–BR-2.3 need the caller's identity and role, which are not ticket concerns and would drag `ICurrentUser`'s shape into `Wasl.Domain`. The rules are in the handler, where the identity already is; the two that *are* ticket invariants (BR-2.5, AC-11) are in `Ticket.Assign`. Exhaustive coverage is not lost: eleven domain unit tests cover the entity's half with no database, and the handler's half is covered by six integration tests that need a token anyway — a policy class could not have been tested without one either |
+| D-2 | Two new registry types | Same two, plus a fourth exception type `AssigneeInactiveException` carrying `FieldErrors` | AC-6's `400` must key its message on `assigneeId`, and `InvariantViolationException` has no field-error channel. Follows `012`'s `NoteRequiredException` rather than inventing a second mechanism. No new registry row — it maps to the existing `errors/validation` |
+| D-3 | — | A second seeded Agent, and a third `Seed:*` password with no default | `spec.md` Q-7. With two users, BR-2.3's "someone else" is always the Manager, so the case that actually happens — one agent taking a colleague's ticket — could not be distinguished from a rarer one. One row makes AC-4 provable instead of asserted |

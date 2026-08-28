@@ -98,7 +98,19 @@ internal sealed class CreateTicketCommandHandler(
     /// would be two shapes that have to be kept in step — and the one that drifts is the one
     /// with fewer tests.
     /// </remarks>
-    internal static CreateTicketResult Map(Ticket ticket, TicketCustomerSummary customer) =>
+    /// <summary>
+    /// The one mapping every endpoint that returns a ticket goes through.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="assignee"/> is optional and defaults to null, added by `011`. A create
+    /// never has one — BR-2.7 keeps assignment a separate act — and the read endpoints supply it
+    /// when the ticket has one. Optional rather than required so `009`'s and `010`'s call sites
+    /// did not have to change to pass a null they could not have.
+    /// </remarks>
+    internal static CreateTicketResult Map(
+        Ticket ticket,
+        TicketCustomerSummary customer,
+        TicketAssignee? assignee = null) =>
         new(
             Id: ticket.Id,
             TicketNumber: ticket.TicketNumber,
@@ -110,6 +122,11 @@ internal sealed class CreateTicketCommandHandler(
             Channel: ticket.Channel,
             Status: ticket.Status,
             AssignedToUserId: ticket.AssignedToUserId,
+
+            // Never derived from ticket.AssignedToUserId: the id alone cannot produce a name, and
+            // silently returning an object with a blank name would look like a rendering bug in
+            // the client rather than a missing lookup here.
+            Assignee: assignee,
             IsEscalated: ticket.IsEscalated,
             CreatedByUserId: ticket.CreatedByUserId,
             CreatedAtUtc: ticket.CreatedAtUtc,

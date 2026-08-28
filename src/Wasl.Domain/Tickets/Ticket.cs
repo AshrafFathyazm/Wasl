@@ -238,4 +238,74 @@ public sealed class Ticket : IAuditableEntity
 
         return TicketHistoryEntry.StatusChanged(Id, previous, target, occurredAtUtc, note);
     }
+    /// <summary>
+    /// Sets or clears the assignee. `011` AC-8, AC-9, AC-10, AC-11 — BR-2.5, BR-2.6, BR-2.7.
+    /// </summary>
+    /// <param name="assigneeId">The target support user, or <c>null</c> to unassign.</param>
+    /// <param name="occurredAtUtc">From <c>IRequestTimestamp</c>, never <c>DateTime.UtcNow</c>.</param>
+    /// <remarks>
+    /// <para>
+    /// <b>Only the two rules that are invariants of the ticket are here.</b> BR-2.5 (a
+    /// <c>Closed</c> ticket cannot change owner) and AC-11 (an assignment must be a change) hold
+    /// for every caller — a handler, a seeder, a future bulk import — so they belong to the
+    /// entity. BR-2.1 through BR-2.4 need the caller's identity, the caller's role, and a lookup
+    /// in another table, none of which the domain has or should have; they stay in the handler,
+    /// which is also what makes their denials auditable (`spec.md`, *Where each BR-2 check
+    /// lives*).
+    /// </para>
+    /// <para>
+    /// <b>The status is not touched, and that is BR-2.7 written as an absence.</b> Assigning a
+    /// <c>New</c> ticket leaves it <c>New</c>. Triage and ownership are separate acts, and
+    /// coupling them would hide one of them from the history — there would be an
+    /// <c>Assigned</c> row and a silent status change with no <c>StatusChanged</c> row beside it.
+    /// ADR-004. AC-10 is the test, and it is testing that this method does nothing.
+    /// </para>
+    /// <para>
+    /// <b>What this does change without changing status</b> is
+    /// <see cref="AllowedTransitions"/>: BR-1.3 makes <c>InProgress</c> conditional on having an
+    /// assignee, so an <c>Open</c> ticket goes from <c>["Closed"]</c> to
+    /// <c>["InProgress", "Closed"]</c> on assignment. `011` AC-16 asserts it, because it is the
+    /// clearest demonstration that the client must render the array it was given rather than
+    /// hold a copy of the map.
+    /// </para>
+    /// <para>
+    /// It does not touch <c>UpdatedAtUtc</c> — <c>SaveChangesAsync</c> stamps that for every
+    /// <see cref="IAuditableEntity"/> — and it does not touch <c>RowVersion</c>, which SQL Server
+    /// maintains.
+    /// </para>
+    /// </remarks>
+    /// <returns>The history row: <c>Assigned</c> or <c>Unassigned</c> (BR-2.6).</returns>
+    public TicketHistoryEntry Assign(Guid? assigneeId, DateTime occurredAtUtc)
+    {
+        // 8 in the contract's order. Terminal — and it runs AFTER the handler's permission
+        // checks, which is why those are not here: an Agent assigning someone else to a Closed
+        // ticket must get 403, not 409. They could not have done it on an open ticket either, and
+        // 409 first would imply that reopening would help. BR-1.5 makes it terminal, so it would
+        // not.
+        if (Status is TicketStatus.Closed)
+        {
+            throw new TicketClosedException();
+        }
+
+        // 9. A request that describes no change is a 409, never a no-op 200 — the same rule and
+        // the same reason as BR-1.9's same-status transition: a 200 tells the client its request
+        // was applied when nothing happened. Covers both directions, which AC-11 and the
+        // edge-case register treat as one case: assigning the current assignee, and unassigning
+        // an already-unassigned ticket.
+        if (assigneeId == AssignedToUserId)
+        {
+            throw new AssigneeUnchangedException();
+        }
+
+        var previous = AssignedToUserId;
+        AssignedToUserId = assigneeId;
+
+        return assigneeId is { } target
+            ? TicketHistoryEntry.Assigned(Id, previous, target, occurredAtUtc)
+
+            // previous cannot be null here: assigneeId is null and the equality check above
+            // already rejected the case where both are. The domain says so with a type rather
+            // than a comment — Unassigned takes a non-nullable Guid.
+            : TicketHistoryEntry.Unassigned(Id, previous!.Value, occurredAtUtc);
+    }
 }

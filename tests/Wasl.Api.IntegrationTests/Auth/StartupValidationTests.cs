@@ -117,6 +117,7 @@ public sealed class StartupValidationTests
             builder.UseSetting("Jwt:SigningKey", signingKey ?? string.Empty);
             builder.UseSetting("Seed:ManagerPassword", managerPassword ?? string.Empty);
             builder.UseSetting("Seed:AgentPassword", agentPassword ?? string.Empty);
+            builder.UseSetting("Seed:AgentTwoPassword", WaslApiFactory.AgentTwoPassword);
         }
     }
 }

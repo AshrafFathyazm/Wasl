@@ -40,6 +40,12 @@ public static class SupportUserSeeder
     public const string ManagerEmail = "manager@wasl.local";
     public const string AgentEmail = "agent@wasl.local";
 
+    /// <summary>
+    /// A second Agent, added by `011`. Makes BR-2.3's "someone else" a colleague rather than a
+    /// Manager, which is the only way AC-4 tests the rule that actually fires in production.
+    /// </summary>
+    public const string AgentTwoEmail = "agent2@wasl.local";
+
     public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
     {
         using var scope = services.CreateScope();
@@ -60,6 +66,10 @@ public static class SupportUserSeeder
             context, "Omar Khalid", AgentEmail, options.AgentPassword,
             SupportRole.Agent, "en", passwords, now, ct);
 
+        inserted += await AddIfAbsentAsync(
+            context, "نورة السالم", AgentTwoEmail, options.AgentTwoPassword,
+            SupportRole.Agent, "ar", passwords, now, ct);
+
         if (inserted > 0)
         {
             // Straight through the DbContext, not through the pipeline. Seeding a user is not a
@@ -72,7 +82,7 @@ public static class SupportUserSeeder
         Console.WriteLine(
             inserted == 0
                 ? "Users: already seeded, nothing written."
-                : $"Users: {inserted} written ({ManagerEmail}, {AgentEmail}).");
+                : $"Users: {inserted} written ({ManagerEmail}, {AgentEmail}, {AgentTwoEmail}).");
     }
 
     private static async Task<int> AddIfAbsentAsync(

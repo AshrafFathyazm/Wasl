@@ -23,6 +23,25 @@ nothing else did:
 
 The tasks themselves, their order, and their critical path are the originals.
 
+> **Status 2026-08-28 — the backend is delivered.** Every `BE-011-*` and `TEST-011-*` task for the
+> backend is done; see [tests.md](tests.md) for the AC-to-test map, the two negative controls, and
+> the recorded run (340 tests, 0 warnings).
+>
+> **Two deviations from this file's plan, both in [plan.md](plan.md) under *Deviations*:**
+>
+> | | |
+> |---|---|
+> | `TicketAssignmentPolicy` as a separate class in `Wasl.Domain` | **Not built.** Its stated premise — that ADR-010 removed the `Wasl.Application` test project — is false: ADR-010 was rejected and that project exists. BR-2.1–BR-2.3 are a private method on the handler, where the caller's identity already is; BR-2.5 and AC-11 are in `Ticket.Assign` |
+> | A migration | **None needed.** `TicketHistoryEventType` already carried `Assigned` and `Unassigned` from `009`, and every column already existed — checked against `004`'s migration rather than inherited from `data-model.md`, four of whose statements were wrong |
+>
+> **Not done:** every `FE-011-*` task and `TEST-011-25` onward — the picker UI, the ticket strip,
+> and the mirrored BR-2 that greys out a button the server would refuse. The frontend lane owns
+> them. `DOC-011-01` (adding the two new `type` rows to
+> `docs/sdd/documentation/api/error-handling.md`) is **open**.
+>
+> No agent was dispatched — every task was implemented inline, recorded in
+> [ai-notes.md](ai-notes.md) rather than left for the **Agent** column to imply otherwise.
+
 ## Critical path
 
 ```text

@@ -69,6 +69,7 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
         ManagerToken = await SignInAsync(SupportUserSeeder.ManagerEmail, ManagerPassword);
         AgentToken = await SignInAsync(SupportUserSeeder.AgentEmail, AgentPassword);
+        AgentTwoToken = await SignInAsync(SupportUserSeeder.AgentTwoEmail, AgentTwoPassword);
     }
 
     public new async Task DisposeAsync()
@@ -117,6 +118,7 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("Jwt:SigningKey", TestSigningKey);
         builder.UseSetting("Seed:ManagerPassword", ManagerPassword);
         builder.UseSetting("Seed:AgentPassword", AgentPassword);
+        builder.UseSetting("Seed:AgentTwoPassword", AgentTwoPassword);
 
         // The 002 error-contract probes. Test-only routes, mapped here and never in src/,
         // so the envelope can be asserted against the frozen contract before any product
@@ -158,6 +160,9 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     public const string AgentPassword = "Agent#2026";
 
+    /// <summary>The second Agent, seeded by `011` so BR-2.3's "someone else" is a colleague.</summary>
+    public const string AgentTwoPassword = "Agent2#2026";
+
     /// <summary>The seeded Manager's bearer token, obtained through the real endpoint.</summary>
     /// <remarks>
     /// <b>Issued by signing in, not by constructing a JWT in the test project.</b> A hand-built
@@ -169,11 +174,17 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     public string AgentToken { get; private set; } = string.Empty;
 
+    /// <summary>The second Agent's token. `011` AC-4 needs a ticket owned by a colleague.</summary>
+    public string AgentTwoToken { get; private set; } = string.Empty;
+
     /// <summary>A client carrying the seeded Manager's token.</summary>
     public HttpClient CreateManagerClient() => CreateClientWith(ManagerToken);
 
     /// <summary>A client carrying the seeded Agent's token.</summary>
     public HttpClient CreateAgentClient() => CreateClientWith(AgentToken);
+
+    /// <summary>A client carrying the second seeded Agent's token.</summary>
+    public HttpClient CreateAgentTwoClient() => CreateClientWith(AgentTwoToken);
 
     private HttpClient CreateClientWith(string token)
     {

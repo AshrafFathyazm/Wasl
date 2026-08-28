@@ -112,6 +112,7 @@ public sealed class AuthorizationSurfaceTests
             builder.UseSetting("Jwt:SigningKey", WaslApiFactory.TestSigningKey);
             builder.UseSetting("Seed:ManagerPassword", WaslApiFactory.ManagerPassword);
             builder.UseSetting("Seed:AgentPassword", WaslApiFactory.AgentPassword);
+            builder.UseSetting("Seed:AgentTwoPassword", WaslApiFactory.AgentTwoPassword);
         }
     }
 }

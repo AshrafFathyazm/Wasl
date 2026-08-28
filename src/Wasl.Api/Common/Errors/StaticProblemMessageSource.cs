@@ -54,6 +54,19 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         ["Error.Ticket.AssigneeRequired"] = "Assign the ticket before starting work on it.",
         ["Error.Ticket.ConcurrencyConflict"] = "Reload the ticket and try again.",
         ["Error.Ticket.NotFound"] = "No ticket was found with that id.",
+
+        // ── `011` ───────────────────────────────────────────────────────────────────
+        ["Error.AssigneeUnchanged.Title"] = "This ticket is already assigned to that user.",
+        ["Error.AssigneeNotFound.Title"] = "No such support user.",
+
+        // The 403 detail says the action is not permitted and stops. It names neither the current
+        // assignee nor what would have been allowed: a denial is not the place to disclose state,
+        // and an Agent could otherwise learn who owns every ticket they are refused, one request
+        // at a time.
+        ["Error.Ticket.AssignNotPermitted"] = "You are not permitted to change this ticket's assignee.",
+        ["Error.Ticket.AssigneeUnchanged"] = "The ticket already has that assignee.",
+        ["Error.Ticket.AssigneeNotFound"] = "No support user was found with that id.",
+        ["Validation.Ticket.AssigneeInactive"] = "This user is not active and cannot be assigned tickets.",
     };
 
     public string Resolve(HttpContext context, string key, IReadOnlyList<object>? arguments = null)

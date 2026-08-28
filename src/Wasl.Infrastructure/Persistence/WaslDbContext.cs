@@ -86,6 +86,35 @@ public sealed class WaslDbContext(
                     break;
             }
         }
+
+        // ── TicketHistory, stamped separately — and it was a defect that it was not ──────
+        //
+        // TicketHistoryEntry is not an IAuditableEntity and should not become one: it has no
+        // CreatedAtUtc/UpdatedAtUtc pair because it is append-only, and its actor column is
+        // PerformedByUserId — "who did this thing" rather than "who last edited this row". The
+        // names differ because the concepts do.
+        //
+        // But the loop above matches by interface, so it skipped these rows entirely, and
+        // PerformedByUserId was NULL on every history row this system has ever written —
+        // Created from `009`, StatusChanged from `012`, and Assigned/Unassigned from `011`.
+        // Nothing failed. The rows existed, the timeline `013` will render would simply have
+        // said "someone" for every event, and the column looked like a feature nobody had
+        // filled in yet rather than a stamp that was never applied.
+        //
+        // Found by `011` AC-9 asserting the actor rather than the row's existence, which is the
+        // difference `CLAUDE.md` records as "assert content, not presence".
+        //
+        // PerformedAtUtc is deliberately NOT stamped here: the domain sets it from the instant
+        // passed into ChangeStatus/Assign, because when an event occurred is a business fact
+        // about the event, not metadata about the row. Overwriting it here would let this method
+        // and IRequestTimestamp disagree about the same moment.
+        foreach (var entry in ChangeTracker.Entries<TicketHistoryEntry>())
+        {
+            if (entry.State is EntityState.Added && entry.Entity.PerformedByUserId is null)
+            {
+                entry.CurrentValues[nameof(TicketHistoryEntry.PerformedByUserId)] = actor;
+            }
+        }
     }
 
     public DbSet<Customer> Customers => Set<Customer>();

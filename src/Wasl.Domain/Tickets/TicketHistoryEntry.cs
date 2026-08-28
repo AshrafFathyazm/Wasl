@@ -119,4 +119,68 @@ public sealed class TicketHistoryEntry
             PerformedByUserId = performedByUserId,
             PerformedAtUtc = performedAtUtc,
         };
+    /// <summary>
+    /// The row for an assignment or a reassignment. `011` AC-9, BR-2.6.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ids as text, never the names</b> (`011` <c>data-model.md</c>). This table has a
+    /// foreign key to <c>dbo.SupportUsers</c> and nothing in this system hard-deletes a user —
+    /// <c>IsActive</c> handles departures — so the join always resolves, and a stored name would
+    /// be a second copy of something that can be renamed.
+    /// </para>
+    /// <para>
+    /// That is the <b>opposite</b> of <c>dbo.AuditLog</c>, which snapshots its actor's email and
+    /// role precisely because it has no foreign keys and must outlive what it describes (ADR-008).
+    /// Two tables, opposite requirements, and this is one of the few places the difference is
+    /// visible in code rather than in a document.
+    /// </para>
+    /// <para>
+    /// <c>OldValue</c> is null when the ticket was unassigned. Not <c>"None"</c>, and not the
+    /// empty string: the column already has a way to say "nobody", and inventing a second one
+    /// means the timeline has two cases to render for one fact.
+    /// </para>
+    /// </remarks>
+    public static TicketHistoryEntry Assigned(
+        Guid ticketId,
+        Guid? from,
+        Guid to,
+        DateTime performedAtUtc,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.Assigned,
+            OldValue = from?.ToString(),
+            NewValue = to.ToString(),
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
+
+    /// <summary>
+    /// The row for clearing an assignee. `011` AC-9, BR-2.6.
+    /// </summary>
+    /// <remarks>
+    /// <b>A separate event type rather than an <c>Assigned</c> row with a null
+    /// <c>NewValue</c></b>, and BR-2.6 names both. Handing work back is a different act from
+    /// handing it over, so a timeline reads it differently and a filter can find it. Collapsing
+    /// them would leave the distinction recoverable only by testing <c>NewValue</c> for null,
+    /// which is a rule living in whatever renders the row.
+    /// </remarks>
+    public static TicketHistoryEntry Unassigned(
+        Guid ticketId,
+        Guid from,
+        DateTime performedAtUtc,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.Unassigned,
+            OldValue = from.ToString(),
+            NewValue = null,
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
 }

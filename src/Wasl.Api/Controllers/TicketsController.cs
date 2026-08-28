@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wasl.Api.Contracts.Tickets;
+using Wasl.Application.Features.Tickets.AssignTicket;
 using Wasl.Application.Features.Tickets.ChangeStatus;
 using Wasl.Application.Features.Tickets.CreateTicket;
 using Wasl.Application.Common;
@@ -127,5 +128,40 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(
             new ChangeTicketStatusCommand(id, request.Status, request.ExpectedVersion, request.Note),
+            cancellationToken));
+
+    /// <summary>Sets or clears the assignee. `011` AC-1 to AC-12, AC-16, AC-17.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No role policy on this action, and that is BR-2 rather than an omission.</b>
+    /// <c>[Authorize(Policy = WaslPolicies.ManagerOnly)]</c> here would refuse every Agent, and
+    /// BR-2.2 makes an Agent self-assigning an unassigned ticket legitimate. So the role is read
+    /// inside the handler, where the request's target and the ticket's current owner are also
+    /// available — the split `CLAUDE.md` BR-6 requires.
+    /// </para>
+    /// <para>
+    /// <b>The consequence is measurable, not stylistic.</b> A denial raised in the handler is a
+    /// <c>DomainException</c>, so `003`'s <c>AuditBehaviour</c> classifies it as <c>Denied</c> and
+    /// writes an audit row naming the actor and the ticket. A denial produced by a policy throws
+    /// nothing and writes nothing (`004` AC-18, open). Putting BR-2 in a policy would make "an
+    /// Agent tried to take a ticket that was not theirs" absent from the audit log.
+    /// </para>
+    /// <para>
+    /// A sub-resource <c>PUT</c> rather than a field on a generic <c>PATCH</c>: assignment is a
+    /// distinct business action with its own rules and its own history row (`CLAUDE.md`).
+    /// </para>
+    /// </remarks>
+    [HttpPut("{id:guid}/assignee")]
+    [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Assign(
+        Guid id,
+        [FromBody] AssignTicketRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(
+            new AssignTicketCommand(id, request.AssigneeId, request.ExpectedVersion),
             cancellationToken));
 }

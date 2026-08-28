@@ -1,11 +1,38 @@
 # Feature Specifications
 
-> **Three-day constraint — about nine hours.** Only four features are on the critical
-> path: **`009-create-ticket`**, **`011-assign-ticket`**, **`012-change-ticket-status`**,
-> and **`007-create-customer`** (seeded, not built through the UI). The other eighteen are
-> specified and deferred. The session plan is
-> [docs/sdd/16-three-day-plan.md](../docs/sdd/16-three-day-plan.md); what was cut from the
-> product scope and why is [docs/sdd/15-scope-coverage.md](../docs/sdd/15-scope-coverage.md).
+> **The nine-hour constraint was lifted on 2026-08-27** — three additional days.
+> [docs/sdd/PHASES.md](../docs/sdd/PHASES.md) governs; `16-three-day-plan.md` is superseded and
+> kept as the record of what was cut under the constraint and why. What was cut from the **product
+> scope** — a separate question, and unchanged by the clock — is
+> [docs/sdd/15-scope-coverage.md](../docs/sdd/15-scope-coverage.md).
+
+## Delivery order — set by the product owner 2026-08-28
+
+Eight backend features are delivered: `001` · `002` core · `003` core · `004` backend half ·
+`009` · `010` · `011` · `012`. `006` was delivered **inside `023`** — see its row below.
+
+```text
+013-ticket-timeline-and-comments    next
+008-customer-list-and-profile       then
+007-create-customer                 then
+004b · 002b · 003b                  the deferred halves
+005-localization-core               LAST
+```
+
+**Why this order, in the product owner's terms.**
+
+| # | Feature | Reason it is here |
+|---|---|---|
+| 1 | `013` | It makes a ticket read as a conversation rather than a row in a table. `dbo.TicketHistory` is already written and correct — `Created`, `StatusChanged`, `Assigned`, `Unassigned`, each with both values and now with an actor — so this is the read surface over data that exists. `CLAUDE.md` names `TicketTimelineQuery` as one of only two sanctioned named query classes |
+| 2 | `008` | **It removes a stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
+| 3 | `007` | Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
+| 4 | `004b` · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
+| 5 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
+
+The ordering rule visible in that list is not "hardest first" or "most valuable first" — it is
+**what unblocks something else, first.** `011` was chosen over `004b` on the same grounds: it was
+the only thing that would attach `ManagerOnly` to a real endpoint. `005` is last for the mirror
+image of that reason.
 
 Every feature in Wasl is specified before it is built, in a numbered folder here.
 
@@ -84,6 +111,7 @@ and the name would give a reader no way to tell.
 |---|---|
 | `023-frontend-foundation` | Scaffold, tokens, primitives, shell, i18n. No endpoint, no migration, no `.cs` file |
 | `024-frontend-create-ticket-form` | The screen for `009`. `009` is the backend feature and owns the frozen contract; this consumes it |
+| `025-frontend-auth` | The login screen and route guard for `004`. Same relationship: `004` owns the contract, this consumes it |
 
 Two conditions, and both must hold:
 
@@ -275,15 +303,15 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `002-error-contract` | 0 | Authored — **✅ core implemented 2026-08-25**, 33 tests. `002b` deferred |
 | `003-audit-trail` | 0 | Authored — **✅ core implemented 2026-08-25**, 93 tests. `003b` deferred |
 | `004-auth-and-roles` | 0 | **✅ Backend half implemented 2026-08-27**, 303 tests. `SupportUsers` + the four FKs `009` deferred, two seeded users, the token endpoint, real `ICurrentUser`, the two policies. `004b` owns the audit row on a `401`/`403` (a gap in BR-9.4) and rate limiting; the frontend half is the frontend lane's |
-| `005-localization-core` | 0 | Authored |
+| `005-localization-core` | 0 | Authored. **The seam is built** — every server-authored message is a symbolic key and `023` shipped the client catalogues, so what remains is `PUT /api/me/language` and the switcher screen. **Deliberately last: it opens no other feature** |
+| `006-design-system` | 0 | **✅ Built — inside `023-frontend-foundation`, not here.** The folder exists and is empty of delivery artifacts, which reads as "not done" and is wrong: the tokens, the primitives and the layout patterns were designed and shipped as part of the frontend foundation, and their evidence lives in `023`'s `summary.md` and in `docs/sdd/design/`. This row exists so nobody re-opens it looking for missing work. ADR-012 accepted the token architecture **in part** — the tenant-theming settings screen is `022` and is out of the release |
+| `008-customer-list-and-profile` | 1 | Migrated from `US-002-customer-list`. **Next after `013`.** It removes a stub: `024-frontend-create-ticket-form` has a built customer picker running on hard-coded data because `GET /api/customers` does not exist, so this feature makes a finished screen work on real data — the cheapest remaining unit of visible progress |
 | `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-tickets` — **✅ backend implemented 2026-08-26**, 263 tests. Filters and search deferred to `015` |
 | `007-create-customer` | 1 | Migrated from `US-001-create-customer` |
 | `012-change-ticket-status` | 2 | Migrated from `US-008-change-status` — **✅ backend implemented 2026-08-26**, 250 tests |
 | `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` — **✅ backend implemented 2026-08-26**, 214 tests. Gained the BR-1 map + 36 tests (from `012`) and `GET /api/tickets/{id}` (from `010`). No auth (`004`); form is `024-frontend-create-ticket-form` |
-| `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-filter-tickets` (read half) |
-| `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` |
-| `012-change-ticket-status` | 2 | Migrated from `US-008-change-ticket-status` |
-| `013-ticket-timeline-and-comments` | 3 | Migrated from `US-010-ticket-timeline-comments` |
+| `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` — **✅ backend implemented 2026-08-28**, 340 tests. BR-2 in full, `GET /api/support-users`, no migration. `data-model.md` had four false statements and `plan.md` rested on the rejected ADR-010; both corrected in tables before implementation. Picker UI is the frontend lane's |
+| `013-ticket-timeline-and-comments` | 3 | **← NEXT.** Migrated from `US-010-ticket-timeline-comments`. `dbo.TicketHistory` is already written and correct — four event types, both values on each, and an actor since `011` — so this is the read surface over data that exists. `CLAUDE.md` sanctions `TicketTimelineQuery` as one of only two named query classes |
 | `014-language-preference-and-rtl` | 4 | Migrated from `US-014-language-preference` |
 | `015-ticket-filters-and-search` | 5 | Migrated from `US-006-list-filter-tickets` (filter half) |
 | `016-escalate-ticket` | 5 | Migrated from `US-009-escalate-ticket` |
@@ -293,6 +321,9 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `020-dashboard` | 5 | Authored from `US-016-dashboard` — no prior artifacts existed |
 | `021-communication-provider-abstraction` | 5 | Authored — promoted out of `DEFERRED.md` |
 | `022-tenant-theming-settings` | 5 | Authored from ADR-012 |
+| `023-frontend-foundation` | — | **✅ Delivered by the frontend lane.** Scaffold, design tokens, primitives, shell, i18n catalogues in `en` and `ar`, RTL. No endpoint, no migration, no `.cs` file. **`006-design-system` was delivered inside this feature** |
+| `024-frontend-create-ticket-form` | — | The screen for `009`. In progress in the frontend lane. Its customer picker runs on a **stub** until `008` ships `GET /api/customers` |
+| `025-frontend-auth` | — | The login screen, route guard, `401` interceptor and sign-out — `004`'s frontend half (AC-24 … AC-30). In progress in the frontend lane |
 
 ### What "migrated" means
 
