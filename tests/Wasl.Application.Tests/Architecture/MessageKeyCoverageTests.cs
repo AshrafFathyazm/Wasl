@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using FluentAssertions;
@@ -40,18 +41,31 @@ public sealed class MessageKeyCoverageTests
     /// Read from the catalogue at runtime through reflection rather than duplicated here.
     /// </summary>
     /// <remarks>
-    /// <c>StaticProblemMessageSource</c> lives in <c>Wasl.Api</c>, which this project does not
-    /// reference — the dependency would point the wrong way. So the catalogue is read from the
-    /// file, which is also what keeps this test honest: it checks what is written down, not what a
-    /// second copy in the test project claims is written down.
+    /// The catalogue lives in <c>Wasl.Api</c>, which this project does not reference — the
+    /// dependency would point the wrong way. So it is read from the file, which is also what keeps
+    /// this test honest: it checks what is written down, not what a second copy in the test project
+    /// claims is written down.
+    /// <para>
+    /// <b>`005` moved that file, and this is the whole change here.</b> The catalogue was a C#
+    /// dictionary in <c>StaticProblemMessageSource.cs</c>; it is now <c>SharedResource.resx</c>.
+    /// Reading the <b>neutral</b> (English) one is deliberate: it is the fallback every other
+    /// culture resolves through (BR-8.12), so a key missing from it is missing everywhere. A key
+    /// missing only from Arabic is a different failure, and `005` AC-14 owns it.
+    /// </para>
     /// </remarks>
     private static IReadOnlySet<string> Catalogue()
     {
-        var source = File.ReadAllText(Path.Combine(
-            RepositoryRoot(), "src", "Wasl.Api", "Common", "Errors", "StaticProblemMessageSource.cs"));
+        var path = Path.Combine(
+            RepositoryRoot(), "src", "Wasl.Api", "Common", "Localization", "SharedResource.resx");
 
-        return Regex.Matches(source, @"\[""([^""]+)""\]\s*=")
-            .Select(match => match.Groups[1].Value)
+        File.Exists(path).Should().BeTrue(
+            $"the neutral catalogue must be at {path} — a path that silently resolves to nothing "
+            + "would make this test pass with an empty catalogue, which is the opposite of what "
+            + "it is for");
+
+        return XDocument.Load(path).Root!
+            .Elements("data")
+            .Select(data => data.Attribute("name")!.Value)
             .ToHashSet(StringComparer.Ordinal);
     }
 
@@ -77,7 +91,7 @@ public sealed class MessageKeyCoverageTests
         missing.Should().BeEmpty(
             "a key with no message is rendered VERBATIM to the user — the message source returns "
             + "the key rather than throwing, deliberately, so nothing fails and the response is "
-            + "well-formed and useless. Add each to StaticProblemMessageSource");
+            + "well-formed and useless. Add each to SharedResource.resx AND SharedResource.ar.resx");
     }
 
     /// <summary>

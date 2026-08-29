@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Domain.Users;
 using Wasl.Infrastructure.Persistence;
 

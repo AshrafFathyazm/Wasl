@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Error.Validation.Title" xml:space="preserve">
+    <value>حدث خطأ أو أكثر في البيانات المُدخلة.</value>
+  </data>
+  <data name="Error.Internal.Title" xml:space="preserve">
+    <value>حدث خطأ غير متوقع.</value>
+  </data>
+  <data name="Error.MalformedRequest.Title" xml:space="preserve">
+    <value>تعذّرت قراءة الطلب.</value>
+  </data>
+  <data name="Error.NotFound.Title" xml:space="preserve">
+    <value>العنصر المطلوب غير موجود.</value>
+  </data>
+  <data name="Error.MethodNotAllowed.Title" xml:space="preserve">
+    <value>هذه العملية غير مسموح بها على هذا المسار.</value>
+  </data>
+  <data name="Error.UnsupportedMediaType.Title" xml:space="preserve">
+    <value>يجب أن يكون محتوى الطلب بصيغة JSON.</value>
+  </data>
+  <data name="Error.Unauthenticated.Title" xml:space="preserve">
+    <value>تسجيل الدخول مطلوب.</value>
+  </data>
+  <data name="Error.Auth.InvalidCredentials.Title" xml:space="preserve">
+    <value>البريد الإلكتروني أو كلمة المرور غير صحيحة.</value>
+  </data>
+  <data name="Error.RateLimited.Title" xml:space="preserve">
+    <value>محاولات كثيرة.</value>
+  </data>
+  <data name="Error.Auth.RateLimited" xml:space="preserve">
+    <value>محاولات تسجيل دخول فاشلة كثيرة. انتظر قليلًا ثم أعد المحاولة.</value>
+  </data>
+  <data name="Error.Forbidden.Title" xml:space="preserve">
+    <value>ليس لديك صلاحية للقيام بذلك.</value>
+  </data>
+  <data name="Error.DuplicateCustomer.Title" xml:space="preserve">
+    <value>يوجد عميل بهذه البيانات بالفعل.</value>
+  </data>
+  <data name="Error.InvalidStatusTransition.Title" xml:space="preserve">
+    <value>تغيير الحالة هذا غير مسموح به.</value>
+  </data>
+  <data name="Error.TicketClosed.Title" xml:space="preserve">
+    <value>هذه التذكرة مغلقة.</value>
+  </data>
+  <data name="Error.SameStatusTransition.Title" xml:space="preserve">
+    <value>التذكرة في هذه الحالة بالفعل.</value>
+  </data>
+  <data name="Error.AssigneeRequired.Title" xml:space="preserve">
+    <value>يجب إسناد التذكرة قبل بدء العمل عليها.</value>
+  </data>
+  <data name="Error.AlreadyEscalated.Title" xml:space="preserve">
+    <value>تم تصعيد هذه التذكرة بالفعل.</value>
+  </data>
+  <data name="Error.ConcurrencyConflict.Title" xml:space="preserve">
+    <value>تم تعديل هذا السجل أثناء عملك عليه.</value>
+  </data>
+  <data name="Error.Validation.Detail" xml:space="preserve">
+    <value>راجع خاصية errors للاطّلاع على رسائل الحقول.</value>
+  </data>
+  <data name="Error.Ticket.InvalidTransition" xml:space="preserve">
+    <value>حالة التذكرة {0}. التحويلات المسموح بها: {1}.</value>
+  </data>
+  <data name="Error.Ticket.SameStatus" xml:space="preserve">
+    <value>التذكرة في حالة {0} بالفعل.</value>
+  </data>
+  <data name="Error.Ticket.Closed" xml:space="preserve">
+    <value>لا يمكن تعديل تذكرة مغلقة.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeRequired" xml:space="preserve">
+    <value>أسنِد التذكرة قبل بدء العمل عليها.</value>
+  </data>
+  <data name="Error.Ticket.ConcurrencyConflict" xml:space="preserve">
+    <value>أعد تحميل التذكرة ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Error.Ticket.NotFound" xml:space="preserve">
+    <value>لا توجد تذكرة بهذا المعرّف.</value>
+  </data>
+  <data name="Error.Auth.InvalidCredentials" xml:space="preserve">
+    <value>البريد الإلكتروني أو كلمة المرور غير صحيحة.</value>
+  </data>
+  <data name="Error.Ticket.CustomerNotFound" xml:space="preserve">
+    <value>لا يوجد عميل بهذا المعرّف.</value>
+  </data>
+  <data name="Validation.Auth.EmailRequired" xml:space="preserve">
+    <value>أدخل بريدك الإلكتروني.</value>
+  </data>
+  <data name="Validation.Auth.PasswordRequired" xml:space="preserve">
+    <value>أدخل كلمة المرور.</value>
+  </data>
+  <data name="Validation.Ticket.CustomerRequired" xml:space="preserve">
+    <value>اختر عميلًا.</value>
+  </data>
+  <data name="Validation.Ticket.SubjectRequired" xml:space="preserve">
+    <value>أدخل موضوعًا.</value>
+  </data>
+  <data name="Validation.Ticket.SubjectTooLong" xml:space="preserve">
+    <value>الموضوع طويل جدًا.</value>
+  </data>
+  <data name="Validation.Ticket.DescriptionRequired" xml:space="preserve">
+    <value>اشرح المشكلة.</value>
+  </data>
+  <data name="Validation.Ticket.DescriptionTooLong" xml:space="preserve">
+    <value>الوصف طويل جدًا.</value>
+  </data>
+  <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
+    <value>اختر تصنيفًا صحيحًا.</value>
+  </data>
+  <data name="Validation.Ticket.ChannelInvalid" xml:space="preserve">
+    <value>اختر قناة صحيحة.</value>
+  </data>
+  <data name="Validation.Ticket.PriorityInvalid" xml:space="preserve">
+    <value>اختر أولوية صحيحة.</value>
+  </data>
+  <data name="Validation.Ticket.StatusInvalid" xml:space="preserve">
+    <value>اختر حالة صحيحة.</value>
+  </data>
+  <data name="Validation.Ticket.NoteRequiredToClose" xml:space="preserve">
+    <value>أضف ملاحظة توضّح سبب الإغلاق.</value>
+  </data>
+  <data name="Validation.Ticket.NoteTooLong" xml:space="preserve">
+    <value>الملاحظة طويلة جدًا.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionRequired" xml:space="preserve">
+    <value>أعد تحميل التذكرة ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionUndecodable" xml:space="preserve">
+    <value>أعد تحميل التذكرة ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionTooLong" xml:space="preserve">
+    <value>أعد تحميل التذكرة ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Validation.Comment.BodyRequired" xml:space="preserve">
+    <value>اكتب شيئًا قبل النشر.</value>
+  </data>
+  <data name="Validation.Comment.BodyTooLong" xml:space="preserve">
+    <value>التعليق طويل جدًا.</value>
+  </data>
+  <data name="Validation.Comment.ChannelInvalid" xml:space="preserve">
+    <value>اختر قناة صحيحة.</value>
+  </data>
+  <data name="Error.Customer.NotFound" xml:space="preserve">
+    <value>لا يوجد عميل بهذا المعرّف.</value>
+  </data>
+  <data name="Error.Customer.DuplicateEmail" xml:space="preserve">
+    <value>يوجد عميل بهذا البريد الإلكتروني بالفعل.</value>
+  </data>
+  <data name="Error.Customer.DuplicatePhone" xml:space="preserve">
+    <value>يوجد عميل بهذا الرقم بالفعل.</value>
+  </data>
+  <data name="Validation.Customer.FullNameRequired" xml:space="preserve">
+    <value>أدخل اسم العميل.</value>
+  </data>
+  <data name="Validation.Customer.FullNameTooLong" xml:space="preserve">
+    <value>الاسم طويل جدًا.</value>
+  </data>
+  <data name="Validation.Customer.ContactRequired" xml:space="preserve">
+    <value>أدخل بريدًا إلكترونيًا أو رقم هاتف.</value>
+  </data>
+  <data name="Validation.Customer.EmailInvalid" xml:space="preserve">
+    <value>أدخل بريدًا إلكترونيًا صحيحًا.</value>
+  </data>
+  <data name="Validation.Customer.EmailTooLong" xml:space="preserve">
+    <value>البريد الإلكتروني طويل جدًا.</value>
+  </data>
+  <data name="Validation.Customer.PhoneInvalid" xml:space="preserve">
+    <value>أدخل رقم الهاتف بالصيغة الدولية، مبتدئًا بمفتاح الدولة.</value>
+  </data>
+  <data name="Validation.Customer.CompanyNameTooLong" xml:space="preserve">
+    <value>اسم الشركة طويل جدًا.</value>
+  </data>
+  <data name="Validation.Customer.NotesTooLong" xml:space="preserve">
+    <value>الملاحظات طويلة جدًا.</value>
+  </data>
+  <data name="Error.AssigneeUnchanged.Title" xml:space="preserve">
+    <value>التذكرة مسندة إلى هذا المستخدم بالفعل.</value>
+  </data>
+  <data name="Error.AssigneeNotFound.Title" xml:space="preserve">
+    <value>لا يوجد مستخدم دعم بهذه البيانات.</value>
+  </data>
+  <data name="Error.Ticket.AssignNotPermitted" xml:space="preserve">
+    <value>ليس لديك صلاحية لتغيير المسؤول عن هذه التذكرة.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeUnchanged" xml:space="preserve">
+    <value>التذكرة مسندة إلى هذا المستخدم بالفعل.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeNotFound" xml:space="preserve">
+    <value>لا يوجد مستخدم دعم بهذا المعرّف.</value>
+  </data>
+  <data name="Validation.Ticket.AssigneeInactive" xml:space="preserve">
+    <value>هذا المستخدم غير نشط ولا يمكن إسناد التذاكر إليه.</value>
+  </data>
+</root>

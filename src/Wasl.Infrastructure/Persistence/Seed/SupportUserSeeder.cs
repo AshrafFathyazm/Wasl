@@ -1,9 +1,10 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Domain.Users;
 using Wasl.Infrastructure.Persistence;
 
-namespace Wasl.Api.Seed;
+namespace Wasl.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// The two users the application signs in with: one Manager, one Agent. `004` AC-13, AC-14.

@@ -5,7 +5,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Wasl.Api.IntegrationTests.Audit;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Domain.Audit;
 using Wasl.Domain.Tickets;
 using Wasl.Infrastructure.Persistence;

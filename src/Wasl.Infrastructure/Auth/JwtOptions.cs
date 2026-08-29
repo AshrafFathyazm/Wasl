@@ -1,7 +1,8 @@
+using Microsoft.Extensions.Configuration;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Wasl.Api.Common.Auth;
+namespace Wasl.Infrastructure.Auth;
 
 /// <summary>
 /// The signing key, issuer, audience, and lifetime. Bound from <c>Jwt:*</c> configuration.
@@ -11,7 +12,7 @@ namespace Wasl.Api.Common.Auth;
 /// one key and checked against another. Splitting them across two configuration sections is how
 /// that happens, and it presents as "every token is invalid" with nothing wrong in either half.
 /// </remarks>
-internal sealed class JwtOptions
+public sealed class JwtOptions
 {
     public const string Section = "Jwt";
 

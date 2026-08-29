@@ -75,7 +75,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
 
     private async Task<JsonElement> ListAsync(string query = "")
     {
-        var response = await factory.CreateManagerClient().GetAsync($"/api/customers{query}");
+        var response = await factory.CreateEnglishManagerClient().GetAsync($"/api/customers{query}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -97,7 +97,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
             company: "شركة الرياض",
             notes: "Prefers to be called in the morning.");
 
-        var response = await factory.CreateManagerClient().GetAsync($"/api/customers/{id}");
+        var response = await factory.CreateEnglishManagerClient().GetAsync($"/api/customers/{id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -117,7 +117,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
     [Fact]
     public async Task An_unknown_id_is_not_found_and_names_nothing()
     {
-        var response = await factory.CreateManagerClient()
+        var response = await factory.CreateEnglishManagerClient()
             .GetAsync($"/api/customers/{Guid.CreateVersion7()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -146,7 +146,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
     [Fact]
     public async Task A_malformed_id_returns_404_which_the_contract_says_should_be_400()
     {
-        var response = await factory.CreateManagerClient().GetAsync("/api/customers/not-a-guid");
+        var response = await factory.CreateEnglishManagerClient().GetAsync("/api/customers/not-a-guid");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound,
             "002b owns the fix. Asserting the contract's 400 here would fail today for a reason "
@@ -160,7 +160,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
         var marker = Marker();
         var id = await SeedAsync($"Retired Customer {marker}", isActive: false);
 
-        var profile = await factory.CreateManagerClient().GetAsync($"/api/customers/{id}");
+        var profile = await factory.CreateEnglishManagerClient().GetAsync($"/api/customers/{id}");
 
         profile.StatusCode.Should().Be(HttpStatusCode.OK,
             "a ticket may reference a deactivated customer, and a 404 would break that link");
@@ -338,7 +338,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
         var one = Marker();
         await SeedAsync($"Counted {one}");
 
-        var client = factory.CreateManagerClient();
+        var client = factory.CreateEnglishManagerClient();
 
         var probeOne = factory.CountQueries();
         await client.GetAsync($"/api/customers?search={one}");
@@ -480,7 +480,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
             email: $"{marker}@example.com",
             notes: "SENSITIVE-NOTE-THAT-MUST-NOT-APPEAR-ON-A-LIST");
 
-        var response = await factory.CreateManagerClient()
+        var response = await factory.CreateEnglishManagerClient()
             .GetAsync($"/api/customers?search={marker}");
 
         var raw = await response.Content.ReadAsStringAsync();
@@ -530,8 +530,8 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
 
         var before = await context.AuditLog.CountAsync(entry => entry.Action.StartsWith("Customer"));
 
-        await factory.CreateManagerClient().GetAsync($"/api/customers/{id}");
-        await factory.CreateManagerClient().GetAsync($"/api/customers?search={marker}");
+        await factory.CreateEnglishManagerClient().GetAsync($"/api/customers/{id}");
+        await factory.CreateEnglishManagerClient().GetAsync($"/api/customers?search={marker}");
 
         (await context.AuditLog.CountAsync(entry => entry.Action.StartsWith("Customer")))
             .Should().Be(before, "a customer read is not Audit.Read — BR-9.11");

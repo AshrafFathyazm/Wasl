@@ -1,4 +1,6 @@
-namespace Wasl.Api.Seed;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+namespace Wasl.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// The seeded users' passwords. Bound from <c>Seed:*</c> configuration, with **no default**.
@@ -17,7 +19,7 @@ namespace Wasl.Api.Seed;
 /// the moment the process starts, not on the first request that happens to need it.
 /// </para>
 /// </remarks>
-internal sealed class SeedOptions
+public sealed class SeedOptions
 {
     public const string Section = "Seed";
 

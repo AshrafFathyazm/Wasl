@@ -105,6 +105,15 @@ public static class DependencyInjection
 
         // Singleton: it holds one cached dummy hash and no per-request state (`004`).
         services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
+
+        // `005` placement cleanup: signing a JWT is an implementation of an Application
+        // abstraction, so JwtAccessTokenIssuer lives here and is registered here. Wasl.Api keeps
+        // the half that is genuinely an HTTP concern — the bearer handler that VALIDATES the
+        // token — and it binds the shared JwtOptions that both sides read.
+        //
+        // Scoped rather than singleton, unchanged from where it came from: it takes TimeProvider
+        // and is used once per sign-in.
+        services.AddScoped<IAccessTokenIssuer, Auth.JwtAccessTokenIssuer>();
         services.AddScoped<ITicketNumberGenerator, SequenceTicketNumberGenerator>();
 
         // Scoped, which is what makes one request one instant. See IRequestTimestamp.

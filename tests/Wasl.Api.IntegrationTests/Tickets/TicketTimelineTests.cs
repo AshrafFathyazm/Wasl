@@ -23,7 +23,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
     {
         var customerId = await AuditFixture.SeedCustomerAsync(factory);
 
-        var response = await factory.CreateManagerClient().PostAsJsonAsync("/api/tickets", new
+        var response = await factory.CreateEnglishManagerClient().PostAsJsonAsync("/api/tickets", new
         {
             customerId,
             subject = "Timeline test",
@@ -41,7 +41,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
 
     private Task<HttpResponseMessage> CommentAsync(
         Guid id, string body, bool isInternal = false, string? channel = null) =>
-        factory.CreateManagerClient().PostAsJsonAsync(
+        factory.CreateEnglishManagerClient().PostAsJsonAsync(
             $"/api/tickets/{id}/comments",
             channel is null
                 ? new { body, isInternal }
@@ -57,7 +57,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
                 limit is null ? null : $"limit={limit}",
             }.Where(part => part is not null));
 
-        var response = await factory.CreateManagerClient()
+        var response = await factory.CreateEnglishManagerClient()
             .GetAsync($"/api/tickets/{id}/timeline{query}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -198,7 +198,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
     {
         var (id, version) = await NewTicketAsync();
 
-        var closed = await factory.CreateManagerClient().PutAsJsonAsync(
+        var closed = await factory.CreateEnglishManagerClient().PutAsJsonAsync(
             $"/api/tickets/{id}/status",
             new { status = "Closed", expectedVersion = version, note = "closing for the test" });
 
@@ -220,7 +220,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
         (await CommentAsync(unknown, "Into the void")).StatusCode
             .Should().Be(HttpStatusCode.NotFound);
 
-        (await factory.CreateManagerClient().GetAsync($"/api/tickets/{unknown}/timeline"))
+        (await factory.CreateEnglishManagerClient().GetAsync($"/api/tickets/{unknown}/timeline"))
             .StatusCode.Should().Be(HttpStatusCode.NotFound,
                 "an empty timeline and a missing ticket must not look the same to the client");
     }
@@ -302,7 +302,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
     {
         var (id, version) = await NewTicketAsync();
 
-        await factory.CreateManagerClient().PutAsJsonAsync(
+        await factory.CreateEnglishManagerClient().PutAsJsonAsync(
             $"/api/tickets/{id}/status", new { status = "Open", expectedVersion = version });
 
         await CommentAsync(id, "A note from the agent", isInternal: true);
@@ -532,7 +532,7 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
     {
         var (sparse, _) = await NewTicketAsync();
 
-        var client = factory.CreateManagerClient();
+        var client = factory.CreateEnglishManagerClient();
 
         var probeSparse = factory.CountQueries();
         await client.GetAsync($"/api/tickets/{sparse}/timeline");

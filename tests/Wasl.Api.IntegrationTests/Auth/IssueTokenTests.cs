@@ -5,7 +5,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Infrastructure.Persistence;
 
 namespace Wasl.Api.IntegrationTests.Auth;

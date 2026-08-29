@@ -1,3 +1,4 @@
+using Wasl.Application.Common.Abstractions;
 namespace Wasl.Api.Common.Auth;
 
 /// <summary>
@@ -19,11 +20,11 @@ namespace Wasl.Api.Common.Auth;
 /// </remarks>
 internal static class ActorClaimTypes
 {
-    public const string UserId = JwtRegisteredClaimNames.Sub;
+    public const string UserId = WaslJwtClaimNames.Sub;
 
-    public const string Email = JwtRegisteredClaimNames.Email;
+    public const string Email = WaslJwtClaimNames.Email;
 
-    public const string Role = JwtRegisteredClaimNames.Role;
+    public const string Role = WaslJwtClaimNames.Role;
 
-    public const string PreferredLanguage = JwtRegisteredClaimNames.PreferredLanguage;
+    public const string PreferredLanguage = WaslJwtClaimNames.PreferredLanguage;
 }

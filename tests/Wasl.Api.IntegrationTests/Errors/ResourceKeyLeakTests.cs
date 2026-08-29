@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
 using Wasl.Api.IntegrationTests.Audit;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 
 namespace Wasl.Api.IntegrationTests.Errors;
 

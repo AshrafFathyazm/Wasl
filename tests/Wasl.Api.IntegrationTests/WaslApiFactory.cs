@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
 using Wasl.Api.IntegrationTests.Errors;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
 
@@ -192,6 +192,55 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     /// <summary>A client carrying the second seeded Agent's token.</summary>
     public HttpClient CreateAgentTwoClient() => CreateClientWith(AgentTwoToken);
+
+    /// <summary>
+    /// A Manager's client that pins every request to English. `005`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Why this exists.</b> `004` seeds the Manager with <c>PreferredLanguage = "ar"</c> and
+    /// mints it into the token, and `005` registered the provider that reads it. From that
+    /// commit on, every server-authored sentence on a Manager's request is Arabic — which is
+    /// BR-8.4 working exactly as specified, and which broke a dozen tests that had been
+    /// asserting English sentences without ever saying they wanted English.
+    /// </para>
+    /// <para>
+    /// <b>Pinned with <c>?culture=</c> rather than with a header</b>, because the header would
+    /// lose: BR-8.4 ranks the claim above <c>Accept-Language</c> and the query string above
+    /// both. BR-8.5 says the query parameter exists for testing and for sharing a link in a
+    /// known language — this is the first use, and it is the intended one.
+    /// </para>
+    /// <para>
+    /// <b>Applied by a handler rather than at each call site</b>, so a test that asserts an
+    /// English sentence cannot forget it — and so that "this test is about the English
+    /// catalogue" is stated once, in the client it asks for, rather than repeated in fifteen
+    /// URLs where one could quietly go missing.
+    /// </para>
+    /// </remarks>
+    public HttpClient CreateEnglishManagerClient()
+    {
+        var client = CreateDefaultClient(new PinCultureHandler("en"));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", ManagerToken);
+
+        return client;
+    }
+
+    /// <summary>Appends <c>?culture=</c> to every request. See CreateEnglishManagerClient.</summary>
+    private sealed class PinCultureHandler(string culture) : DelegatingHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var uri = request.RequestUri!;
+            var separator = string.IsNullOrEmpty(uri.Query) ? '?' : '&';
+
+            request.RequestUri = new Uri(
+                $"{uri.GetLeftPart(UriPartial.Path)}{uri.Query}{separator}culture={culture}",
+                uri.IsAbsoluteUri ? UriKind.Absolute : UriKind.Relative);
+
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
 
     /// <summary>
     /// Opens a query-count measurement window. `008` AC-11, and general.

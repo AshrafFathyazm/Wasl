@@ -1,7 +1,114 @@
 # 005 — Localization Core
 
 **Phase:** 0 · Foundation · **Story:** — (infrastructure; US-014 is the story that
-consumes it) · **Status:** Specified, awaiting review
+consumes it) · **Status:** **Revised 2026-08-29 against six delivered features — awaiting
+review**
+
+---
+
+## Reconciliation, 2026-08-29 — read this before the rest
+
+This spec was written when `005` was going to be the second feature built. It is now the
+**thirteenth**, and six features have landed on top of its assumptions. Nothing below is
+deleted, because a spec quietly edited to match what happened is a spec that can no longer be
+checked against what it promised. What is stale is marked stale, in place.
+
+### Why it moved to the front of the queue
+
+It was scheduled **last** on the grounds that it unblocks nothing, and that was true. The
+frontend lane then reported that `Accept-Language: ar` returns the same English sentence from
+every endpoint. **Measured on the wire before this revision was written**, against the running
+API and the compose container:
+
+```text
+401 [en]  Content-Language=      title=Authentication is required.
+401 [ar]  Content-Language=      title=Authentication is required.
+401 [en]  Content-Language=      title=Email or password is incorrect.
+401 [ar]  Content-Language=      title=Email or password is incorrect.
+400 [en]  Content-Language=      title=One or more validation errors occurred.
+          errors: email=Enter your email address. | password=Enter your password.
+400 [ar]  Content-Language=      title=One or more validation errors occurred.
+          errors: email=Enter your email address. | password=Enter your password.
+```
+
+BR-8.6 is broken across the product, not on one screen. The ordering rule in
+`specs/README.md` — *what unblocks something else, first* — could not see this, because
+nothing is blocked by it. **A feature the product claims to have and does not is worse than
+one it has not built yet.**
+
+### The measurement found a second defect the report did not mention
+
+`Content-Language` is **empty on every error response** and **correct on every success
+response**, in the same run:
+
+```text
+/health      [ar]  Content-Language=ar
+/api/tickets [ar]  Content-Language=ar        (authenticated, 200)
+```
+
+So the culture *is* being negotiated and the header *is* being applied —
+`ApplyCurrentCultureToResponseHeaders = true` is already set in `Program.cs` — and error
+responses lose it anyway. That is **two different failures wearing one symptom**, and they
+have different fixes:
+
+| # | Failure | Why | Fixed by |
+|---|---|---|---|
+| 1 | **There is no Arabic to serve.** `StaticProblemMessageSource` is an English-only dictionary | `002` deliberately deferred `.resx` to this feature | The catalogue half of this spec, unchanged |
+| 2 | **A `401`/`403` never reaches the localization middleware at all.** `UseAuthorization()` runs **before** `UseRequestLocalization()` in `Program.cs`, and both denials are produced inside it | The ordering this spec already prescribes was never applied — `Program.cs` satisfies ADR-007's *after `UseAuthentication()`* and not this spec's *before `UseAuthorization()`* | AC-12, already written below, and now **measured rather than predicted** |
+
+The `400`'s missing header is a **third** case and is not yet explained: that response is
+produced after the localization middleware has run, so the culture was established and the
+header still did not survive the exception handler. Raised as **Q-G**; it is not guessed at
+here.
+
+### What `023` already built, so this feature must not build it again
+
+`023-frontend-foundation` shipped the entire client half of this spec while it sat in the
+queue. Verified by reading the tree, not assumed:
+
+| This spec's *In scope · Frontend* | Reality |
+|---|---|
+| `react-i18next`, catalogues under `locales/{en,ar}/` | **Built.** `i18next` 26, `react-i18next` 17, four namespaces — `auth`, `common`, `customers`, `tickets` — present in **both** locales |
+| `lang` and `dir` on the document root | **Built** |
+| The Vite/TypeScript/ESLint scaffold (Q-B) | **Built by `023`.** Q-B is answered, and not the way it guessed |
+| `formatters.ts`, `UserText`, the plural-category work, the four lint rules, client parity test | **Not built.** No `formatters.ts` and no `UserText` exist anywhere in `src/wasl-web/` |
+
+**The frontend lane owns `src/wasl-web/`.** What remains of the client half is therefore
+*its* work to schedule, not this feature's to implement — this spec records the gap and the
+criteria, and the lanes are told. AC-20 … AC-31 stay written for that reason; they are
+criteria against the product, not a claim about who types them.
+
+### Assumptions that are now known facts
+
+| # | Was | Is |
+|---|---|---|
+| A-1 / Q-A | "assume `004` does not emit a language claim, and do not depend on it" | ~~"Confirmed: it does not."~~ **That line was wrong, and it was wrong in the way this project keeps recording: a document was believed over a measurement.** It was reasoned from ADR-005 listing only `sub`, `email`, `role`. **Decoding a real token says the opposite** — `004` shipped `SupportUser.PreferredLanguage`, its column, `ActorClaimTypes.PreferredLanguage`, and `"preferred_language":"ar"` in the seeded Manager's token. So the claim has a producer **today**, `005b` owns only the *switcher* that lets a user change it, and `005` added a duplicate constant beside the provider before noticing `004` already had one. Corrected in `Program.cs`'s neighbours, in the provider's own remarks, and here |
+| Q-B | "assume `005` creates the React scaffold, and this needs a human to confirm" | **Answered by delivery.** `023` created it. The narrowing of `006` that Q-B worried about happened too: `006` was delivered **inside `023`** |
+| A-6 | "assume ICU is available" | Untested still. AC-17 stands |
+
+### New since this spec was written
+
+| What | Consequence |
+|---|---|
+| `004b` gave the `401`/`403` **real bodies** (they were empty) and added `429 errors/rate-limited` | AC-11 and AC-12 gain a status to cover, and they are now *checkable* — there was previously no body to localize. **The denial bodies are produced by `AuthDenialResultHandler`, inside `UseAuthorization`**, which is precisely why the ordering in AC-12 is load-bearing |
+| `002`'s `ResourceKeyLeakTests` and `MessageKeyCoverageTests` exist | Two guards already assert that no response field looks like a raw key and that every key-shaped literal in the source is in the catalogue. **Moving from a dictionary to `.resx` must keep both green**, and the second one's source of truth changes file |
+| `ADR-010` was **rejected** — four projects, not two | The *Rules referenced* line citing ADR-010 for "two projects, so the `.resx` live in `Wasl.Api`" reaches the right answer through a decision that no longer holds. Corrected below |
+
+### New open questions this revision raises
+
+| # | Question | Working assumption |
+|---|---|---|
+All four were ruled on by the product owner, 2026-08-29. The rulings are below, not the
+working assumptions they replaced.
+
+| # | Question | **Ruling** |
+|---|---|---|
+| **Q-G** | Why does a `400` lose `Content-Language` when the culture *was* established? | **Leave it as a measured fact with no explanation, and make it the first task.** Not guessing was the right call. **And one condition: if the cause turns out to live outside `005`, come back before fixing it.** A localization feature that quietly repairs the exception handler is a feature nobody can review against what it promised |
+| **Q-H** | Is moving `UseRequestLocalization()` before `UseAuthorization()` an addition to ADR-007, or a change to it? | **An addition.** ADR-007 constrains the order relative to `UseAuthentication()` only; nothing in it speaks to authorization. **And the measured reason is written beside it, in `Program.cs`:** `004b` gave the `401`/`403` bodies, those bodies are produced *inside* `UseAuthorization`, so this ordering is the only thing that makes them translatable. **Without that line somebody moves the registration back, because ADR-007 does not forbid it** |
+| **Q-I** | Which layer answers a key that is in neither catalogue? | **Approved as assumed.** Neutral English `.resx` is the fallback; a key absent from both still returns the key rather than throwing, for the reason `002` gives — an exception thrown while building an error response turns a `409` into a `500` and loses the original failure |
+| **Q-J** | Server-only, or one feature spanning both lanes? | **Server only.** The frontend is already connected by `023`. What remains in this scope — `PUT /api/me/language` and the switcher screen — is **`005b`, a named row on the board**, not a deferred line inside another feature's spec. *A feature that crosses the boundary makes both lanes wait for each other, and that costs more than two features do* |
+
+---
 
 ## Understanding
 
@@ -58,10 +165,17 @@ than being trusted:
 
 ### Frontend
 
-- The `react-i18next` layer: JSON catalogues per locale under
-  `src/wasl-web/src/locales/{en,ar}/`, initialised before the first render
-- `lang` and `dir` on the document root, set once from the active locale (ADR-007
-  decision 6)
+> **Revised 2026-08-29 — see Q-J.** `023-frontend-foundation` shipped the first two bullets
+> while this spec sat in the queue, and `src/wasl-web/` belongs to the frontend lane. The
+> remaining bullets are **criteria against the product, handed to that lane in writing** —
+> not work this feature types. Kept here rather than moved, so the client and server halves
+> of BR-8 stay readable in one place; who builds them is Q-J.
+
+- ~~The `react-i18next` layer: JSON catalogues per locale under
+  `src/wasl-web/src/locales/{en,ar}/`, initialised before the first render~~ — **built by
+  `023`.** Four namespaces, both locales
+- ~~`lang` and `dir` on the document root, set once from the active locale (ADR-007
+  decision 6)~~ — **built by `023`**
 - All six CLDR plural categories for Arabic — `zero one two few many other` — and the ban
   on string concatenation around a number, **caught by lint, not by review** (BR-8.14,
   ADR-007 decision 9)
@@ -84,7 +198,9 @@ than being trusted:
 | `PUT /api/me/language`, the `PreferredLanguage` column, and its migration | `014` (migration `AddSupportUserPreferredLanguage`) |
 | Issuing the language claim into the JWT | `004-auth-and-roles`. This feature **reads** the claim; see Q-A |
 | The Arabic walk of every screen, and RTL defect fixing | `014` — a deliberate deliverable there, not a check (`specs/README.md`, Phase 4) |
-| Design tokens, `Button`, `Input`, `Badge` | `006-design-system` |
+| Design tokens, `Button`, `Input`, `Badge` | `006-design-system` — **which was itself delivered inside `023`.** The narrowing Q-B feared happened, and it happened in the other lane |
+| Emitting a `preferred_language` claim into the JWT | `004`, and **it does not** (confirmed by delivery). This feature reads the claim if present and falls through if absent; `014` is where the claim gets a real producer, alongside the column that feeds it |
+| Localizing `Retry-After`, `Location`, or any other header value | Nowhere. `Content-Language` is the only header this feature writes. A header carrying a number or a URL is machine-read (BR-8.7) |
 | Translating user-entered content | Nowhere. Never (BR-8.10, FR-5.7, `00-project-context.md`) |
 | Locales beyond `en` and `ar` | Nowhere. Two prove the mechanism; NFR-9 makes a third configuration, and AC-19 tests that claim without shipping one |
 | Hijri calendar; Arabic-Indic digits | Nowhere. Rejected in ADR-007 decision 7 |
@@ -130,8 +246,10 @@ than being trusted:
 | AC-8 | `Accept-Language: ar-EG` and `?culture=ar-SA` both resolve to `ar`, return `200`, and carry `Content-Language: ar` (BR-8.2) |
 | AC-9 | `Accept-Language: fr` and `?culture=fr` both return **`200`**, English content, and `Content-Language: en`. Asking for a language the system does not speak is not a client error (BR-8.3, FR-5.8) |
 | AC-10 | A malformed `Accept-Language` (`!!!`, `;q=`, empty) is ignored, falls through to the next source, and never produces a `400` |
-| AC-11 | Every response carries `Content-Language` naming the locale actually applied — asserted on a `200`, a `400`, a `401`, a `403`, a `404`, a `409`, and a `500` |
-| AC-12 | A `401` and a `403` carry `Content-Language` and a localized `title`. That is true only because localization sits **before** `UseAuthorization()`, which is where both responses are produced |
+| AC-11 | Every response carries `Content-Language` naming the locale actually applied — asserted on a `200`, a `400`, a `401`, a `403`, a `404`, a `409`, a `429` and a `500`. **Measured 2026-08-29: the `200`s pass today and every error status fails**, so this criterion is not speculative and its negative control already exists |
+| AC-12 | A `401` and a `403` carry `Content-Language` and a localized `title`. That is true only because localization sits **before** `UseAuthorization()`, which is where both responses are produced — by `004b`'s `AuthDenialResultHandler`. **Moving the registration back is the negative control**, and it must be run and recorded, because this is the failure ADR-007 calls the most likely defect in the build and it produces no error of any kind |
+| **AC-12b** | `429 errors/rate-limited` (`004b`) carries `Content-Language` and a localized `title`, and its `Retry-After` header is **unchanged** by locale. A number of seconds is not a translatable string |
+| **AC-12c** | The `title` under `errors/unauthenticated` is localized in **both** of its two forms — the challenge (`Error.Unauthenticated.Title`) and the failed sign-in (`Error.Auth.InvalidCredentials.Title`). `004b` recorded that one `type` carries two titles and that shipping the wrong one is invisible; two locales is where that doubles |
 | AC-19 | Adding a third culture requires no code change: a test host configured with `en`, `ar`, `fr` in `Localization:SupportedCultures` answers `?culture=fr` with `Content-Language: fr` and English text. The list is configuration, which is what NFR-9 actually claims |
 
 ### Catalogues, keys, and what is never translated
@@ -200,7 +318,14 @@ than being trusted:
 - **ADR-007** — all nine decisions; decision 4's ordering constraint is this feature's
   centre of gravity
 - **ADR-005** — the JWT and its claims; the language claim is ADR-007's addition to it
-- **ADR-010** — two projects, so the `.resx` live in `Wasl.Api` rather than in the third
-  project ADR-007 assumed (`research.md` R-1)
+- ~~**ADR-010** — two projects, so the `.resx` live in `Wasl.Api` rather than in the third
+  project ADR-007 assumed (`research.md` R-1)~~ — **ADR-010 was rejected; the solution is four
+  projects (ADR-002).** The conclusion survives and the reason does not: the `.resx` live in
+  `Wasl.Api` because that is where `IProblemMessageSource` and its one consumer
+  `ProblemDetailsFactory` live, and because `Wasl.Application/Resources/` is reserved by
+  `CLAUDE.md` for messages the **Application layer** authors — of which there are currently
+  none, since every sentence in the product is a `ProblemDetails` title or a validation
+  message resolved at the API edge. **If a handler ever authors a sentence, it gets its own
+  catalogue in `Wasl.Application` rather than reaching across the boundary.**
 - **ADR-011 §4** — three kinds of component, one of which fetches
 - **US-014** — the story that consumes this, and the owner of everything a user touches

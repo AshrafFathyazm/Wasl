@@ -110,7 +110,7 @@ public sealed class AuthDenialAuditTests(WaslApiFactory factory)
         row.TraceId.Should().Be(problem.GetProperty("traceId").GetString());
 
         // AC-32's other half — there IS a principal here, so the row names it.
-        row.ActorEmail.Should().Be(Wasl.Api.Seed.SupportUserSeeder.AgentEmail);
+        row.ActorEmail.Should().Be(Wasl.Infrastructure.Persistence.Seed.SupportUserSeeder.AgentEmail);
         row.ActorRole.Should().Be("Agent");
         row.ActorUserId.Should().NotBeNull();
     }
@@ -235,7 +235,7 @@ public sealed class AuthDenialAuditTests(WaslApiFactory factory)
         // AC-37. The seeded Manager, from the same client and therefore the same address.
         var manager = await client.PostAsJsonAsync("/api/auth/token", new
         {
-            email = Wasl.Api.Seed.SupportUserSeeder.ManagerEmail,
+            email = Wasl.Infrastructure.Persistence.Seed.SupportUserSeeder.ManagerEmail,
             password = WaslApiFactory.ManagerPassword,
         });
 
@@ -255,7 +255,7 @@ public sealed class AuthDenialAuditTests(WaslApiFactory factory)
         {
             var response = await client.PostAsJsonAsync("/api/auth/token", new
             {
-                email = Wasl.Api.Seed.SupportUserSeeder.ManagerEmail,
+                email = Wasl.Infrastructure.Persistence.Seed.SupportUserSeeder.ManagerEmail,
                 password = WaslApiFactory.ManagerPassword,
             });
 

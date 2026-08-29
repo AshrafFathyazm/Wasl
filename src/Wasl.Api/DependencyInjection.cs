@@ -4,7 +4,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Wasl.Api.Common;
 using Wasl.Api.Common.Auth;
 using Wasl.Api.Common.Errors;
-using Wasl.Api.Seed;
+using Wasl.Api.Common.Localization;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application.Common.Abstractions;
 
 namespace Wasl.Api;
@@ -106,6 +107,12 @@ public static class DependencyInjection
 
         AddErrorContract(services);
 
+        // `005`. Culture resolution and the two catalogues. Registered here rather than in
+        // AddErrorContract because IProblemMessageSource is now localizer-backed and belongs
+        // beside the resources it reads — and because AC-19 needs the supported list to come
+        // from configuration, which AddErrorContract does not receive.
+        services.AddWaslLocalization(configuration);
+
         // `004`. Throws at startup if the signing key is missing or shorter than 32 bytes.
         services.AddWaslAuthentication(configuration);
 
@@ -132,7 +139,9 @@ public static class DependencyInjection
         // AddProblemDetails supplies the framework's own writer; the handler and the factory
         // below make every response go through one producer (AC-2).
         services.AddProblemDetails();
-        services.AddSingleton<IProblemMessageSource, StaticProblemMessageSource>();
+        // `005` moved this to AddWaslLocalization: the implementation is localizer-backed now and
+        // belongs beside the catalogues it reads. `002` predicted one changed line here; it is
+        // one deleted line instead, because the registration moved rather than changed shape.
         services.AddExceptionHandler<GlobalExceptionHandler>();
 
         // Singleton, not scoped, and the reason is a captive dependency.

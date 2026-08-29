@@ -8,7 +8,7 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Twelve backend features are delivered: `001` · `002` core · `003` core · `004` + `004b` · `007` · `008` ·
+Thirteen backend features are delivered: `001` · `002` core · `003` core · `004` + `004b` · `005` · `007` · `008` ·
 `009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
 013-ticket-timeline-and-comments    DONE 2026-08-28
@@ -16,7 +16,8 @@ Twelve backend features are delivered: `001` · `002` core · `003` core · `004
 007-create-customer                 DONE 2026-08-29
 004b-auth-hardening                 DONE 2026-08-29
 002b · 003b                         NEXT — the remaining deferred halves
-005-localization-core               RAISED — see its row below
+005-localization-core               DONE 2026-08-29 (server half)
+005b-language-preference            NEW — the switcher and PUT /api/me/language
 ```
 
 **Why this order, in the product owner's terms.**
@@ -28,7 +29,8 @@ Twelve backend features are delivered: `001` · `002` core · `003` core · `004
 | ✅ | `007` | **Done.**  Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
 | ✅ | `004b` | **Done 2026-08-29.** 442 tests. Both gaps `004` named as open: the denial audit row — which needed the `401`/`403` body, because AC-19 compares the row's trace id to the one *in the response* — and the sign-in rate limit. The ruling's "per IP" and AC-37 contradicted each other, and a negative control settled it rather than an argument: see `004`'s `tests.md` |
 | 1 | **NEXT** — `002b` · `003b` | The remaining deferred halves. Each is named with its reason in the README's *Deferred halves* table, and neither unblocks another feature |
-| 2 | `005` | **Raised from last, 2026-08-29 by the product owner.** It was last because it opens nothing — but the frontend lane confirmed **on the wire** that `Accept-Language: ar` returns the same English sentence from every endpoint. BR-8.6 is broken product-wide, not on one screen: the screens work and the messages do not. Now above `026` and `027` |
+| ✅ | `005` | **Server half done 2026-08-29.** 472 tests. Raised from last by the product owner because the frontend lane confirmed on the wire that `Accept-Language: ar` returned the same English sentence from every endpoint — BR-8.6 broken product-wide. **Measuring found three defects where the report named one**, and `AC-11` is recorded **unmet**: exception-path responses lose `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s to fix |
+| 2 | `005b` | **New, named 2026-08-29.** `PUT /api/me/language`, the column's producer, and the switcher screen. Split out of `005` rather than deferred inside it — *a feature that crosses the lane boundary makes both lanes wait for each other* |
 
 The ordering rule visible in that list is not "hardest first" or "most valuable first" — it is
 **what unblocks something else, first.** `011` was chosen over `004b` on the same grounds: it was

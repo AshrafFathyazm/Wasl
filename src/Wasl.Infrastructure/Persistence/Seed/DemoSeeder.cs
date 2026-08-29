@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Features.Tickets.ChangeStatus;
@@ -6,7 +7,7 @@ using Wasl.Domain.Communications;
 using Wasl.Domain.Tickets;
 using Wasl.Infrastructure.Persistence;
 
-namespace Wasl.Api.Seed;
+namespace Wasl.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// Three customers and five tickets in five different statuses, from one command.
@@ -40,7 +41,7 @@ namespace Wasl.Api.Seed;
 /// end with fifteen tickets.
 /// </para>
 /// </remarks>
-internal static class DemoSeeder
+public static class DemoSeeder
 {
     /// <summary>
     /// The switch <c>Program.cs</c> looks for: <c>dotnet run --project src/Wasl.Api -- --seed</c>.

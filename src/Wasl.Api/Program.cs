@@ -1,7 +1,7 @@
 using Wasl.Api;
 using Wasl.Api.Common;
 using Wasl.Api.Health;
-using Wasl.Api.Seed;
+using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application;
 using Wasl.Infrastructure;
 
@@ -65,27 +65,27 @@ app.UseExceptionHandler();
 // They are registered together, in one commit, precisely so the constraint is satisfied by
 // whoever knew about it rather than inherited by whoever did not.
 app.UseAuthentication();
-app.UseAuthorization();
 
-// Culture resolution only — `005` still owns the catalogues. This is here because the
-// frontend lane needs `Content-Language` on every response to tell an Arabic request that
-// answered in English from one that answered in Arabic, and without the header that check is
-// impossible from the client side.
+// ── AND BEFORE UseAuthorization. `005` AC-12, Q-H, ruled 2026-08-29 ──────────────
 //
-// ApplyCurrentCultureToResponseHeaders defaults to true, which is what sends the header.
-// Named explicitly anyway: a behaviour this feature depends on should not rest on a default
-// someone may change.
-app.UseRequestLocalization(new RequestLocalizationOptions
-{
-    ApplyCurrentCultureToResponseHeaders = true,
-}
-    .SetDefaultCulture("en")
-
-    // en and ar (BR-8.1). Both lists, because SupportedCultures governs formatting and
-    // SupportedUICultures governs resource lookup — setting only one gives Arabic text with
-    // English number formatting, or the reverse.
-    .AddSupportedCultures("en", "ar")
-    .AddSupportedUICultures("en", "ar"));
+// ADR-007 constrains this registration relative to UseAuthentication() ONLY. Placing it
+// before UseAuthorization() as well is an ADDITION to that decision, not a change to it, and
+// the reason is measured rather than argued:
+//
+//   `004b` gave the 401 and the 403 real ProblemDetails bodies — they used to be empty — and
+//   those bodies are produced INSIDE UseAuthorization, by AuthDenialResultHandler. With
+//   localization registered after it, the middleware never runs for a denial at all: no
+//   culture is resolved, no Content-Language is written, and the title is served in whatever
+//   the process default happens to be.
+//
+// Measured on the wire on 2026-08-29, before this line moved: every 401 came back with an
+// empty Content-Language while an authenticated 200 on the same host came back `ar`.
+//
+// DO NOT MOVE THIS BACK. ADR-007 does not forbid it, the build stays green, every test that
+// does not assert a denial's Content-Language stays green, and Arabic users silently get
+// English on exactly the two responses that tell them they may not proceed.
+app.UseRequestLocalization();
+app.UseAuthorization();
 
 // Still deferred to 002b: UseStatusCodePages, which envelopes the statuses the framework
 // short-circuits without throwing — 404 on a mistyped path, 405, 415. No exception

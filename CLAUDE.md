@@ -40,7 +40,10 @@ src/
       ...
     Common/
       Abstractions/                  IApplicationDbContext · ICurrentUser · IRequestContext
-                                     IAuditWriter · ITicketNumberGenerator
+                                     IAuditWriter · ITicketNumberGenerator · IAccessTokenIssuer
+                                     ISignInThrottle · WaslJwtClaimNames — the claim names live
+                                     here because the ISSUER is in Infrastructure and the READER
+                                     is in Api, and this is the only project both of them see
       Behaviours/                    Validation only — Transaction and Audit are in Infrastructure
       Messaging/                     ICommand · IAuditableCommand
       Exceptions/  PagedResult.cs
@@ -51,9 +54,22 @@ src/
     Persistence/Behaviours/          TransactionBehaviour · AuditBehaviour — they need a real
                                      transaction, and IApplicationDbContext exposes no EF type
     Persistence/Audit/               interceptor · accumulator · serializer · writer
-    Auth/  Communications/
+    Auth/                            IdentityPasswordHasher · InMemorySignInThrottle ·
+                                     JwtAccessTokenIssuer · JwtOptions  (`005` moved the last two
+                                     out of Wasl.Api — signing a JWT implements an Application
+                                     abstraction; VALIDATING one is an HTTP concern and stays)
+    Persistence/Seed/                DemoSeeder · SupportUserSeeder · SeedOptions — they touch
+                                     WaslDbContext directly, so the API only invokes them
+    Communications/
   Wasl.Api/                          composes everything at startup
-    Controllers/  Middleware/  Localization/  Program.cs
+    Controllers/  Middleware/  Program.cs
+    Common/Localization/             SharedResource.cs + SharedResource{,.ar}.resx SIDE BY SIDE,
+                                     and AddLocalization() takes NO ResourcesPath — with one, the
+                                     factory looks under Resources/Common/Localization/ and every
+                                     lookup silently returns the key (`005`, measured)
+    Common/Auth/                     AuthenticationRegistration · AuthDenialResultHandler ·
+                                     HttpCurrentUser · SignInThrottleFilter · WaslPolicies ·
+                                     ActorClaimTypes — the HTTP half only
     DependencyInjection.cs           AddPresentation() — controllers, JSON, ICurrentUser, 002
     Common/WaslPipeline.cs           THE ordered behaviour list. Validation → Transaction → Audit
   wasl-web/                          React + TypeScript, feature folders
@@ -137,6 +153,8 @@ and `ar`.
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). Login screen and route guard belong to the frontend lane
 - **`004b` delivered** 2026-08-29 — the two gaps `004` named as open, closed together because they are one path: a request refused before any handler runs. `AuthDenialResultHandler` writes `Auth.Unauthenticated` / `Auth.Forbidden` **and envelopes those bodies**, which AC-19 forces (it compares the row's trace id to the one *in the response*, and there was no response body). A **(address, email)** throttle answers `429 errors/rate-limited` with `Retry-After` and writes `Auth.RateLimited`. `expectedVersion` is length-checked before any base64 buffer (442 tests). **The ruling said "per IP" and AC-37 forbids locking out a NAT office — the two contradicted, and a negative control settled it, not an argument**
+- **`005-localization-core` server half delivered** 2026-08-29 — `.resx` in `en` + `ar` (63 keys), `LocalizedProblemMessageSource` replacing `002`'s dictionary, `PreferredLanguageCultureProvider`, the three-provider order with the **cookie provider removed**, and `UseRequestLocalization()` **between `UseAuthentication()` and `UseAuthorization()`** (472 tests). **The frontend reported one defect; measuring found three with three owners** — and `AC-11` is recorded **unmet**: a response produced by *throwing* loses `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s. Ruled **server-only**; the switcher and `PUT /api/me/language` are **`005b`**
+- **Placement cleanup** 2026-08-29 — `JwtAccessTokenIssuer` + `JwtOptions` → `Wasl.Infrastructure/Auth/`, the three seeders → `Wasl.Infrastructure/Persistence/Seed/`, and `JwtRegisteredClaimNames` → **`WaslJwtClaimNames`** in `Wasl.Application/Common/Abstractions/`. The old name shadowed `System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames`, imported in the same file, so every reference bound silently to the local type
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
 - **`007-create-customer` backend delivered** 2026-08-29 — `Customer.Create`, `ContactNormalisation` (**no value objects**, ruled), `POST /api/customers`, BR-4.8's two **filtered** unique indexes with the violation translated into the pre-check's exception (434 tests, run twice). **AC-13 is the project's first concurrency test.** Found that `Customer` timestamps had never been stamped, and that a create and a read returned different timestamps for the same resource
 - **`008-customer-list-and-profile` backend delivered** 2026-08-28 — `GET /api/customers` with search, `GET /api/customers/{id}`, explicit CI collation on every searched column (408 tests, run twice). Built the **query counter** and used it to close `013` AC-14 and `010` AC-12 as well as its own AC-11. **AC-3 recorded unmet** — a malformed id returns `404`, `002b` owns it
@@ -256,8 +274,26 @@ an assignee. `PendingCustomer → Resolved` is not permitted directly.
 - **BR-7.2** — `pageSize` above 100 clamps to 100; `page` is 1-based, clamps up to 1.
 - **BR-8 localization** — the server localizes only strings it authors. Never localized:
   `ProblemDetails.type`, the keys of `errors`, enum values, `TicketNumber`, `traceId`.
-  `UseRequestLocalization()` goes **after** `UseAuthentication()` — the wrong order
-  fails silently and ADR-007 calls it the most likely defect in the build.
+  **`UseRequestLocalization()` goes after `UseAuthentication()` AND before
+  `UseAuthorization()`** — it is registered between them, and both halves are load-bearing.
+  ADR-007 fixes only the first half and calls the wrong order the most likely defect in the
+  build; the second half is `005`'s addition, ruled 2026-08-29, and it is what makes a `401`
+  and a `403` translatable at all, because `004b`'s `AuthDenialResultHandler` produces those
+  bodies **inside** `UseAuthorization`. **Both orderings fail silently** — the build stays
+  green, ADR-007 does not forbid the old position, and Arabic users get English on exactly the
+  two responses that refuse them. Control 1 in `005`'s `tests.md` measured it: seven tests red,
+  `Content-Language` `<null>` and the title back in English.
+- **Localizing an error response reads the culture from `IRequestCultureFeature` on the
+  `HttpContext`, never from `CultureInfo.CurrentUICulture`.** The outermost exception handler
+  runs at the top of the pipeline, so by the time it builds a body the localization middleware
+  has unwound and restored the ambient culture. `002` wrote the instruction and called it
+  belt-and-braces; `005` measured that without it **every error is English while every success
+  is Arabic**.
+- **`Content-Language` is absent on any response produced by throwing** — `005` AC-11,
+  recorded **unmet**, cause identified: `ExceptionHandlerMiddleware` clears the response, headers
+  included, before invoking any `IExceptionHandler`. Owned by `002`. Bodies are correctly
+  localized on those paths; only the header is missing. **Do not "fix" it by reading the ambient
+  culture — that is the row above, and it is a different defect.**
 - **BR-9 audit** — every state-changing command implements `IAuditableCommand`; a
   pipeline behaviour writes the row in the **same transaction** as the change, so it is
   absent when that transaction rolls back. Denials and failures write a row too, outside

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Wasl.Application.Common.Abstractions;
+using Wasl.Infrastructure.Auth;
 
 namespace Wasl.Api.Common.Auth;
 
@@ -20,8 +21,15 @@ internal static class AuthenticationRegistration
         // by both the issuer and the validator below, so they cannot drift.
         var options = JwtOptions.From(configuration);
 
+        // The options object is registered here and the ISSUER is not. `JwtAccessTokenIssuer`
+        // moved to Wasl.Infrastructure — signing a JWT is an implementation of an Application
+        // abstraction, not an HTTP concern — and AddInfrastructure registers it, per the
+        // each-layer-registers-itself rule. What stays here is the half that IS an HTTP concern:
+        // the bearer handler that VALIDATES the token, below.
+        //
+        // One options object still serves both, which is what stops the issuer and the validator
+        // drifting apart on issuer, audience, key or algorithm.
         services.AddSingleton(options);
-        services.AddScoped<IAccessTokenIssuer, JwtAccessTokenIssuer>();
 
         // Inbound claim mapping OFF, and this is the setting that costs an afternoon when it is
         // left on. By default ASP.NET Core rewrites `sub` to a long WS-Federation URI, so

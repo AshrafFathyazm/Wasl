@@ -48,7 +48,7 @@ public sealed class CreateCustomerTests(WaslApiFactory factory)
     }
 
     private Task<HttpResponseMessage> PostAsync(object body) =>
-        factory.CreateManagerClient().PostAsJsonAsync("/api/customers", body);
+        factory.CreateEnglishManagerClient().PostAsJsonAsync("/api/customers", body);
 
     // ── AC-1, AC-14 ─────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ public sealed class CreateCustomerTests(WaslApiFactory factory)
             + "removed, because EF applies one whenever the property holds the CLR default");
         created.GetProperty("version").GetString().Should().NotBeNullOrWhiteSpace();
 
-        var fetched = await factory.CreateManagerClient().GetAsync(response.Headers.Location);
+        var fetched = await factory.CreateEnglishManagerClient().GetAsync(response.Headers.Location);
 
         fetched.StatusCode.Should().Be(HttpStatusCode.OK);
 

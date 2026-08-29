@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" /></xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence><xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" /></xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Error.Validation.Title" xml:space="preserve">
+    <value>One or more validation errors occurred.</value>
+  </data>
+  <data name="Error.Internal.Title" xml:space="preserve">
+    <value>An unexpected error occurred.</value>
+  </data>
+  <data name="Error.MalformedRequest.Title" xml:space="preserve">
+    <value>The request could not be read.</value>
+  </data>
+  <data name="Error.NotFound.Title" xml:space="preserve">
+    <value>The requested resource was not found.</value>
+  </data>
+  <data name="Error.MethodNotAllowed.Title" xml:space="preserve">
+    <value>That method is not allowed on this path.</value>
+  </data>
+  <data name="Error.UnsupportedMediaType.Title" xml:space="preserve">
+    <value>The request body must be JSON.</value>
+  </data>
+  <data name="Error.Unauthenticated.Title" xml:space="preserve">
+    <value>Authentication is required.</value>
+  </data>
+  <data name="Error.Auth.InvalidCredentials.Title" xml:space="preserve">
+    <value>Email or password is incorrect.</value>
+  </data>
+  <data name="Error.RateLimited.Title" xml:space="preserve">
+    <value>Too many attempts.</value>
+  </data>
+  <data name="Error.Auth.RateLimited" xml:space="preserve">
+    <value>Too many failed sign-in attempts. Wait a moment and try again.</value>
+  </data>
+  <data name="Error.Forbidden.Title" xml:space="preserve">
+    <value>You do not have permission to do that.</value>
+  </data>
+  <data name="Error.DuplicateCustomer.Title" xml:space="preserve">
+    <value>A customer with this value already exists.</value>
+  </data>
+  <data name="Error.InvalidStatusTransition.Title" xml:space="preserve">
+    <value>That status change is not permitted.</value>
+  </data>
+  <data name="Error.TicketClosed.Title" xml:space="preserve">
+    <value>This ticket is closed.</value>
+  </data>
+  <data name="Error.SameStatusTransition.Title" xml:space="preserve">
+    <value>The ticket is already in that status.</value>
+  </data>
+  <data name="Error.AssigneeRequired.Title" xml:space="preserve">
+    <value>A ticket must have an assignee before work can start.</value>
+  </data>
+  <data name="Error.AlreadyEscalated.Title" xml:space="preserve">
+    <value>This ticket is already escalated.</value>
+  </data>
+  <data name="Error.ConcurrencyConflict.Title" xml:space="preserve">
+    <value>This record changed while you were editing it.</value>
+  </data>
+  <data name="Error.Validation.Detail" xml:space="preserve">
+    <value>See the errors property for field-level messages.</value>
+  </data>
+  <data name="Error.Ticket.InvalidTransition" xml:space="preserve">
+    <value>The ticket is {0}. Permitted transitions: {1}.</value>
+  </data>
+  <data name="Error.Ticket.SameStatus" xml:space="preserve">
+    <value>The ticket is already {0}.</value>
+  </data>
+  <data name="Error.Ticket.Closed" xml:space="preserve">
+    <value>A closed ticket cannot be changed.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeRequired" xml:space="preserve">
+    <value>Assign the ticket before starting work on it.</value>
+  </data>
+  <data name="Error.Ticket.ConcurrencyConflict" xml:space="preserve">
+    <value>Reload the ticket and try again.</value>
+  </data>
+  <data name="Error.Ticket.NotFound" xml:space="preserve">
+    <value>No ticket was found with that id.</value>
+  </data>
+  <data name="Error.Auth.InvalidCredentials" xml:space="preserve">
+    <value>Email or password is incorrect.</value>
+  </data>
+  <data name="Error.Ticket.CustomerNotFound" xml:space="preserve">
+    <value>No customer was found with that id.</value>
+  </data>
+  <data name="Validation.Auth.EmailRequired" xml:space="preserve">
+    <value>Enter your email address.</value>
+  </data>
+  <data name="Validation.Auth.PasswordRequired" xml:space="preserve">
+    <value>Enter your password.</value>
+  </data>
+  <data name="Validation.Ticket.CustomerRequired" xml:space="preserve">
+    <value>Choose a customer.</value>
+  </data>
+  <data name="Validation.Ticket.SubjectRequired" xml:space="preserve">
+    <value>Enter a subject.</value>
+  </data>
+  <data name="Validation.Ticket.SubjectTooLong" xml:space="preserve">
+    <value>The subject is too long.</value>
+  </data>
+  <data name="Validation.Ticket.DescriptionRequired" xml:space="preserve">
+    <value>Describe the problem.</value>
+  </data>
+  <data name="Validation.Ticket.DescriptionTooLong" xml:space="preserve">
+    <value>The description is too long.</value>
+  </data>
+  <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
+    <value>Choose a valid category.</value>
+  </data>
+  <data name="Validation.Ticket.ChannelInvalid" xml:space="preserve">
+    <value>Choose a valid channel.</value>
+  </data>
+  <data name="Validation.Ticket.PriorityInvalid" xml:space="preserve">
+    <value>Choose a valid priority.</value>
+  </data>
+  <data name="Validation.Ticket.StatusInvalid" xml:space="preserve">
+    <value>Choose a valid status.</value>
+  </data>
+  <data name="Validation.Ticket.NoteRequiredToClose" xml:space="preserve">
+    <value>Add a note explaining why this is being closed.</value>
+  </data>
+  <data name="Validation.Ticket.NoteTooLong" xml:space="preserve">
+    <value>The note is too long.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionRequired" xml:space="preserve">
+    <value>Reload the ticket and try again.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionUndecodable" xml:space="preserve">
+    <value>Reload the ticket and try again.</value>
+  </data>
+  <data name="Validation.Ticket.ExpectedVersionTooLong" xml:space="preserve">
+    <value>Reload the ticket and try again.</value>
+  </data>
+  <data name="Validation.Comment.BodyRequired" xml:space="preserve">
+    <value>Write something before posting.</value>
+  </data>
+  <data name="Validation.Comment.BodyTooLong" xml:space="preserve">
+    <value>The comment is too long.</value>
+  </data>
+  <data name="Validation.Comment.ChannelInvalid" xml:space="preserve">
+    <value>Choose a valid channel.</value>
+  </data>
+  <data name="Error.Customer.NotFound" xml:space="preserve">
+    <value>No customer was found with that id.</value>
+  </data>
+  <data name="Error.Customer.DuplicateEmail" xml:space="preserve">
+    <value>A customer with this email already exists.</value>
+  </data>
+  <data name="Error.Customer.DuplicatePhone" xml:space="preserve">
+    <value>A customer with this phone number already exists.</value>
+  </data>
+  <data name="Validation.Customer.FullNameRequired" xml:space="preserve">
+    <value>Enter the customer's name.</value>
+  </data>
+  <data name="Validation.Customer.FullNameTooLong" xml:space="preserve">
+    <value>The name is too long.</value>
+  </data>
+  <data name="Validation.Customer.ContactRequired" xml:space="preserve">
+    <value>Provide either an email address or a phone number.</value>
+  </data>
+  <data name="Validation.Customer.EmailInvalid" xml:space="preserve">
+    <value>Enter a valid email address.</value>
+  </data>
+  <data name="Validation.Customer.EmailTooLong" xml:space="preserve">
+    <value>The email address is too long.</value>
+  </data>
+  <data name="Validation.Customer.PhoneInvalid" xml:space="preserve">
+    <value>Enter the phone number in international format, starting with the country code.</value>
+  </data>
+  <data name="Validation.Customer.CompanyNameTooLong" xml:space="preserve">
+    <value>The company name is too long.</value>
+  </data>
+  <data name="Validation.Customer.NotesTooLong" xml:space="preserve">
+    <value>The notes are too long.</value>
+  </data>
+  <data name="Error.AssigneeUnchanged.Title" xml:space="preserve">
+    <value>This ticket is already assigned to that user.</value>
+  </data>
+  <data name="Error.AssigneeNotFound.Title" xml:space="preserve">
+    <value>No such support user.</value>
+  </data>
+  <data name="Error.Ticket.AssignNotPermitted" xml:space="preserve">
+    <value>You are not permitted to change this ticket's assignee.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeUnchanged" xml:space="preserve">
+    <value>The ticket already has that assignee.</value>
+  </data>
+  <data name="Error.Ticket.AssigneeNotFound" xml:space="preserve">
+    <value>No support user was found with that id.</value>
+  </data>
+  <data name="Validation.Ticket.AssigneeInactive" xml:space="preserve">
+    <value>This user is not active and cannot be assigned tickets.</value>
+  </data>
+</root>
