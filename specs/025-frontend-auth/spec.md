@@ -196,6 +196,47 @@ was actually built stay separable.
 | 2 | A show/hide toggle on the password field | Product owner, 2026-08-28. **Not in the reference** and not in any screen spec, so it is genuinely new. Built into the `Input` primitive rather than the screen |
 | 3 | **Submit disabled until both fields are non-empty** | Product owner, 2026-08-28. **Overrides** `004/frontend-spec.md`'s States table, which gives Idle as "empty form, submit enabled" |
 | 4 | **A `401` from `POST /api/auth/token` renders our catalogue string, not the server's `title`** | Product owner, 2026-08-28. **TEMPORARY — it has a removal condition, below.** |
+| 5 | **The panel gained a heartbeat** — every second or two a packet travels one spoke into the hub, the hub flares, and a ring leaves it | Product owner, 2026-08-28, against `Wasl Login_last.html`. The only motion on the panel that is not a reaction to the pointer |
+| 6 | **No required marker on the two sign-in fields** | Product owner, 2026-08-28. `required` itself is unchanged — the native attribute and its `aria-required` stay; only the `*` is suppressed |
+| 7 | A **"Drag the hub" hint pill** was built, shown to the product owner, and **removed at their request** the same day | Product owner, 2026-08-28. Recorded because it explains a catalogue key that briefly existed in both locales and is now gone |
+
+### Change 5 — the heartbeat, and where its colour comes from
+
+`Wasl Login_last.html` adds one thing the earlier reference did not have: the mesh is
+alive when nobody is touching it. A packet travels a spoke inward, the hub flares, and a
+ring leaves it — about every two seconds, on a schedule drawn from the panel's own seeded
+generator so it stays deterministic across a resize like the particle field does.
+
+**The accent is read from `--teal-400`, not written into the component.** Canvas takes a
+colour string and a custom property is not one, so the token is resolved once from the
+panel's computed style. The same rule removed the last hex from `BrandPanel` — the accent
+dot in the hub mark now takes its fill from the stylesheet.
+
+**The hub's flare is composed in CSS, not inline.** The loop sets one custom property,
+`--glow-shadow`, and the stylesheet appends it as a third `box-shadow` layer. Writing the
+whole shadow from JavaScript would have restated the two resting layers in a template
+literal, and they would then have lived in two places.
+
+Under `prefers-reduced-motion` the loop never starts, so there is no heartbeat — the same
+branch that already disables dragging.
+
+### Change 6 — the marker, without losing the semantics
+
+`Input` gained `requiredMarker`, defaulting to `true`. It hides the `*` and changes
+nothing else: `required` still reaches the control, so the native attribute and the
+`aria-required` it carries are untouched.
+
+The two are separable on purpose. The marker tells a sighted reader which fields they may
+skip; on a form where **every** field is required it distinguishes nothing, and a column
+of asterisks reads as a warning. Dropping `required` instead would have removed the
+semantics along with the glyph, which is the trade the prop exists to avoid.
+
+### Change 7 — a hint that was built and then withdrawn
+
+The reference carries a pill reading "Drag the hub", timed to appear three seconds in and
+dismissed on the first grab. It was built, shown, and removed the same day at the product
+owner's request. `auth:panel.hint` existed in both catalogues for the length of that
+round trip and no longer exists in either.
 
 Change 3 has one consequence worth stating plainly: a form with no enabled submit control
 has no implicit submission, so **Enter does not submit while the form is incomplete**. It

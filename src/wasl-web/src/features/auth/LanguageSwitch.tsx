@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { IconGlobe } from '../../icons/icons-added';
 import { changeLanguage } from '../../lib/i18n';
 import { isLanguage, type Language } from '../../lib/direction';
 import styles from './Login.module.css';
@@ -39,6 +40,14 @@ import styles from './Login.module.css';
  *
  * The codes are identical in both catalogues on purpose: a language code is an
  * identifier rendered as-is, not copy to be translated.
+ *
+ * THE GLOBE IS DECORATIVE, and it is `aria-hidden` for a reason that is easy to
+ * get wrong. The button's accessible name is the `aria-label` below, which says
+ * the whole action. An icon contributing its own name here would either duplicate
+ * that or compete with it, and a decorative glyph inside a control that already
+ * has a name is exactly the case where `aria-hidden` is correct rather than lazy.
+ *
+ * It is also NOT DIRECTIONAL — see the note on `IconGlobe`.
  * ============================================================================ */
 
 export function LanguageSwitch() {
@@ -59,13 +68,24 @@ export function LanguageSwitch() {
       className={styles.lang}
       /* The two visible letters cannot say what pressing this does. The name can. */
       aria-label={t('common:lang.switchTo', { language: targetName })}
-      /* The visible text is a Latin-script code in both locales, so it is pinned
-       * LTR: two Latin letters inside an RTL paragraph are directionally weak
-       * enough for bidi to reorder them against a neighbouring glyph. */
-      dir="ltr"
       onClick={() => changeLanguage(target)}
     >
-      {currentCode}
+      {/* THE PAIR MIRRORS, THE CODE DOES NOT — and until the globe arrived those
+          were the same thing, so `dir="ltr"` sat on the button.
+
+          It cannot stay there. `dir` on a flex container sets which end its
+          children start from, so `dir="ltr"` on the button pins the glyph to the
+          physical left in both languages. An icon beside a label is a control
+          layout, and control layouts mirror — Button's `iconStart` prop is
+          documented on exactly that rule.
+
+          The original reason for the attribute is still real, so it moves to the
+          thing it was protecting: a Latin-script code in both locales, pinned
+          LTR so bidi cannot reorder it against what sits next to it. */}
+      <span className={styles.langIcon} aria-hidden="true">
+        <IconGlobe size={13} />
+      </span>
+      <span dir="ltr">{currentCode}</span>
     </button>
   );
 }

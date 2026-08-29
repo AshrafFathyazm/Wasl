@@ -1,39 +1,89 @@
 /* ============================================================================
- * Login — the PLAIN build
+ * Login — the framed build
  * ============================================================================
- * Semantic tokens only. Everything Phase 6 adds — the mesh, the aurora, the
- * blur, the grain, the channel tiles, the hub, every entrance animation — is
- * absent here by decision, not by omission (004/frontend-spec.md).
+ * Semantic tokens on the form side. The panel is ART and carries literals by
+ * decision — the mesh, the aurora, the grain, the channel tiles and the hub are
+ * a rendered illustration, not an interface surface, and tokenising a conic
+ * gradient would put five one-off values in the global sheet for one screen.
  *
- * TODO — no motion or shadow token exists (tokens.css note 11). The seam's
- * shadow and the 100ms transitions are literals, each marked. Q-8.
+ * WHAT CHANGED IN THE VISUAL REFINEMENT (025, product owner 2026-08-28).
+ * The screen was edge-to-edge at 100vh. It is now a centred card on a light
+ * ground, per `Wasl Login_last.html`. The card is FLUID IN BLOCK SIZE where the
+ * reference pins it to 540px: the reference's form has no caps-lock hint, no
+ * error block and a plain link where ours has a `<details>` disclosure, so at a
+ * fixed 540 the form column clips the moment any of the three appears — and
+ * again in Arabic, whose leading is taller. `min-block-size` keeps the
+ * proportion and removes the clip.
+ *
+ * TODO — no motion or shadow token exists (tokens.css note 11). The card's
+ * shadow, the seam's shadow, the entrance durations and the 100ms transitions
+ * are literals, each marked. Q-8.
  * ============================================================================ */
+
+/* ---- The ground ----------------------------------------------------------
+ * The card floats on this. Padding is FIXED rather than proportional so the
+ * card stays optically centred on a 900px screen and does not drift down a
+ * 1400px one — capped, with no max-height on the card itself (product owner,
+ * 2026-08-28).
+ *
+ * Below the card's own min-block-size plus this padding the page simply
+ * scrolls, which is correct: a card that shrinks to fit a short window is a
+ * card whose form is cramped.
+ * -------------------------------------------------------------------------- */
+
+.page {
+  min-block-size: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-6);
+  /* Literal, and the only gradient on a light surface in the product. It is the
+   * reference's own: a wash that lifts the top of the frame off the page. */
+  background: radial-gradient(120% 80% at 50% 0%, #f6f8fa, #e4e9ed);
+}
 
 .screen {
   display: flex;
-  min-block-size: 100vh;
+  inline-size: 100%;
+  max-inline-size: 980px;
+  /* Not `block-size`. See the header note. */
+  min-block-size: 540px;
   /* A CONTAINER, not a media query: 01-login.md specifies the breakpoint on the
-   * component's own width so the screen works wherever it is placed. */
+   * component's own width so the screen works wherever it is placed. Now that
+   * the card is narrower than the viewport the two numbers genuinely differ —
+   * the card hits 780px before the window does, which is the point. */
   container-type: inline-size;
   container-name: login;
   background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  /* The panel's aurora is inset -50% and the mesh paints to the edge; without
+   * this both escape the rounded corners and the card has square ones. */
+  overflow: hidden;
+  /* TODO — literal, no shadow token exists. Q-8. */
+  box-shadow: 0 30px 70px -30px rgb(13 20 38 / 35%);
 }
 
 /* ---- The panel ------------------------------------------------------------
  * The channel mesh. Layer order is the reference's and is load-bearing:
  *
- *   1 aurora · 2 mesh · 5 vignette · 6 grain · 7 scrim · 8 copy
+ *   1 aurora · 2 mesh · 3 nodes · 4 tooltip · 5 vignette · 6 grain · 7 scrim ·
+ *   8 copy
  *
  * The grain sits ABOVE the vignette and BELOW the scrim. Moved above the scrim
  * it textures the copy; moved below the vignette it is washed out and the panel
  * goes back to looking like a smooth gradient, which is the thing it exists to
  * prevent.
  *
- * Nothing here animates, so there is no reduced-motion branch to write — see
- * the note in BrandPanel.tsx.
+ * The tooltip is at 4 — above the nodes it labels, below the vignette, so it is
+ * lit by the same falloff as everything else in the panel rather than sitting on
+ * top of the whole illustration.
  * -------------------------------------------------------------------------- */
 
 .panel {
+  /* The reference gives `0 0 490px` of a 980 frame, which IS 50%. Expressed as
+   * a ratio it is identical at the card's max width and stays correct below it,
+   * where a fixed 490 would take more than half. */
   flex: 1 1 50%;
   min-inline-size: 0;
   position: relative;
@@ -66,7 +116,10 @@
   position: absolute;
   /* Inset NEGATIVE by half: an 80px blur on a box that stops at the edge leaves
    * a visibly lighter rim all the way round. The gradient has to start outside
-   * the frame for the blur to have something to pull in. */
+   * the frame for the blur to have something to pull in.
+   *
+   * It is also what makes the rotation survivable — a box inset -50% still
+   * covers the panel at every angle, so the corners never go bare. */
   inset: -50%;
   z-index: 1;
   background: conic-gradient(from 0deg, #1b1838, #2a2657, #20423f, #332e63, #1b1838);
@@ -160,20 +213,107 @@
   background: linear-gradient(150deg, #3b3577, #211c4c);
   border: 1px solid rgb(150 142 205 / 40%);
   color: #edebf7;
+  /* THREE LAYERS, and the third is written by the loop.
+   *
+   * The two base layers stay here, with the rest of the hub`s surface. The
+   * flare that follows an arriving packet is handed in as ONE composed layer
+   * through `--glow-shadow`, so BrandPanel never restates the base two — if it
+   * did they would live in a stylesheet AND in a template literal, and the next
+   * person to change the resting shadow would change one of them.
+   *
+   * The fallback is a transparent zero-blur shadow rather than `none`: `none` is
+   * not a shadow layer and would invalidate the whole list. */
   box-shadow:
     0 14px 40px rgb(0 0 0 / 50%),
-    inset 0 1px 0 rgb(255 255 255 / 14%);
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    var(--glow-shadow, 0 0 0 transparent);
   transition:
     box-shadow 350ms,
     border-color 350ms;
 }
 
+/* The accent dot inside the mark. A token, reached from the component through a
+ * class rather than written into the SVG as a hex. */
+.hubDot {
+  fill: var(--teal-400);
+}
+
 .hub[data-hot] {
   border-color: rgb(178 170 230 / 60%);
+  /* The flare layer is repeated here because `box-shadow` replaces the whole
+   * list rather than adding to it — without it, holding the hub would suppress
+   * every arriving packet`s flare, and the panel would look least alive at the
+   * moment someone is touching it. */
   box-shadow:
     0 16px 44px rgb(0 0 0 / 55%),
-    0 0 34px rgb(110 98 190 / 32%);
+    0 0 34px rgb(110 98 190 / 32%),
+    var(--glow-shadow, 0 0 0 transparent);
 }
+
+/* ---- The channel tooltip -------------------------------------------------
+ * The channel's SHORT NAME, above the node under the pointer. The long sentence
+ * goes to `.panelBody`, which is the reference's split too: the label names the
+ * thing, the caption explains it.
+ *
+ * Positioned by the same loop that positions the nodes, for the same reason —
+ * the numbers are canvas coordinates, so this cannot be a CSS-only tooltip
+ * anchored to its node.
+ *
+ * DECORATIVE. The whole panel is `aria-hidden`, so this is never announced. A
+ * screen reader loses nothing: the five channels are illustration, and no part
+ * of signing in depends on reading them.
+ * -------------------------------------------------------------------------- */
+
+.tip {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 4;
+  padding: var(--space-1) 9px;
+  /* The reference sets 6px. The scale has SM 4 and MD 8 and no 6, and
+   * DESIGN-BRIEF rule 3 forbids inventing a token — SM, rather than a literal.
+   * TODO, Q-8. */
+  border-radius: var(--radius-sm);
+  background: rgb(14 14 26 / 90%);
+  border: 1px solid rgb(255 255 255 / 14%);
+  color: #e7e6f2;
+  font-size: var(--text-helper);
+  /* The reference sets 600. The scale has 400 / 500 / 700 and no 600 — 500, like
+   * the chip, rather than a faked weight. TODO, Q-6. */
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform;
+  /* Opacity only, and no transform: a fade is not motion in the sense
+   * `prefers-reduced-motion` is about, so this needs no reduce branch. Adding a
+   * rise here would. */
+  transition: opacity 180ms;
+}
+
+.tip[data-visible='true'] {
+  opacity: 1;
+}
+
+/* THE LABEL'S POSITION STAYS PHYSICAL, AND IT MUST — this is D-7 again, one
+ * element over.
+ *
+ * The first version gave this `direction: rtl` under an RTL interface, copying
+ * what `.panelText` does. It broke it. `inset-inline-start` maps to a physical
+ * side using THE ELEMENT'S OWN direction, so `rtl` here flipped this box's
+ * `inset-inline-start: 0` to the panel's RIGHT edge — and the loop then pushed
+ * it further right by `node.x`, carrying the label off the panel entirely.
+ * Reported in Arabic as the channel name being "hidden, or far away".
+ *
+ * `.panelText` gets away with the same declaration because it is in normal flow
+ * and has no insets to flip. This box is absolutely positioned from canvas
+ * coordinates, so it belongs to the panel's pinned `ltr` like the nodes do.
+ *
+ * The TEXT still has to read correctly, and it does: it is wrapped in `<bdi>`,
+ * which isolates the run and resolves its direction from the content. A pure
+ * Arabic label orders RTL inside an LTR box, and a mixed-script one cannot be
+ * reordered against its surroundings. Same element `LoginForm` uses for the
+ * error sentence, for the same reason. */
 
 /* Nothing moves under reduced motion, so nothing advertises that it can be
  * grabbed. The physics loop is not started either — see BrandPanel.tsx. */
@@ -209,7 +349,10 @@
   position: absolute;
   inset-inline: 0;
   inset-block-end: 0;
-  block-size: 34%;
+  /* The reference raised this from 34% to 38% once the aurora started turning: a
+   * moving gradient behind static copy needs a deeper floor, or the headline's
+   * contrast breathes with it. */
+  block-size: 38%;
   z-index: 7;
   background: linear-gradient(180deg, transparent, rgb(11 11 22 / 90%) 66%);
   pointer-events: none;
@@ -265,6 +408,9 @@
   font-weight: var(--weight-bold);
   line-height: 1.24;
   letter-spacing: -0.4px;
+  /* The reference hard-breaks the headline with a `<br>`. A break written into a
+   * catalogue string lands in the wrong place in the other language, so the
+   * measure does the breaking instead. */
   max-inline-size: 20ch;
 }
 
@@ -274,9 +420,9 @@
   font-size: var(--text-ui);
   line-height: 1.6;
   max-inline-size: 300px;
-  /* The line swaps to a longer sentence while a channel is held. Without a
-   * floor the copy block jumps every time, which reads as the layout breaking
-   * rather than as the text changing. */
+  /* The line swaps to a longer sentence while a channel is held. Without a floor
+   * the copy block jumps every time, which reads as the layout breaking rather
+   * than as the text changing. */
   min-block-size: 42px;
 }
 
@@ -290,6 +436,16 @@
   justify-content: center;
   padding: var(--space-7) var(--space-8);
   background-color: var(--surface-card);
+
+  /* THE LANGUAGE BUTTON'S CONTAINING BLOCK, and it has to be said because the
+   * absence of this line was invisible until the card arrived.
+   *
+   * `.lang` is `position: absolute`. With nothing positioned between it and the
+   * root it resolved against the initial containing block — which happened to
+   * put it in the right corner only because the screen filled the viewport.
+   * Inside a centred card the same rule floats it out onto the page background.
+   * The button did not move; the thing it was measured against did. */
+  position: relative;
 
   /* THE SEAM — a contact shadow, not a gradient (01-login.md).
    *
@@ -309,6 +465,9 @@
 
 .formWrap {
   inline-size: 100%;
+  /* The reference gives 308. 340 is kept: our field set is taller — a caps-lock
+   * hint, an error block and a disclosure the reference has none of — and a
+   * narrower column wraps the Arabic validation sentences to three lines. */
   max-inline-size: 340px;
 }
 
@@ -349,6 +508,13 @@
   text-align: start;
 }
 
+/* A wrapper so the email field has something to stagger, and so the two fields
+ * are symmetric — `.passwordBlock` already existed for its hint. */
+.fieldBlock {
+  display: flex;
+  flex-direction: column;
+}
+
 .passwordBlock {
   display: flex;
   flex-direction: column;
@@ -373,7 +539,8 @@
 }
 
 /* `<details>`, styled to read as a link. There is no reset flow (ADR-005), so
- * the disclosure holds the whole answer. */
+ * the disclosure holds the whole answer — the reference's plain
+ * `<a href="#reset">` would have nowhere to go. */
 .forgot {
   font-size: var(--text-helper);
 }
@@ -403,33 +570,220 @@
 }
 
 /* Full width without `Button` growing a layout prop — the wrapper owns the
- * sizing, the primitive owns the painting. */
+ * sizing, the primitive owns the painting.
+ *
+ * THE BUSY STATE NEEDS NOTHING HERE. `Button`'s `loading` already renders
+ * `Loader`, and `Loader` IS the reference's loader — the same 46x16 frame, the
+ * same 31/34px travel, the same 12/78/92 arrival shape, the same 1.45s easing,
+ * already mirrored under RTL and already static under reduced motion.
+ * design/brand.md §2 made it the system loader in place of a spinner, so a
+ * login-specific copy would fork the most-seen brand asset in the product. */
 .submit > button {
   inline-size: 100%;
 }
 
-/* ---- Below 780px: the panel goes above the form --------------------------- */
+/* ---- Entrance and idle motion — 025 visual refinement --------------------
+ * Every animation below is declared ONLY under `no-preference`, following
+ * Loader.module.css: the elements are fully visible with no animation running,
+ * and the keyframes are what start them hidden. Gating the other way round —
+ * declaring the animation always and cancelling it under `reduce` — leaves
+ * whatever the keyframe's 0% says painted permanently, which is how an entrance
+ * animation turns into an invisible form for exactly the people who cannot ask
+ * for the motion back. `023` recorded that shape of mistake on the loader's
+ * dots, where gating on `no-preference` alone left them at `opacity: 0`.
+ *
+ * The panel's own entrance — the nodes and the hub easing in, and their idle
+ * sway — is NOT here. It is computed in the physics loop, because the nodes are
+ * positioned by `transform` from canvas coordinates and a CSS animation on the
+ * same property would be overwritten sixty times a second.
+ *
+ * TODO — no motion token exists (tokens.css note 11). Durations, delays and
+ * easings are literals. Q-8.
+ * -------------------------------------------------------------------------- */
+
+@keyframes frame-in {
+  from {
+    opacity: 0;
+    /* The scale is 0.994, not 0.96. The card is 980px wide: a 4% scale-up reads
+     * as a zoom and drags the eye, while six thousandths reads as the card
+     * settling onto the page. */
+    transform: translateY(16px) scale(0.994);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes aurora-drift {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Once, not a loop. A shake that repeats is an alarm; this is a nudge that says
+ * the block above the button is new — which matters because a second failed
+ * attempt renders the same sentence in the same place, and without the nudge
+ * nothing on screen changes. */
+@keyframes error-shake {
+  10%,
+  90% {
+    transform: translateX(-1.5px);
+  }
+
+  30%,
+  70% {
+    transform: translateX(2.5px);
+  }
+
+  50% {
+    transform: translateX(-2.5px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen {
+    animation: frame-in 700ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  }
+
+  /* 96 seconds for a full turn. Slow enough that it is never caught moving and
+   * only noticed on returning to the screen — which is the intent: the panel
+   * should not be a thing that plays. */
+  .aurora {
+    animation: aurora-drift 96s linear infinite;
+  }
+
+  .lockup,
+  .formHeader,
+  .fieldBlock,
+  .passwordBlock,
+  .formRow,
+  .submit,
+  .footer,
+  .panelChip,
+  .panelHeadline,
+  .panelBody {
+    animation: fade-up 550ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
+  }
+
+  /* The form leads and the panel copy follows it, which is the reference's own
+   * order: the eye is sent to the thing that is going to be typed in, not to
+   * the illustration beside it. */
+  .lockup {
+    animation-delay: 120ms;
+  }
+
+  .formHeader {
+    animation-delay: 180ms;
+  }
+
+  .fieldBlock {
+    animation-delay: 240ms;
+  }
+
+  .passwordBlock {
+    animation-delay: 300ms;
+  }
+
+  .formRow {
+    animation-delay: 360ms;
+  }
+
+  .submit {
+    animation-delay: 420ms;
+  }
+
+  .footer {
+    animation-delay: 460ms;
+  }
+
+  .panelChip {
+    animation-delay: 450ms;
+  }
+
+  .panelHeadline {
+    animation-delay: 550ms;
+  }
+
+  .panelBody {
+    animation-delay: 650ms;
+  }
+
+  /* NO DELAY, and no `both`. The error appears in response to a press that has
+   * already happened — a staggered entrance on a failure would read as the
+   * screen still loading. */
+  .error {
+    animation:
+      fade-up 300ms ease,
+      error-shake 400ms ease 50ms;
+  }
+}
+
+/* ---- Below 780px: the panel becomes a band above the form ----------------
+ * The reference drops the mesh entirely here rather than shrinking it, and it is
+ * right to: five 54px tiles and a 74px hub inside a 156px band leave the nodes
+ * overlapping the headline, and a spring simulation nobody can see is a frame
+ * budget spent on nothing. The band keeps the aurora, the grain and the
+ * headline — the panel still reads as the panel.
+ *
+ * `BrandPanel` stops painting when the canvas is hidden. See the note there;
+ * `display: none` alone would leave the loop running against a zero-sized
+ * canvas.
+ * -------------------------------------------------------------------------- */
 
 @container login (max-width: 780px) {
   .screen {
     flex-direction: column;
+    /* The 540 floor was the two columns' height. Stacked, the content sets it. */
+    min-block-size: 0;
   }
 
   .panel {
     flex: none;
-    padding: var(--space-8);
+    block-size: 156px;
   }
 
-  .panelInner {
-    max-inline-size: none;
+  .halo,
+  .mesh,
+  .layer,
+  .tip {
+    display: none;
+  }
+
+  .panelText {
+    padding: 0 var(--space-6) var(--space-4);
+  }
+
+  .panelHeadline {
+    font-size: var(--type-h4);
+  }
+
+  /* The long channel sentences have nothing to swap them in any more — the nodes
+   * are gone — and a static one-liner under the headline is a third line of copy
+   * in a band with room for one. */
+  .panelBody {
+    display: none;
   }
 
   .formColumn {
     flex: 1 1 auto;
     padding: var(--space-8);
     /* The seam is horizontal now — the panel is ABOVE the form, so a shadow on
-     * the inline edge would point at nothing. Block-start, and it needs no
-     * RTL variant because the two halves no longer swap sides. */
+     * the inline edge would point at nothing. Block-start, and it needs no RTL
+     * variant because the two halves no longer swap sides. */
     box-shadow: inset 0 16px 26px -14px rgb(13 20 38 / 18%);
   }
 
@@ -506,6 +860,9 @@
  * Top corner of the FORM side, per the reference. `inset-inline-end` so it
  * follows the interface: under RTL the form column moves to the left and the
  * button has to move with it, not stay pinned to a physical corner.
+ *
+ * Its containing block is `.formColumn` — see the `position: relative` note
+ * there, which the card made load-bearing.
  * -------------------------------------------------------------------------- */
 
 .lang {
@@ -517,6 +874,7 @@
   padding-inline: var(--space-3);
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 
   border: var(--field-border);
   border-radius: var(--radius-sm);
@@ -538,6 +896,18 @@
   cursor: pointer;
 }
 
+/* The globe is muted and the code is not: the icon says WHAT THIS CONTROL IS and
+ * the two letters say WHAT IT CURRENTLY READS. At the same weight the glyph
+ * competes with the label it belongs to.
+ *
+ * `currentcolor` would not work here — `.lang` forces `color` with `!important`
+ * so the two-letter code survives base.css, and the icon would inherit it. */
+.langIcon {
+  display: inline-flex;
+  color: var(--text-muted);
+  flex: none;
+}
+
 .lang:hover {
   border-color: var(--border-default);
 }
@@ -545,4 +915,30 @@
 .lang:focus-visible {
   outline: var(--focus-ring-width) solid transparent;
   box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+/* ---- The band's language switch ------------------------------------------
+ * A SECOND container block, at the end of the file, and the position is the
+ * whole point.
+ *
+ * A rule inside `@container` carries the specificity of its own selector and
+ * nothing more — the query adds none. So a `.lang` override placed ABOVE the
+ * base `.lang` loses to it on source order, and it becomes dead CSS that looks
+ * correct in the file and does nothing in the browser.
+ *
+ * That is what the first attempt shipped, and `styleRegressions` caught it — by
+ * failing the D-6 assertion, because its `.lang` regex matched the override
+ * instead of the rule it was written to guard. The test named the wrong rule,
+ * and that is how the real defect surfaced. Both are fixed: the override moved
+ * here, and the assertion now finds the rule by its content.
+ *
+ * Every other container override in this file already follows its base rule.
+ * This one has to be down here because `.lang` is the last block in the sheet.
+ * -------------------------------------------------------------------------- */
+
+@container login (max-width: 780px) {
+  .lang {
+    inset-block-start: 14px;
+    inset-inline-end: 16px;
+  }
 }

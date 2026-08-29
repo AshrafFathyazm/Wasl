@@ -145,21 +145,33 @@ export default function LoginPage() {
   });
 
   return (
-    <main className={styles.screen}>
-      <BrandPanel />
+    /* TWO ELEMENTS, NOT ONE, and the split is what the frame needs.
+     *
+     * `.page` is the ground — full viewport, the light wash, and the centring.
+     * `.screen` is the CARD, and it is the container query's subject: the
+     * breakpoint is on the card's own width, so it fires when the card is
+     * narrow rather than when the window is (01-login.md).
+     *
+     * `<main>` stays on the card. The ground is a background, and a landmark
+     * whose bounds include the page's own padding is a landmark that claims
+     * territory it does not own. */
+    <div className={styles.page}>
+      <main className={styles.screen}>
+        <BrandPanel />
 
-      <div className={styles.formColumn}>
-        <LanguageSwitch />
+        <div className={styles.formColumn}>
+          <LanguageSwitch />
 
-        <div className={styles.formWrap}>
-          <LoginForm
-            onSubmit={(values) => mutation.mutate(values)}
-            submitting={mutation.isPending}
-            errorMessage={errorMessage}
-            fieldErrors={fieldErrors}
-          />
+          <div className={styles.formWrap}>
+            <LoginForm
+              onSubmit={(values) => mutation.mutate(values)}
+              submitting={mutation.isPending}
+              errorMessage={errorMessage}
+              fieldErrors={fieldErrors}
+            />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

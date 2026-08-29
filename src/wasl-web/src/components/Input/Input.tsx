@@ -38,6 +38,18 @@ export interface InputProps {
    *  never decides it. */
   required?: boolean | undefined;
 
+  /** Hides the `*` WITHOUT dropping `required`.
+   *
+   *  The two are separable on purpose. `required` is the native attribute and
+   *  the `aria-required` it carries; the marker is a hint to a sighted reader
+   *  about which fields they may skip. On a form where EVERY field is required
+   *  — sign-in is the one in this product — that hint distinguishes nothing, and
+   *  a column of asterisks is decoration that reads as a warning.
+   *
+   *  Turning `required` off instead would have removed the semantics with the
+   *  glyph, which is the trade this prop exists to avoid. */
+  requiredMarker?: boolean | undefined;
+
   placeholder?: string | undefined;
   helperText?: string | undefined;
 
@@ -139,6 +151,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     onBlur,
     labelHidden = false,
     required = false,
+    requiredMarker = true,
     placeholder,
     helperText,
     error,
@@ -203,7 +216,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <label
         className={cx(styles.label, labelHidden && 'sr-only')}
         htmlFor={controlId}
-        data-required={required}
+        data-required={required && requiredMarker}
       >
         {label}
       </label>

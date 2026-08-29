@@ -409,14 +409,15 @@ in §9.
 
 ---
 
-## 12 · The measurement tools lied — six times, one pattern
+## 12 · The measurement tools lied — nine times, one pattern
 
 Recorded as a **category**, not as separate incidents. Each on its own reads as a slip; together
 they are a rule about how anything in this document was established.
 
 **Count kept current across both lanes**, because the category is the point and a count that
 stops being maintained stops being evidence. Three were found building `023`, two more building
-`024`, and the sixth came from the backend lane on 2026-08-28 — listed at the end.
+`024`, the sixth came from the backend lane on 2026-08-28, and **three more came out of `025`
+on the same day** — all four later ones are listed at the end.
 
 **What happened, in one line each.**
 
@@ -488,3 +489,56 @@ is now a permanent test in `TicketTimelineTests`.
 Same shape as the other five: confident, well-formatted, wrong, and pointing at the wrong lane.
 Had it been filed rather than checked, it would have been a defect report against a column that
 does not have the defect.
+
+**Seventh, eighth and ninth — `025`, 2026-08-28.** Three in one feature, and the third is the
+worst-behaved thing in this whole category.
+
+| # | The tool | What it reported | What was true |
+|---|---|---|---|
+| 7 | `grep -ril "Sara Al-Otaibi|CURRENT_USER" dist/` | **Absent** — the fabricated user was gone from the bundle | Nothing yet. An empty `dist/`, a wrong path, or a grep that matches nothing all produce exactly this. Settled by a **positive control on the same file**: `grep -o "wasl.session" dist/assets/index-*.js` hit, so the tool could see the bundle and the absence was real |
+| 8 | `getComputedStyle` on the checkbox focus ring | `oklab(… / 0) 0 0 0 0` — **no ring**. A **false negative**, and it would have been filed as a missing focus indicator | The ring was read after a **programmatic** `.focus()`, which does not satisfy `:focus-visible`. Re-measured after two real `Tab` presses: `0px 0px 0px 3px` at 22%, and `el.matches(':focus-visible') === true` |
+| 9 | `styleRegressions.test.ts`, the `@container` override guard | **Green**, on eight named selectors | It was asserting **zero** of them. See below |
+
+### The ninth, in detail — because a partial fix read as a complete one
+
+The guard asserts that no `@container` override precedes the base rule it overrides. That
+defect shipped once on `.lang` and the guard exists to stop it recurring. It names eight
+selectors.
+
+| Version | The pattern `RegExp` actually received | Selectors asserted | Suite |
+|---|---|---|---|
+| As found | `` s+.name `` — inside a template literal `s` collapses to `s` and `.` to `.` | **0 of 8** | green |
+| Escaping fixed | `` @container[^}]*?
+s+.name `` — `[^}]*?` cannot cross a `}`, so it reached only the FIRST rule in each block | **2 of 8** | green |
+| Now | `` 
+ +.name `` — a base rule is at column 0, an override is indented | **8 of 8** | green |
+
+A brace-counting scan was tried between the second and third and **hung**, because
+`@container` also appears inside a comment in that stylesheet and the scan began counting
+from a brace that was not its own. Counting braces was more machinery than the question
+needed.
+
+**The product owner's note on this one, and it is the reason it is recorded separately:**
+
+> إصلاح بيرفع الرقم من صفر مش بالضرورة إصلاح كامل. صفر → اتنين يبان تقدّم؛ الرقم الصح كان تمانية.
+>
+> *A fix that raises the number off zero is not necessarily a complete fix. Zero → two looks
+> like progress; the right number was eight.*
+
+That is what makes the ninth nastier than the eight before it. The others were binary — the
+tool was wrong and then it was right. This one had an intermediate state that **looked like
+the repair**: the escaping bug was real, fixing it was correct, the number moved, and the
+suite stayed green the whole way. Nothing distinguishes 2-of-8 from 8-of-8 except asking
+how many the tool is supposed to cover and counting.
+
+**Seen to fail, at the end.** The `@container` block holding the `.lang` override was moved
+to the top of `Login.module.css` and the suite re-run:
+
+```text
+→ lang: override at 37 precedes its base rule at 27669: expected 37 to be greater than 27669
+Tests  1 failed | 14 passed (15)
+```
+
+The stylesheet was restored and the suite went green again. A guard that has never been
+seen to fail has not been verified — and, per the note above, one that has been seen to
+fail *once* has not been shown to cover everything it names.

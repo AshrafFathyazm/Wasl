@@ -77,6 +77,9 @@ jumps ends mid-entry under RTL. A password is not language content.
 | **The form-side lockup, placeholders, subtitle copy, and footer were missing** | Caught by the product owner comparing the screen against `wasl_login_final_with_brand.html`. Not Phase 6 content — the plain build owed all four, and `01-login.md`'s Elements table names the mark tile. The cause is mine: I built from the two spec documents and never opened the reference beside them |
 | **A password show/hide toggle** | Asked for 2026-08-28. Not in the reference and not in any screen spec. `IconEye` / `IconEyeOff` authored in `icons-added.tsx` — the inherited set has no eye — and labelled `(D)` per DESIGN-BRIEF rule 3. The toggle lives in the `Input` primitive because it is a property of a password field, not of one form |
 | **Submit disabled until both fields are non-empty** | Asked for 2026-08-28, and it **overrides** `004/frontend-spec.md`'s "empty form, submit enabled". Gated on presence, never validity. See `spec.md` §7b for the Enter-key consequence |
+| **The panel gained a heartbeat** | A packet travels a spoke into the hub every second or two; the hub flares and sheds a ring. From `Wasl Login_last.html`. The accent is resolved from `--teal-400` rather than written into the component, and the flare is composed in CSS from one custom property so the resting shadow is not restated in JavaScript |
+| **No `*` on the two sign-in labels** | `Input` gained `requiredMarker`. `required` itself is unchanged, so the native attribute and its `aria-required` survive — only the glyph is suppressed, on a form where every field is required and the marker therefore distinguishes nothing |
+| **A "Drag the hub" hint was built and withdrawn** | Shown to the product owner and removed the same day. `auth:panel.hint` existed in both catalogues for that round trip and exists in neither now |
 | **A `401` from the sign-in endpoint renders our catalogue string** | **Temporary, with a written removal condition** — see `spec.md` §7b. `004` returns the wrong `401` title, and the screen was showing it. The defect is reported, not patched; nothing under `src/Wasl.*` was touched |
 | **`auth:validation.*` keys instead of the shared `errors.maxLength`** | That key is stored **flat with a dot in its name** while i18next's separator is also `.`, so which one a lookup resolves is ambiguous — and it interpolates `{{max}}` while `024`'s `message()` helper passes no variables. Raised as Q-7, not fixed here |
 
@@ -123,6 +126,22 @@ which is the realistic regression. They do not catch the defect returning by ano
 route. A browser-driven visual check in CI is the honest answer and does not exist yet.
 
 ---
+
+## One guard was found reporting green on nothing
+
+`styleRegressions.test.ts` names eight selectors and asserts that no `@container` override
+precedes its base rule. **It was asserting zero of them** — inside a template literal
+`s` collapses to `s` and `.` to `.`, so the pattern it handed to `RegExp` was `s+.name`
+and matched nothing. Fixing the escaping raised it to **two of eight**, because
+`[^}]*?` cannot cross a `}` and so only ever reached the first rule in each block.
+
+It now locates overrides by indentation — a base rule is at column 0, an override is
+indented — and asserts all eight. **Seen to fail**: the `.lang` block was moved above its
+base rule and the suite went red naming it, then green again once restored. `tests.md` §10
+has the output.
+
+This is the third measurement in this feature that reported success while checking
+nothing. The other two are in `tests.md` already.
 
 ## Known limitations
 

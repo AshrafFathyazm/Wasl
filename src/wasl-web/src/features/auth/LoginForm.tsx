@@ -175,37 +175,50 @@ export function LoginForm({
         </div>
       )}
 
-      <Controller
-        control={control}
-        name="email"
-        render={({ field }) => (
-          <Input
-            /* `field.ref` is what `shouldFocusError` and `setFocus` call
-               .focus() on. Without it a failed submit leaves the caret where it
-               was and the user hunts for the message — AC-26 requirement 4. */
-            ref={(node) => {
-              emailRef.current = node;
-              field.ref(node);
-            }}
-            label={t('auth:field.email')}
-            type="email"
-            /* Requirement 2. Both attributes, or a password manager will not
-               fill and every sign-in becomes manual. */
-            name="email"
-            autoComplete="email"
-            inputMode="email"
-            placeholder={t('auth:field.emailPlaceholder')}
-            maxLength={320}
-            required
-            value={field.value}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-            disabled={submitting}
-            error={emailError}
-            invalid={credentialsRejected}
-          />
-        )}
-      />
+      {/* A WRAPPER, and its only job is to be a thing the stylesheet can name.
+          The password field already had one for its caps-lock hint; the email
+          field had none, so the entrance stagger had nothing to attach to and
+          `nth-child` would have shifted by one the moment the error block above
+          it appeared. Symmetric with `.passwordBlock`, which is what it should
+          have been anyway. */}
+      <div className={styles.fieldBlock}>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field }) => (
+            <Input
+              /* `field.ref` is what `shouldFocusError` and `setFocus` call
+                 .focus() on. Without it a failed submit leaves the caret where it
+                 was and the user hunts for the message — AC-26 requirement 4. */
+              ref={(node) => {
+                emailRef.current = node;
+                field.ref(node);
+              }}
+              label={t('auth:field.email')}
+              type="email"
+              /* Requirement 2. Both attributes, or a password manager will not
+                 fill and every sign-in becomes manual. */
+              name="email"
+              autoComplete="email"
+              inputMode="email"
+              placeholder={t('auth:field.emailPlaceholder')}
+              maxLength={320}
+              required
+              /* Both fields on this form are required, so a marker on each one
+                 distinguishes nothing — it is a column of asterisks that reads as
+                 a warning. `required` itself stays, so the native attribute and
+                 the `aria-required` it carries are unchanged. */
+              requiredMarker={false}
+              value={field.value}
+              onChange={field.onChange}
+              onBlur={field.onBlur}
+              disabled={submitting}
+              error={emailError}
+              invalid={credentialsRejected}
+            />
+          )}
+        />
+      </div>
 
       <div className={styles.passwordBlock}>
         <Controller
@@ -223,6 +236,11 @@ export function LoginForm({
               hideLabel={t('auth:field.hidePassword')}
               maxLength={256}
               required
+              /* Both fields on this form are required, so a marker on each one
+                 distinguishes nothing — it is a column of asterisks that reads as
+                 a warning. `required` itself stays, so the native attribute and
+                 the `aria-required` it carries are unchanged. */
+              requiredMarker={false}
               value={field.value}
               onChange={field.onChange}
               onBlur={field.onBlur}

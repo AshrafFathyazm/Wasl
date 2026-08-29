@@ -274,3 +274,70 @@ does not exist in this project.
   the guard working as designed — it throws rather than returning a signed-out default,
   precisely so a component mounted outside the tree does not silently look logged out.
 
+
+---
+
+## 10 · The visual refinement, and a guard that was reporting green on nothing
+
+**2026-08-28.** Three changes against `Wasl Login_last.html`, and one repair to an
+existing test that the changes exposed.
+
+### What was verified in the browser
+
+| # | Claim | How it was measured | Result |
+|---|---|---|---|
+| 1 | The panel has a heartbeat | Sampled `--glow-shadow` on the hub every 50ms for 7s | **32 non-idle samples, peak 46px.** The idle value is `0 0 0 transparent`, so a non-idle sample is a flare |
+| 2 | The flare uses the token, not a hex | Read `--teal-400` from the root and matched it against the composed shadow | `rgba(111,191,176,…)`, and `--teal-400` is `#6FBFB0` |
+| 3 | The hub's accent dot uses the token | `getComputedStyle(circle).fill` | `rgb(111, 191, 176)` — the last hex is out of `BrandPanel` |
+| 4 | No `*` on either sign-in label | `getComputedStyle(label, '::after').content` on all three labels | `none`, `none`, `none` |
+| 5 | …and `required` survived it | `input.required` on both fields | `true`, `true` |
+| 6 | The hint is gone | Searched the rendered document for the string | Absent, and the catalogue key is deleted from both locales |
+| 7 | RTL still does not mirror the mesh | Switched to Arabic and compared each node's box against the panel's | **5 of 5 inside.** `dir=rtl`, `lang=ar`, headline in Arabic |
+
+### The guard that was not guarding
+
+`styleRegressions.test.ts` asserts that no `@container` override precedes the base rule it
+overrides — the defect that shipped once on `.lang`. It named eight selectors.
+
+**It was checking none of them, then two of them, and reported green throughout.**
+
+| Version | Pattern the RegExp actually received | Selectors asserted |
+|---|---|---|
+| As found | `` s+.name `` — inside a template literal `s` collapses to `s` and `.` to `.` | **0 of 8** |
+| Escaping fixed | `` @container[^}]*?
+s+.name `` — `[^}]*?` cannot cross a `}`, so it reached only the FIRST rule in each block | **2 of 8** |
+| Now | `` 
+ +.name `` — a base rule sits at column 0, an override is indented. No parsing, no block scan | **8 of 8** |
+
+A brace-counting scan was tried between the second and third and **hung**: `@container`
+also appears inside a comment in that stylesheet, and the scan started counting from a
+brace that was not its own.
+
+**Negative control, observed.** The `@container` block holding the `.lang` override was
+moved to the top of `Login.module.css` and the suite re-run:
+
+```text
+→ lang: override at 37 precedes its base rule at 27669: expected 37 to be greater than 27669
+Tests  1 failed | 14 passed (15)
+```
+
+The stylesheet was restored and the suite went green again. This is the third measurement
+in this feature that reported success while checking nothing, after the `dist/` grep and
+the programmatic `.focus()`.
+
+All three are recorded as the seventh, eighth and ninth entries in
+[`023/tests.md` §12](../023-frontend-foundation/tests.md), which is where the category is
+kept. The ninth carries a note the other eight did not need: **a fix that raises the number
+off zero is not necessarily a complete fix.** Zero → two looks like progress; the right
+number was eight, and the suite was green at every step.
+
+### The run
+
+```text
+tsc --noEmit          clean
+eslint .              clean
+stylelint src/**/*.css clean
+locale parity         OK — ar, en · 4 namespaces · 102 keys
+domain types          clean
+vitest run            9 files, 78 tests, all passing
+```
