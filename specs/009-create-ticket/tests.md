@@ -225,3 +225,23 @@ who may see which customer, which is what `004` introduces. Two shapes are avail
 
 Recorded here rather than fixed, because fixing it now would mean inventing the authorization
 model `004` owns.
+
+---
+
+## Post-delivery — `POST /api/tickets` is still not idempotent, 2026-08-29
+
+`CLAUDE.md`'s checklist opens with *"Does a duplicate request create a duplicate row?"*, and this
+feature's evidence recorded `POST /api/tickets` as **not idempotent, with no owner**: two clicks
+create two tickets, with different numbers and no error.
+
+**`007` closed the customer half of that row and not this one.** It added two filtered unique
+indexes to `dbo.Customers`, so a duplicate customer is a `409` even under two simultaneous
+requests — and `007` AC-13 is the first test in this project to exercise the checklist row at all.
+
+Nothing about tickets changed. There is no natural key on a ticket: two tickets with the same
+subject, customer, category and channel are a legitimate pair, so an index cannot express it. The
+guarantee would have to be a client-supplied request key, which no acceptance criterion asks for.
+
+**Still recorded as open and unowned.** The question has now been asked twice and answered the same
+way both times; what changed is that the answer is written beside a feature that solved the
+analogous problem, so the difference between the two cases is visible rather than implied.

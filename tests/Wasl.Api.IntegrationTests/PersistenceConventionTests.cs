@@ -126,7 +126,7 @@ public sealed class PersistenceConventionTests(WaslApiFactory factory)
     /// that adding them early is caught rather than absorbed.
     /// </summary>
     [Fact]
-    public async Task Customers_HasNoFilteredIndexYet_ThoseBelongToFeature007()
+    public async Task Customers_NowHasExactlyTwoFilteredIndexes_AddedByFeature007()
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
@@ -140,9 +140,18 @@ public sealed class PersistenceConventionTests(WaslApiFactory factory)
                  """)
             .ToListAsync(CancellationToken.None);
 
-        filters.Should().OnlyContain(filter => filter == "(none)",
-            "the duplicate rule (BR-4.8) and its filtered indexes are feature 007's, "
-            + "tested alongside the behaviour they enforce");
+        // INVERTED BY `007`, 2026-08-29. `001` wrote this to assert the filtered indexes did NOT
+        // exist yet — "the duplicate rule and its filtered indexes are feature 007's, tested
+        // alongside the behaviour they enforce" — and it went red on the commit that added them,
+        // which is a guard doing exactly what it was written for.
+        //
+        // Kept rather than deleted, and inverted rather than loosened: the property worth holding
+        // now is that Customers has exactly TWO filtered indexes and no more. A third would mean
+        // somebody added a duplicate rule without a business rule behind it.
+        filters.Count(filter => filter != "(none)").Should().Be(2,
+            "UX_Customers_Email_Active and UX_Customers_Phone_Active — BR-4.8, added by `007`. "
+            + "`007` AC-18 asserts each one's filter in detail; this asserts the count, so a third "
+            + "filtered index has to be justified rather than merely added");
     }
 
     /// <summary>TEST-001-08. Migrations apply cleanly even when unrelated objects exist.</summary>
@@ -211,5 +220,42 @@ public sealed class PersistenceConventionTests(WaslApiFactory factory)
         return await context.Customers
             .AsNoTracking()
             .SingleAsync(customer => customer.Id == id, CancellationToken.None);
+    }
+    /// <summary>
+    /// Every timestamp this application writes is at the precision the column keeps. `007`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The class of defect, not the instance.</b> `007` AC-14 found a `POST` returning
+    /// <c>"createdAtUtc":"…57.7129947Z"</c> against a `GET` of the same resource returning
+    /// <c>"…57.712Z"</c> — full .NET tick precision in memory, <c>datetime2(3)</c> in the column.
+    /// A client caching a create response holds a value the server will never return again.
+    /// </para>
+    /// <para>
+    /// Measured across the features afterwards rather than assumed: `009`'s ticket create was
+    /// already correct because <c>Ticket</c> is an <c>IAuditableEntity</c> and its stamps come from
+    /// <c>Stamp()</c>; `013`'s comment was **not**, because <c>TicketComment.CreatedAtUtc</c> and
+    /// <c>TicketHistoryEntry.PerformedAtUtc</c> come from <c>IRequestTimestamp</c>. So the
+    /// truncation lives there — the one place both paths read — and this asserts the property
+    /// rather than any single endpoint.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void TheRequestTimestamp_IsTruncatedTo_TheColumnsPrecision()
+    {
+        using var scope = factory.Services.CreateScope();
+        var timestamp = scope.ServiceProvider
+            .GetRequiredService<Wasl.Application.Common.Abstractions.IRequestTimestamp>();
+
+        var now = timestamp.UtcNow;
+
+        (now.Ticks % TimeSpan.TicksPerMillisecond).Should().Be(0,
+            "every timestamp column in this schema is datetime2(3), so a value carrying sub-"
+            + "millisecond ticks is one the database cannot store and the response therefore "
+            + "cannot be reproduced by a later read");
+
+        timestamp.UtcNow.Should().Be(now,
+            "and it is still memoized — `009` AC-9 depends on two rows written in one request "
+            + "sharing an instant exactly");
     }
 }

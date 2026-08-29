@@ -1,7 +1,9 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Domain.Audit;
 using Wasl.Domain.Common;
+using Wasl.Application.Features.Customers.CreateCustomer;
 using Wasl.Domain.Customers;
 using Wasl.Domain.Tickets;
 using Wasl.Domain.Users;
@@ -45,10 +47,23 @@ public sealed class WaslDbContext(
     /// enough to pass every test and wrong in a timeline.
     /// </para>
     /// </remarks>
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         Stamp();
-        return base.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (TranslateDuplicate(exception) is { } domain)
+        {
+            // `007` Q-D. Rethrown as the exception the pre-check raises, so the loser of a race
+            // gets a body identical to the one a sequential duplicate gets — see TranslateDuplicate.
+            //
+            // The original is kept as the inner exception: a 500 that reached here by another route
+            // would otherwise lose its stack, and BR-9's failure row records the outcome either way.
+            throw domain;
+        }
     }
 
     /// <inheritdoc cref="SaveChangesAsync(CancellationToken)"/>
@@ -58,8 +73,60 @@ public sealed class WaslDbContext(
         return base.SaveChanges();
     }
 
+    /// <summary>
+    /// Turns a unique-index violation into the domain exception the pre-check raises. `007` Q-D.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>BR-4.8 enforces the duplicate rule twice, and a client must not be able to tell which
+    /// half caught it.</b> The handler checks before inserting and raises
+    /// <c>DuplicateValueException</c>; the filtered unique index catches the case the check cannot
+    /// — two simultaneous requests, where both pass the check and one loses the insert. Without
+    /// this translation the loser gets a <c>DbUpdateException</c>, which is a `500`, so the same
+    /// duplicate produces a friendly `409` or an internal error depending on **timing**.
+    /// </para>
+    /// <para>
+    /// <b>It lives here rather than in the handler because it needs an EF Core type.</b>
+    /// <c>Wasl.Application</c> cannot see EF Core — the architecture test enforces it, and it
+    /// already stopped one reimplementation in `008`. Putting it here also puts it beside the
+    /// index configuration, so the names it matches on and the names that create the indexes are
+    /// in the same project.
+    /// </para>
+    /// <para>
+    /// <b>Matched by index NAME, not by error number alone.</b> SQL Server reports 2601 and 2627
+    /// for any unique violation, so keying on the number would translate an unrelated index's
+    /// violation into "this customer already exists" — a confident, wrong `409`. An unrecognised
+    /// violation is rethrown untouched and becomes a `500`, which is the honest answer for a
+    /// constraint nobody has written a message for.
+    /// </para>
+    /// </remarks>
+    private static Exception? TranslateDuplicate(DbUpdateException exception)
+    {
+        if (exception.InnerException is not SqlException sql
+            || sql.Number is not (2601 or 2627))
+        {
+            return null;
+        }
+
+        var message = sql.Message;
+
+        if (message.Contains(DuplicateCustomer.EmailIndex, StringComparison.Ordinal))
+        {
+            return DuplicateCustomer.Email();
+        }
+
+        return message.Contains(DuplicateCustomer.PhoneIndex, StringComparison.Ordinal)
+            ? DuplicateCustomer.Phone()
+            : null;
+    }
+
     private void Stamp()
     {
+        // Already truncated to the millisecond by RequestTimestamp, which is where that rule lives
+        // now — every timestamp column in this schema is datetime2(3), and a value that keeps full
+        // .NET tick precision in memory makes a create's 201 body disagree with a later GET of the
+        // same resource. `007` AC-14 found it; the fix is in one place because five features write
+        // timestamps and only one of them would have been fixed otherwise.
         var now = timestamp.UtcNow.UtcDateTime;
         var actor = currentUser.UserId;
 
@@ -131,6 +198,50 @@ public sealed class WaslDbContext(
             if (entry.State is EntityState.Added)
             {
                 entry.CurrentValues[nameof(TicketComment.AuthorUserId)] = actor;
+            }
+        }
+
+        // ── Customer, stamped separately — and it had NEVER been stamped ─────────────
+        //
+        // `Customer` predates IAuditableEntity: `001` created it, `009` introduced the interface,
+        // and nobody went back. It has CreatedAtUtc and UpdatedAtUtc but no actor columns, so it
+        // cannot implement the interface without a migration that adds two columns the blueprint
+        // does not define — and the loop above matches by interface, so it was skipped.
+        //
+        // Nothing noticed for six features, because nothing had ever created a customer through
+        // the application: `--seed` inserts raw SQL and `008`'s tests set the properties by
+        // reflection. `007` is the first, and its 201 came back with
+        // "createdAtUtc":"0001-01-01T00:00:00" — the CLR default, served as a fact.
+        //
+        // The actor is deliberately NOT stamped here. Adding CreatedByUserId to dbo.Customers is
+        // a schema change beyond this feature's scope, and `007`'s audit row already names the
+        // actor — so the information exists, in the table built for it (ADR-008).
+        foreach (var entry in ChangeTracker.Entries<Customer>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    // Only when nobody set one. `001`'s converter tests write a specific instant
+                    // through the tracked entity to prove the UTC round trip, and an unconditional
+                    // stamp silently overwrote it — so the test that guards the converter would
+                    // have been testing the stamp.
+                    //
+                    // Safe because BACKDATING IS PREVENTED BY THE REQUEST SHAPE, not by this line:
+                    // `CreateCustomerRequest` has no timestamp field, so nothing a client sends can
+                    // reach here with one. The only callers who can are inside the process, and
+                    // giving them a way to write a known instant is what makes the converter and
+                    // the timeline testable at all.
+                    if (entry.Entity.CreatedAtUtc == default)
+                    {
+                        entry.CurrentValues[nameof(Customer.CreatedAtUtc)] = now;
+                        entry.CurrentValues[nameof(Customer.UpdatedAtUtc)] = now;
+                    }
+
+                    break;
+
+                case EntityState.Modified:
+                    entry.CurrentValues[nameof(Customer.UpdatedAtUtc)] = now;
+                    break;
             }
         }
     }

@@ -111,6 +111,26 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         // same reasoning covers here.
         ["Error.Customer.NotFound"] = "No customer was found with that id.",
 
+        // ── `007` ───────────────────────────────────────────────────────────────────
+        // The 409 names the field and stops. No id, no name, no "the existing customer is…" —
+        // BR-4.7, and the same reasoning that keeps a 404 from distinguishing "no such record"
+        // from "a record you may not see".
+        ["Error.Customer.DuplicateEmail"] = "A customer with this email already exists.",
+        ["Error.Customer.DuplicatePhone"] = "A customer with this phone number already exists.",
+
+        ["Validation.Customer.FullNameRequired"] = "Enter the customer's name.",
+        ["Validation.Customer.FullNameTooLong"] = "The name is too long.",
+        ["Validation.Customer.ContactRequired"] = "Provide either an email address or a phone number.",
+        ["Validation.Customer.EmailInvalid"] = "Enter a valid email address.",
+        ["Validation.Customer.EmailTooLong"] = "The email address is too long.",
+
+        // Says what to do, not what is wrong. "Invalid" leaves the user guessing; naming the
+        // country code is the one instruction that resolves it — and `spec.md` Q-B chose this
+        // over inferring a country, because a wrong guess writes an unreachable number.
+        ["Validation.Customer.PhoneInvalid"] = "Enter the phone number in international format, starting with the country code.",
+        ["Validation.Customer.CompanyNameTooLong"] = "The company name is too long.",
+        ["Validation.Customer.NotesTooLong"] = "The notes are too long.",
+
         // ── `011` ───────────────────────────────────────────────────────────────────
         ["Error.AssigneeUnchanged.Title"] = "This ticket is already assigned to that user.",
         ["Error.AssigneeNotFound.Title"] = "No such support user.",

@@ -89,8 +89,44 @@ internal sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
             "CK_Customers_Contact",
             "[Email] IS NOT NULL OR [PhoneE164] IS NOT NULL"));
 
-        // No filtered unique indexes here. They ARE the duplicate rule (BR-4.8) rather
-        // than schema mechanics, and belong with the behaviour they enforce — feature 007.
-        // No index on FullName either: it serves the search in 008.
+        // ── BR-4.8's two indexes, added by `007` exactly where `001` said they belonged ──
+        //
+        // `001` left these out on purpose: "They ARE the duplicate rule rather than schema
+        // mechanics, and belong with the behaviour they enforce — feature 007." This is 007.
+        //
+        // FILTERED, and the filter is the whole thing. ADR-013 lists it as one of four
+        // provider-coupled points that fail QUIETLY:
+        //
+        //   * `[Email] IS NOT NULL` — SQL Server treats NULLs as equal in a unique index, so an
+        //     UNFILTERED index here rejects the SECOND customer who has no email. The rejection
+        //     is a 409 naming `email`, which is correct-looking, wrong, and would be diagnosed as
+        //     a bug in the duplicate rule rather than in the index.
+        //
+        //   * `[IsActive] = 1` — BR-4.4 and BR-4.5 scope the rule to ACTIVE customers. Without
+        //     this half, a deactivated customer's address is permanently reserved and the person
+        //     cannot be re-added, which is the opposite of what deactivation is for.
+        //
+        // AC-18 asserts `filter_definition` comes back NON-NULL from sys.indexes, because
+        // `HasIndex(...).IsUnique()` reads identically with and without the filter and there is no
+        // way to see the difference in C#.
+        //
+        // The application also checks before inserting (BR-4.8): the check produces the friendly
+        // 409 naming the field, and the index is what makes two simultaneous requests safe. The
+        // handler catches the index's violation and raises the SAME exception the check does, so a
+        // client cannot tell which of two racing requests it was — a difference between the two
+        // paths would leak timing.
+        builder.HasIndex(c => c.Email)
+            .IsUnique()
+            .HasFilter("[Email] IS NOT NULL AND [IsActive] = 1")
+            .HasDatabaseName("UX_Customers_Email_Active");
+
+        builder.HasIndex(c => c.PhoneE164)
+            .IsUnique()
+            .HasFilter("[PhoneE164] IS NOT NULL AND [IsActive] = 1")
+            .HasDatabaseName("UX_Customers_Phone_Active");
+
+        // No index on FullName: it serves the search in `008`, which searches three columns with
+        // a LIKE '%term%' — an index cannot serve a leading wildcard, so one here would be
+        // maintained on every write and read by nothing.
     }
 }

@@ -28,7 +28,7 @@ docs/sdd/                            the blueprint: FR/BR/NFR/US/ADR, design, te
 specs/NNN-feature/                   one folder per feature — see specs/README.md
 src/
   Wasl.Domain/                       no EF, no HTTP, no MediatR, no packages at all
-    Customers/                       Customer, EmailAddress, PhoneNumber
+    Customers/                       Customer, ContactNormalisation
     Tickets/                         Ticket, TicketComment, TicketHistoryEntry,
                                      TicketStatus, TicketStatusTransitions
     Communications/                  Interaction, CommunicationChannel
@@ -97,6 +97,13 @@ Full run-from-clean-clone script: [specs/001-solution-skeleton/quickstart.md](sp
 `TimeProvider` injected, never `DateTime.UtcNow` inline. `CancellationToken` threaded
 through every async path. One use case = one folder under `Application/Features/`.
 
+**No `EmailAddress` / `PhoneNumber` value objects.** Normalisation is static methods on
+`ContactNormalisation`, ruled 2026-08-28 — see `12-delivery-log.md`. A value object earns its place
+by making an invalid instance impossible to construct, and `Customer` has private setters and one
+factory, so that door is already shut. Two wrappers would cost an EF converter each and a
+conversion on every read while enforcing nothing `Customer.Create` does not. **Do not add them back
+on the grounds that a structure diagram once named them.**
+
 **No `IRepository<T>` and no per-aggregate repository** — reach EF Core through
 `IApplicationDbContext`, declared in `Application/Common/Abstractions` and implemented by
 `Infrastructure/Persistence/WaslDbContext`. `DbSet<T>` is already a repository; the
@@ -130,6 +137,7 @@ and `ar`.
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
+- **`007-create-customer` backend delivered** 2026-08-29 — `Customer.Create`, `ContactNormalisation` (**no value objects**, ruled), `POST /api/customers`, BR-4.8's two **filtered** unique indexes with the violation translated into the pre-check's exception (434 tests, run twice). **AC-13 is the project's first concurrency test.** Found that `Customer` timestamps had never been stamped, and that a create and a read returned different timestamps for the same resource
 - **`008-customer-list-and-profile` backend delivered** 2026-08-28 — `GET /api/customers` with search, `GET /api/customers/{id}`, explicit CI collation on every searched column (408 tests, run twice). Built the **query counter** and used it to close `013` AC-14 and `010` AC-12 as well as its own AC-11. **AC-3 recorded unmet** — a malformed id returns `404`, `002b` owns it
 - **`013-ticket-timeline-and-comments` backend delivered** 2026-08-28 — `dbo.TicketComments`, `POST /api/tickets/{id}/comments`, `GET /api/tickets/{id}/timeline` **cursor-paged**, `TicketTimelineQuery` in `Infrastructure/Queries/` (378 tests, run twice). First feature able to exercise `003`'s comment-body redaction and to make `010`'s stable-sort guard provable — every comment writes two rows from one memoized instant, so the tie is guaranteed. **AC-14 is open with an argument and no test:** nothing counts query round trips
 - **`004b` partial** 2026-08-28 — the `401` body's `title` was the wrong one of the two this `type` carries, and `detail` was a **raw resource key** on the login screen. Fixed with an optional `TitleKey` on `DomainException` and `CarriesDetail: false`; the `type` did not change. **The guard written to stop it recurring found seventeen more:** every FluentValidation message in the API was unresolved (355 tests). AC-17/AC-18 — the audit row on a middleware denial — are still open
@@ -325,6 +333,35 @@ present, would have stayed green on a broken audit trail.
 **A guard that has never been seen to fail has not been verified.** `001` shipped an
 architecture test that was a false negative until someone broke it on purpose. Break the thing
 the test protects, watch it go red, put it back — and record that in `tests.md`.
+
+**An entity written only from outside the real path is an entity nothing has verified. The first
+request that goes through the real path is its first test.** This has now happened three times,
+and each looked like a different bug:
+
+| Feature | What was never exercised | How it presented |
+|---|---|---|
+| `009` | `CommunicationChannel` / `TicketPriority` / `TicketCategory` written from a contract example | Two invented members and two wrong values, in an enum that compiles |
+| `011` | `TicketHistory.PerformedByUserId`, because `--seed` and one test wrote history rows directly | **NULL on every row ever written.** The timeline would have said "someone" for every event |
+| `007` | `Customer` timestamps, because `--seed` writes SQL and `008`'s tests use reflection | `"createdAtUtc":"0001-01-01T00:00:00"` on the first real `201` — the CLR default, served as a fact |
+
+**So when a feature seeds or fixtures data with raw SQL or reflection, say so and treat the entity
+as unverified until something drives it end to end.** The shortcut is often correct — `007` and
+`011` both needed it, because the factory did not exist yet — and it is the *silence* that costs:
+each of these was invisible for several features and then obvious in one request.
+
+**A time-ordered id is a poor source of a unique PREFIX.** `Guid.CreateVersion7()` leads with a
+timestamp, so two minted milliseconds apart share their leading hex digits. `008` used a
+seven-character slice as a search term and matched the wrong row; `007` used a ten-character slice
+as an email local-part and two customers collided on a unique index. **Recording it in `008`'s
+evidence did not stop it recurring in the very next feature** — which is why it is here. Use
+`RandomNumberGenerator` for a test discriminator.
+
+**A create and a read of the same resource must return the SAME body, asserted byte for byte.**
+`007` AC-14 caught `"createdAtUtc":"…57.7129947Z"` from a `POST` against `"…57.712Z"` from the
+`GET`: full .NET tick precision in memory, `datetime2(3)` in the column. Every create in the
+product had that shape, and a field-by-field comparison walks straight past it. Truncation lives in
+`RequestTimestamp` — the one place both `Stamp()` and every handler read — because `009` was
+already correct and `013` was not, and fixing it per-handler would have fixed one of five.
 
 **"The query does not issue one round trip per row" is measurable, and there is a tool for it.**
 `factory.CountQueries()` returns a probe; assert the count over a small result **equals** the count

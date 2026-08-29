@@ -36,7 +36,7 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
     private async Task<Guid> SeedAsync(
         string fullName,
         string? email = null,
-        string? phone = "+966500000000",
+        string? phone = null,
         string? company = null,
         string? notes = null,
         bool isActive = true)
@@ -53,7 +53,14 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
         Set(nameof(Customer.Id), Guid.CreateVersion7());
         Set(nameof(Customer.FullName), fullName);
         Set(nameof(Customer.Email), email);
-        Set(nameof(Customer.PhoneE164), phone);
+        // A unique number when the caller did not name one. The default used to be a single
+        // constant shared by every seeded customer, which was harmless until `007` added
+        // UX_Customers_Phone_Active — and then the second seed of any test failed on a duplicate.
+        //
+        // The index was right and the helper was wrong: two customers cannot share a phone number,
+        // and a fixture that writes the same one twice is describing a world the product forbids.
+        Set(nameof(Customer.PhoneE164),
+            phone ?? $"+96650{Random.Shared.NextInt64(100_000_000, 999_999_999)}");
         Set(nameof(Customer.CompanyName), company);
         Set(nameof(Customer.Notes), notes);
         Set(nameof(Customer.IsActive), isActive);
@@ -223,7 +230,10 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
         await SeedAsync(
             field == "name" ? $"Searchable {marker.ToUpperInvariant()}" : "Searchable other",
             email: field == "email" ? $"{marker.ToUpperInvariant()}@example.com" : null,
-            phone: field == "phone" ? $"+96650{digits}" : "+966500000001");
+            // null for the other two cases, so the helper mints a unique number. A shared literal
+            // here made the `name` and `email` cases collide on UX_Customers_Phone_Active once
+            // `007` added it — two theory cases writing the same phone number.
+            phone: field == "phone" ? $"+96650{digits}" : null);
 
         var term = field == "phone" ? digits : marker;
 

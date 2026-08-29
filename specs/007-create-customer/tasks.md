@@ -7,6 +7,23 @@ against `001-solution-skeleton`.
 
 Agents named here are **not dispatched until the plan is approved**. Naming is the plan.
 
+> **Status 2026-08-29 — the backend is delivered.** 434 tests, 0 warnings, run twice. See
+> [tests.md](tests.md) for the AC-to-test map and the negative control.
+>
+> **The feature is much smaller than this file assumes**, because its spec's opening claim was
+> superseded: `002` established the error contract, `009` the validation approach and the
+> persistence pattern. What remained was a factory, two indexes, one endpoint and two normalisers.
+>
+> **Ruled before implementation:** no `EmailAddress` / `PhoneNumber` value objects — recorded in
+> `spec.md`, `CLAUDE.md` and `12-delivery-log.md`, so nobody adds them later on the grounds that a
+> structure diagram once named them.
+>
+> **Not done:** every `FE-007-*` task — the create form, its field-level validation, and the
+> double-submit guard. The frontend lane owns them.
+>
+> No agent was dispatched — every task was implemented inline, recorded in
+> [ai-notes.md](ai-notes.md).
+
 ## Critical path
 
 ```text

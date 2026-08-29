@@ -8,13 +8,13 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Ten backend features are delivered: `001` · `002` core · `003` core · `004` backend half · `008` ·
+Eleven backend features are delivered: `001` · `002` core · `003` core · `004` backend half · `007` · `008` ·
 `009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
 013-ticket-timeline-and-comments    DONE 2026-08-28
 008-customer-list-and-profile       DONE 2026-08-28
-007-create-customer                 NEXT
-004b · 002b · 003b                  the deferred halves
+007-create-customer                 DONE 2026-08-29
+004b · 002b · 003b                  NEXT — the deferred halves
 005-localization-core               LAST
 ```
 
@@ -24,9 +24,9 @@ Ten backend features are delivered: `001` · `002` core · `003` core · `004` b
 |---|---|---|
 | ✅ | `013` | **Done.** It makes a ticket read as a conversation rather than a row in a table. `dbo.TicketHistory` is already written and correct — `Created`, `StatusChanged`, `Assigned`, `Unassigned`, each with both values and now with an actor — so this is the read surface over data that exists. `CLAUDE.md` names `TicketTimelineQuery` as one of only two sanctioned named query classes |
 | ✅ | `008` | **Done — and it removed the stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
-| 1 | `007` | **NEXT.**  Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
-| 2 | `004b` (the audit row on a denial — the `401` body half is **done**) · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
-| 3 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
+| ✅ | `007` | **Done.**  Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
+| 1 | **NEXT** | `004b` (the audit row on a denial — the `401` body half is **done**) · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
+| 2 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
 
 The ordering rule visible in that list is not "hardest first" or "most valuable first" — it is
 **what unblocks something else, first.** `011` was chosen over `004b` on the same grounds: it was
@@ -306,7 +306,7 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `006-design-system` | 0 | **✅ Built — inside `023-frontend-foundation`, not here.** The folder exists and is empty of delivery artifacts, which reads as "not done" and is wrong: the tokens, the primitives and the layout patterns were designed and shipped as part of the frontend foundation, and their evidence lives in `023`'s `summary.md` and in `docs/sdd/design/`. This row exists so nobody re-opens it looking for missing work. ADR-012 accepted the token architecture **in part** — the tenant-theming settings screen is `022` and is out of the release |
 | `008-customer-list-and-profile` | 1 | Migrated from `US-002-customer-list`. **Next after `013`.** It removes a stub: `024-frontend-create-ticket-form` has a built customer picker running on hard-coded data because `GET /api/customers` does not exist, so this feature makes a finished screen work on real data — the cheapest remaining unit of visible progress |
 | `010-ticket-list-and-detail` | 2 | Migrated from `US-006-list-tickets` — **✅ backend implemented 2026-08-26**, 263 tests. Filters and search deferred to `015` |
-| `007-create-customer` | 1 | Migrated from `US-001-create-customer` |
+| `007-create-customer` | 1 | Migrated from `US-001-create-customer` — **✅ backend implemented 2026-08-29**, 434 tests. `Customer.Create`, `ContactNormalisation` (**no value objects** — ruled, see `12-delivery-log.md`), `POST /api/customers`, BR-4.8's two filtered unique indexes. **AC-13 is the project's first concurrency test.** Form is the frontend lane's |
 | `012-change-ticket-status` | 2 | Migrated from `US-008-change-status` — **✅ backend implemented 2026-08-26**, 250 tests |
 | `009-create-ticket` | 2 | Migrated from `US-005-create-ticket` — **✅ backend implemented 2026-08-26**, 214 tests. Gained the BR-1 map + 36 tests (from `012`) and `GET /api/tickets/{id}` (from `010`). No auth (`004`); form is `024-frontend-create-ticket-form` |
 | `011-assign-ticket` | 2 | Migrated from `US-007-assign-ticket` — **✅ backend implemented 2026-08-28**, 340 tests. BR-2 in full, `GET /api/support-users`, no migration. `data-model.md` had four false statements and `plan.md` rested on the rejected ADR-010; both corrected in tables before implementation. Picker UI is the frontend lane's |
