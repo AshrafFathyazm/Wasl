@@ -10,12 +10,23 @@ namespace Wasl.Application.Features.Auth.IssueToken;
 internal sealed class IssueTokenCommandHandler(
     IApplicationDbContext context,
     IPasswordHasher passwords,
-    IAccessTokenIssuer tokens) : IRequestHandler<IssueTokenCommand, IssueTokenResult>
+    IAccessTokenIssuer tokens,
+    ISignInThrottle throttle,
+    IRequestContext requestContext) : IRequestHandler<IssueTokenCommand, IssueTokenResult>
 {
     public async Task<IssueTokenResult> Handle(
         IssueTokenCommand request,
         CancellationToken cancellationToken)
     {
+        // The throttle CHECK is not here — it is in SignInThrottleFilter, ahead of the pipeline.
+        //
+        // AC-36 wants the refusal recorded as `Auth.RateLimited`, and an IAuditableCommand carries
+        // ONE action string evaluated on both paths (`004` D-2), so a check here could only ever
+        // produce `Auth.SignIn / Denied`. A refusal that can name itself belongs where it can —
+        // the same reasoning that gives the authorization denial handler two names.
+        //
+        // Recording a failure stays here, because only this method knows the attempt failed.
+
         // Case-insensitive by the column's collation, not by lowercasing here — so the comparison
         // uses the unique index rather than a scan (ADR-013 row 3).
         var user = await context.FirstOrDefaultAsync(
@@ -46,6 +57,12 @@ internal sealed class IssueTokenCommandHandler(
             {
                 passwords.Verify(passwords.DummyHash, request.Password);
             }
+
+            // `004b` AC-35. ONLY failures count — a success records nothing, so someone who
+            // mistypes twice and then succeeds is never slowed. The CHECK lives in
+            // SignInThrottleFilter, ahead of the pipeline, because AC-36 needs the refusal named
+            // `Auth.RateLimited` and a command carries one action string (`004` D-2).
+            throttle.RecordFailure(requestContext.IpAddress, request.Email);
 
             throw new UnauthenticatedException();
         }

@@ -43,6 +43,15 @@ internal sealed class GlobalExceptionHandler(
             return false;
         }
 
+        // `004b` AC-35. Set BEFORE the body is written, because a header cannot be added once the
+        // response has started — and a 429 without Retry-After tells a client to wait without
+        // saying how long, so it retries immediately and the limit achieves nothing.
+        if (exception is RateLimitedException limited)
+        {
+            context.Response.Headers.RetryAfter =
+                limited.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         var problem = exception switch
         {
             DomainException domain => Handle(context, domain),

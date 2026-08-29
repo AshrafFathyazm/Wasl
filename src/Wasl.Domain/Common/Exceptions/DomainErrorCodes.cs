@@ -130,4 +130,14 @@ public static class DomainErrorCodes
     /// which is a domain outcome rather than an absent token.
     /// </remarks>
     public const string Unauthenticated = "unauthenticated";
+
+    /// <summary>
+    /// Too many failed sign-in attempts. `004b`.
+    /// </summary>
+    /// <remarks>
+    /// A `429`, and the only status in this registry that is neither a client mistake nor a
+    /// business-rule refusal — it is the server declining to answer for a while. It carries no
+    /// `errors` dictionary, because no field is at fault.
+    /// </remarks>
+    public const string RateLimited = "rate-limited";
 }

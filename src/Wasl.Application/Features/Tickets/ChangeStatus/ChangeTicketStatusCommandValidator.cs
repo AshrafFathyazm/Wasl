@@ -37,7 +37,13 @@ internal sealed class ChangeTicketStatusCommandValidator : AbstractValidator<Cha
             .NotEmpty()
             .WithMessage("Validation.Ticket.ExpectedVersionRequired");
 
+        // `004b` AC-38. Length BEFORE decode, and Cascade.Stop is what makes that ordering real:
+        // FluentValidation runs every rule in a chain by default, so without it the length rule
+        // would report the problem and BeBase64 would still allocate the buffer it exists to avoid.
         RuleFor(command => command.ExpectedVersion)
+            .Cascade(CascadeMode.Stop)
+            .MaximumLength(Ticket.RowVersionTokenMaxLength)
+            .WithMessage("Validation.Ticket.ExpectedVersionTooLong")
             .Must(BeBase64)
             .WithMessage("Validation.Ticket.ExpectedVersionUndecodable")
             .When(command => !string.IsNullOrEmpty(command.ExpectedVersion));

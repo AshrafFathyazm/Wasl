@@ -188,13 +188,25 @@ in `decisions/ADR-008-audit-log.md`.
 `Entity.Verb`, in past tense where the verb is an outcome:
 
 ```text
-Customer.Created        Ticket.Created           Auth.LoginSucceeded
-Customer.Updated        Ticket.StatusChanged     Auth.LoginFailed
-Customer.Deactivated    Ticket.Assigned          Auth.Forbidden
-                        Ticket.Unassigned        Auth.Unauthenticated
+Customer.Created        Ticket.Created           Auth.SignIn ‡
+Customer.Updated        Ticket.StatusChanged     Auth.Forbidden
+Customer.Deactivated    Ticket.Assigned          Auth.Unauthenticated
+                        Ticket.Unassigned        Auth.RateLimited §
                         Ticket.Escalated         User.LanguageChanged
                         Ticket.CommentAdded      Audit.Read
 ```
+
+‡ **`Auth.SignIn` replaces `Auth.LoginSucceeded` / `Auth.LoginFailed`**, built `004`
+(2026-08-27), deviation D-2. An `IAuditableCommand` carries one action string that
+`AuditBehaviour` reads without knowing which path ran, so a command cannot name its own
+outcome — `Outcome` carries it. The pair would have needed two columns that must agree.
+
+§ **`Auth.RateLimited`** added `004b` (2026-08-29): too many failed sign-ins for one
+(address, email) pair. Distinct from `Auth.SignIn / Denied` on purpose — an investigation
+asking "was this account under attack" needs the answer to be a query, not a count.
+
+`Auth.Forbidden` and `Auth.Unauthenticated` became real in `004b`; before it, a denial by the
+authorization middleware wrote nothing, which was **a gap in BR-9.4** and is recorded as one.
 
 A consistent prefix is what makes `WHERE action LIKE 'Auth.%'` a useful query. An
 ad-hoc naming scheme makes the table searchable only by someone who already knows what

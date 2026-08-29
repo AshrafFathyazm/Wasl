@@ -45,6 +45,12 @@ public static class DependencyInjection
                 Wasl.Application.Features.Tickets.GetTimeline.TimelinePage>,
             Queries.TicketTimelineQuery>();
 
+        // `004b`. SINGLETON — the counts must outlive a request, which is the whole point.
+        // In-memory and per-process: two instances behind a load balancer each count to ten, and a
+        // restart forgets everything. Stated in the type's own remarks rather than implied, because
+        // the honest claim is that it slows a script, not that it stops a determined attacker.
+        services.AddSingleton<ISignInThrottle, Auth.InMemorySignInThrottle>();
+
         services.AddScoped<AuditDiffAccumulator>();
         services.AddScoped<AuditDiffInterceptor>();
 

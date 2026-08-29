@@ -105,6 +105,9 @@ The full table. Rows marked ★ are **not** in the table in
 `docs/sdd/05-api-conventions.md`; ASP.NET Core returns them regardless, so they are
 specified here rather than left to arrive undocumented (`spec.md` Q-C, `DOC-002-03`).
 
+Rows marked ★★ were **added after this file was frozen** — see **Contract changes** at the
+foot of this file. A frozen contract can still change; what it cannot do is change silently.
+
 | Code | Used when | Envelope? |
 |---|---|---|
 | `200 OK` | Successful read, or an update returning the resource | n/a — never an error body |
@@ -117,6 +120,7 @@ specified here rather than left to arrive undocumented (`spec.md` Q-C, `DOC-002-
 | `405 Method Not Allowed` ★ | The path exists; the method is not declared on it | yes |
 | `409 Conflict` | Valid request, conflicts with current state. Five causes, five `type`s | yes |
 | `415 Unsupported Media Type` ★ | Request body is not `application/json` | yes |
+| `429 Too Many Requests` ★★ | **`POST /api/auth/token` only.** Too many failed sign-ins for this address-and-email pair. Carries `Retry-After` | yes |
 | `500 Internal Server Error` | Unhandled fault | yes, reduced — see the registry |
 | `503 Service Unavailable` | **`/health` only.** Not this contract | no — health shape |
 
@@ -126,7 +130,8 @@ Not produced by this API, and recorded so nobody adds one:
 |---|---|
 | `406 Not Acceptable` | The API produces `application/json` and `application/problem+json` only. Content negotiation has one outcome |
 | `422 Unprocessable Entity` | `400` covers validation, per the convention table. Two codes for one condition would mean clients handling both |
-| `429`, `502`, `503` from the API | No rate limiting, no upstream calls, one deployable (ADR-002). A `502` a client sees came from infrastructure, not from us — which is exactly why the client parser must survive a body it did not author |
+| `502`, `503` from the API | No upstream calls, one deployable (ADR-002). A `502` a client sees came from infrastructure, not from us — which is exactly why the client parser must survive a body it did not author |
+| ~~`429`~~ | **Superseded 2026-08-29 by `004b`.** See **Contract changes** below |
 
 ---
 
@@ -145,6 +150,7 @@ Clients branch on the **last path segment**, never the whole URI and never `titl
 | `malformed-request` | 400 | no | yes | Model binding / JSON reader | `002` | The body or a route value could not be parsed. **Never a `500`** |
 | `method-not-allowed` ★ | 405 | no | yes | Routing short-circuit | `002` | The path exists; this method is not declared on it |
 | `unsupported-media-type` ★ | 415 | no | yes | Routing short-circuit | `002` | Body is not `application/json` |
+| `rate-limited` ★★ | 429 | **no** | yes | `SignInThrottleFilter`, ahead of the pipeline | `004b` | Too many failed sign-ins for this address-and-email pair. No field is at fault, so no `errors`. Says **nothing** about whether the account exists or how many attempts remain — a throttle that answers differently for a real address than for an invented one is an enumeration oracle wearing a rate limit |
 | `unauthenticated` | 401 | no | yes | Authentication middleware | `004` | Missing, expired, or invalid token. Says nothing about which |
 | `forbidden` | 403 | no | yes | Authorization policy or handler (BR-6) | `004` | Permitted for some role, not this one. Names **no** role that would have worked |
 | `not-found` | 404 | no | yes | Handler, or routing with no match | `002` raises route misses; features raise resource misses | The addressed resource — or route — does not exist |
@@ -286,3 +292,29 @@ Binding on every consumer, including the ones in later features:
 | Nothing constructs an envelope outside the factory | `REV-002-01` plus a `grep` recorded in `tests.md` |
 | One shared `ProblemDetails` schema in the OpenAPI document | `TEST-002-13` |
 | This contract matches what was built | Generated OpenAPI compared before the feature closes — `REV-002-02` |
+
+---
+
+## Contract changes
+
+A change to a frozen contract is recorded here, dated, with the reason — and both lanes are
+told. The alternative is a frontend written against a file that no longer describes the API.
+
+### 2026-08-29 · `429 errors/rate-limited` added — `004b`
+
+**What changed.** `429` moved out of the *not produced by this API* list and into both tables
+above. `POST /api/auth/token` now answers `429 errors/rate-limited` with a `Retry-After`
+header after ten failed sign-ins in five minutes for one (address, email) pair.
+
+**Why the original entry was written, and why it is now wrong.** It read "no rate limiting" —
+a statement of fact about the build at the time, not a decision that there never would be.
+`004` closed with "no rate limit and no lockout on `POST /api/auth/token`" recorded as an open
+gap; `004b` closes it.
+
+**What the frontend must do.** The sign-in screen (`025`) already renders any `ProblemDetails`
+it receives, so a `429` shows a message rather than breaking — but the message will be the
+generic one until the screen branches on `rate-limited` and reads `Retry-After`. **No other
+screen can receive a `429`**, because the limit is on the one action, not on the API.
+
+**What did not change.** No other status, no other code, no envelope shape. `errors` is still
+absent on a `429` — no field is at fault.

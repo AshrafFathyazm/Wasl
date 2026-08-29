@@ -38,6 +38,10 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         // credentials, and it names neither which field was wrong nor whether the account exists —
         // one sentence for a wrong password, an unknown email, and a deactivated user alike.
         ["Error.Auth.InvalidCredentials.Title"] = "Email or password is incorrect.",
+
+        // `004b`. Says what happened and what to do, and nothing about the account.
+        ["Error.RateLimited.Title"] = "Too many attempts.",
+        ["Error.Auth.RateLimited"] = "Too many failed sign-in attempts. Wait a moment and try again.",
         ["Error.Forbidden.Title"] = "You do not have permission to do that.",
         ["Error.DuplicateCustomer.Title"] = "A customer with this value already exists.",
         ["Error.InvalidStatusTransition.Title"] = "That status change is not permitted.",
@@ -97,6 +101,11 @@ internal sealed class StaticProblemMessageSource : IProblemMessageSource
         // and cannot act on "it must be base64" — the only useful instruction is to reload.
         ["Validation.Ticket.ExpectedVersionRequired"] = "Reload the ticket and try again.",
         ["Validation.Ticket.ExpectedVersionUndecodable"] = "Reload the ticket and try again.",
+
+        // `004b` AC-38 — the same sentence, deliberately. A caller who sent a ten-megabyte token
+        // is not a caller who will read a length limit, and quoting one tells an attacker exactly
+        // where the cheap-refusal boundary sits.
+        ["Validation.Ticket.ExpectedVersionTooLong"] = "Reload the ticket and try again.",
 
         // ── `013` ───────────────────────────────────────────────────────────────────
         // Added in the same commit as the keys, which is the rule `004b` wrote into CLAUDE.md

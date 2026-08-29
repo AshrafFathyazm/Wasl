@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Wasl.Api.Common.Auth;
 using Wasl.Application.Features.Auth.IssueToken;
 
 namespace Wasl.Api.Controllers;
@@ -28,6 +29,10 @@ public sealed class AuthController(ISender sender) : ControllerBase
     /// </para>
     /// </remarks>
     [AllowAnonymous]
+
+    // `004b` AC-35. On this action alone: the ruling limits the token endpoint and not the API,
+    // because a rate limit on a working application is a different feature with different numbers.
+    [ServiceFilter<SignInThrottleFilter>]
     [HttpPost("token")]
     [ProducesResponseType(typeof(IssueTokenResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

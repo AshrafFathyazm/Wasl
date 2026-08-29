@@ -8,14 +8,15 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Eleven backend features are delivered: `001` · `002` core · `003` core · `004` backend half · `007` · `008` ·
+Twelve backend features are delivered: `001` · `002` core · `003` core · `004` + `004b` · `007` · `008` ·
 `009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
 013-ticket-timeline-and-comments    DONE 2026-08-28
 008-customer-list-and-profile       DONE 2026-08-28
 007-create-customer                 DONE 2026-08-29
-004b · 002b · 003b                  NEXT — the deferred halves
-005-localization-core               LAST
+004b-auth-hardening                 DONE 2026-08-29
+002b · 003b                         NEXT — the remaining deferred halves
+005-localization-core               RAISED — see its row below
 ```
 
 **Why this order, in the product owner's terms.**
@@ -25,13 +26,19 @@ Eleven backend features are delivered: `001` · `002` core · `003` core · `004
 | ✅ | `013` | **Done.** It makes a ticket read as a conversation rather than a row in a table. `dbo.TicketHistory` is already written and correct — `Created`, `StatusChanged`, `Assigned`, `Unassigned`, each with both values and now with an actor — so this is the read surface over data that exists. `CLAUDE.md` names `TicketTimelineQuery` as one of only two sanctioned named query classes |
 | ✅ | `008` | **Done — and it removed the stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
 | ✅ | `007` | **Done.**  Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
-| 1 | **NEXT** | `004b` (the audit row on a denial — the `401` body half is **done**) · `002b` · `003b` | The deferred halves. Each is named with its reason in the README's *Deferred halves* table, and none of them unblocks another feature |
-| 2 | `005` | **Last, deliberately: it opens nothing.** The seam is already built — every server-authored message is a symbolic key rather than a sentence, and `023` shipped the client catalogues in `en` and `ar`. What remains is `PUT /api/me/language` and the switcher screen |
+| ✅ | `004b` | **Done 2026-08-29.** 442 tests. Both gaps `004` named as open: the denial audit row — which needed the `401`/`403` body, because AC-19 compares the row's trace id to the one *in the response* — and the sign-in rate limit. The ruling's "per IP" and AC-37 contradicted each other, and a negative control settled it rather than an argument: see `004`'s `tests.md` |
+| 1 | **NEXT** — `002b` · `003b` | The remaining deferred halves. Each is named with its reason in the README's *Deferred halves* table, and neither unblocks another feature |
+| 2 | `005` | **Raised from last, 2026-08-29 by the product owner.** It was last because it opens nothing — but the frontend lane confirmed **on the wire** that `Accept-Language: ar` returns the same English sentence from every endpoint. BR-8.6 is broken product-wide, not on one screen: the screens work and the messages do not. Now above `026` and `027` |
 
 The ordering rule visible in that list is not "hardest first" or "most valuable first" — it is
 **what unblocks something else, first.** `011` was chosen over `004b` on the same grounds: it was
-the only thing that would attach `ManagerOnly` to a real endpoint. `005` is last for the mirror
-image of that reason.
+the only thing that would attach `ManagerOnly` to a real endpoint.
+
+**And the rule has one exception, added 2026-08-29.** `005` was last by that rule and was raised
+anyway, because *unblocks something* is not the only thing that matters — **a feature the product
+claims to have and does not is worse than one it has not built yet.** BR-8.6 says the server
+localizes what it authors; it does not, in either language, on every endpoint. Nothing was
+blocked by that, which is exactly why the rule could not see it.
 
 Every feature in Wasl is specified before it is built, in a numbered folder here.
 

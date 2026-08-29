@@ -135,7 +135,8 @@ and `ar`.
 - **`009-create-ticket` backend delivered** 2026-08-26 — `Ticket` + `TicketHistory` + `dbo.TicketNumberSeq`, `POST /api/tickets`, `GET /api/tickets/{id}`, the BR-1 map with **all 36 cells**, `IAuditableEntity` stamping in `SaveChangesAsync`, `IRequestTimestamp` (214 tests). Form is `024-frontend-create-ticket-form`
 - **`012-change-ticket-status` backend delivered** 2026-08-26 — `PUT /api/tickets/{id}/status`, three distinct `409` codes, explicit optimistic concurrency **before** the transition rules (250 tests)
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
-- **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). **Open, not done:** no audit row on a `401`/`403` — a gap in BR-9.4 — and no rate limit on the token endpoint, both `004b`. Login screen and route guard belong to the frontend lane
+- **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). Login screen and route guard belong to the frontend lane
+- **`004b` delivered** 2026-08-29 — the two gaps `004` named as open, closed together because they are one path: a request refused before any handler runs. `AuthDenialResultHandler` writes `Auth.Unauthenticated` / `Auth.Forbidden` **and envelopes those bodies**, which AC-19 forces (it compares the row's trace id to the one *in the response*, and there was no response body). A **(address, email)** throttle answers `429 errors/rate-limited` with `Retry-After` and writes `Auth.RateLimited`. `expectedVersion` is length-checked before any base64 buffer (442 tests). **The ruling said "per IP" and AC-37 forbids locking out a NAT office — the two contradicted, and a negative control settled it, not an argument**
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
 - **`007-create-customer` backend delivered** 2026-08-29 — `Customer.Create`, `ContactNormalisation` (**no value objects**, ruled), `POST /api/customers`, BR-4.8's two **filtered** unique indexes with the violation translated into the pre-check's exception (434 tests, run twice). **AC-13 is the project's first concurrency test.** Found that `Customer` timestamps had never been stamped, and that a create and a read returned different timestamps for the same resource
 - **`008-customer-list-and-profile` backend delivered** 2026-08-28 — `GET /api/customers` with search, `GET /api/customers/{id}`, explicit CI collation on every searched column (408 tests, run twice). Built the **query counter** and used it to close `013` AC-14 and `010` AC-12 as well as its own AC-11. **AC-3 recorded unmet** — a malformed id returns `404`, `002b` owns it
@@ -274,6 +275,10 @@ strings. **`200` is never returned with an error in the body.**
 version, and already-escalated — each with its own `type`:
 `errors/duplicate-customer`, `errors/invalid-status-transition`,
 `errors/concurrency-conflict`, `errors/already-escalated`.
+
+`429 errors/rate-limited` exists on **`POST /api/auth/token` and nowhere else** (`004b`), and it
+carries `Retry-After`. `error-contract.md` originally listed `429` as *not produced by this API*;
+that is recorded as a **contract change** at the foot of the file, not edited away.
 
 Every non-2xx is RFC 7807 `ProblemDetails` with a `traceId` matching the server log.
 `errors` appears only on `400` and `409`. `detail` never contains a stack trace, SQL, an
@@ -481,14 +486,25 @@ the product. The first endpoint that is genuinely Manager-only should carry it.
 constant claim. ADR-005 rejects it by name, and the rule still applies: `004` closed the gap by
 building the identity, not by inventing one.
 
-**Two things are open and are not to be written up as done:**
+**Both gaps `004` left open were closed by `004b` on 2026-08-29.** What that means for anything
+you touch on this path:
 
-- **No audit row on a `401` or a `403`** (AC-17, AC-18). Sign-in success and failure both write
-  rows because `IssueTokenCommand` is an `IAuditableCommand`; a *denial* by the authorization
-  middleware writes nothing, which needs an `IAuthorizationMiddlewareResultHandler`. **This is a
-  gap in BR-9.4.** `004b`.
-- **No rate limit and no lockout on `POST /api/auth/token`.** One identical `401` per wrong
-  input is the correct response shape and does nothing to slow a script.
+- **A denial writes an audit row now**, from `AuthDenialResultHandler` — an
+  `IAuthorizationMiddlewareResultHandler`. `Auth.Unauthenticated` on a `401`, `Auth.Forbidden` on
+  a `403`, both `Outcome = Denied`, both outside any transaction. **It also envelopes those two
+  bodies**, which used to be empty. `002b` still owns the statuses produced by *routing* —
+  `404` on an unmatched route, `405`, `415` — a different mechanism.
+- **`POST /api/auth/token` is throttled**: ten failed sign-ins in five minutes per **(address,
+  email) pair**, answering `429 errors/rate-limited` with `Retry-After` and writing
+  `Auth.RateLimited`. Successes are never counted. **The pair is load-bearing and was measured:**
+  keying by IP alone locks out an office behind one NAT address (AC-37 goes red, and so does a
+  Manager who never failed), and keying by email alone is an account lockout anyone could trigger
+  against a named user from anywhere. Do not "simplify" it to one key.
+- **The throttle is in memory and per process.** Two instances each count to ten; a restart
+  forgets everything. Stated, not hidden — *it slows a script, it does not stop a determined
+  attacker.* **There is no lockout, by ruling**, and adding one needs a new decision.
+- **`429` is on that one action, not on the API.** A general rate limit is a different feature
+  with different numbers.
 
 The secrets have no defaults and the host refuses to start without them —
 `Jwt:SigningKey` (32 bytes minimum), `Seed:ManagerPassword`, `Seed:AgentPassword`. Set them with

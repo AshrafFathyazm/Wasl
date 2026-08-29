@@ -124,7 +124,7 @@ row nothing mutates is an invitation to hold a stale one.
 |---|---|
 | Transaction | **None.** The transaction pipeline behaviour applies to commands; a `GET` wrapped in one holds locks for the duration of a read that changes nothing |
 | `AuditLog` | **No row on success.** BR-9.1 governs state changes; reading a customer is not `Audit.Read`, which is reading the audit log itself (BR-9.11) |
-| `AuditLog` | **One row on `401`**, written outside any transaction (BR-9.2, BR-9.4) |
+| `AuditLog` | **One row on `401`**, written outside any transaction (BR-9.2, BR-9.4). Real as of `004b`, 2026-08-29 — it was a statement of intent when this file was written |
 
 `TEST-008-12` asserts the row count is unchanged across a `200` and a `404`. It is a
 negative assertion about a table this feature never touches, which is precisely the kind

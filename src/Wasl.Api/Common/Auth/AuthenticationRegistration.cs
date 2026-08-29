@@ -69,6 +69,22 @@ internal static class AuthenticationRegistration
                 };
             });
 
+        // `004b`. Registered BEFORE AddAuthorizationBuilder so the intent reads in order; the
+        // container does not care, but a reader meeting SetFallbackPolicy first would reasonably
+        // assume nothing observes what it refuses.
+        //
+        // This is what closes BR-9.4's last gap: until now a denial by the authorization
+        // middleware wrote no audit row, and `011` measured the consequence — the placement of a
+        // permission check decided whether the refusal was recorded at all.
+        services.AddSingleton<
+            Microsoft.AspNetCore.Authorization.IAuthorizationMiddlewareResultHandler,
+            AuthDenialResultHandler>();
+
+        // Scoped, because it reads IRequestContext and IAuditWriter — both scoped. Registered as
+        // itself so those dependencies are injected normally rather than resolved out of the
+        // request inside the method, which is what the singleton denial handler has to do.
+        services.AddScoped<SignInThrottleFilter>();
+
         services.AddAuthorizationBuilder()
             .AddPolicy(WaslPolicies.ManagerOnly, policy => policy
                 .RequireAuthenticatedUser()

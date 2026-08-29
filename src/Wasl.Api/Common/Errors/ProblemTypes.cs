@@ -87,6 +87,13 @@ internal static class ProblemTypes
         [Forbidden] = new(
             StatusCodes.Status403Forbidden, CarriesErrors: false, TitleKey: "Error.Forbidden.Title"),
 
+        // `004b`. No `errors` dictionary — no field is at fault — and no detail naming the account,
+        // the attempt count, or when the window opened. A throttle that answers differently for a
+        // real address than for an invented one is an enumeration oracle wearing a rate limit.
+        [DomainErrorCodes.RateLimited] = new(
+            StatusCodes.Status429TooManyRequests, CarriesErrors: false,
+            TitleKey: "Error.RateLimited.Title"),
+
         // ── Registered here, raised by 007 / 012 / 016 / 017 ────────────────────────
         [DomainErrorCodes.DuplicateCustomer] = new(
             StatusCodes.Status409Conflict, CarriesErrors: true, TitleKey: "Error.DuplicateCustomer.Title"),

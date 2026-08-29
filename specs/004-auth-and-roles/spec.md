@@ -243,3 +243,106 @@ position and reads nobody's preference.
 
 Not one of those produces an error at startup or a failing build. AC-6, AC-7, AC-9,
 AC-10, AC-11, and AC-21 are the ones that turn each into something a stranger can catch.
+
+---
+
+# `004b` — Specification
+
+**Status:** written 2026-08-29, **awaiting review** · **Parent:** `004-auth-and-roles`
+
+No separate folder, the same as `002b` and `003b`: a deferred half belongs beside the feature that
+deferred it, and its acceptance criteria are already numbered in this file.
+
+## What `004b` owns, collected from where it was promised
+
+Four commitments, made in four places over three days. Listed together because none of them has
+been in one place until now.
+
+| # | Commitment | Where it was recorded |
+|---|---|---|
+| 1 | **AC-17** — a `401` writes one `Auth.Unauthenticated` row, `Outcome = Denied` | `004` spec, `tasks.md`, `README.md`, and cited by `008` and `011` |
+| 2 | **AC-18** — a `403` writes one `Auth.Forbidden` row | Same, and `011` built its whole BR-6 argument on this being absent |
+| 3 | **Rate limiting and lockout** on `POST /api/auth/token` | `004` summary, `README.md`, `011` spec |
+| 4 | `expectedVersion` is validated by allocating a buffer the size of the input | `README.md`'s recorded-gaps table |
+
+## The gap, stated exactly
+
+**`dbo.AuditLog` has no record of anyone being refused access.** Sign-in success and failure both
+write rows, because `IssueTokenCommand` is an `IAuditableCommand` and `003`'s pipeline handles
+both paths. A *denial by the authorization middleware* throws nothing, so MediatR never sees it and
+no row exists.
+
+`011` measured what that costs. Moving BR-2's checks into a policy made the denial's audit row
+return `found 0: {empty}` — and the conclusion recorded there was that **the placement of a
+permission check currently decides whether the refusal is recorded at all.** `004b` is what removes
+that coupling: after it, a denial is audited wherever it is raised.
+
+## In Scope
+
+- An `IAuthorizationMiddlewareResultHandler` that writes the row and then delegates the response
+- `Auth.Unauthenticated` and `Auth.Forbidden` rows, `Outcome = Denied`, through the existing
+  `IAuditWriter.WriteIndependentAsync`
+- Rate limiting on `POST /api/auth/token`
+- The `expectedVersion` allocation
+
+## Out of Scope
+
+| Excluded | Reason |
+|---|---|
+| `UseStatusCodePages` and the `404`/`405`/`415` envelopes | `002b`. A different mechanism — those statuses are produced by routing and content negotiation, not by authorization |
+| A malformed route `Guid` returning `404` | `002b`, and recorded as knowingly unmet in `007` and `011` |
+| Account lockout | See Q-B. **A lockout is a denial-of-service vector against a named user**, and refusing it is a decision rather than an omission |
+| Auditing a `401` on `/health` | `/health` is anonymous by design and probed every few seconds. `004` AC-20 asserts it writes no row, and that stays true |
+
+---
+
+## Open Questions
+
+| # | Question | Working assumption |
+|---|---|---|
+| **Q-A** | **The middleware's `401` and `403` currently have EMPTY bodies** — no `type`, no `traceId`, nothing a client can branch on. Measured in `004`'s live run (`body: []`) and again in `011`'s negative control. Does `004b` envelope them, or is that `002b`? | **`004b` envelopes them, and AC-19 forces the question.** AC-19 requires the `traceId` on each denial row to equal the `traceId` **in the response body** — and there is no body. So AC-17 and AC-18 cannot be verified as written unless the body exists. `002b` owns the statuses produced by *routing* (`404`, `405`, `415`), which is a different mechanism; `004b` is already building the one component that sits on the authorization path, and writing it twice is the alternative. **A ruling is needed because it widens `004b` beyond the four commitments above** |
+| **Q-B** | **What shape of rate limiting?** Fixed window, sliding, token bucket; keyed by IP, by email, or by both; and does a lockout follow? | **A fixed window per IP, and NO account lockout.** Reasons, in order: a lockout keyed by email is a denial-of-service vector against a named user — anyone who knows an address can lock its owner out, which converts a guessing attack into a guaranteed outage. Keying by IP alone is weaker against a distributed attacker and harms nobody. Fixed window over sliding because ASP.NET Core ships it, the numbers are legible in a log, and nothing here needs the precision. **The limit's real job is stated honestly: it slows a script, it does not stop a determined one.** A ruling is wanted on the numbers |
+| **Q-C** | Does a rate-limited request write an audit row? | **Yes — `Auth.RateLimited`, `Outcome = Denied`.** It is the one signal that distinguishes a user who forgot their password from a script, and an audit trail that records failures but not the burst that triggered the limit answers the wrong half of the question. **This adds a fifth action name to BR-9's table**, which is a documented change |
+| **Q-D** | `004` renamed sign-in to a single `Auth.SignIn` because one command carries one action string (D-2). Do these follow that, or use BR-9's two names? | **BR-9's two names, unchanged.** `Auth.Unauthenticated` and `Auth.Forbidden` are not written by a command — the handler chooses the name from the *result*, so it can name each precisely. The `Auth.SignIn` compromise existed because `IAuditableCommand.AuditAction` is one property evaluated on both paths; that constraint does not apply here. **The asymmetry is deliberate and worth stating**, because two conventions in one table otherwise reads as drift |
+| **Q-E** | The `expectedVersion` allocation — Kestrel body limit, or a length check in the validator? | **A length check in the validator, not a Kestrel limit.** The README recorded Kestrel as "the cleaner fix" and that is wrong on inspection: a global body limit would also cap a legitimate 4000-character comment body, and the actual defect is one field. A `MaximumLength` rule on `expectedVersion` costs one line and refuses the input before `Convert.TryFromBase64String` allocates. **Recorded as a correction to a previously written recommendation** |
+
+---
+
+## Acceptance Criteria
+
+AC-17, AC-18 and AC-19 are `004`'s, unchanged and finally satisfiable. AC-31 onward are new.
+
+| # | Criterion |
+|---|---|
+| AC-17 | A request to a protected endpoint with no token returns `401` `errors/unauthenticated` and writes **exactly one** `Auth.Unauthenticated` row, `Outcome = Denied` |
+| AC-18 | An Agent's token against a `ManagerOnly` endpoint returns `403` `errors/forbidden` and writes **exactly one** `Auth.Forbidden` row. The row is present **although no business transaction committed** |
+| AC-19 | The `traceId` on each denial row equals the `traceId` in the response body (BR-9.9) |
+| **AC-31** | The `401` and `403` bodies are `ProblemDetails` with a `type`, a `status`, an `instance` and a `traceId` — **not empty.** Asserted over the raw response text, because an empty body and a body with a null field are indistinguishable once deserialised |
+| **AC-32** | The denial row names the actor **when there is one**: a `403` carries `ActorUserId`, `ActorEmail` and `ActorRole` from the token; a `401` carries none, because there is no authenticated principal — and that null is asserted, not omitted |
+| **AC-33** | `GET /health` with no token still writes **no** row (`004` AC-20 preserved). A liveness probe runs every few seconds and auditing it would bury every real event |
+| **AC-34** | The row carries **no token, no password and no `Authorization` header value** — asserted by searching every column, not by reading the writer |
+| **AC-35** | Repeated failed sign-ins from one IP are rate-limited with `429`, and the response carries `Retry-After` |
+| **AC-36** | A rate-limited request writes exactly one `Auth.RateLimited` row, `Outcome = Denied` |
+| **AC-37** | **A successful sign-in is not rate-limited by another user's failures from the same IP** — an office behind one NAT address must not lock out its own staff. This is the criterion that decides whether the limit is usable |
+| **AC-38** | An `expectedVersion` of 10 MB is refused by a length rule **before** any base64 buffer is allocated |
+
+## Edge Cases
+
+| Case | Expected |
+|---|---|
+| A `401` on an endpoint that does not exist | `404`, not `401` — routing runs first, and no denial row. `002b` owns that body |
+| A `403` where the handler *also* would have thrown | The middleware wins; it runs first. One row, `Auth.Forbidden`, not two |
+| A denial during a request that had already opened a transaction | Cannot happen — authorization runs before MediatR. Stated because the row is written outside any transaction regardless, which is `WriteIndependentAsync`'s whole purpose |
+| The audit write itself fails | The response is unchanged. `WriteIndependentAsync` never throws (`003` AC-11), and a `403` that becomes a `500` because logging failed is worse than an unlogged `403` |
+| Two denials in one second from one caller | Two rows. Deduplication would hide exactly the burst an investigation is looking for |
+| A rate-limited request with **correct** credentials | Still `429`. The limiter runs before the handler, and checking credentials first would make the limiter an oracle for whether a password was right |
+
+## Rules Referenced
+
+BR-9.2 (authentication and authorization events), BR-9.4 (denials and failures write a row outside
+any transaction), BR-9.7 (nothing sensitive in the row), BR-9.9 (the `traceId` matches the
+response), BR-6, ADR-005.
+
+**This is the feature that makes `008`'s and `011`'s removed BR-9.2 references true again.** Both
+struck it from their rules lists with a note that nothing writes a denial row; when `004b` lands,
+both notes become stale and are corrected in the same commit.

@@ -69,6 +69,18 @@ Beyond the criteria:
 **a handler denial is audited and a policy denial is not.** That is testable, so it was tested
 rather than reasoned about twice.
 
+> **Superseded in part, 2026-08-29 by `004b`.** A policy denial **is** audited now — an
+> `IAuthorizationMiddlewareResultHandler` writes `Auth.Forbidden / Denied` and gives the `403` a
+> real `ProblemDetails` body. So the half of the claim about auditing no longer holds, and the
+> measurement below was true when it was taken rather than wrong.
+>
+> **The conclusion is unchanged, and the reason is control 1's second finding, not its first:** a
+> policy runs before any handler, so it cannot express the contract's step 4 → step 5 ordering, and
+> `A_stale_version_is_answered_before_a_denial` still goes red under it. BR-2's data-dependent half
+> stays in the handler because of **ordering**, which `004b` does not change — not because of
+> auditing, which it does. Left here rather than rewritten: what a measurement showed on the day is
+> evidence, and quietly editing it to match today would destroy the record of why the rule exists.
+
 ### Control 1 — BR-2 moved to an authorization policy
 
 `[Authorize(Policy = WaslPolicies.ManagerOnly)]` added to the action, the `EnsurePermitted` call
@@ -96,6 +108,8 @@ Two side findings from the same control, neither of them predicted:
 
 - The `403` a policy produces has an **empty body** — no `type`, no `traceId`. `002b` owns
   enveloping middleware-produced statuses, so a client could not even branch on it.
+  **No longer true as of `004b`** (2026-08-29): the denial handler envelopes it. `002b` still owns
+  the *other* middleware-produced statuses — `404` on an unmatched route, `405`, `415`.
 - `A_stale_version_is_answered_before_a_denial` went red too, because a policy necessarily runs
   before any handler. So a policy cannot express the contract's step 4 → step 5 ordering at all.
 

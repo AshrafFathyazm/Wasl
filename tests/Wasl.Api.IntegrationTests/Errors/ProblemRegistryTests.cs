@@ -118,7 +118,11 @@ public sealed class ProblemRegistryTests
     [Fact]
     public void Every_registered_status_is_in_the_documented_table()
     {
-        int[] documented = [400, 401, 403, 404, 405, 409, 415, 500];
+        // 429 arrived with `004b`, and this test is the reason it did not arrive silently: adding
+        // the registry row turned it red, which forced the contract table to be corrected in the
+        // same change. That is the whole purpose of the list — it is not documentation of the
+        // registry, it is a second, independent statement that has to be made to agree with it.
+        int[] documented = [400, 401, 403, 404, 405, 409, 415, 429, 500];
 
         Registry().Values
             .Select(StatusOf)

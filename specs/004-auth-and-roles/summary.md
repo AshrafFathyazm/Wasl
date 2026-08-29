@@ -56,8 +56,8 @@ endpoint (AC-7), which is the criterion the spec wrote for exactly this reason.
 
 | # | What | Owner |
 |---|---|---|
-| 1 | **AC-17 / AC-18 — no audit row on a `401` or a `403`.** This is a gap in BR-9.4, not a satisfied criterion. Needs an `IAuthorizationMiddlewareResultHandler`. The status codes themselves are asserted | `004b` |
-| 2 | **No rate limit and no lockout on `POST /api/auth/token`.** Brute force is unimpeded. One `401` for every wrong input is the correct response shape and does nothing to slow a script | `004b` |
+| 1 | ~~**AC-17 / AC-18 — no audit row on a `401` or a `403`.**~~ Was a gap in BR-9.4, not a satisfied criterion. **CLOSED 2026-08-29 by `004b`:** an `IAuthorizationMiddlewareResultHandler` writes the row and envelopes the body | `004b` — done |
+| 2 | ~~**No rate limit on `POST /api/auth/token`.**~~ **CLOSED 2026-08-29 by `004b`** — ten failed sign-ins in five minutes per (address, email) pair. **No lockout, and that one stays open deliberately**, by ruling: an attacker who knows an address must not be able to lock its owner out of the product | `004b` — rate limit done, lockout refused with a reason |
 | 3 | **No password policy.** `SeedOptions` enforces 8 characters on the two seeded values and nothing else, because nothing else sets a password | future |
 | 4 | Deactivating a user does not invalidate a token already issued — up to 8 hours. `spec.md` Q-F accepts it rather than putting a database read on every authenticated request | accepted |
 | 5 | AC-15's literal wording is not met: the sign-in row's actor columns are null. See D-3 in `tests.md` | recorded |
@@ -106,3 +106,84 @@ without going back for the explicit approval `CLAUDE.md` gates 3–4 require. Ca
 the scope was written out in full and approved, and the standing instruction is now: opening
 another feature this way stops all work for a review from the beginning. Recorded here because
 a process failure that leaves no trace is one that repeats.
+
+---
+
+# `004b`, second half — summary, 2026-08-29
+
+Rows 1 and 2 of *Open, and named as open* are **closed**. Row 3 (password policy), row 4 (token
+outliving a deactivated user), row 5 (D-3) and row 6 (the frontend half) are unchanged.
+
+## What was built
+
+| # | What | Where |
+|---|---|---|
+| 1 | `AuthDenialResultHandler` — an `IAuthorizationMiddlewareResultHandler` that writes `Auth.Unauthenticated` or `Auth.Forbidden` with `Outcome = Denied`, and gives the `401`/`403` a real `ProblemDetails` body | `src/Wasl.Api/Common/Auth/` |
+| 2 | `ISignInThrottle` + `InMemorySignInThrottle` — ten failed sign-ins in five minutes per (address, email) pair, sliding window, successes not counted | `Application/Common/Abstractions`, `Infrastructure/Auth` |
+| 3 | `SignInThrottleFilter` — on `POST /api/auth/token` only, ahead of the pipeline. Writes `Auth.RateLimited` and throws `RateLimitedException` | `src/Wasl.Api/Common/Auth/` |
+| 4 | `429 errors/rate-limited` in the registry, its title key, and `Retry-After` on the response | `ProblemTypes`, `GlobalExceptionHandler`, `StaticProblemMessageSource` |
+| 5 | `Ticket.RowVersionTokenMaxLength` and a cascade-stopped `MaximumLength` rule on `expectedVersion`, on **both** endpoints that take it | `Domain/Tickets`, two validators |
+
+## The one thing worth reading
+
+**The ruling and AC-37 contradicted each other, and running the code is what showed it.**
+
+The approved ruling was "ten failures in five minutes **per IP**, and no lockout". AC-37 says a
+successful sign-in must not be blocked by another user's failures from the same address. Those
+cannot both hold: keying by IP alone means one person guessing from an office locks out everyone
+behind that NAT address, which is AC-37 failing — and it is also a lockout, just an
+indiscriminate one. Keying by email alone is the lockout the ruling explicitly rejected, and a
+worse one, because anyone who knows an address could then lock its owner out from anywhere.
+
+The **pair** satisfies both readings: a burst against one account from one address blocks that
+pair and nothing else. A colleague at the same address is a different key; the same account from
+a different address is a different key. There is no input that locks a named user out of the
+product.
+
+This was not reasoned into place — it was measured. Control B reverted the key to IP alone and
+the Manager, who never failed once, was refused with `429`. See `tests.md`.
+
+## Deviations
+
+| # | Ruling / spec says | Built | Reason |
+|---|---|---|---|
+| D-7 | The throttle is keyed **per IP** | keyed per **(IP, email)** pair | The conflict above. Both readings of the ruling's intent — slow a script, never lock out a named user — are satisfied by the pair and by neither single key. Flagged to the product owner rather than absorbed silently, and the measurement is in `tests.md` |
+| D-8 | `429` is listed in `error-contract.md` as **not produced by this API** | produced, on one endpoint | The entry read "no rate limiting" — a statement of fact about the build at the time, not a decision that there never would be. Recorded as a **contract change** at the foot of that file, with what the frontend must do |
+| D-9 | `README.md`: a Kestrel request-body limit is "the cleaner fix" for the `expectedVersion` allocation | a `MaximumLength` rule on the field | **The old recommendation was wrong and is corrected in place, not annotated below.** A global body cap is sized by the largest legitimate body — a 4000-character description — so it sits far above the twelve characters a `rowversion` needs and refuses nothing; lowering it to where it would bite refuses legitimate requests elsewhere. The defect is one field on two endpoints |
+
+## Naming: three new actions, and why that is not a reversal of D-2
+
+`004` collapsed `Auth.LoginSucceeded` / `Auth.LoginFailed` into one `Auth.SignIn`, because an
+`IAuditableCommand` carries **one** action string that `AuditBehaviour` reads without knowing
+which path ran. `004b` writes three names — `Auth.Unauthenticated`, `Auth.Forbidden`,
+`Auth.RateLimited` — and the difference is where the name is chosen. **A component names its
+refusal when it can see which refusal it is.** The result handler is handed `Challenged` or
+`Forbidden` as an argument; the throttle filter refuses before a command exists at all. Sign-in
+cannot see its own outcome, and still writes one name with `Outcome` carrying the rest. The note
+sits beside D-2 in `tests.md` so the two are read together.
+
+## Known limitations — stated, not hidden
+
+- **The throttle is in memory and per process.** Two instances each count to ten; a restart
+  forgets everything. Durability means a shared store and a new dependency, which is a larger
+  decision than this was approved for. The honest framing is unchanged either way: *it slows a
+  script, it does not stop a determined attacker.*
+- **No lockout**, by ruling. An attacker who knows an address must not be able to lock its owner
+  out of the product.
+- **The limit is on `POST /api/auth/token` only**, by ruling — not on the API.
+- **The `429` is not yet rendered specifically by the frontend.** `025` shows *a* message because
+  it renders any `ProblemDetails`, but it does not branch on `rate-limited` or read `Retry-After`.
+  In the contract change, so the frontend lane sees it.
+- **Still English-only.** Every title here comes from the static catalogue. `005`.
+
+## What this closes elsewhere
+
+- `008`'s clarification 4 and its `data-model.md` note — both said nothing writes a `401` row.
+  Corrected in place, with the date.
+- `011`'s negative-control conclusion — half of it ("a policy denial is not audited") is now
+  false. **Superseded in place rather than rewritten**, because the conclusion still holds for
+  the *other* reason the control measured: a policy runs before any handler, so it cannot express
+  the contract's step 4 → step 5 ordering. BR-2's data-dependent half stays in the handler
+  because of ordering, not auditing.
+- `docs/sdd/04-business-rules.md` BR-9's action list — `Auth.SignIn` and `Auth.RateLimited` added,
+  with the reason each differs from what the blueprint originally named.

@@ -23,6 +23,18 @@ public sealed class Ticket : IAuditableEntity
     public const int SubjectMaxLength = 200;
     public const int DescriptionMaxLength = 4000;
 
+    /// <summary>
+    /// The longest <c>expectedVersion</c> the API will look at. `004b` AC-38.
+    /// </summary>
+    /// <remarks>
+    /// A SQL Server <c>rowversion</c> is eight bytes, so its base64 form is twelve characters. The
+    /// ceiling is generous rather than exact because the token is opaque to the client — but it is
+    /// a ceiling, because <c>Convert.TryFromBase64String</c> needs a destination buffer the size of
+    /// the INPUT. Without this rule a ten-megabyte string allocated ten megabytes before being
+    /// refused, and repeating that costs the server far more than it costs the caller.
+    /// </remarks>
+    public const int RowVersionTokenMaxLength = 64;
+
     // EF Core materialises through this. Nothing else should.
     private Ticket()
     {
