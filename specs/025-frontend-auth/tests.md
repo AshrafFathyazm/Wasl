@@ -341,3 +341,71 @@ locale parity         OK — ar, en · 4 namespaces · 102 keys
 domain types          clean
 vitest run            9 files, 78 tests, all passing
 ```
+
+
+---
+
+## 11 · The `401` override, removed and verified against the running API
+
+**2026-08-29.** `004b` shipped the contract's title. The override came out of `LoginPage`,
+`spec.md` §7b, and `LoginPage.test.tsx`.
+
+**Verified against the server, not the source.** The removal condition was written as a
+condition precisely so it would not be discharged by reading the fix:
+
+```text
+POST /api/auth/token   Accept-Language: en
+HTTP/1.1 401 Unauthorized
+{"type":"https://wasl.local/errors/unauthenticated",
+ "title":"Email or password is incorrect.",
+ "status":401, "instance":"/api/auth/token", "traceId":"00-34dfbb31…"}
+```
+
+`title` is the contract's. **There is no `detail` at all**, so the raw-resource-key leak is
+closed with it.
+
+Then through the screen, against that same server:
+
+| Claim | Result |
+|---|---|
+| The block shows the server's sentence | `Email or password is incorrect.` |
+| A `401` is not a redirect (AC-27) | `location.pathname` still `/login` |
+| Focus returns to the email field (D-1) | `document.activeElement` is `input[name=email]` |
+
+### Two things found while doing it, neither caused by this change
+
+**1 · The title is English in both locales.** `Accept-Language: ar` returns the same
+sentence. `StaticProblemMessageSource` is an English-only table **by design** — its own
+header says `005` deletes the file and registers a localizer-backed implementation. So every
+server-authored message in the product is English today.
+
+While the override was in place, sign-in was the one screen showing a translated sentence.
+Removing it makes sign-in **consistent with the rest of the product rather than better than
+it**. An Arabic user now reads English here too, until `005` lands. Recorded so it is not
+later mistaken for a regression this feature introduced.
+
+**2 · `agent2@wasl.local` cannot sign in on this machine.** Tested all three seeded accounts
+with the passwords currently in `dotnet user-secrets`:
+
+```text
+manager@wasl.local -> 200
+agent@wasl.local   -> 200
+agent2@wasl.local  -> 401
+```
+
+Two of three succeed, so the endpoint and the success path are fine — this is a local seed
+state that no longer matches the stored secret for that one account. **Backend lane's
+environment, not a product defect**, and noted here because it is the account `025`'s own
+browser verification used the day before.
+
+**A password was NOT typed into the browser to finish the success path.** It would have put
+the value in a transcript, and the success path is unchanged code already proven at the API
+level by the two `200`s above.
+
+### The run
+
+```text
+tsc --noEmit   clean
+eslint .       clean
+vitest run     9 files, 76 tests, all passing (was 78 — the two TEMPORARY cases are gone)
+```

@@ -117,51 +117,6 @@ describe('AC-27 — a 401 here is the form error, never a redirect', () => {
   });
 });
 
-describe('TEMPORARY — the 401 message comes from OUR catalogue, not the server', () => {
-  /* ==========================================================================
-   * REMOVE THIS BLOCK WHEN `004` IS FIXED.
-   *
-   * `POST /api/auth/token` currently answers a rejected credential with
-   * `title: "Authentication is required."` — the sentence for a MISSING token on
-   * a protected endpoint. The frozen contract specifies
-   * `"Email or password is incorrect."`. So the screen was telling someone who
-   * had just typed a password that authentication is required.
-   *
-   * Rendering the server's sentence is the rule (BR-8.6) and still is
-   * everywhere else. It stops being right when the sentence itself is the
-   * defect. The product owner is reporting it to the backend lane; it is NOT
-   * fixed here.
-   *
-   * THE CONDITION: when `004` returns the contract's title, delete the
-   * `status === 401` branch in `LoginPage`'s `onError` and this describe block
-   * with it. The assertion below inverts — the server's sentence becomes what
-   * the screen shows.
-   * ========================================================================== */
-
-  it('shows the catalogue sentence and NOT the server title', async () => {
-    vi.mocked(signIn).mockRejectedValue(REJECTED);
-    renderPage();
-
-    await submitCredentials();
-
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Email or password is incorrect');
-    expect(alert).not.toHaveTextContent('Authentication is required');
-  });
-
-  it('never renders `detail`, which carries a raw resource key', async () => {
-    /* `detail` was never displayed and is not what the override is about — but
-     * an untranslated identifier reaching a user is worth one assertion. */
-    vi.mocked(signIn).mockRejectedValue(REJECTED);
-    renderPage();
-
-    await submitCredentials();
-
-    await screen.findByRole('alert');
-    expect(screen.queryByText(/Error\.Auth\.InvalidCredentials/)).not.toBeInTheDocument();
-  });
-});
-
 describe('a transport failure says something different from a rejected credential', () => {
   it('tells the user to retry rather than to retype', async () => {
     vi.mocked(signIn).mockRejectedValue(

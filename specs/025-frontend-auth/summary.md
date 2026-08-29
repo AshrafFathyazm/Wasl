@@ -80,7 +80,7 @@ jumps ends mid-entry under RTL. A password is not language content.
 | **The panel gained a heartbeat** | A packet travels a spoke into the hub every second or two; the hub flares and sheds a ring. From `Wasl Login_last.html`. The accent is resolved from `--teal-400` rather than written into the component, and the flare is composed in CSS from one custom property so the resting shadow is not restated in JavaScript |
 | **No `*` on the two sign-in labels** | `Input` gained `requiredMarker`. `required` itself is unchanged, so the native attribute and its `aria-required` survive — only the glyph is suppressed, on a form where every field is required and the marker therefore distinguishes nothing |
 | **A "Drag the hub" hint was built and withdrawn** | Shown to the product owner and removed the same day. `auth:panel.hint` existed in both catalogues for that round trip and exists in neither now |
-| **A `401` from the sign-in endpoint renders our catalogue string** | **Temporary, with a written removal condition** — see `spec.md` §7b. `004` returns the wrong `401` title, and the screen was showing it. The defect is reported, not patched; nothing under `src/Wasl.*` was touched |
+| ~~A `401` from the sign-in endpoint renders our catalogue string~~ | **Withdrawn 2026-08-29.** `004b` shipped the contract's title, verified against the running API rather than by reading the fix. The override, its spec section and its two tests are gone; the screen renders `problem.title` again |
 | **`auth:validation.*` keys instead of the shared `errors.maxLength`** | That key is stored **flat with a dot in its name** while i18next's separator is also `.`, so which one a lookup resolves is ambiguous — and it interpolates `{{max}}` while `024`'s `message()` helper passes no variables. Raised as Q-7, not fixed here |
 
 ---
@@ -142,6 +142,19 @@ has the output.
 
 This is the third measurement in this feature that reported success while checking
 nothing. The other two are in `tests.md` already.
+
+## The override is gone
+
+`004b` returned the contract's `401` title and dropped `detail` entirely, so the raw
+resource key went with it. Confirmed by calling the endpoint, not by reading the commit:
+`title` came back `"Email or password is incorrect."` with no `detail` field. The screen
+then rendered that sentence, stayed on `/login`, and returned focus to the email field.
+
+**One consequence, and it is not this feature's doing.** The server's title is English in
+both locales — `StaticProblemMessageSource` is an English-only table by design and `005`
+replaces it. While the override stood, sign-in was the single screen showing translated
+error copy. Removing it makes sign-in consistent with every other screen rather than better
+than them, and an Arabic user reads English here until `005` lands.
 
 ## Known limitations
 

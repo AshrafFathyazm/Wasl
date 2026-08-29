@@ -195,7 +195,7 @@ was actually built stay separable.
 | 1 | The form-side brand lockup, field placeholders, the reference's subtitle copy, "Email address" as the label, and the footer | **Not new scope.** These are the plain build's own content, from `01-login.md`'s Elements table and the login reference — and they were **missed**. The mesh panel remains Phase 6 |
 | 2 | A show/hide toggle on the password field | Product owner, 2026-08-28. **Not in the reference** and not in any screen spec, so it is genuinely new. Built into the `Input` primitive rather than the screen |
 | 3 | **Submit disabled until both fields are non-empty** | Product owner, 2026-08-28. **Overrides** `004/frontend-spec.md`'s States table, which gives Idle as "empty form, submit enabled" |
-| 4 | **A `401` from `POST /api/auth/token` renders our catalogue string, not the server's `title`** | Product owner, 2026-08-28. **TEMPORARY — it has a removal condition, below.** |
+| 4 | ~~A `401` from `POST /api/auth/token` renders our catalogue string~~ | **Withdrawn 2026-08-29.** `004b` shipped the contract's title; the override was removed and the screen renders the server's sentence again, like every other error. See below |
 | 5 | **The panel gained a heartbeat** — every second or two a packet travels one spoke into the hub, the hub flares, and a ring leaves it | Product owner, 2026-08-28, against `Wasl Login_last.html`. The only motion on the panel that is not a reaction to the pointer |
 | 6 | **No required marker on the two sign-in fields** | Product owner, 2026-08-28. `required` itself is unchanged — the native attribute and its `aria-required` stay; only the `*` is suppressed |
 | 7 | A **"Drag the hub" hint pill** was built, shown to the product owner, and **removed at their request** the same day | Product owner, 2026-08-28. Recorded because it explains a catalogue key that briefly existed in both locales and is now gone |
@@ -252,36 +252,45 @@ The password is checked **without trimming** — a password of three spaces is a
 and trimming here would leave the button dead for exactly the person whose password that
 is.
 
-### Change 4 — a temporary deviation, with the condition for removing it
+### Change 4 — a temporary deviation, and its removal
 
-**What it does.** A `401` from the sign-in endpoint renders `auth:error.invalid` from our
-own catalogue. Every other response, on every other endpoint, still renders the server's
-sentence as received (BR-8.6) — that rule is unchanged.
+**Withdrawn on 2026-08-29. The override is gone and the screen renders `problem.title` as
+received, like every other error in the product.**
 
-**Why.** `POST /api/auth/token` currently answers a rejected credential with
-`title: "Authentication is required."`, which is the sentence for a *missing token on a
-protected endpoint*. The frozen contract specifies `"Email or password is incorrect."` So
-the screen was telling someone who had just typed a password that authentication is
-required. Rendering the server's text is right as a principle; it stops being right when
-the text itself is the defect, because the principle exists to keep one sentence in one
-catalogue — not to carry a wrong sentence to a user unchallenged.
+For the record of what it was: `POST /api/auth/token` answered a rejected credential with
+`title: "Authentication is required."` — the sentence for a *missing token on a protected
+endpoint*. The frozen contract specifies `"Email or password is incorrect."`, so the screen
+was telling someone who had just typed a password that authentication was required. For one
+day the screen rendered `auth:error.invalid` from our own catalogue on a `401` from that one
+endpoint, and nothing else changed.
 
-**One correction to how this was described.** The screen renders `ProblemDetails.title`,
-and always has. `detail` — which carries the raw resource key
-`Error.Auth.InvalidCredentials`, untranslated in both locales — was never displayed. Both
-are defects in `004`; only the first one reached a user.
+**One correction to how it was described at the time.** The screen renders
+`ProblemDetails.title`, and always did. `detail` — which carried the raw resource key
+`Error.Auth.InvalidCredentials` — was never displayed. Both were defects in `004`; only the
+first reached a user.
 
-> **REMOVAL CONDITION.** When `004` returns the contract's `401` title, delete the
-> `status === 401` branch in `LoginPage`'s `onError` and the *TEMPORARY* describe block in
-> `LoginPage.test.tsx`. The line beneath the branch already does the right thing: it
-> renders `problem.title` and falls back to the catalogue only when the body carried
-> nothing usable. **The screen then shows the server's sentence again, like every other
-> error in the product.**
+`004b` fixed both. **Verified against the running API rather than by reading the fix**, which
+is the whole reason the removal condition was written as a condition and not a date:
 
-The defect itself is **not fixed here** and nothing under `src/Wasl.*` was touched. The
-product owner is reporting it to the backend lane (2026-08-28).
+```text
+POST /api/auth/token   Accept-Language: en   →  401
+{"type":"https://wasl.local/errors/unauthenticated",
+ "title":"Email or password is incorrect.", "status":401,
+ "instance":"/api/auth/token", "traceId":"00-34dfbb31…"}
+```
 
----
+No `detail` at all, so the key leak is closed as well.
+
+> **ONE CONSEQUENCE, AND IT IS NOT A REGRESSION IN THIS FEATURE.** The server's title is
+> **English in both locales** — `Accept-Language: ar` returns the same sentence. That is not
+> `004`'s defect: `StaticProblemMessageSource` is an English-only table by design, and its own
+> header says `005` deletes the file and registers a localizer-backed implementation. So
+> **every** server-authored error message in the product is English today, on every screen.
+>
+> While the override was in place, sign-in was the one screen that showed a translated
+> sentence. Removing it makes sign-in consistent with the rest of the product rather than
+> better than it — the Arabic user now sees English here too, and will keep seeing it until
+> `005` lands. Recorded so the change is not later read as something this feature broke.
 
 ## 8 · Assumptions
 
