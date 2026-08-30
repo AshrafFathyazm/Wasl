@@ -1,0 +1,31 @@
+/* PRIORITY IS PLAIN COLOURED TEXT, NOT A BADGE.
+ *
+ * Two badges side by side in one row read as a single control with two halves,
+ * so status carries the pill and priority carries the colour. Only the two that
+ * demand an action are coloured; Low and Normal are muted, because a table where
+ * every cell shouts says nothing.
+ *
+ * THIS FILE EXISTS BECAUSE IT WAS MISSING. The component shipped with
+ * `className="priority priority-high"` as PLAIN GLOBAL STRINGS, and no
+ * stylesheet defined either one — so High and Critical rendered in the default
+ * text colour and the map did nothing at all.
+ *
+ * The test passed: it asserted `className.includes('priority-')`, which is true
+ * of a class that styles nothing. A class name is not a style. */
+
+.priority {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* The ONE place red is allowed on a ticket row. BR-1 bans red for STATUS;
+ * Critical is a severity, and red here always means "needs attention now". */
+.priorityHigh {
+  color: var(--state-warning-text);
+  font-weight: var(--weight-medium);
+}
+
+.priorityCritical {
+  color: var(--state-danger-text);
+  font-weight: var(--weight-bold);
+}

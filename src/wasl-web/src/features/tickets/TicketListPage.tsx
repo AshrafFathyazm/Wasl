@@ -3,7 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Table, type TableColumn } from '../../components/Table/Table';
+import {
+  IconEmail,
+  IconLivechat,
+  IconSms,
+  IconWebform,
+  IconWhatsapp,
+} from '../../icons/icons';
 import { ApiError } from '../../lib/api';
+import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
 import { formatDate, formatNumber, type Lang } from '../../lib/formatters';
 import { listTickets, ticketKeys } from './tickets.api';
@@ -25,6 +33,39 @@ import styles from './TicketList.module.css';
  * STORED; the two already differ by four digits of a timestamp. A list is
  * exactly where a helpfully reused write response would go.
  */
+
+/* One asset per channel, keyed on the WIRE value. The glyph sits inside the
+ * pill beside the label — it is not the label's replacement. */
+const CHANNEL_ICON = {
+  Email: IconEmail,
+  WhatsApp: IconWhatsapp,
+  LiveChat: IconLivechat,
+  Sms: IconSms,
+  WebForm: IconWebform,
+} as const;
+
+/* The tint is the scanning aid: "every WhatsApp ticket" is found by colour
+ * before a word is read, which a monochrome glyph cannot do. The values are
+ * --channel-* tokens, not literals (DESIGN-BRIEF rule 3). */
+const CHANNEL_CLASS: Record<string, string | undefined> = {
+  Email: styles.chEmail,
+  WhatsApp: styles.chWhatsApp,
+  LiveChat: styles.chLiveChat,
+  Sms: styles.chSms,
+  WebForm: styles.chWebForm,
+};
+
+/* Q-4 — A FEATURE-LOCAL INITIALS CIRCLE. Not a ninth primitive, and not an
+ * image: there is no avatar URL on the row and none in the contract.
+ * aria-hidden because the name is right beside it — announcing "ع" before
+ * "عمر سعيد" is noise, not information. */
+function Avatar({ name }: { name: string }) {
+  return (
+    <span className={styles.avatar} aria-hidden="true">
+      {[...name.trim()][0] ?? ''}
+    </span>
+  );
+}
 
 const PAGE_SIZES = [10, 20, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
@@ -207,9 +248,15 @@ export default function TicketListPage() {
       header: t('list.column.channel'),
       width: 150,
       skeleton: 'pill',
-      cell: (row) => (
-        <span className={styles.channel}>{t(`channel.${row.channel}`)}</span>
-      ),
+      cell: (row) => {
+        const Icon = CHANNEL_ICON[row.channel];
+        return (
+          <span className={cx(styles.channel, CHANNEL_CLASS[row.channel])}>
+            <Icon size={14} className={styles.channelIcon} />
+            {t(`channel.${row.channel}`)}
+          </span>
+        );
+      },
     },
     {
       id: 'status',
@@ -235,13 +282,21 @@ export default function TicketListPage() {
              says little to a sighted user either. */
           <span className={styles.muted}>{t('list.unassigned')}</span>
         ) : (
-          <span className={styles.truncate}>{row.assigneeName}</span>
+          <span className={styles.assignee}>
+            <Avatar name={row.assigneeName} />
+            <span className={styles.truncate}>{row.assigneeName}</span>
+          </span>
         ),
     },
     {
       id: 'created',
       header: t('list.column.created'),
-      width: 96,
+      /* 116, not the 96 the preview measured. The preview drew the date with
+       * its own cell padding; `Table` pads 16px each side, so 96 left 64px for
+       * a string that needs 73 — and `30/08/2026` rendered as `0/08/2026`, one
+       * digit short, in a way that reads as a data error rather than a width
+       * one. Measured on the real screen: cell 97, content 105. */
+      width: 116,
       cell: (row) => formatDate(row.createdAtUtc, lang),
     },
   ];

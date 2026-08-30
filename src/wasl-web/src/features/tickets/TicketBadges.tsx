@@ -5,7 +5,9 @@ import {
   type BadgeAppearance,
   type BadgeTone,
 } from '../../components/Badge/Badge';
+import { cx } from '../../lib/cx';
 import type { TicketPriority, TicketStatus } from '../../lib/api-types.provisional';
+import styles from './TicketBadges.module.css';
 
 /**
  * The domain leak `Badge` refused, taken HERE — which is where
@@ -62,18 +64,21 @@ export function TicketStatusBadge({ status }: { status: TicketStatus }) {
  * This is the one place red is allowed on a ticket row. `Critical` is a
  * SEVERITY, and BR-1 bans red for STATUS only.
  */
+/* CSS MODULE CLASSES, not strings. This map held 'priority-high' and
+ * 'priority-critical' as plain global names that no stylesheet defined, so
+ * High and Critical rendered in the default text colour — the map was inert
+ * and the screen looked like the design had simply not been applied. */
 const PRIORITY_CLASS: Record<TicketPriority, string | undefined> = {
   Low: undefined,
   Normal: undefined,
-  High: 'priority-high',
-  Critical: 'priority-critical',
+  High: styles.priorityHigh,
+  Critical: styles.priorityCritical,
 };
 
 export function TicketPriorityText({ priority }: { priority: TicketPriority }) {
   const { t } = useTranslation('tickets');
-  const modifier = PRIORITY_CLASS[priority];
   return (
-    <span className={modifier ? `priority ${modifier}` : 'priority'}>
+    <span className={cx(styles.priority, PRIORITY_CLASS[priority])}>
       {t(`priority.${priority}`)}
     </span>
   );

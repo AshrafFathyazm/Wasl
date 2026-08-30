@@ -289,6 +289,8 @@ export interface TicketListItem { … }
 | The customer cell is text, not a link | Q-3 | At the customer-profile feature |
 | No `Avatar` primitive | Q-4, and the eight-primitive cap | At its second consumer, with a written reason |
 | No row menu | Q-7 | At the first row action that changes state |
+| **The supplied design shows an `الإجراءات` column with a kebab; this screen has neither** | **DISCREPANCY, ruled 2026-08-30: the spec wins.** Q-7 decided before any code that a menu holding only "open" is an empty menu, and opening a ticket is the row click. The design canvases were drawn later and were not re-ruled against Q-7. **Left standing and documented rather than silently reconciled** — the screen and the drawing disagree, and which one is wrong is a product decision | When Q-7 is explicitly revised. Not before |
+| The subtitle line (`count · updated`) is absent | It needs a counted noun. `FE-026-05` rules those out, and Arabic plural agreement makes one string wrong for 2, for 3–10, and again above 10. **Unresolved copy decision, not a missing feature** | When the copy is decided — with a form that does not count, or with ICU plural rules |
 | `Pagination` is not a component; the footer is a `Table` state | `component-inventory.md` assigns it to `Table` | Not removed |
 | The empty state uses the brand mark rather than an illustration | Q-6 — the asset does not exist | When one does |
 | **Hand-written API types**, against ADR-011 §6 | Product owner, 2026-08-26. Unchanged conditions, one more interface in the one file | When generation lands. The file is **deleted**, not edited |

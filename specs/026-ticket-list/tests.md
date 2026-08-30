@@ -1011,6 +1011,191 @@ Reading the code would not have: `refreshing` was wired, correct, and irrelevant
 | `isPending` → `isFetching` (before the new test) | **0 failed** — the hole |
 | `placeholderData` removed (after) | **1 failed** — `does not return to the skeleton when moving page` |
 
+## 1h — `TEST-026-12`, the Arabic walk
+
+Run 2026-08-30 against the **real screen and the real API** — `dotnet run` on :5099, a dev
+server proxied to it on :5180, signed in as the seeded Manager, eight tickets from the
+database. Not the preview.
+
+`lang="ar"`, `dir="rtl"` on load, with no toggle touched.
+
+### 1h.1 — What was correct
+
+| Checked | Result |
+|---|---|
+| Column order, right to left | الموضوع · العميل · القناة · الحالة · الأولوية · المسؤول · تاريخ الإنشاء — matches `03-tickets-list.md` |
+| Pagination chevrons mirrored | `التالي` at x=105, `السابق` at x=202 — next is to the LEFT of previous, which is forward in RTL |
+| Dates | `30/08/2026` — Gregorian, Latin digits (BR-8.13) |
+| Page counter | `1 من 1` — Latin digits, and the separator is a WORD, not a slash |
+| Actions column | Absent, per Q-7 |
+
+### 1h.2 — Two defects, both invisible in the preview
+
+**The date column was one digit short.** `30/08/2026` rendered as `0/08/2026`. The 96px came
+from the preview, which drew the date with its own cell padding; `Table` pads 16px each side,
+so 96 left 64px for a string needing 73. Measured on the real screen: cell 97, content 105.
+Now 116.
+
+**It reads as a data error, not a width one** — a date starting with a single digit looks
+like a bad value, and the table also overflowed by exactly those 8px, which is what a
+*width* problem looks like. The two symptoms pointed in different directions.
+
+**Every subject was a blue underlined link.** The `<a>` exists so a keyboard and a screen
+reader can reach the ticket — the row click adds no tabindex — but `base.css` gives every
+`<a>` the link colour and the browser underlines it. Sixty links in a column the design
+draws as plain text. Colour and decoration overridden; **the focus ring is untouched**,
+because it is the only thing telling a keyboard user where they are.
+
+### 1h.3 — Open, and it is a ruling, not a fix
+
+**An LTR subject in an RTL cell truncates from its START.** `Least privilege live probe`
+renders as `… privilege live probe`: the ellipsis is on the left and the first word — the
+part that identifies the ticket — is what is cut. Seven of eight rows truncate; all report
+`direction: rtl`.
+
+This is the direct consequence of the ruling that fixed the name column. `unicode-bidi:
+isolate` gives every cell the same start edge without rewriting direction, which is what
+stopped `Sara Khan` aligning against the opposite edge of a column of Arabic names. The
+same property is what puts the overflow — and so the ellipsis — on the physical left,
+whatever direction the content reads in. **Arabic subjects truncate correctly; Latin ones
+do not.**
+
+| Option | Cost |
+|---|---|
+| Leave it | A Latin subject loses its opening words. In an Arabic-dominant product this is the minority case, and the seed data is unrepresentative — its subjects are English probe strings |
+| `dir="auto"` on the subject line only | Truncation follows the text and keeps the head. The subject column then aligns per row by content language — the jumpiness the name ruling was about, in a column it did not cover |
+| Truncate in JS at the string's own end | Correct in both directions, and the only option that keeps a uniform edge. Costs a measurement per row |
+
+**Not decided here.** The name ruling covered NAMES, and a subject is content rather than a
+label, so this is a column the ruling did not reach — but it is close enough to it that
+choosing unilaterally would be re-deciding something already settled.
+
+### 1h.4 — Not verified, and why
+
+**The escalation marker.** No seeded ticket has `isEscalated: true`, so the red `مُصعَّدة`
+text under the ticket number never rendered. It is covered by no assertion on the real
+screen — the preview draws it, which is not the same thing. `016` creates the first real one.
+
+## 1i — The cells that were rebuilt instead of carried over
+
+The wired screen was reported as *"not the table we agreed on"*, and it was not. `026`
+implemented the spec text and rebuilt each cell from it, rather than carrying across the
+design `FE-026-00` had already proven. Four things were missing; one was a defect, not a
+style gap.
+
+### 1i.1 — A class name is not a style
+
+`TicketPriorityText` shipped with `className="priority priority-high"` as **plain global
+strings that no stylesheet defined.** Computed colour on every priority was
+`rgb(13, 38, 38)` — the default text colour. High and Critical were not coloured at all and
+the BR-1 map was inert.
+
+**The test passed.** It asserted `className.includes('priority-')`, which is true of a class
+that styles nothing.
+
+`getComputedStyle` cannot close this: vitest applies no CSS Modules, so it reports nothing
+either way. The guard now requires **two** facts — the class must come from the CSS module
+(hashed, so a hand-written global fails the assertion) **and** the stylesheet is read to
+confirm the matching rule sets a colour. Restoring the exact bug turns **3** tests red.
+
+**Third guard this session satisfied by the wrong thing**, after `toBeVisible` on `sr-only`
+and the `background-color` *or* `color` check. The shape is identical every time: the
+assertion is about the right thing and satisfied by something adjacent to it.
+
+| | Before | After |
+|---|---|---|
+| Priority | one colour for all four | حرجة `rgb(229,69,69)` · مرتفعة `rgb(138,90,0)` · عادية / منخفضة muted |
+| Channel | one grey chip, no glyph | icon + per-channel tint, **4 distinct tints** across the channels present |
+| Assignee | plain text | initials circle (Q-4) |
+
+### 1i.2 — Rulings, 2026-08-30
+
+Asked, and answered. Recorded here so none of them is re-opened by the next person who
+compares the screen to the design.
+
+| # | Ruling |
+|---|---|
+| **Actions column** | **Follow the spec, not the screenshots.** No kebab, no row menu; opening a ticket is the row click. The supplied design shows `الإجراءات` with a kebab — that is a **design/spec discrepancy, documented and left standing.** The column is not added unless Q-7 is explicitly revised |
+| **Search · filters · tabs** | **Stay in `015`.** `026` remains the table, pagination, and the five table states. The preview carries them because the canvas was drawn whole; the screen does not |
+| **Subtitle (`count · updated`)** | **Left out.** It needs a counted noun, and `FE-026-05` rules those out — Arabic plural agreement makes `{{count}} تذكرة` wrong for 2, and for 3–10, and again above 10. **Flagged as an unresolved copy decision**, not as a missing feature |
+| **Escalation marker · assignee avatar** | Implementation stays. **No seed data is manufactured to verify them** — that is dressing the demo. Covered by fixture tests instead |
+| **The priority guard** | Keep the stronger form. Not to be weakened back to a class-name assertion |
+
+### 1i.3 — What fixtures can prove that the database cannot
+
+No seeded ticket is escalated, and every one is unassigned, so the Arabic walk exercised
+neither branch. Both are now asserted **in both directions** — a test that only renders the
+true case passes on a component that renders the marker unconditionally.
+
+| Break | Observed |
+|---|---|
+| `row.isEscalated ?` → `true ?` | 1 failed — the marker appears on a row that is not escalated |
+| `[...name][0]` → `name.slice(0, 2)` | 1 failed — the circle must hold ONE character, and an Arabic letter is multi-byte, so a byte-indexed slice renders the wrong glyph |
+
+## 1j — `TEST-026-11`, the accessibility walk
+
+Run 2026-08-30 on the **real screen**, Arabic, against the API. Keyboard events dispatched
+through the browser, not `element.focus()` — `:focus-visible` does not match a programmatic
+focus, so a ring check done that way reports nothing and looks like a pass.
+
+### 1j.1 — Structure
+
+| Checked | Result |
+|---|---|
+| Table accessible name | `قائمة التذاكر` |
+| `<th scope="col">` | **all seven** |
+| `aria-sort` | absent on every heading — correct, `026` has no sortable column (Q-T-3) |
+| `<tr>` `tabindex` / `role` | **none**, by design — a row with either announces the whole row as one control |
+| Page heading | `<h1>التذاكر</h1>` |
+
+### 1j.2 — Keyboard
+
+**Eight rows, eight focus stops, one per row** — the subject link. Tabbing runs rows 1→8 in
+document order and then leaves the table for the rows-per-page control. No dead stop, no
+trap, nothing focusable that does nothing.
+
+Every stop matched `:focus-visible` and carried a visible ring: `box-shadow 0 0 0 3px` plus
+a 2.67px outline. **This is the ring that the search field gave up**, and it is why that
+trade was scoped to one field rather than removed globally.
+
+### 1j.3 — Nothing is said by colour alone
+
+Asserted across all eight rows: status, priority and channel each carry a **word**, not only
+a tint. `Badge` makes `label` a required prop with no way to omit it, priority is text, and
+the escalation marker is the word `مُصعَّدة` — colour is redundant in all four, which is
+DESIGN-BRIEF rule 14.
+
+### 1j.4 — TWO CONTRAST FAILURES, and they are token-level
+
+Measured on the rendered screen, WCAG 2.1 contrast against the actual composited background:
+
+| Element | Colour | Ratio | AA (4.5:1 at this size) |
+|---|---|---|---|
+| Priority `عادية` / `منخفضة`, 16px | `--text-muted` → `rgb(118,129,140)` | **3.97** | **fails** |
+| Priority `حرجة`, 16px | `--state-danger-text` → `rgb(229,69,69)` | **3.99** | **fails** |
+| Ticket number, 12px | `--text-muted` | **3.97** | **fails** |
+| `غير مُعيَّنة`, 16px | `--text-muted` | **3.97** | **fails** |
+| Channel pill, 12px | `--channel-email-fg` on `--channel-email-bg` | 6.82 | passes |
+
+**The `حرجة` one is the worst of them**, and not because the number is lower: it is the
+highest-priority signal on the row, the one thing a reader is scanning for, and it is the
+least legible text in the table.
+
+None of this is `026`'s to fix. `--text-muted` is `--neutral-500` and `--state-danger-text`
+is `--red-600`, both from the `023` token layer, both used on every screen in the product.
+Changing either here would fix one table and leave the rest — and changing a semantic token
+is a design-system decision, not a feature one.
+
+**Raised, not patched.** It belongs to whichever feature owns the token layer, and the
+measurement above is what it needs: real ratios, at the real sizes, on the real background.
+
+### 1j.5 — Not verified
+
+The **escalation marker** has no seeded row, so its ring, its contrast and its position were
+not measured on the real screen. Its conditional rendering is covered by fixture tests
+(1i.3), and its meaning is a word rather than a colour by construction — but the rendered
+checks above were not run against it.
+
 ### 1b.8 — Open, and recorded rather than smoothed over
 
 - **`.colPriority` is now 92px, and it is the canvas's number, not a render.** This was

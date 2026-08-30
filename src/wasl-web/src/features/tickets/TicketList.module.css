@@ -24,12 +24,27 @@
   min-inline-size: 0;
 }
 
+/* IT IS AN <a>, AND IT MUST NOT LOOK LIKE ONE.
+ *
+ * The anchor exists so a keyboard and a screen reader can reach the ticket —
+ * the row click is a mouse convenience and adds no tabindex. But base.css gives
+ * every <a> the link colour, and the browser underlines it, so every subject in
+ * the table came out blue and underlined: sixty links in a column that the
+ * design draws as plain text.
+ *
+ * Colour and decoration are overridden; the FOCUS RING is not touched, because
+ * that is the only thing telling a keyboard user where they are. */
 .subjectLine {
   overflow: hidden;
   color: var(--text-primary);
+  text-decoration: none;
   font-weight: var(--weight-medium);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.subjectLine:hover {
+  text-decoration: underline;
 }
 
 .subjectMeta {
@@ -62,9 +77,17 @@
   color: var(--text-muted);
 }
 
+/* A LABELLED, TINTED PILL — icon and label together, one tint per channel.
+ *
+ * This shipped as a single grey chip with no glyph, because the cell was
+ * rebuilt from the spec text instead of carried over from the approved design.
+ * The tint is not decoration: it is how sixty rows are scanned for one channel
+ * before a word is read, and it is the same argument the status column already
+ * won. Tokens, never literals (DESIGN-BRIEF rule 3). */
 .channel {
   display: inline-flex;
   align-items: center;
+  gap: var(--space-1);
   block-size: 24px;
   padding-inline: var(--space-2);
   border-radius: var(--radius-pill);
@@ -73,6 +96,57 @@
   font-size: var(--text-helper);
   font-weight: var(--weight-medium);
   white-space: nowrap;
+}
+
+.channelIcon {
+  flex: none;
+}
+
+.chWhatsApp {
+  background-color: var(--channel-whatsapp-bg);
+  color: var(--channel-whatsapp-fg);
+}
+
+.chSms {
+  background-color: var(--channel-sms-bg);
+  color: var(--channel-sms-fg);
+}
+
+.chWebForm {
+  background-color: var(--channel-webform-bg);
+  color: var(--channel-webform-fg);
+}
+
+.chEmail {
+  background-color: var(--channel-email-bg);
+  color: var(--channel-email-fg);
+}
+
+.chLiveChat {
+  background-color: var(--channel-livechat-bg);
+  color: var(--channel-livechat-fg);
+}
+
+/* Q-4 — the initials circle. --table-avatar-size is the token the design fixes;
+ * this is not a primitive and does not become one until a second screen wants it. */
+.assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
 }
 
 /* ---- Footer --------------------------------------------------------------- */

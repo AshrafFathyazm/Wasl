@@ -361,3 +361,65 @@ describe('AC-026-06 — a refetch keeps the rows on screen', () => {
     release(page());
   });
 });
+
+/*
+ * THE TWO STATES THE SEEDED DATABASE CANNOT SHOW.
+ *
+ * No seeded ticket has `isEscalated: true`, and every one is unassigned — so the
+ * Arabic walk on the real screen exercised neither. Fixtures can, and that is
+ * the honest way round: manufacturing seed rows to make a screenshot look
+ * complete would be dressing the demo, not testing the component.
+ *
+ * These assert the CONDITION, both ways. A test that only renders the true case
+ * passes on a component that renders the marker unconditionally.
+ */
+describe('escalation and assignment render only when the row says so', () => {
+  it('shows the escalated marker when isEscalated, and not when it is false', async () => {
+    vi.mocked(listTickets).mockResolvedValue(
+      page({ items: [{ ...ROW, isEscalated: true }] }),
+    );
+    const { unmount } = mounted();
+    expect(await screen.findByText(i18n.t('tickets:list.escalated'))).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(listTickets).mockResolvedValue(
+      page({ items: [{ ...ROW, isEscalated: false }] }),
+    );
+    mounted();
+    await screen.findByText('TCK-2026-000042');
+    expect(screen.queryByText(i18n.t('tickets:list.escalated'))).toBeNull();
+  });
+
+  it('shows an initials circle for an assignee, hidden from assistive tech', async () => {
+    vi.mocked(listTickets).mockResolvedValue(
+      page({
+        items: [{ ...ROW, assigneeId: 'a1', assigneeName: 'عمر سعيد' }],
+      }),
+    );
+    const { container } = mounted();
+    await screen.findByText('عمر سعيد');
+
+    const avatar = container.querySelector('[class*="avatar"]');
+    expect(avatar).not.toBeNull();
+    /* The first CHARACTER, not the first byte — an Arabic letter is multi-byte
+     * and name[0] would render a replacement glyph. */
+    expect(avatar!.textContent).toBe('ع');
+    /* aria-hidden: the name is right beside it, so announcing the initial first
+     * is noise. */
+    expect(avatar).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.queryByText(i18n.t('tickets:list.unassigned'))).toBeNull();
+  });
+
+  it('shows the unassigned label and NO circle when both fields are null', async () => {
+    /* The contract makes assigneeId and assigneeName null together — the row is
+     * still returned, because the join is a left join. */
+    vi.mocked(listTickets).mockResolvedValue(
+      page({ items: [{ ...ROW, assigneeId: null, assigneeName: null }] }),
+    );
+    const { container } = mounted();
+    expect(
+      await screen.findByText(i18n.t('tickets:list.unassigned')),
+    ).toBeInTheDocument();
+    expect(container.querySelector('[class*="avatar"]')).toBeNull();
+  });
+});
