@@ -4,8 +4,38 @@ A five-minute walkthrough of the core flow. The order is chosen so that each ste
 makes the next one possible, and so that the interesting engineering decisions come
 up naturally rather than being announced.
 
-**Before starting:** clean database, seed script run, both a Manager and an Agent
-account available, browser and API documentation UI both open.
+## Before starting
+
+**Two commands, not one, and the second is the one people miss.** `003b` made the
+application run as a restricted principal that cannot create its own login, so
+`dotnet ef database update` alone leaves an application that cannot connect — the failure
+is `Login failed for user 'wasl_app'`, which reads as a broken database rather than an
+unfinished setup.
+
+```bash
+docker compose up -d db
+
+# once per clone: the wasl_app password has no default, by rule
+dotnet user-secrets --project src/Wasl.Api set "Database:AppPassword" "<a password>"
+dotnet user-secrets --project src/Wasl.Api set "ConnectionStrings:Wasl" \n  "Server=localhost,14330;Database=Wasl;User Id=wasl_app;Password=<the same>;TrustServerCertificate=True;MultipleActiveResultSets=True"
+
+dotnet run --project src/Wasl.Api -- --seed    # provisions, then writes the demo data
+dotnet run --project src/Wasl.Api
+```
+
+`--seed` provisions before it seeds, so it is the only command needed once the secrets
+are set. `--provision` on its own is for a deployment that wants the schema and the
+principal without demo data.
+
+A Manager and an Agent account are seeded: `manager.local` and `agent.local`.
+
+**There is no API documentation UI to open, and this line used to say there was.**
+`002c` generates an OpenAPI document and deliberately does not serve it: exposing it
+needs `AllowAnonymous`, which would make it the third anonymous endpoint after `/health`
+and `POST /api/auth/token` — a list `004` AC-10 counts and asserts. The document is
+compared against the frozen `contracts/` in a test instead. **If a browsable explorer is
+wanted for a demo, that is a decision to take deliberately** — Development-only, with a
+test asserting it answers `404` in Production — and it has not been taken.
 
 ---
 
