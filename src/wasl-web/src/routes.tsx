@@ -48,12 +48,21 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
   ? (() => {
       const PreviewPage = lazy(() => import('./dev/PreviewPage'));
       const CreateTicketPreview = lazy(() => import('./dev/CreateTicketPreview'));
+      const TicketListPreview = lazy(() => import('./dev/TicketListPreview'));
+      const TablePreview = lazy(() => import('./dev/TablePreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
          * the primitives page rather than inside it, and it is stripped from the
          * production build by the same branch. */
         { path: '/_preview/create-ticket', element: <CreateTicketPreview /> },
+        /* FE-026-00. Same shape, and it gates every other 026 task: nothing is
+         * wired until the nine-column question is answered in Arabic. */
+        { path: '/_preview/tickets', element: <TicketListPreview /> },
+        /* FE-026-01. The primitive in isolation, holding CUSTOMERS - AC-T-11.
+         * A component used by exactly one screen and shaped by that screen is
+         * indistinguishable from that screen private layout. */
+        { path: '/_preview/table', element: <TablePreview /> },
       ];
     })()
   : [];

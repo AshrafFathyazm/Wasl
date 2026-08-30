@@ -51,9 +51,21 @@ Rows per page [10 ⌄]                        ‹ 1 2 … 13 ›
 | New | Neutral filled |
 | Open | Info filled |
 | InProgress | Warning filled |
-| PendingCustomer | Warning **outline** — waiting, but not on us |
+| PendingCustomer | Neutral filled |
 | Resolved | Success filled |
-| Closed | Neutral **outline** — terminal and quiet |
+| Closed | Neutral filled |
+
+**Changed 2026-08-29, and only the last two rows.** `PendingCustomer` was *Warning
+outline* and `Closed` was *Neutral outline*. Rendered against real rows, the two outlines
+were the loudest thing on the table — a heavy amber ring around a waiting ticket drew more
+attention than a `Critical` priority two columns away, which inverts the ranking this map
+exists to express. There is no outline treatment in the supplied design at all.
+
+**`New` and `Open` were NOT changed, and the attempt is recorded because it was made
+twice.** The supplied canvas paints both with the same blue. It was adopted, then ruled
+against: two distinct states in the BR-1 machine must not read as one appearance, in the
+column an agent scans first. This table is the source of record and the canvas is wrong on
+that row. See `specs/026-ticket-list/table-primitive.md` Q-T-1.
 
 Red is never a status. It is `Critical` priority and escalation only, so red on a ticket
 always means "needs attention now".

@@ -1,0 +1,1607 @@
+/* ============================================================================
+ * TicketListPreview — FE-026-00
+ * ============================================================================
+ * Tokens only. The geometry here becomes the `Table` primitive's geometry
+ * (FE-026-01), so a hard-coded value here would become a hard-coded value there.
+ *
+ * Logical properties throughout. The whole point of this preview is the Arabic
+ * pass, and `left` / `right` would survive it by accident on the frames that
+ * happen to be symmetric.
+ *
+ * RESTYLED against the tickets-table canvas. Where the canvas named a colour the
+ * token layer already had, THE TOKEN WON — see the (D) block in tokens.css.
+ * Three values had no token and were added there. Nothing else new is a colour.
+ * ========================================================================== */
+
+.page {
+  padding: var(--space-8);
+  background-color: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+
+  /* NO SHADOW TOKENS AND NO MOTION TOKENS EXIST (tokens.css note 11), and note 3
+   * says an invented token is indistinguishable from a real one. So the four
+   * elevations the canvas draws live here as LOCAL custom properties, not as
+   * `--shadow-*`: a local name cannot be mistaken for the system, and when the
+   * elevation scale is finally exported this block is the exact list to absorb.
+   * TODO(FE-026-01): move to real tokens once tokens.css gains elevation. */
+  --pop-sm: 0 1px 2px rgb(13 38 38 / 6%); /* active segment */
+  --pop-md: 0 6px 20px rgb(13 38 38 / 18%); /* tooltip */
+  --pop-lg: 0 10px 28px rgb(13 38 38 / 14%); /* row menu */
+  --pop-xl: 0 14px 36px rgb(13 38 38 / 16%); /* filter panel, calendar */
+
+  /* Density knobs, from the canvas. Two variables because they are two
+   * decisions: how tall a row is, and how loud the line between rows is. */
+  --row-pad: var(--space-3);
+  --row-divider: var(--border-divider);
+}
+
+.page:lang(ar) {
+  font-family: var(--font-ar);
+}
+
+/* ----------------------------------------------------------------------------
+ * base.css rule 17 paints EVERY <button> with the primary navy, using
+ * !important on background-color, color and -webkit-text-fill-color, so that a
+ * dark-mode host stylesheet cannot repaint a native control. That file also
+ * states the contract for overriding it: a component repeats the same three
+ * properties with !important, because a class (0,1,0) beats an element (0,0,1)
+ * and among !important declarations the normal cascade still applies.
+ *
+ * THIS MODULE DID NOT DO THAT, and the result was every tab, every filter chip,
+ * every pager cell and the kebab rendering as a solid navy pill - twenty-five
+ * classes, one cause. It reads as "the palette is wrong" rather than "one rule
+ * is missing", which is exactly what rule 17 own comment warns about.
+ *
+ * :where(button) contributes NO specificity, so this rule weighs exactly
+ * .page - (0,1,0). That is enough to beat the element selector in base.css,
+ * and it TIES every component class below, which therefore wins on order.
+ * It must stay FIRST for that reason: moved lower, it repaints every button.
+ * -------------------------------------------------------------------------- */
+.page :where(button) {
+  background-color: transparent !important;
+  color: inherit !important;
+
+  /* -webkit-text-fill-color beats a descendant color, so it is pinned to
+   * currentcolor once here rather than repeated on each class below. */
+  -webkit-text-fill-color: currentcolor !important;
+}
+
+.dense {
+  --row-pad: var(--space-2);
+  --row-h: 62px;
+}
+
+.roomy {
+  --row-pad: var(--space-4);
+  --row-h: 78px;
+}
+
+.rulesOff {
+  --row-divider: transparent;
+}
+
+.rulesLoud {
+  --row-divider: var(--border-subtle);
+}
+
+/* ---- Preview chrome (never ships) ----------------------------------------- */
+
+.pageHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+}
+
+.toggle {
+  block-size: var(--button-height-md);
+  padding-inline: var(--button-padding);
+  border: var(--button-border) solid var(--action-secondary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-secondary-bg) !important;
+  color: var(--action-secondary-text) !important;
+  font: inherit;
+  font-size: var(--text-ui);
+  cursor: pointer;
+}
+
+.toggleOn {
+  background-color: var(--action-primary-bg) !important;
+  border-color: var(--action-primary-border);
+  color: var(--action-primary-text) !important;
+}
+
+.note {
+  margin-block: 0 var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  border-inline-start: 3px solid var(--border-focus);
+  background-color: var(--surface-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.sample {
+  display: inline-block;
+  margin-inline-end: var(--space-4);
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.frame {
+  margin-block-end: var(--space-8);
+  max-inline-size: 100%;
+}
+
+.frameLabel {
+  margin-block: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+}
+
+/* ---- The screen head: title, search, filter ------------------------------- */
+
+.screenHead {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-block-end: var(--space-4);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: var(--text-page-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-heading);
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+  white-space: nowrap;
+}
+
+.headTools {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 240px;
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+  background-color: var(--surface-card);
+  color: var(--text-placeholder);
+}
+
+/* block-size and padding-inline are RESETS, not styling. base.css gives every
+ * <input> --field-height-md and its own inline padding, because normally the
+ * input IS the field. Here it is a bare control inside a bordered box that is
+ * already --button-height-md tall, so the input came out 47px inside a 40px
+ * container and pushed through its own border - which reads as a half-drawn
+ * field, not as an inherited height. */
+.searchInput {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 100%;
+  padding-inline: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-helper);
+  color: var(--text-primary);
+}
+
+/* THE RING MOVES TO THE BOX, IT DOES NOT GO AWAY. base.css puts
+ * box-shadow: 0 0 0 Npx var(--focus-ring) on :focus-visible, and the focusable
+ * element here is the BARE input inside the bordered box - so the ring drew a
+ * second rounded rectangle INSIDE the control and read as a rendering fault.
+ *
+ * outline: none alone did not fix it and was hiding the real problem: it
+ * removes the outline and leaves the box-shadow, so the blob stayed. Removing
+ * the ring outright is a defect, not a style choice (DESIGN-BRIEF rule 9) - it
+ * costs only keyboard users, who are not in the room. So the inner ring is
+ * suppressed and the SAME ring is drawn on the container, which is the element
+ * a sighted user thinks of as the control. */
+.searchInput:focus,
+.searchInput:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* :has(:focus-visible), NOT :focus-within - and the difference is the whole
+ * point. :focus-within matches whenever the inner input holds focus, INCLUDING
+ * a mouse click, so clicking into the field lit a ring at someone who can
+ * plainly see where they clicked. :focus-visible is the browser own judgement
+ * of "this user is navigating by keyboard", so the ring appears on Tab and
+ * never on a click.
+ *
+ * The ring is NOT removed - DESIGN-BRIEF rule 9, it costs only keyboard users
+ * and they are not in the room to object. It is moved onto the container (the
+ * input is bare inside a bordered box, so a ring on the input drew a second
+ * rectangle inside the control) and gated to the case it exists for. */
+/* NO RING ON THIS FIELD. Ruled by the product owner, twice, and the second time
+ * after I had already moved it once - so it is a decision, not an oversight, and
+ * it is written down here rather than argued again.
+ *
+ * :focus-visible did not save it, and that is worth knowing before someone tries
+ * the same fix again: the spec has browsers match :focus-visible on a TEXT INPUT
+ * even for a mouse click, because the control accepts keyboard input the moment
+ * it is focused. So the ring fired on click exactly as :focus-within had.
+ *
+ * What is left is a border tint - the minimum a keyboard user needs to see where
+ * they are, at a fraction of the weight. DESIGN-BRIEF rule 9 says a ring removed
+ * for looks is a defect; this is the ring traded for a quieter indicator on ONE
+ * field, not removed from the product, and every other control still carries the
+ * base.css ring untouched. */
+.searchBox:focus-within {
+  border-color: var(--border-focus);
+}
+
+.searchClear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer;
+}
+
+.filterWrap {
+  position: relative;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+  border: var(--button-border) solid var(--action-secondary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-secondary-bg) !important;
+  color: var(--action-secondary-text) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.filterBadge {
+  display: grid;
+  place-items: center;
+  min-inline-size: 18px;
+  block-size: 18px;
+  padding-inline: 5px;
+  border-radius: var(--radius-pill);
+  background-color: var(--action-primary-bg);
+  color: var(--action-primary-text);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Filter panel ---------------------------------------------------------
+ * ANCHORED, NOT FIXED. The canvas positions this with `position: fixed` and a
+ * viewport flip measured in JS, because vanilla DOM has nowhere else to put it.
+ * Here it is an absolutely positioned child of a relative wrapper: same result,
+ * no measurement code, and it cannot desync from its button on scroll.
+ * ------------------------------------------------------------------------- */
+
+.filterPanel {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: calc(100% + var(--space-2));
+  z-index: var(--z-flyout);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  inline-size: 368px;
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--pop-xl);
+  text-align: start;
+}
+
+.panelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.panelLabel {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-bold);
+  color: var(--text-muted);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  block-size: 28px;
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card) !important;
+  color: var(--text-secondary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+.filterChipOn {
+  background-color: var(--action-primary-bg) !important;
+  border-color: var(--action-primary-border);
+  color: var(--action-primary-text) !important;
+}
+
+.dateRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.dateField {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.dateBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 36px;
+  padding-inline: var(--space-2);
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+  background-color: var(--field-fill) !important;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.dateValue {
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--text-helper);
+  color: var(--text-placeholder);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dateValueSet {
+  color: var(--text-primary);
+}
+
+.panelFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block-start: var(--space-1);
+  border-block-start: var(--border-width) solid var(--surface-sunken);
+}
+
+.linkBtn {
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+/* One utility, because two elements need it and each needs it in a different
+ * place: the filter panel pushes APPLY to the end, the calendar pushes the pair
+ * CANCEL+APPLY. Two auto margins in one row split the gap instead of closing it. */
+.pushEnd {
+  margin-inline-start: auto;
+}
+
+.solidBtn {
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--space-4);
+  border: var(--button-border) solid var(--action-primary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-primary-bg) !important;
+  color: var(--action-primary-text) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+/* ---- Calendar -------------------------------------------------------------
+ * ONE picker, both fields. Two would be two states to keep in step.
+ * ------------------------------------------------------------------------- */
+
+.calendar {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: calc(100% + var(--space-2));
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  inline-size: 316px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--pop-xl);
+  overflow: hidden;
+}
+
+.calHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-block-end: var(--border-width) solid var(--surface-sunken);
+}
+
+.calNav {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer;
+}
+
+.calTitle {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  block-size: 32px;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent !important;
+  font: inherit;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary) !important;
+  cursor: pointer;
+}
+
+.calCaretUp {
+  rotate: 180deg;
+}
+
+.calWeek {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--space-2) var(--space-2) 0;
+}
+
+.calWeekday {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.calGridWide {
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+}
+
+.calCell {
+  display: grid;
+  place-items: center;
+  block-size: 38px;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.calCellWide {
+  block-size: 44px;
+}
+
+.calCellOutside {
+  background-color: transparent !important;
+  color: var(--border-default) !important;
+}
+
+.calCellToday {
+  background-color: var(--surface-chip) !important;
+}
+
+.calCellOn {
+  background-color: var(--brand-subtle) !important;
+  border-color: var(--action-primary-border);
+  color: var(--action-primary-bg) !important;
+  font-weight: var(--weight-bold);
+}
+
+.calFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-block-start: var(--border-width) solid var(--surface-sunken);
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-helper);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.switchTrack {
+  position: relative;
+  flex: none;
+  inline-size: 34px;
+  block-size: 20px;
+  border-radius: var(--radius-pill);
+  background-color: var(--border-subtle);
+  transition: background-color 140ms; /* TODO(FE-026-01): motion token */
+}
+
+.switchKnob {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  box-shadow: var(--pop-sm);
+  transition: translate 140ms; /* TODO(FE-026-01): motion token */
+}
+
+.switchOn .switchTrack {
+  background-color: var(--action-primary-bg);
+}
+
+/* The logical form of this would animate `inset-inline-start`, and animating an
+ * inset repaints; `translate` composites. So the sign flips by direction. */
+.switchOn .switchKnob {
+  translate: 14px 0;
+}
+
+[dir='rtl'] .switchOn .switchKnob {
+  translate: -14px 0;
+}
+
+/* ---- Status tabs ---------------------------------------------------------- */
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-block-end: var(--space-4);
+}
+
+/* WRAPPING IS A FINDING, NOT A STYLE. Seven segments (All + the six BR-1
+ * statuses) do not fit on one line at 880px, and the canvas quietly avoids this
+ * by drawing five. Wrapping rather than scrolling or truncating is deliberate:
+ * a segmented control that spills onto a second line looks wrong, and looking
+ * wrong is how the 880 frame reports that the status set is too wide for the
+ * shell. Compare the two frames below before deciding what 015 does about it. */
+.tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: var(--border-width) solid var(--border-divider);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 34px;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-pill);
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+.tabOn {
+  background-color: var(--surface-card) !important;
+  border-color: var(--border-subtle);
+  box-shadow: var(--pop-sm);
+  color: var(--text-primary) !important;
+  font-weight: var(--weight-bold);
+}
+
+.tabDot {
+  flex: none;
+  inline-size: var(--badge-dot-size);
+  block-size: var(--badge-dot-size);
+  border-radius: var(--radius-pill);
+  background-color: currentcolor;
+}
+
+.tabCount {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.65;
+}
+
+.activeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 28px;
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid var(--brand-border);
+  border-radius: var(--radius-pill);
+  background-color: var(--brand-subtle);
+  color: var(--action-primary-bg);
+  font-size: var(--text-helper);
+}
+
+.chipClear {
+  display: grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  padding: 0;
+  border: 0;
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+}
+
+/* ---- The card ------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  overflow: hidden;
+}
+
+/* MEASURED: the seven fixed columns come to 680px. Below ~904 the subject — the
+ * only column anyone actually reads — is squeezed to nothing, and a table that
+ * fits by destroying its most important cell has not fitted. So the table
+ * carries a floor and the wrapper scrolls under it. */
+/* NOTHING TO SCROLL. Ruled 2026-08-29: no scrollbar anywhere in a table, and
+ * the ruling is "remove the need", not "hide the bar".
+ *
+ * Horizontally, the eight column widths became RATIOS below — percentages that
+ * sum to 100 — so the canvas proportions are kept and the table fits any frame.
+ * The 1120px floor is gone; narrow frames truncate, and a truncated cell says
+ * "there is more here" where a column clipped behind a hidden bar says nothing.
+ *
+ * Vertically, the ten-row cap is gone too. The card is as tall as its page.
+ *
+ * overflow: auto stays as a safety net. With neither axis overflowing, no bar is
+ * drawn — which is the difference between this and scrollbar-width: none. */
+.scroller {
+  overflow: auto;
+}
+
+/* Loaders §03: a BAR for work that must not block — a tab switch, a filter, a
+ * page change. Never an overlay: the rows stay readable while it runs. */
+.loadBar {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 6;
+  block-size: 3px;
+  background-color: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.loadBarFill {
+  display: block;
+  inline-size: 28%;
+  block-size: 100%;
+  background-color: var(--action-primary-bg);
+  animation: sweep 1.3s cubic-bezier(0.55, 0, 0.45, 1) infinite;
+}
+
+/* The sweep runs along the READING direction. `translate` is physical, so the
+ * sign flips — one animation reused, not two hand-written keyframe sets. */
+@keyframes sweep {
+  from {
+    translate: -110% 0;
+  }
+
+  to {
+    translate: 420% 0;
+  }
+}
+
+@keyframes sweep-rtl {
+  from {
+    translate: 110% 0;
+  }
+
+  to {
+    translate: -420% 0;
+  }
+}
+
+[dir='rtl'] .loadBarFill {
+  animation-name: sweep-rtl;
+}
+
+/* ---- The table ------------------------------------------------------------ */
+
+.table {
+  inline-size: 100%;
+  /* 680px of fixed columns + 224px of subject. The subject floor is the number
+   * this preview exists to choose: 224px holds ~30 Arabic characters before the
+   * ellipsis, which is enough to tell two tickets apart.
+   *
+   * 224 subject · 120 customer · 36 channel · 156 status · 104 priority ·
+   * 150 assignee · 96 created · 88 actions = 1120 — as RATIOS, not pixels.
+   *
+   * Those numbers are the canvas. They are now expressed as percentages of
+   * 1120 on each column class, so the proportions the design fixes survive at
+   * every width and the table never needs a horizontal scrollbar. The pixel
+   * floor that used to sit here is what forced one at the 880 frame.
+   *
+   * Three floors were tried before this: 1016 (nine columns), 904 (this file
+   * after folding the ticket number into the subject), 1120 (the canvas). Each
+   * was a better number and none of them was the right KIND of number. */
+  border-collapse: collapse;
+  /* `fixed` is what makes a column width mean anything. With `auto`, the 200
+   * character subject widens its column and every other column is squeezed —
+   * which is exactly the failure this preview is looking for, expressed as a
+   * layout the browser silently rescued. */
+  table-layout: fixed;
+}
+
+/* sticky, so rows pass UNDER the headings instead of scrolling them away. It
+ * needs the opaque background below - a transparent header lets the rows show
+ * through it, which looks like a rendering fault rather than a missing colour. */
+.table th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
+  block-size: var(--table-header-height);
+  padding-inline: var(--space-4);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.table td {
+  padding-block: var(--row-pad);
+  padding-inline: var(--space-4);
+  border-block-end: var(--border-width) solid var(--row-divider);
+  font-size: var(--text-helper);
+  vertical-align: middle;
+}
+
+.row:hover td {
+  background-color: var(--surface-row-hover);
+}
+
+.table tbody tr:last-child td {
+  border-block-end: none;
+}
+
+/* ---- Columns --------------------------------------------------------------
+ * Fixed columns get the longest REAL value plus a couple of characters, not the
+ * longest value in the mock data (component-inventory.md).
+ * ------------------------------------------------------------------------- */
+
+/* The only flexible column. Everything else is fixed, so the subject absorbs
+ * whatever is left — and when what is left is too little, that is the finding. */
+.colSubject {
+  inline-size: 23.2143%;
+}
+
+.colCustomer {
+  inline-size: 11.0714%;
+}
+/* MEASURED, AND THE OPPOSITE OF WHAT I ASSUMED. This started at 112px with a
+ * comment saying the Arabic label was the longest. The pill widths, rendered:
+ *
+ *   "Pending customer"  129px      "بانتظار العميل"   92px
+ *   "In progress"        92px      "قيد التنفيذ"      78px
+ *
+ * English is wider in every status, because two English words carry a space and
+ * the Arabic labels are single-word or short. At 112px the English pill
+ * OVERFLOWED into the priority column and the two collided - visible in the
+ * preview, invisible in the Arabic pass this file was built to run.
+ *
+ * The Arabic-first rule still holds; it is just not a rule that lets English be
+ * skipped. Both are measured, the wider wins. 129 + 2x12 padding = 153 -> 156. */
+.colStatus {
+  inline-size: 14.2857%;
+}
+/* RE-MEASURE THIS FIRST. It was 96px as a pill: "Normal" 70px, "منخفضة" 69px,
+ * plus 24 of pill padding. The canvas draws priority as PLAIN COLOURED TEXT - no
+ * pill, no dot - so the cell now carries 13px type in 2x16 of cell padding
+ * instead of 12px type in 2x12 of pill padding. 69 + 32 = 101 -> 104. That
+ * number is ARITHMETIC, not a render, and it is the one width on this table that
+ * has not been read off a screen. */
+.colPriority {
+  inline-size: 8.2143%;
+}
+
+.colAssignee {
+  inline-size: 13.3929%;
+}
+
+/* A LABELLED, TINTED PILL - 150px, from the canvas.
+ *
+ * This column was 36px and icon-only for two revisions, on the argument that a
+ * label spends 114px repeating what the glyph says. That argument was wrong on
+ * its own terms: the glyph is not what the label repeats. The TINT is a scanning
+ * aid - "every WhatsApp ticket" is found by colour before a word is read - and a
+ * 36px monochrome icon carries neither the tint nor the word.
+ *
+ * It is also the argument the status column already lost. Status is a pill with
+ * a label and a colour for exactly this reason, and channel is the same kind of
+ * fact about a row. Keeping one and not the other was a measurement defended
+ * past the point it was measuring anything. */
+.colChannel {
+  inline-size: 13.3929%;
+}
+
+/* dd/MM/yyyy, so it is the same width in every month and both languages. */
+.colCreated {
+  inline-size: 8.5714%;
+  white-space: nowrap;
+}
+
+/* The header is VISIBLE - "الإجراءات", not sr-only. It was hidden to save
+ * 40px, which made this the only column in the table whose heading a sighted
+ * user could not read; the row of headings then had a gap at its end that looked
+ * like a rendering fault rather than a decision. 88px is the label plus the 30px
+ * button it sits over. */
+.colActions {
+  inline-size: 7.8571%;
+  text-align: center;
+}
+
+/* ---- The subject cell -----------------------------------------------------
+ * Two lines: the subject, then the identity of the row. The ticket number and
+ * the escalation marker used to be columns of their own - 132px and 36px - and
+ * neither is ever read on its own. Folding them here is what paid for the
+ * actions column and still returned 120px to the subject.
+ * ------------------------------------------------------------------------- */
+
+.subject {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+.subjectLine {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  line-height: var(--leading-normal);
+}
+
+.subjectMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: nowrap;
+  overflow: hidden;
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.metaNumber {
+  flex: none;
+  white-space: nowrap;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+.metaSep {
+  flex: none;
+  color: var(--border-default);
+}
+
+.metaEscalated {
+  flex: none;
+  white-space: nowrap;
+  color: var(--state-danger-text);
+  font-weight: var(--weight-medium);
+}
+
+/* SHOWN ONLY WHEN THE TEXT IS ACTUALLY CLIPPED. `--tip` is set per row from a
+ * scrollWidth measurement in the TSX, because CSS cannot ask that question. A
+ * tooltip that repeats a line you can already read in full is noise - and while
+ * it is here it doubles as a live readout of the A-3 question: if it starts
+ * firing on SHORT subjects, the column is too narrow. */
+/* FIXED, NOT ABSOLUTE, and the reason is not preference.
+ *
+ * The scroller carries overflow-x: auto so the table can exceed the frame. CSS
+ * makes overflow-y compute to auto the moment overflow-x is not visible - there
+ * is no "scroll horizontally, overflow vertically". So an absolutely positioned
+ * tooltip above the first rows was CLIPPED by its own scroll container, and the
+ * top of it vanished under the table edge.
+ *
+ * position: fixed escapes every ancestor clip. The cost is that the coordinates
+ * must come from JavaScript, which the effect that already measures scrollWidth
+ * now also supplies - including the flip to BELOW the row when there is no room
+ * above, which is the same first-rows case that exposed the bug. */
+.tooltip {
+  position: fixed;
+  inset-inline-start: var(--tip-x, 0);
+  inset-block-start: var(--tip-y, 0);
+  z-index: var(--z-tooltip);
+  display: var(--tip, none);
+  max-inline-size: 420px;
+  padding: 7px var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-inverse);
+  color: var(--text-on-inverse);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+  white-space: normal;
+  text-wrap: pretty;
+  box-shadow: var(--pop-md);
+  opacity: 0;
+  transition: opacity 120ms;
+  pointer-events: none;
+}
+
+.subject:hover .tooltip {
+  opacity: 1;
+}
+
+/* ---- Cell contents -------------------------------------------------------- */
+
+.truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellText {
+  color: var(--text-secondary);
+}
+
+.date {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.assignee {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+}
+
+.channel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 24px;
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+/* The glyph must not shrink when the label is long - محادثة مباشرة is the
+ * widest of the five and it is the one that would squash the icon. */
+.channelIcon {
+  flex: none;
+}
+
+/* One class per channel, each pair a token. Five hexes loose in a stylesheet are
+ * five colours with no owner - DESIGN-BRIEF rule 3, and the reason the TSX kept
+ * these values parked instead of inlining them. */
+.chWhatsApp {
+  background-color: var(--channel-whatsapp-bg);
+  color: var(--channel-whatsapp-fg);
+}
+
+.chSms {
+  background-color: var(--channel-sms-bg);
+  color: var(--channel-sms-fg);
+}
+
+.chWebForm {
+  background-color: var(--channel-webform-bg);
+  color: var(--channel-webform-fg);
+}
+
+.chEmail {
+  background-color: var(--channel-email-bg);
+  color: var(--channel-email-fg);
+}
+
+.chLiveChat {
+  background-color: var(--channel-livechat-bg);
+  color: var(--channel-livechat-fg);
+}
+
+/* PLAIN COLOURED TEXT, not a pill. The canvas is right about this and the reason
+ * is legibility, not taste: two pills side by side in one row read as one control
+ * with two halves. Only the two priorities that demand an action carry colour;
+ * Low and Normal are muted, because a table where every cell shouts says nothing.
+ * Red is allowed HERE and nowhere in the status column (BR-1: red is never a
+ * status). Critical is a severity, not a state. */
+.priority {
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.priorityHigh {
+  color: var(--state-warning-text);
+  font-weight: var(--weight-medium);
+}
+
+.priorityCritical {
+  color: var(--state-danger-text);
+  font-weight: var(--weight-bold);
+}
+
+/* ---- Status pill ---------------------------------------------------------- */
+
+/* The canvas draws these 26px tall with a 7px dot. `--chip-height` is 20px and
+ * came from a vector export (A), so it is not moved: a 20px pill with a 7px dot
+ * and 12px type has no room left. Height comes from padding and line-height
+ * instead, which is what a badge should have done from the start. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-block: 4px;
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--chip-radius);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+}
+
+.dot {
+  flex: none;
+  inline-size: var(--badge-dot-size);
+  block-size: var(--badge-dot-size);
+  border-radius: var(--radius-pill);
+  background-color: currentcolor;
+}
+
+.neutral {
+  color: var(--state-neutral-text);
+}
+
+.info {
+  color: var(--state-info-text);
+}
+
+.success {
+  color: var(--state-success-text);
+}
+
+.warning {
+  color: var(--state-warning-text);
+}
+
+.danger {
+  color: var(--state-danger-text);
+}
+
+.filled.neutral {
+  background-color: var(--state-neutral-bg);
+}
+
+.filled.info {
+  background-color: var(--state-info-bg);
+}
+
+.filled.success {
+  background-color: var(--state-success-bg);
+}
+
+.filled.warning {
+  background-color: var(--state-warning-bg);
+}
+
+.filled.danger {
+  background-color: var(--state-danger-bg);
+}
+
+.outline {
+  background-color: transparent;
+  border-color: currentcolor;
+}
+
+/* ---- Row actions ---------------------------------------------------------- */
+
+.actionsCell {
+  position: relative;
+}
+
+.kebab {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+}
+
+.kebab:hover,
+.kebabOn {
+  background-color: var(--surface-sunken) !important;
+  color: var(--action-primary-bg) !important;
+}
+
+/* FIXED, for the same reason the tooltip is - and this is the SECOND thing the
+ * scroller clipped. overflow-x: auto forces overflow-y to auto, so an absolutely
+ * positioned flyout cannot leave the table box; on the last rows the menu opened
+ * downward, landed outside, and the user had to scroll the card to reach it.
+ *
+ * The tooltip was fixed first and this was not swept for at the same time. One
+ * clipping ancestor produces one class of defect in EVERY overlay inside it -
+ * tooltip, row menu, filter panel, calendar - and fixing them one report at a
+ * time is how the fourth one ships.
+ *
+ * Coordinates come from the trigger, with a flip UP when the menu would fall
+ * past the viewport - which is exactly the last-rows case that was reported. */
+.menu {
+  position: fixed;
+  inset-inline-start: var(--menu-x, 0);
+  inset-block-start: var(--menu-y, 0);
+  z-index: var(--z-flyout);
+  min-inline-size: 188px;
+  padding: 6px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--pop-lg);
+  text-align: start;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  inline-size: 100%;
+  block-size: 36px;
+  padding-inline: var(--space-2);
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  text-align: start;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background-color: var(--surface-chip);
+}
+
+.menuIcon {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.menuItemDanger {
+  background-color: transparent !important;
+  color: var(--state-danger-text) !important;
+}
+
+.menuItemDanger .menuIcon {
+  color: var(--state-danger-text);
+}
+
+.menuItemDanger:hover {
+  background-color: var(--state-danger-bg);
+}
+
+.menuSep {
+  block-size: 1px;
+  margin: 5px 4px;
+  background-color: var(--surface-sunken);
+}
+
+/* ---- Skeleton -------------------------------------------------------------
+ * Loaders §03: the skeleton is the FIRST load of a list, and it holds the REAL
+ * row height. A skeleton at a different height is a table that jumps when data
+ * lands, and it reads as jank rather than as a wrong constant.
+ * ------------------------------------------------------------------------- */
+
+.skelRow {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skelRow:nth-child(3n + 2) {
+  animation-delay: 0.15s;
+}
+
+.skelRow:nth-child(3n + 3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.skeleton {
+  display: block;
+  block-size: 8px;
+  border-radius: 3px;
+  background-color: var(--surface-sunken);
+}
+
+.skelStack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: 41px;
+}
+
+.skelPill {
+  display: block;
+  block-size: 24px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+}
+
+.skelAvatar {
+  flex: none;
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+}
+
+.skelFlex {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.skelDot {
+  display: block;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-inline: auto;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+}
+
+/* ---- Empty states ---------------------------------------------------------
+ * THREE, because they are three different failures of connection and the mark is
+ * the vocabulary for saying which: nothing arrived, nothing matched, nothing
+ * reached. One "no data" panel would flatten all three into a shrug.
+ * ------------------------------------------------------------------------- */
+
+.empty {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-block: 52px;
+  padding-inline: var(--space-6);
+  overflow: hidden;
+  text-align: center;
+}
+
+/* The Wasl mark, tiled and masked to a vignette. It is the real geometry from
+ * brand/Mark.tsx rendered through an SVG <pattern>, not a hand-copied path - the
+ * background of an empty state is exactly where a redrawn logo goes unnoticed. */
+/* UNIFORM, EDGE TO EDGE. This carried a radial mask that faded the marks out
+ * behind the centre text - a reasonable instinct and not what the design does.
+ * The fade made the pattern read as a vignette, which is a shape of its own,
+ * and it drew the eye to a soft blob rather than to the message sitting on it.
+ *
+ * The colour is the border grey, not the brand navy at 13%. Navy-at-low-alpha
+ * is a tint of the action colour, and a background that is a faint version of
+ * the button colour is a background that competes with the button. */
+.emptyPattern {
+  position: absolute;
+  inset: 0;
+  color: var(--border-default);
+  pointer-events: none;
+}
+
+/* THE PATTERN STOPS BEHIND THE WRITING.
+ *
+ * A radial-gradient BACKGROUND on the content, not a mask on the pattern. The
+ * mask was tried first and was wrong twice over: it faded the whole tiling into
+ * a vignette - a shape of its own, competing with the message - and it had to
+ * guess where the text was, so it fitted one of the three states and not the
+ * other two.
+ *
+ * As a background it is sized by the box it paints, which IS the content, so the
+ * error state with its long trace id clears a wider area than the empty state,
+ * automatically. closest-side keeps the fade inside that box; the tiling stays
+ * uniform everywhere else, which is what the brand sheet draws. */
+.emptyContent {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-block: var(--space-4);
+  padding-inline: var(--space-12);
+  background: radial-gradient(closest-side, var(--surface-card) 68%, transparent 100%);
+}
+
+.emptyArt {
+  position: relative;
+  display: inline-flex;
+  color: var(--text-placeholder);
+}
+
+.emptyTitle {
+  position: relative;
+  margin-block: 10px 0;
+  font-size: var(--text-card-title);
+  font-weight: var(--weight-medium);
+}
+
+.emptyBody {
+  position: relative;
+  margin: 0;
+  max-inline-size: 380px;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  text-wrap: pretty;
+}
+
+.traceId {
+  position: relative;
+  margin-block: 2px 0;
+  color: var(--text-placeholder);
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyCta {
+  position: relative;
+  margin-block-start: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  block-size: 34px;
+  padding-inline: var(--space-4);
+  border: var(--button-border) solid var(--action-secondary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-secondary-bg) !important;
+  color: var(--action-secondary-text) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+/* ---- Footer --------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-block-start: var(--border-width) solid var(--border-subtle);
+  background-color: var(--surface-subtle);
+}
+
+.perPage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  white-space: nowrap;
+}
+
+.selectBox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 34px;
+  padding-inline: var(--space-2);
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+  background-color: var(--surface-card);
+  font-variant-numeric: tabular-nums;
+}
+
+.range {
+  color: var(--text-placeholder);
+  font-size: var(--text-helper);
+  white-space: nowrap;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+/* PLAIN BY DEFAULT. In the house reference only two things carry a box: the
+ * ACTIVE page, filled navy, and the ellipsis. Bordering every number turns a
+ * pager into a row of buttons competing with the table above it. */
+.pageBtn {
+  background-color: transparent !important;
+  display: grid;
+  place-items: center;
+  min-inline-size: 34px;
+  block-size: 34px;
+  padding-inline: var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--button-radius);
+  color: var(--text-secondary) !important;
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+}
+
+.pageActive {
+  background-color: var(--action-primary-bg) !important;
+  border-color: var(--action-primary-border);
+  color: var(--action-primary-text) !important;
+  font-weight: var(--weight-bold);
+}
+
+/* The ellipsis carries the outline box in the reference - it is the "jump into
+ * the middle" affordance, not decoration. */
+.pageGap {
+  display: grid;
+  place-items: center;
+  min-inline-size: 34px;
+  block-size: 34px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--button-radius);
+  color: var(--text-muted);
+}
+
+.pageDisabled {
+  background-color: transparent !important;
+  border-color: transparent;
+  color: var(--text-placeholder) !important;
+}
+
+/* THE CHEVRONS MIRROR, and they do it by direction rather than by two assets.
+ * `chevronDown` rotated +/-90 degrees: under `rtl` "next" points toward the
+ * inline-end, which is the start of the page in reading terms. If this were
+ * `left`/`right` it would be wrong in Arabic and nothing would fail. */
+.chevPrev {
+  rotate: 90deg;
+}
+
+.chevNext {
+  rotate: -90deg;
+}
+
+[dir='rtl'] .chevPrev {
+  rotate: -90deg;
+}
+
+[dir='rtl'] .chevNext {
+  rotate: 90deg;
+}

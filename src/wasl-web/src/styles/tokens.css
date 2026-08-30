@@ -18,107 +18,139 @@
  * ============================================================================ */
 
 :root {
-
   /* ==== PRIMITIVES ======================================================== */
 
   /* Named by them, confirmed on layers (C) */
-  --Main-White-White: #FFFFFF;
-  --Neutral-00:       #F9FAFB;
-  --Neutral-200:      #DEE5E7;
-  --Neutral-800:      #606873;
-  --Text-Primary:     #0D2626;
+  --Main-White-White: #ffffff;
+  --Neutral-00: #f9fafb;
+  --Neutral-200: #dee5e7;
+  --Neutral-800: #606873;
+  --Text-Primary: #0d2626;
 
   /* Neutrals — exact values (A), token names not yet read */
-  --neutral-25:   #F9FAFB;   /* = Neutral/00 */
-  --neutral-50:   #F5F8F8;
-  --neutral-75:   #EDF1F2;
-  --neutral-100:  #E5E7EB;
-  --neutral-200:  #DEE5E7;   /* = Neutral/200 */
-  --neutral-300:  #CAD3D7;
-  --neutral-350:  #B3BFC6;
-  --neutral-400:  #9FABB5;
-  --neutral-500:  #76818C;
-  --neutral-600:  #677489;
-  --neutral-700:  #606873;   /* = Neutral/800 */
-  --neutral-800:  #4A5567;
-  --neutral-900:  #1F2A37;
-  --ink:          #0D2626;   /* = Text/Primary */
+  --neutral-25: #f9fafb; /* = Neutral/00 */
+  --neutral-50: #f5f8f8;
+  --neutral-75: #edf1f2;
+  --neutral-100: #e5e7eb;
+  --neutral-200: #dee5e7; /* = Neutral/200 */
+  --neutral-300: #cad3d7;
+  --neutral-350: #b3bfc6;
+  --neutral-400: #9fabb5;
+  --neutral-500: #76818c;
+  --neutral-600: #677489;
+  --neutral-700: #606873; /* = Neutral/800 */
+  --neutral-800: #4a5567;
+  --neutral-900: #1f2a37;
+  --ink: #0d2626; /* = Text/Primary */
 
   /* Brand navy (A, and confirmed on the Primary button via inspect) */
-  --navy-900:   #1D174D;
-  --navy-950:   #282447;   /* darker — the plausible hover/pressed, unconfirmed */
+  --navy-900: #1d174d;
+  --navy-950: #282447; /* darker — the plausible hover/pressed, unconfirmed */
 
   /* Accent purple — icon strokes and fills. NOT the navy (A) */
-  --purple-700: #4D46AF;
-  --purple-600: #5250C0;
-  --purple-500: #6469CD;
-  --purple-300: #828CD8;
-  --purple-50:  #F3F3FB;
+  --purple-700: #4d46af;
+  --purple-600: #5250c0;
+  --purple-500: #6469cd;
+  --purple-300: #828cd8;
+  --purple-50: #f3f3fb;
 
   /* Brand accent (D) — teal. Presence, never state. See design/brand.md */
-  --teal-600:   #4A9E96;
-  --teal-400:   #6FBFB0;
+  --teal-600: #4a9e96;
+  --teal-400: #6fbfb0;
 
   /* Status — all four pairs now complete (A) */
-  --blue-600:   #387AD8;
-  --blue-500:   #1570EF;
-  --blue-400:   #4B94E4;
-  --blue-50:    #F1F7FD;
-  --green-700:  #2E7D32;
-  --green-50:   #E8F5E9;
-  --amber-500:  #FFAF36;
-  --amber-50:   #FFFAE8;
-  --red-600:    #E54545;
-  --red-500:    #F04438;
-  --red-50:     #FDE9EB;
+  --blue-600: #387ad8;
+  --blue-500: #1570ef;
+  --blue-400: #4b94e4;
+  --blue-50: #f1f7fd;
+  --green-700: #2e7d32;
+  --green-50: #e8f5e9;
+  --amber-500: #ffaf36;
+  --amber-50: #fffae8;
+  --red-600: #e54545;
+  --red-500: #f04438;
+  --red-50: #fde9eb;
 
   /* Icon strokes (A) */
-  --icon-ink:   #292D32;
-  --icon-dark:  #2F3237;
+  --icon-ink: #292d32;
+  --icon-dark: #2f3237;
 
   /* ==== BRAND — themeable (ADR-012) ======================================= */
 
   /* The ONE value a tenant sets. Everything below is derived from it, so a brand
    * change is one variable and not a palette. Fixed tokens — status, neutral,
    * text, border, surface — must never point in here. See design/theming.md. */
-  --brand:        var(--navy-900);          /* (C) — today's value is the house navy */
-  --on-brand:     var(--Main-White-White);  /* (D) — static default; COMPUTED at runtime */
+  --brand: var(--navy-900); /* (C) — today's value is the house navy */
+  --on-brand: var(--Main-White-White); /* (D) — static default; COMPUTED at runtime */
 
-  --brand-hover:  color-mix(in oklab, var(--brand) 88%, white);    /* (D) */
-  --brand-active: color-mix(in oklab, var(--brand) 82%, black);    /* (D) */
-  --brand-subtle: color-mix(in oklab, var(--brand)  8%, white);    /* (D) */
-  --brand-border: color-mix(in oklab, var(--brand) 24%, white);    /* (D) */
-  --brand-ring:   color-mix(in oklab, var(--brand) 22%, transparent); /* (D) */
+  --brand-hover: color-mix(in oklab, var(--brand) 88%, white); /* (D) */
+  --brand-active: color-mix(in oklab, var(--brand) 82%, black); /* (D) */
+  --brand-subtle: color-mix(in oklab, var(--brand) 8%, white); /* (D) */
+  --brand-border: color-mix(in oklab, var(--brand) 24%, white); /* (D) */
+  --brand-ring: color-mix(in oklab, var(--brand) 22%, transparent); /* (D) */
 
   /* ==== SEMANTIC ========================================================== */
 
-  --surface-page:    var(--Main-White-White);   /* sidebar and header */
-  --surface-content: var(--Neutral-00);         /* the content area is the sunken one */
-  --surface-card:    var(--Main-White-White);
-  --surface-subtle:  var(--neutral-50);
-  --surface-sunken:  var(--neutral-75);
+  --surface-page: var(--Main-White-White); /* sidebar and header */
+  --surface-content: var(--Neutral-00); /* the content area is the sunken one */
+  --surface-card: var(--Main-White-White);
+  --surface-subtle: var(--neutral-50);
+  --surface-sunken: var(--neutral-75);
   --surface-inverse: var(--navy-900);
 
-  --text-primary:     var(--Text-Primary);
-  --text-secondary:   var(--Neutral-800);
-  --text-muted:       var(--neutral-500);
+  --text-primary: var(--Text-Primary);
+  --text-secondary: var(--Neutral-800);
+  --text-muted: var(--neutral-500);
   --text-placeholder: var(--neutral-400);
-  --text-on-inverse:  var(--Main-White-White);
-  --text-link:        var(--blue-500);
+  --text-on-inverse: var(--Main-White-White);
+  --text-link: var(--blue-500);
 
-  --border-subtle:  var(--Neutral-200);
+  --border-subtle: var(--Neutral-200);
   --border-default: var(--neutral-300);
-  --border-focus:   var(--blue-500);
+  --border-focus: var(--blue-500);
+
+  /* (D) — three values the tickets-table canvas uses that the token layer had no
+   * name for. Everything else in that drawing already resolved to a token, and
+   * where it did THE TOKEN WON: the canvas draws the status tints a shade off
+   * (`#EFF6FE` against `--blue-50`, `#EAF5EB` against `--green-50`, `#FFF8E6`
+   * against `--amber-50`) and a near-match is a second palette, not a refinement.
+   *
+   * `--border-divider` is deliberately LIGHTER than `--border-subtle`. The card
+   * edge and the sixty lines inside it are not the same weight, and spending one
+   * token on both is what makes a long table read as graph paper. */
+  --border-divider: #e8edef; /* (D) row divider, inside the card */
+  --surface-row-hover: #fafcfc; /* (D) table row hover */
+  --surface-chip: #f1f4f5; /* (D) segmented track, filter chip, neutral fill */
+
+  /* ==== CHANNEL IDENTITY (D) =============================================
+   * From the tickets-table canvas. The channel column is a LABELLED, TINTED
+   * pill, and the tint is per channel: an agent scanning sixty rows finds
+   * "every WhatsApp ticket" by colour before reading a word.
+   *
+   * Tokens, not literals, because five hexes loose in a stylesheet are five
+   * colours with no owner (DESIGN-BRIEF rule 3). Where the canvas value is
+   * already a primitive it ALIASES rather than repeats it - four of the ten do.
+   * The remaining five are the only genuinely new values. */
+  --channel-whatsapp-bg: #f0eff9;
+  --channel-whatsapp-fg: var(--purple-700); /* = #4D46AF, exact */
+  --channel-sms-bg: var(--purple-50); /* = #F3F3FB, exact */
+  --channel-sms-fg: var(--purple-600); /* = #5250C0, exact */
+  --channel-webform-bg: #eff3fa;
+  --channel-webform-fg: #1f5fa8;
+  --channel-email-bg: var(--surface-chip); /* = #F1F4F5, exact */
+  --channel-email-fg: var(--neutral-800); /* = #4A5567, exact */
+  --channel-livechat-bg: #edf6f5;
+  --channel-livechat-fg: #2a7a72;
 
   /* One ring intensity, everywhere. Two intensities in one interface is exactly
    * the inconsistency a token layer exists to remove. */
   --focus-ring: color-mix(in oklab, var(--action-primary-bg) 22%, transparent); /* (D) */
-  --focus-ring-width: 3px;   /* (D) */
+  --focus-ring-width: 3px; /* (D) */
 
-  --action-primary-bg:       var(--brand);
-  --action-primary-border:   var(--brand);
-  --action-primary-text:     var(--on-brand);
-  --action-secondary-bg:     var(--Main-White-White);
+  --action-primary-bg: var(--brand);
+  --action-primary-border: var(--brand);
+  --action-primary-text: var(--on-brand);
+  --action-secondary-bg: var(--Main-White-White);
 
   /* Was --Neutral-200 / --Text-Primary. #DEE5E7 on #FFFFFF is a border you have
    * to look for, so the default Secondary-Outline read as white-on-white and the
@@ -126,58 +158,68 @@
    * tenant colour change is visible on the outline button rather than only on the
    * filled one. (C) -> (D). */
   --action-secondary-border: var(--brand-border);
-  --action-secondary-text:   var(--brand);
-  --action-danger-bg:        var(--red-600);
+  --action-secondary-text: var(--brand);
+  --action-danger-bg: var(--red-600);
 
-  --state-success-bg:   var(--green-50);
+  --state-success-bg: var(--green-50);
   --state-success-text: var(--green-700);
-  --state-warning-bg:   var(--amber-50);
-  --state-warning-text: #8A5A00;             /* (D) — no readable amber text in source */
-  --state-danger-bg:    var(--red-50);
-  --state-danger-text:  var(--red-600);
-  --state-info-bg:      var(--blue-50);
-  --state-info-text:    var(--blue-500);
-  --state-neutral-bg:   var(--neutral-75);
+  --state-warning-bg: var(--amber-50);
+  --state-warning-text: #8a5a00; /* (D) — no readable amber text in source */
+  --state-danger-bg: var(--red-50);
+  --state-danger-text: var(--red-600);
+  --state-info-bg: var(--blue-50);
+  --state-info-text: var(--blue-500);
+  --state-neutral-bg: var(--neutral-75);
   --state-neutral-text: var(--Neutral-800);
 
   /* ==== TYPOGRAPHY (C) ==================================================== */
 
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-ar:   'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif;  /* (D) */
+  --font-ar: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif; /* (D) */
 
   --weight-regular: 400;
-  --weight-medium:  500;    /* named in the scale, not yet seen on a layer */
-  --weight-bold:    700;
+  --weight-medium: 500; /* named in the scale, not yet seen on a layer */
+  --weight-bold: 700;
 
-  --type-h1: 36px;  --type-h2: 30px;  --type-h3: 24px;
-  --type-h4: 20px;  --type-h5: 16px;  --type-h6: 14px;
-  --type-title-1: 22px;  --type-title-2: 18px;  --type-title-3: 16px;
-  --type-body-lg: 18px;  --type-body-md: 16px;  --type-body-sm: 12px;
-  --type-label-lg: 16px; --type-label-md: 14px; --type-label-sm: 12px;
+  --type-h1: 36px;
+  --type-h2: 30px;
+  --type-h3: 24px;
+  --type-h4: 20px;
+  --type-h5: 16px;
+  --type-h6: 14px;
+  --type-title-1: 22px;
+  --type-title-2: 18px;
+  --type-title-3: 16px;
+  --type-body-lg: 18px;
+  --type-body-md: 16px;
+  --type-body-sm: 12px;
+  --type-label-lg: 16px;
+  --type-label-md: 14px;
+  --type-label-sm: 12px;
   --type-caption: 12px;
 
-  --tracking: 0;              /* and it stays 0 — note 4 */
+  --tracking: 0; /* and it stays 0 — note 4 */
 
-  --leading-tight:   1.0;     /* source value; single-line only */
-  --leading-normal:  1.5;     /* (D) */
-  --leading-heading: 1.25;    /* (D) */
-  --leading-ar-tight:   1.3;  /* (D) */
-  --leading-ar-normal:  1.75; /* (D) */
+  --leading-tight: 1; /* source value; single-line only */
+  --leading-normal: 1.5; /* (D) */
+  --leading-heading: 1.25; /* (D) */
+  --leading-ar-tight: 1.3; /* (D) */
+  --leading-ar-normal: 1.75; /* (D) */
   --leading-ar-heading: 1.45; /* (D) */
 
-  --text-page-title:    var(--type-h2);
+  --text-page-title: var(--type-h2);
   --text-section-title: var(--type-title-1);
-  --text-card-title:    var(--type-title-3);
-  --text-body:          var(--type-body-md);
-  --text-ui:            var(--type-label-md);
-  --text-label:         var(--type-label-md);
-  --text-helper:        var(--type-caption);
+  --text-card-title: var(--type-title-3);
+  --text-body: var(--type-body-md);
+  --text-ui: var(--type-label-md);
+  --text-label: var(--type-label-md);
+  --text-helper: var(--type-caption);
 
   /* ==== SPACING — 8pt grid (C) ============================================ */
 
-  --space-1: 4px;    /* button internal gap */
+  --space-1: 4px; /* button internal gap */
   --space-2: 8px;
-  --space-3: 12px;   /* button padding */
+  --space-3: 12px; /* button padding */
   --space-4: 16px;
   --space-6: 24px;
   --space-7: 56px;
@@ -188,76 +230,88 @@
 
   /* Radius is a named token in Figma: SM / MD / LG. SM is the one used on buttons
    * and fields. Measured at 3.5-4.5 across exports; 4px is the working value. */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-pill: 999px;
 
   --border-width: 1px;
-  --icon-stroke-width: 1.5px;   /* universal — note 5 */
+  --icon-stroke-width: 1.5px; /* universal — note 5 */
 
   /* ==== COMPONENTS ======================================================== */
 
   /* Button — component API confirmed by inspect (C):
    * Type: Primary | Secondary-Outline · Size: MD · Status: Default
    * With left icon / With Right Icon / With Text: booleans · Text: string */
-  --button-height-md:  40px;
-  --button-padding:    var(--space-3);   /* 12 */
-  --button-gap:        var(--space-1);   /* 4 — icon to label */
-  --button-radius:     var(--radius-sm);
-  --button-border:     1px;
+  --button-height-md: 40px;
+  --button-padding: var(--space-3); /* 12 */
+  --button-gap: var(--space-1); /* 4 — icon to label */
+  --button-radius: var(--radius-sm);
+  --button-border: 1px;
   /* width: hug */
 
   /* Field / bordered row — consistent across every width observed (A) */
-  --field-height-sm:  39px;
-  --field-height-md:  47px;
-  --field-height-lg:  51px;
-  --field-radius:     var(--radius-sm);
-  --field-fill:       var(--Neutral-00);
-  --field-border:     1px solid var(--Neutral-200);
+  --field-height-sm: 39px;
+  --field-height-md: 47px;
+  --field-height-lg: 51px;
+  --field-radius: var(--radius-sm);
+  --field-fill: var(--Neutral-00);
+  --field-border: 1px solid var(--Neutral-200);
 
   /* Chip / tag — pill, subtle (A) */
   --chip-height: 20px;
   --chip-radius: var(--radius-pill);
-  --chip-fill:   var(--neutral-50);
+  --chip-fill: var(--neutral-50);
   --chip-border: 1px solid var(--neutral-300);
 
   /* The dot IS the status token; the pill is only its container. */
-  --badge-dot-size: 7px;   /* (D) */
+  --badge-dot-size: 7px; /* (D) */
 
-  --checkbox-size:   23px;
+  --checkbox-size: 23px;
   --checkbox-radius: var(--radius-sm);
   --checkbox-border: 1px solid var(--neutral-100);
 
-  --avatar-size: 32px;   /* (C) — the sidebar user block. See note 10 */
+  --avatar-size: 32px; /* (C) — the sidebar user block. See note 10 */
   --avatar-fill: var(--navy-900);
 
   --progress-height: 6px;
-  --progress-track:  var(--neutral-75);
+  --progress-track: var(--neutral-75);
   --progress-radius: var(--radius-sm);
 
-  --list-row-height:  48px;   /* the most common row height across exports */
+  --list-row-height: 48px; /* the most common row height across exports */
   --table-row-height: 61px;
+
+  /* (C) — `screens/03-tickets-list.md` Elements table gives the table header row
+   * h40 and the assignee avatar 24px. Both were specified there and had no token,
+   * which `026` found when it built the first table. They are NOT new values:
+   * they are the two the screen spec already names.
+   *
+   * `--table-avatar-size` is separate from `--avatar-size` (32px) deliberately.
+   * Note 10 scopes that one to the sidebar user block, and a 32px avatar in a
+   * 61px row leaves 18px of vertical breathing room for a cell that also holds a
+   * name. Two sizes, two places, two tokens. */
+  --table-header-height: 40px;
+  --table-avatar-size: 24px;
 
   /* ==== APP SHELL (C) — exact, arithmetic closes ========================== */
 
-  --frame-width:   1440px;
-  --frame-height:  1024px;
+  --frame-width: 1440px;
+  --frame-height: 1024px;
   --sidebar-width: 288px;
-  --sidebar-width-collapsed:  68px;   /* (C) — 02-app-shell.md Collapse table */
-  --nav-item-height:          48px;   /* (C) */
-  --nav-child-height:         40px;   /* (C) */
+  --sidebar-width-collapsed: 68px; /* (C) — 02-app-shell.md Collapse table */
+  --nav-item-height: 48px; /* (C) */
+  --nav-child-height: 40px; /* (C) */
   --header-height: 68px;
-  --content-width:  1152px;
+  --content-width: 1152px;
   --content-height: 956px;
-  --content-padding: var(--space-7);   /* 56 */
-  --content-gap:     var(--space-6);   /* 24 */
-  --sidebar-padding-block:  var(--space-4);
+  --content-padding: var(--space-7); /* 56 */
+  --content-gap: var(--space-6); /* 24 */
+  --sidebar-padding-block: var(--space-4);
   --sidebar-padding-inline: var(--space-6);
-  --sidebar-gap:            var(--space-4);
-  --header-padding-block:        var(--space-4);
+  --sidebar-gap: var(--space-4);
+  --header-padding-block: var(--space-4);
   --header-padding-inline-start: var(--space-6);
-  --header-padding-inline-end:   var(--space-7);
+  --header-padding-inline-end: var(--space-7);
   --shell-border: 1px solid var(--Neutral-200);
 
   /* ==== Z-INDEX =========================================================== */
@@ -265,10 +319,10 @@
   /* Four layers, ordered by what may cover what. A modal must sit above a flyout
    * because a flyout can open a dialog; a tooltip sits above everything because
    * it never takes focus and never blocks. Nothing else gets a z-index. */
-  --z-drawer:   100;   /* (D) — the sidebar below 780px */
-  --z-flyout:   200;   /* (D) — collapsed-sidebar flyout, user popover */
-  --z-modal:    300;   /* (D) */
-  --z-tooltip:  400;   /* (D) */
+  --z-drawer: 100; /* (D) — the sidebar below 780px */
+  --z-flyout: 200; /* (D) — collapsed-sidebar flyout, user popover */
+  --z-modal: 300; /* (D) */
+  --z-tooltip: 400; /* (D) */
 }
 
 /* ============================================================================

@@ -110,6 +110,39 @@
   --border-default: var(--neutral-300);
   --border-focus:   var(--blue-500);
 
+  /* (D) — three values the tickets-table canvas uses that the token layer had no
+   * name for. Everything else in that drawing already resolved to a token, and
+   * where it did THE TOKEN WON: the canvas draws the status tints a shade off
+   * (`#EFF6FE` against `--blue-50`, `#EAF5EB` against `--green-50`, `#FFF8E6`
+   * against `--amber-50`) and a near-match is a second palette, not a refinement.
+   *
+   * `--border-divider` is deliberately LIGHTER than `--border-subtle`. The card
+   * edge and the sixty lines inside it are not the same weight, and spending one
+   * token on both is what makes a long table read as graph paper. */
+  --border-divider:    #E8EDEF;   /* (D) row divider, inside the card */
+  --surface-row-hover: #FAFCFC;   /* (D) table row hover */
+  --surface-chip:      #F1F4F5;   /* (D) segmented track, filter chip, neutral fill */
+
+  /* ==== CHANNEL IDENTITY (D) =============================================
+   * From the tickets-table canvas. The channel column is a LABELLED, TINTED
+   * pill, and the tint is per channel: an agent scanning sixty rows finds
+   * "every WhatsApp ticket" by colour before reading a word.
+   *
+   * Tokens, not literals, because five hexes loose in a stylesheet are five
+   * colours with no owner (DESIGN-BRIEF rule 3). Where the canvas value is
+   * already a primitive it ALIASES rather than repeats it - four of the ten do.
+   * The remaining five are the only genuinely new values. */
+  --channel-whatsapp-bg: #F0EFF9;
+  --channel-whatsapp-fg: var(--purple-700);   /* = #4D46AF, exact */
+  --channel-sms-bg:      var(--purple-50);    /* = #F3F3FB, exact */
+  --channel-sms-fg:      var(--purple-600);   /* = #5250C0, exact */
+  --channel-webform-bg:  #EFF3FA;
+  --channel-webform-fg:  #1F5FA8;
+  --channel-email-bg:    var(--surface-chip); /* = #F1F4F5, exact */
+  --channel-email-fg:    var(--neutral-800);  /* = #4A5567, exact */
+  --channel-livechat-bg: #EDF6F5;
+  --channel-livechat-fg: #2A7A72;
+
   /* One ring intensity, everywhere. Two intensities in one interface is exactly
    * the inconsistency a token layer exists to remove. */
   --focus-ring: color-mix(in oklab, var(--action-primary-bg) 22%, transparent); /* (D) */
@@ -238,6 +271,18 @@
 
   --list-row-height:  48px;   /* the most common row height across exports */
   --table-row-height: 61px;
+
+  /* (C) — `screens/03-tickets-list.md` Elements table gives the table header row
+   * h40 and the assignee avatar 24px. Both were specified there and had no token,
+   * which `026` found when it built the first table. They are NOT new values:
+   * they are the two the screen spec already names.
+   *
+   * `--table-avatar-size` is separate from `--avatar-size` (32px) deliberately.
+   * Note 10 scopes that one to the sidebar user block, and a 32px avatar in a
+   * 61px row leaves 18px of vertical breathing room for a cell that also holds a
+   * name. Two sizes, two places, two tokens. */
+  --table-header-height: 40px;
+  --table-avatar-size:   24px;
 
   /* ==== APP SHELL (C) — exact, arithmetic closes ========================== */
 

@@ -1,0 +1,277 @@
+/* ============================================================================
+ * Table
+ * ============================================================================
+ * Geometry measured off a rendered screen, not derived. Evidence and the reason
+ * each number is what it is: specs/026-ticket-list/tests.md §1b.
+ *
+ * NO SCROLLBAR ANYWHERE. Ruled 2026-08-29, and the ruling is "remove the need",
+ * not "hide the bar":
+ *
+ *   - Horizontally, column widths are RATIOS normalised to percentages (see
+ *     widthPercents in Table.tsx), so the table fits any frame and narrow
+ *     frames truncate. A truncated cell says "there is more here"; a column
+ *     clipped behind a hidden bar says nothing.
+ *   - Vertically, the body is only capped when a caller asks for it, and a
+ *     caller passing its page size gets a card exactly one page tall.
+ *
+ * `overflow: auto` is kept on the body as a safety net for the capped case. In
+ * the uncapped case there is nothing to scroll, so no bar is drawn.
+ * ============================================================================ */
+
+.card {
+  /* MEASURED per density: the subject cell is two lines and its own
+   * line-heights are part of the total, so this cannot be computed from the
+   * padding. It lives beside --row-pad so the two cannot drift apart. */
+  --row-pad: var(--space-3);
+  --row-h: 70px;
+
+  /* Local elevation. NOT a token — tokens.css note 11 has no shadow scale, and
+   * an invented token is indistinguishable from a real one. */
+  --flyout-shadow: 0 10px 28px rgb(13 38 38 / 14%);
+
+  position: relative;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+}
+
+.dense {
+  --row-pad: var(--space-2);
+  --row-h: 62px;
+}
+
+.roomy {
+  --row-pad: var(--space-4);
+  --row-h: 78px;
+}
+
+/* ----------------------------------------------------------------------------
+ * base.css rule 17 forces EVERY <button> to the primary navy with !important, so
+ * a dark-mode host stylesheet cannot repaint a native control. That file states
+ * the only escape: a CLASS repeating the same three properties, with !important.
+ * Omitting !important does NOT win.
+ *
+ * `:where(button)` contributes no specificity, so this weighs exactly `.card` —
+ * (0,1,0). Enough to beat the element selector in base.css, and equal to every
+ * class below, which therefore wins on order. It MUST stay first: moved lower it
+ * wins instead and repaints every control transparent.
+ * -------------------------------------------------------------------------- */
+.card :where(button) {
+  background-color: transparent !important;
+  color: inherit !important;
+
+  /* -webkit-text-fill-color beats a descendant's `color`, so it is pinned once
+   * here rather than repeated on each class. */
+  -webkit-text-fill-color: currentcolor !important;
+}
+
+.scroller {
+  overflow: auto;
+}
+
+.capped {
+  max-block-size: calc(
+    var(--table-header-height) + var(--row-h) * var(--table-visible-rows, 10)
+  );
+}
+
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+
+  /* `fixed` is what makes a column width mean anything. With `auto`, one long
+   * cell widens its column and squeezes every other one — the failure this
+   * primitive exists to prevent, expressed as a layout the browser rescued. */
+  table-layout: fixed;
+}
+
+.th {
+  /* sticky, so rows pass UNDER the headings instead of scrolling them away. It
+   * needs the opaque background below: a transparent header lets rows show
+   * through, which reads as a rendering fault rather than a missing colour. */
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 3;
+
+  block-size: var(--table-header-height);
+  padding-inline: var(--space-4);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.td {
+  block-size: var(--row-h);
+  padding-block: var(--row-pad);
+  padding-inline: var(--space-4);
+  border-block-end: var(--border-width) solid var(--border-divider);
+  vertical-align: middle;
+
+  /* ISOLATION WITHOUT A DIRECTION CHANGE. `dir="auto"` also isolates, but it
+   * rewrites the element's direction from the first strong character, and
+   * `text-align: start` resolves against that — so one Latin name in a column of
+   * Arabic ones aligns to the opposite edge. `text-align: start` is not a fix on
+   * its own: it resolves against the direction `dir="auto"` just changed. */
+  unicode-bidi: isolate;
+}
+
+.row:last-child .td {
+  border-block-end: 0;
+}
+
+.row:hover .td {
+  background-color: var(--surface-row-hover);
+}
+
+.center {
+  text-align: center;
+}
+
+/* ---- Sorting -------------------------------------------------------------- */
+
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: auto;
+  padding: 0;
+  border: 0;
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  font: inherit;
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.sortBtnOn {
+  color: var(--text-primary) !important;
+}
+
+.sortIcon {
+  flex: none;
+  transition: transform 120ms;
+}
+
+.sortIconUp {
+  transform: rotate(180deg);
+}
+
+/* ---- The row flyout ------------------------------------------------------- */
+
+.flyoutCell {
+  position: relative;
+}
+
+.flyoutTrigger {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background-color: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: pointer;
+}
+
+.flyoutTrigger:hover {
+  background-color: var(--surface-sunken) !important;
+}
+
+.flyoutTriggerOn {
+  background-color: var(--surface-sunken) !important;
+  color: var(--action-primary-bg) !important;
+}
+
+/* FIXED, not absolute. The body scrolls, so it clips on BOTH axes — CSS forces
+ * overflow-y to auto the moment overflow-x is not visible, and there is no
+ * "scroll one way, overflow the other". An absolutely positioned flyout born in
+ * here is cut off by the table itself. Coordinates come from JS (Table.tsx),
+ * which is the price of leaving the clip chain. */
+.flyout {
+  position: fixed;
+  inset-inline-start: var(--flyout-x, 0);
+  inset-block-start: var(--flyout-y, 0);
+  z-index: var(--z-flyout);
+  min-inline-size: 188px;
+  padding: 6px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--flyout-shadow);
+  text-align: start;
+
+  /* Laid out but not painted until measured. Without this it paints once at
+   * 0,0 and jumps to place on the next frame. */
+  visibility: hidden;
+}
+
+.flyoutPlaced {
+  visibility: visible;
+}
+
+/* ---- Loading -------------------------------------------------------------- */
+
+/* The skeleton row is the SAME height as a real row, because the row height
+ * comes from --row-h on the <td> either way. A skeleton at a different height
+ * makes the table jump when data lands, and it reads as jank rather than as a
+ * wrong constant. */
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+  animation: table-pulse 1.4s ease-in-out infinite;
+}
+
+.text {
+  inline-size: 72%;
+  block-size: 12px;
+}
+
+.pill {
+  inline-size: 84px;
+  block-size: 24px;
+  border-radius: var(--radius-pill);
+}
+
+.avatar {
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+}
+
+.icon {
+  inline-size: 18px;
+  block-size: 18px;
+  margin-inline: auto;
+}
+
+@keyframes table-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ---- Utility -------------------------------------------------------------- */
+
+.srOnly {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

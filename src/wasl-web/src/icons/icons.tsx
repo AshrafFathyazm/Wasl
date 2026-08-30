@@ -74,8 +74,17 @@ export const IconSearch = ({ size = 18, ...p }: IconProps) => (
   <svg {...base(size)} {...p}><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/></svg>
 );
 
+/* LINES, NOT A FUNNEL. The funnel this used to draw is a different icon in the
+ * same family, and the design uses the lines form - three horizontal rules of
+ * decreasing length, centred. Same keyline, same stroke, same 24 box.
+ *
+ * A funnel reads as "narrow this down" and the lines read as "these are the
+ * controls"; the panel this opens holds chips and date fields, not a narrowing
+ * step. Only the tickets preview consumes this, so the geometry moved rather
+ * than a second icon being added - two filter icons in one set is how a screen
+ * ends up with both. */
 export const IconFilter = ({ size = 18, ...p }: IconProps) => (
-  <svg {...base(size)} {...p}><path d="M4 6h16l-6.2 7.2v5.8l-3.6 1.4v-7.2L4 6Z"/></svg>
+  <svg {...base(size)} {...p}><path d="M3.5 7h17M6.5 12h11M9.5 17h5"/></svg>
 );
 
 export const IconSort = ({ size = 18, ...p }: IconProps) => (
@@ -92,4 +101,19 @@ export const IconChevronDown = ({ size = 18, ...p }: IconProps) => (
 
 export const IconMore = ({ size = 18, ...p }: IconProps) => (
   <svg {...base(size)} {...p}><circle cx="12" cy="5.5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="18.5" r="1.2"/></svg>
+);
+
+/* Added by 026 for the ticket-list chrome. Same keyline, same stroke, same box —
+ * a filter panel that closes with a hand-drawn × is a second icon set. */
+
+export const IconClose = ({ size = 18, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}><path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5"/></svg>
+);
+
+export const IconCalendar = ({ size = 18, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M8 4v4M16 4v4M4 10.5h16"/></svg>
+);
+
+export const IconEye = ({ size = 18, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}><path d="M4 12s3.2-5.5 8-5.5 8 5.5 8 5.5-3.2 5.5-8 5.5S4 12 4 12Z"/><circle cx="12" cy="12" r="2.4"/></svg>
 );
