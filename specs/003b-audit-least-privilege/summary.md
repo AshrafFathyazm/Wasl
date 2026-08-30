@@ -54,8 +54,8 @@ them the audit table:
 
 ## Known limitations — all of them recorded in `tests.md` as not claimed
 
-- **AC-10 is unverified.** `DeprovisionAsync` is written and **has never been run**; a test that
-  called it would drop the login out from under the shared fixture.
+- ~~**AC-10 is unverified.**~~ **Closed 2026-08-30** by giving it a caller — `--deprovision` — and
+  measuring the whole cycle, including the `503 Unhealthy` that proves the removal was real.
 - **AC-4's startup-failure half is unverified.** The throw and the placeholder check exist and
   were read, not run. `004` AC-11 was proven by an accident that has not happened here.
 - **CI has not run this.** `ci.yml` was not touched and the fixture generates its own password,

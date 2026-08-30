@@ -68,7 +68,7 @@ were measured rather than argued.
 | AC-11 | A clean `--provision` on the compose container, then a working application, run rather than read | pass |
 | AC-12 | `AddInfrastructure` reads only `ConnectionStrings:Wasl`; the migrator is read at the call site | pass |
 | AC-14 | The guard in `AddInfrastructure` — **control C** | pass |
-| AC-10 | `LeastPrivilegeProvisioner.DeprovisionAsync` exists and is written | **not claimed — see below** |
+| AC-10 | `--deprovision`, run end to end on the compose container | **pass — closed 2026-08-30, see below** |
 | AC-13 | `--seed` uses the migrator only to bootstrap | **partial — see below** |
 
 ---
@@ -190,7 +190,7 @@ is the kind of thing that becomes a mystery if the first person to see it says n
 
 | What | Why |
 |---|---|
-| **AC-10** — `Down` revokes and drops | `DeprovisionAsync` is written and **has never been run.** Nothing calls it, and a test that called it would drop the login out from under the shared fixture. Written so the reverse exists; **unverified, and recorded as unverified** |
+| ~~**AC-10** — `Down` revokes and drops~~ | **CLOSED 2026-08-30.** Was: *"`DeprovisionAsync` is written and has never been run … unverified, and recorded as unverified."* It has a caller now — `dotnet run --project src/Wasl.Api -- --deprovision` — and the full cycle was measured on the compose container: login and user `1|1` → deprovision → `0|0` with `Tickets` still `5` → the API's own `/health` answering **`503 Unhealthy`** → provision → `Healthy`, five tickets. **The `503` is the half that matters**: it proves the command removed something real rather than printing a message |
 | **AC-4, second half** — the host refuses to start without the password | The `ReadPassword` throw and the placeholder check both exist and both were read. **Neither was run as a startup failure**, because the fixture always supplies both values. `004` AC-11 was proven by accident when `dotnet ef` failed for a missing key; this one has had no such accident |
 | **AC-13, second half** — `--seed` issues its requests on the runtime connection | `--seed` was run and works. That its *requests* go through the restricted principal follows from `AddInfrastructure` registering only that string, which is AC-12 — an argument, not a separate observation |
 | That CI passes | **The suite has not been run in CI with this change.** `ci.yml` was not touched, and the fixture generates its own password per run, so nothing should need configuring — but *should* is not *did* |
@@ -206,3 +206,41 @@ project has not made.
 
 Control B is the evidence that this sentence is not modesty: with the `DENY` correctly in place,
 a `sysadmin` connection tampered with the log exactly as before.
+
+---
+
+## AC-10, closed 2026-08-30 — and why it took a switch rather than a test
+
+It was recorded as *"written and has never been run"*, with a real reason: a test that called
+`DeprovisionAsync` would drop the login out from under the shared fixture, and every class after
+it in the collection would fail on a connection error rather than on anything it asserted.
+
+**That reason justified not writing the test. It did not justify never running the method** — and
+this project's own rule is that a guard nobody has seen fail has not been verified. A method
+nothing invokes is a method nothing has proven.
+
+So it got a caller: `dotnet run --project src/Wasl.Api -- --deprovision`, beside `--provision`.
+That makes it a real operation for a torn-down environment **and** makes the claim measurable
+without a shared container.
+
+```text
+before            Login 1  |  DbUser 1
+--deprovision     wasl_app deprovisioned. The schema and its data are untouched.
+after             Login 0  |  DbUser 0  |  Tickets 5
+
+then the API, unchanged, on the same connection string:
+GET /health   ->  503     Health check database with status Unhealthy
+--provision   ->  Schema applied and wasl_app provisioned.
+GET /health   ->  Healthy
+GET /api/tickets  ->  totalCount 5
+```
+
+**The `503` is the half that matters.** Reading `Login 0` proves two `DROP` statements executed;
+the API losing its own health check proves the thing removed was the thing the application
+depends on. Without it, a `DeprovisionAsync` that dropped some *other* principal would produce
+identical row counts.
+
+**It does not drop the database or the schema, deliberately.** Undoing the principal is a
+permissions operation; undoing the data is `dotnet ef database drop`. Merging them would mean one
+mistyped flag destroying a database somebody wanted — and the `Tickets 5` above is the assertion
+that they stayed separate.

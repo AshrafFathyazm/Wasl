@@ -34,12 +34,6 @@ builder.Services.AddWaslPipeline();
 
 var app = builder.Build();
 
-// ── One command for a demo from a known state ────────────────────────────────────
-// `dotnet run --project src/Wasl.Api -- --seed` applies migrations, writes three customers and
-// five tickets in five statuses through the real domain, and exits without serving.
-//
-// It exits rather than continuing to run: a seed that also starts the API makes "did the seed
-// work" and "is the app up" the same question, and the answer to the second hides the first.
 // ── 003b. Schema and permissions, on the MIGRATOR connection ─────────────────────
 //
 // `dotnet run --project src/Wasl.Api -- --provision` migrates the schema and then creates the
@@ -54,6 +48,24 @@ var app = builder.Build();
 //
 // The cost of that trade, stated rather than discovered: `dotnet ef database update` alone no
 // longer produces a working application. quickstart.md has two steps.
+// `003b` AC-10, and the reason it is a switch rather than only a method: the reverse was
+// written and NEVER RUN, which this project's own rule says is not a guard at all. A method
+// nothing invokes is a method nothing has proven. `--deprovision` drops the user and the login
+// the way a torn-down environment needs, and makes the claim testable.
+//
+// It does NOT drop the database or the schema. Undoing the principal is a permissions
+// operation; undoing the data is `dotnet ef database drop`, and merging the two would mean one
+// mistyped flag destroying a database somebody wanted.
+if (args.Contains("--deprovision"))
+{
+    var migrator = Wasl.Infrastructure.Persistence.DatabaseBootstrapper
+        .MigratorConnectionString(builder.Configuration);
+
+    await Wasl.Infrastructure.Persistence.LeastPrivilegeProvisioner.DeprovisionAsync(migrator);
+    Console.WriteLine("wasl_app deprovisioned. The schema and its data are untouched.");
+    return;
+}
+
 if (args.Contains("--provision"))
 {
     await Wasl.Infrastructure.Persistence.DatabaseBootstrapper.RunAsync(builder.Configuration);
@@ -61,6 +73,12 @@ if (args.Contains("--provision"))
     return;
 }
 
+// ── One command for a demo from a known state ────────────────────────────────────
+// `dotnet run --project src/Wasl.Api -- --seed` provisions, applies migrations, writes three
+// customers and five tickets in five statuses through the real domain, and exits without serving.
+//
+// It exits rather than continuing to run: a seed that also starts the API makes "did the seed
+// work" and "is the app up" the same question, and the answer to the second hides the first.
 if (args.Contains(DemoSeeder.Switch))
 {
     await DemoSeeder.RunAsync(app.Services);
