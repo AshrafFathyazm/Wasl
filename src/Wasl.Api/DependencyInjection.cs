@@ -148,7 +148,11 @@ public static class DependencyInjection
         //
         // Ruled: if a demo ever wants the explorer, it is Development-only AND a test asserts it
         // answers 404 in Production. Not now.
-        services.AddOpenApi();
+        services.AddOpenApi(options =>
+            // `002c` AC-3's other half. Without this the document lists the formatters MVC could
+            // negotiate — `text/plain, application/json, text/json` — on responses this API only
+            // ever sends as `application/problem+json`.
+            options.AddDocumentTransformer<ProblemJsonDocumentTransformer>());
         // `005` moved this to AddWaslLocalization: the implementation is localizer-backed now and
         // belongs beside the catalogues it reads. `002` predicted one changed line here; it is
         // one deleted line instead, because the registration moved rather than changed shape.

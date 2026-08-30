@@ -220,7 +220,7 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
     /// <summary>
     /// The contract scanner finds something, so an empty sweep cannot pass as agreement.
     /// <summary>
-    /// AC-3, half of it — every operation declares its statuses. The media type is NOT asserted.
+    /// AC-3 — every operation declares its statuses, and every error one is `problem+json`.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -286,22 +286,10 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
             "an operation with no declared responses gives a generated client nothing to type a "
             + "result as — which is exactly what `028` would have to hand-write around");
 
-        // The media type is NOT asserted, and the reason is recorded rather than hidden.
-        //
-        // Measured 2026-08-30: the document says `GET /api/customers -> 401: text/plain,
-        // application/json, text/json`, while the API answers `application/problem+json` on every
-        // one of those. `[ProducesResponseType(typeof(ProblemDetails), 401)]` declares the TYPE
-        // and says nothing about the MEDIA type, so MVC falls back to the formatters it could
-        // negotiate.
-        //
-        // A convention adding the content type per action was written and reverted: the metadata
-        // the API explorer reads is not on ProducesResponseTypeAttribute, which exposes no
-        // ContentTypes at all. The seam is real and finding it is a bounded piece of work — it is
-        // just not this pass's, and asserting it now would leave a red test standing.
-        //
-        // **What it costs `028`:** a generated client would type failure bodies from the wrong
-        // content type on every endpoint. Recorded in the delivery log with that consequence.
-        wrongMediaType.Should().NotBeNull("see the comment above — deliberately not asserted");
+        wrongMediaType.Should().BeEmpty(
+            "every non-2xx in this API is RFC 7807 `application/problem+json`, and a document "
+            + "saying otherwise would have a generated client parsing the wrong shape on every "
+            + "failure — the one path a client cannot easily test its way out of");
     }
 
     /// </summary>
