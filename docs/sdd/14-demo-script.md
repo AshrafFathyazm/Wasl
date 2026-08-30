@@ -27,7 +27,24 @@ dotnet run --project src/Wasl.Api
 are set. `--provision` on its own is for a deployment that wants the schema and the
 principal without demo data.
 
-A Manager and an Agent account are seeded: `manager.local` and `agent.local`.
+Three accounts are seeded: `manager@wasl.local`, `agent@wasl.local`, and a second Agent
+`agent2@wasl.local` that `011` added so a reassignment has somewhere to go. **The emails
+carry `@wasl.local`, and this line said `manager.local` until the rehearsal typed it.**
+
+**The demo runs in ARABIC unless something is done about it, and act 6b assumes it does
+not.** `004` seeds both users with `PreferredLanguage = "ar"`, and BR-8.4 puts that claim
+above `Accept-Language` — so the first `409` of act 1 comes back
+*"يوجد عميل بهذه البيانات بالفعل."*, four acts before the one whose whole point is
+switching to Arabic. **A header does not override it**, which is BR-8.4 working exactly as
+specified, not a defect. The lever that does work is the query string BR-8.5 provides:
+
+```bash
+curl "…/api/customers?culture=en" -H "Authorization: Bearer <token>"
+```
+
+Decide before the demo which way round to run it. Either is defensible — opening in
+Arabic and switching to English demonstrates the same mechanism — but discovering it
+mid-sentence does not.
 
 **There is no API documentation UI to open, and this line used to say there was.**
 `002c` generates an OpenAPI document and deliberately does not serve it: exposing it
@@ -64,7 +81,9 @@ can act on. Name deliberately is not part of the rule.
 
 Create a ticket against that customer with a category, a priority, and a channel.
 
-**Point to make:** the ticket number is `TCK-2026-000001`, generated from a database
+**Point to make:** the ticket number — **read it off the screen, do not quote one from here**
+(`--seed` writes five tickets first, so a live create is `TCK-2026-000006`, and the sequence
+is exactly what this act demonstrates) — is generated from a database
 sequence rather than a row count, because a count is a race condition and a `Guid` is
 useless on a phone call. The channel is a field on the ticket — the requirement for
 multi-channel support is satisfied by modelling the channel, not by integrating a
@@ -97,7 +116,17 @@ Then log in as the Agent and try to reassign the ticket to somebody else: `403`.
   history.
 - `InProgress` requires an assignee (BR-1.3) — the rule that makes the previous point
   safe.
-- The `403` came from an authorization policy on the server, not from a hidden button.
+- The `403` came from a check on the server, not from a hidden button. **It is in the
+  HANDLER, not a policy** — BR-6, and `011` measured why: a handler denial writes an audit
+  row and a policy denial does not, because a policy refuses before MediatR ever runs.
+
+**Scripting this act from the API:** `GET /api/support-users` returns
+`{"value":[…],"Count":3}` — a wrapped object, not a bare array — and its items carry `id`,
+`fullName` and `role` with **no `email`**. That is `011`'s contract and it is correct for a
+picker. It is written down because the rehearsal lost four attempts to it: PowerShell 5.1
+silently yields empty values for `$_.id` over that wrapper, so the request went out with an
+empty assignee and the API answered `400 errors/validation` — an accurate answer to a
+request nobody meant to send. `curl` got the `403` first try.
 
 ---
 
@@ -134,6 +163,12 @@ Then trigger a validation error — submit a comment with an empty body — and 
 response in dev tools: the message is Arabic, and `type` and the `errors` keys are
 byte-identical to the English response.
 
+**Get the English one with `?culture=en`, NOT with `Accept-Language: en`.** Measured in
+rehearsal: both headers returned the same Arabic `"اكتب شيئًا قبل النشر."`, because the
+signed-in user's `preferred_language` claim outranks the header — BR-8.4, working as
+specified. If the two responses are being shown side by side, the query string is the only
+lever a Manager token leaves.
+
 **Points to make:**
 
 - The server translates the sentences it authors; the client translates the labels it
@@ -141,7 +176,7 @@ byte-identical to the English response.
   code that produces it.
 - `type` and the `errors` keys never change language. That is what keeps the API
   contract locale-independent — a client branching on `type` works in every language.
-- The ticket number is still `TCK-2026-000001` in Latin digits, because it gets read
+- The ticket number is still in Latin digits, because it gets read
   aloud and pasted, and Arabic-Indic digits would make it unsearchable.
 - The infrastructure went into the walking skeleton rather than a later story.
   Retrofitting it would have meant revisiting every string and every stylesheet.
