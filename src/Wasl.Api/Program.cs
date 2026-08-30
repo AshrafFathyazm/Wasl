@@ -40,6 +40,27 @@ var app = builder.Build();
 //
 // It exits rather than continuing to run: a seed that also starts the API makes "did the seed
 // work" and "is the app up" the same question, and the answer to the second hides the first.
+// ── 003b. Schema and permissions, on the MIGRATOR connection ─────────────────────
+//
+// `dotnet run --project src/Wasl.Api -- --provision` migrates the schema and then creates the
+// restricted `wasl_app` principal with its grants and denies. Idempotent, so it is safe on
+// every deploy and on a database that predates the feature.
+//
+// It is a separate command rather than an EF migration because the principal needs a PASSWORD,
+// and a migration file is committed: putting `CREATE LOGIN … WITH PASSWORD` in one would either
+// commit a credential or invent a placeholder every deployment forgets to change. 004's rule —
+// a secret has no default and the host refuses to start without it — cannot be honoured by a
+// file in source control.
+//
+// The cost of that trade, stated rather than discovered: `dotnet ef database update` alone no
+// longer produces a working application. quickstart.md has two steps.
+if (args.Contains("--provision"))
+{
+    await Wasl.Infrastructure.Persistence.DatabaseBootstrapper.RunAsync(builder.Configuration);
+    Console.WriteLine("Schema applied and wasl_app provisioned.");
+    return;
+}
+
 if (args.Contains(DemoSeeder.Switch))
 {
     await DemoSeeder.RunAsync(app.Services);

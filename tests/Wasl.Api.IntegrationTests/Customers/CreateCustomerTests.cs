@@ -404,7 +404,7 @@ public sealed class CreateCustomerTests(WaslApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
 
-        await using var connection = new SqlConnection(context.Database.GetConnectionString());
+        await using var connection = new SqlConnection(factory.MigratorConnectionString);
         await connection.OpenAsync();
 
         await using var command = connection.CreateCommand();
@@ -466,7 +466,7 @@ public sealed class CreateCustomerTests(WaslApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
 
-        await using var connection = new SqlConnection(context.Database.GetConnectionString());
+        await using var connection = new SqlConnection(factory.MigratorConnectionString);
         await connection.OpenAsync();
 
         var table = $"ControlNulls_{Convert.ToHexString(RandomNumberGenerator.GetBytes(4))}";

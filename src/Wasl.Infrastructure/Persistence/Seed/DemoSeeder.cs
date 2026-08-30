@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -54,9 +55,12 @@ public static class DemoSeeder
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
         var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-        // Applied here too, so a clean clone needs one command rather than two — and so the seed
-        // can never run against a schema older than the code that seeds it.
-        await context.Database.MigrateAsync();
+        // `003b`: migrations and provisioning run on the MIGRATOR connection, because the context
+        // resolved above is now the restricted `wasl_app` principal and has no DDL rights. Still
+        // one command for a clean clone, and the seed still cannot run against a schema older than
+        // the code that seeds it.
+        await DatabaseBootstrapper.RunAsync(
+            scope.ServiceProvider.GetRequiredService<IConfiguration>());
 
         // Users first, and OUTSIDE the tickets-exist early return below. They are not demo data —
         // they are the only way to sign in — so a database that already has tickets must still get

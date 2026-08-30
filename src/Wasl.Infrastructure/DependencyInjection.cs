@@ -16,7 +16,41 @@ namespace Wasl.Infrastructure;
 /// </summary>
 public static class DependencyInjection
 {
+    /// <summary>The RUNTIME connection. `wasl_app`, restricted. `003b`.</summary>
     public const string ConnectionStringName = "Wasl";
+
+    /// <summary>
+    /// The DDL connection, and <b>the only place in the codebase that names it</b>. `003b` Q-A.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>It is read at the call site — by <c>--provision</c>, <c>--seed</c> and the integration
+    /// fixture — and is never registered in the container.</b> Nothing can inject what nothing
+    /// registers: there is no keyed service for it, no <c>IMigratorConnection</c>, and no
+    /// <c>GetService</c> that returns it. A <c>DbContext</c> resolvable from a request scope with
+    /// DDL rights is a <c>DbContext</c> that can drop the audit table.
+    /// </para>
+    /// <para>
+    /// <b>And there is no fallback.</b> A missing or refused runtime connection is a failure, never
+    /// a silent promotion to this one — retrying a denied permission with a privileged principal
+    /// turns a permissions defect into privilege escalation, and it would read as resilience.
+    /// </para>
+    /// <para>
+    /// The product owner attached this as a condition to the two-string ruling, in these terms:
+    /// <i>a second connection string that exists inside the application is a second connection
+    /// string somebody will use.</i> `003b` AC-14 fails the build if <c>AddInfrastructure</c> is
+    /// handed this one.
+    /// </para>
+    /// </remarks>
+    public const string MigratorConnectionStringName = "WaslMigrator";
+
+    /// <summary>What ships in `appsettings.Development.json` where a password would go.</summary>
+    /// <remarks>
+    /// A committed file cannot hold the credential, and an EMPTY password would connect as an
+    /// integrated-auth user on some machines and fail confusingly on others. An obviously invalid
+    /// sentinel fails the same way everywhere, and this class turns it into a sentence.
+    /// </remarks>
+    public const string PlaceholderPassword = "REPLACED_BY_USER_SECRET";
 
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
@@ -26,6 +60,43 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException(
                 $"Connection string '{ConnectionStringName}' is not configured. "
                 + "See specs/001-solution-skeleton/quickstart.md.");
+
+        // `003b`. The development file ships a placeholder rather than a password, because a real
+        // one there would be a credential in source control. Detected explicitly so a fresh clone
+        // gets a sentence naming what to set, instead of SQL Server's "Login failed for user
+        // 'wasl_app'" — which reads as a broken database rather than an unfinished setup.
+        if (connectionString.Contains(PlaceholderPassword, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Connection string '{ConnectionStringName}' still contains the placeholder "
+                + $"'{PlaceholderPassword}'. Set the real one, which is never committed: "
+                + "dotnet user-secrets -p src/Wasl.Api set \"Database:AppPassword\" \"<a password>\" "
+                + $"then set \"ConnectionStrings:{ConnectionStringName}\" with the same password "
+                + "and User Id=wasl_app, then run: "
+                + "dotnet run --project src/Wasl.Api -- --provision. "
+                + "See specs/003b-audit-least-privilege and quickstart.md.");
+        }
+
+        // `003b` AC-14. The runtime container must never be handed the DDL connection, and this is
+        // the cheapest place to make that structural rather than remembered: swap the two strings
+        // in configuration and the host refuses to start, instead of serving every request as a
+        // principal that can drop the audit table.
+        //
+        // Compared by VALUE, not by key name. Reading the wrong key is one way to arrive here; the
+        // other is somebody pasting the migrator's value under the runtime's name, and only a
+        // value comparison catches both.
+        var migratorConnectionString = configuration.GetConnectionString(MigratorConnectionStringName);
+
+        if (migratorConnectionString is { Length: > 0 }
+            && string.Equals(connectionString, migratorConnectionString, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Connection string '{ConnectionStringName}' is identical to "
+                + $"'{MigratorConnectionStringName}'. The runtime connection must use the "
+                + $"restricted '{Persistence.LeastPrivilegeProvisioner.AppUser}' principal; the "
+                + "migrator connection carries DDL rights and belongs only to --provision, "
+                + "--seed and the integration fixture. See specs/003b-audit-least-privilege.");
+        }
 
         // The clock, registered by the layer that reads it. Injected once so nothing anywhere
         // calls DateTime.UtcNow inline and a test can substitute a fake without touching the code

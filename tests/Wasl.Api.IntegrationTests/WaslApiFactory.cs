@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using Microsoft.Extensions.Hosting;
@@ -59,9 +60,19 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
                 exception);
         }
 
-        using var scope = Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
-        await context.Database.MigrateAsync();
+        // `003b`. Migrate and provision on the MIGRATOR connection, before anything resolves a
+        // WaslDbContext — which is now the restricted principal and cannot create tables, and
+        // cannot even connect until the login below exists.
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [$"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.MigratorConnectionStringName}"] =
+                    _database.GetConnectionString(),
+                [Wasl.Infrastructure.Persistence.LeastPrivilegeProvisioner.PasswordKey] = AppPassword,
+            })
+            .Build();
+
+        await Wasl.Infrastructure.Persistence.DatabaseBootstrapper.RunAsync(configuration);
 
         // The real seeder, not a fixture. `004` AC-13 and AC-23 are about THESE two rows, and a
         // test-only insert would prove a test-only insert works.
@@ -105,9 +116,27 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         //
         // UseSetting writes into the host configuration that WebApplicationBuilder is
         // seeded from, so the value is present before Program.cs asks for it.
+        // `003b`. TWO strings, and they are different principals.
+        //
+        // The runtime one is the restricted `wasl_app`, so every request the suite issues runs
+        // as the principal production runs as — which is what makes AC-6 mean anything. The
+        // migrator one is the container's `sa`, used by InitializeAsync to migrate and provision
+        // and by nothing else.
+        //
+        // Reusing `sa` for BOTH is what the whole feature exists to prevent, and it is also what
+        // every earlier run of this suite did: `DENY` is not applied to a sysadmin, so the tests
+        // would have passed against a permission that does nothing.
         builder.UseSetting(
             $"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.ConnectionStringName}",
+            RestrictedConnectionString());
+
+        builder.UseSetting(
+            $"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.MigratorConnectionStringName}",
             _database.GetConnectionString());
+
+        builder.UseSetting(
+            Wasl.Infrastructure.Persistence.LeastPrivilegeProvisioner.PasswordKey,
+            AppPassword);
 
         // `004` configuration, on the same mechanism and for the same reason: JwtOptions.From and
         // SeedOptions.From run during AddPresentation, so a value supplied any later than this is
@@ -131,6 +160,9 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             // 003's audit probes, on the same mechanism. Two filters rather than one combined
             // map, so a feature's probes are removable with the feature.
             services.AddSingleton<IStartupFilter>(new Audit.Probe.AuditProbeStartupFilter());
+
+            // `003b`. Reports the DATABASE principal the pipeline holds while serving a request.
+            services.AddSingleton<IStartupFilter>(new Audit.Probe.LeastPrivilegeProbeStartupFilter());
 
             // `004`'s probes. Authenticated, unlike the other two.
             services.AddSingleton<IStartupFilter>(new Auth.AuthProbeStartupFilter());
@@ -162,6 +194,42 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
 
     /// <summary>40 bytes, so the 32-byte HS256 minimum is met by a value, not by a skipped check.</summary>
     public const string TestSigningKey = "integration-tests-only-signing-key-40b!!";
+
+    /// <summary>
+    /// The `wasl_app` password for this run. `003b` Q-C.
+    /// </summary>
+    /// <remarks>
+    /// Generated per run rather than committed, so no credential exists anywhere — not in the
+    /// repository, not in CI configuration, not in a secret store. The container is created and
+    /// destroyed by this fixture, so nothing outside the process ever needs to know it.
+    /// </remarks>
+    public static readonly string AppPassword =
+        "Wasl#" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(12));
+
+    /// <summary>
+    /// The DDL connection, for tests that assert about the SCHEMA rather than about behaviour.
+    /// </summary>
+    /// <remarks>
+    /// <b>`003b` Q-B, and this is what it predicted.</b> Four tests read <c>sys.indexes</c> or
+    /// create a throwaway table, and all four went red the moment requests started running as
+    /// <c>wasl_app</c> — the restricted principal has no <c>VIEW DEFINITION</c> and no DDL, which
+    /// is correct, because the application never inspects its own schema.
+    /// <br/>
+    /// <b>The fix is not to widen the principal.</b> Granting metadata rights so a test can pass
+    /// would give production a permission only the suite wanted, which is the shape of every
+    /// least-privilege system that ends up privileged. Schema assertions are a DBA activity and
+    /// use the DBA connection; everything that exercises the APPLICATION keeps the restricted one,
+    /// which is what makes AC-6 mean anything.
+    /// </remarks>
+    public string MigratorConnectionString => _database.GetConnectionString();
+
+    /// <summary>The container's connection string, re-pointed at the restricted principal.</summary>
+    private string RestrictedConnectionString() =>
+        new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(_database.GetConnectionString())
+        {
+            UserID = Wasl.Infrastructure.Persistence.LeastPrivilegeProvisioner.AppUser,
+            Password = AppPassword,
+        }.ConnectionString;
 
     public const string ManagerPassword = "Manager#2026";
 

@@ -369,7 +369,27 @@ merged:
 - **`TicketHistory`** is a product feature — the ticket timeline. Typed columns, foreign
   keys, cascades with its ticket.
 - **`AuditLog`** is a forensic record. No foreign keys, actor email and role snapshotted
-  onto the row, never deleted by application code.
+  onto the row, and **append-only by database permission** as of `003b` (2026-08-30) — it
+  used to say *"never deleted by application code"*, which described a convention rather
+  than a guarantee.
+
+### The two connection strings — `003b`
+
+The application runs as `wasl_app`, a principal with `SELECT` and `INSERT` on `dbo.AuditLog`
+and an explicit `DENY` on `UPDATE` and `DELETE`. A second string, `WaslMigrator`, carries the
+DDL rights that `--provision`, `--seed` and the integration fixture need.
+
+**The migrator has no presence in the request path.** `AddInfrastructure` reads only
+`ConnectionStrings:Wasl`, nothing registers the migrator in the container, and there is no
+fallback from one to the other — a denied permission must never be retried with a privileged
+principal, because that turns a permissions defect into privilege escalation while reading as
+resilience. The host refuses to start if the two strings hold the same value.
+
+**This restricts the application, not the database administrator.** SQL Server does not apply
+permission checks to `sysadmin` at all, so a `DENY` protects nothing against a DBA on SSMS. That
+was measured, not assumed: with the `DENY` correctly in place and the application connected as
+`sa`, the audit log was exactly as mutable as before. A stronger claim needs cryptographic
+integrity or ledger tables, and that decision has not been made.
 
 A command requiring an audit row implements `IAuditableCommand`, declaring its action
 name. `AuditBehaviour` writes the row inside the same transaction as the change, so it is

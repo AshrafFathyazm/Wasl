@@ -128,17 +128,30 @@ public sealed class PersistenceConventionTests(WaslApiFactory factory)
     [Fact]
     public async Task Customers_NowHasExactlyTwoFilteredIndexes_AddedByFeature007()
     {
-        using var scope = factory.Services.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
+        // `003b`: on the MIGRATOR connection, because this reads sys.indexes. The runtime
+        // principal is `wasl_app` now and deliberately has no VIEW DEFINITION — the application
+        // never inspects its own schema, and granting the right so a test could pass would give
+        // production a permission only the suite wanted.
+        await using var connection = new SqlConnection(factory.MigratorConnectionString);
+        await connection.OpenAsync();
 
-        var filters = await context.Database
-            .SqlQuery<string>(
-                $"""
-                 SELECT ISNULL(filter_definition, '(none)') AS Value
-                 FROM sys.indexes
-                 WHERE object_id = OBJECT_ID('dbo.Customers') AND name IS NOT NULL
-                 """)
-            .ToListAsync(CancellationToken.None);
+        await using var command = new SqlCommand(
+            """
+            SELECT ISNULL(filter_definition, '(none)')
+            FROM sys.indexes
+            WHERE object_id = OBJECT_ID('dbo.Customers') AND name IS NOT NULL
+            """,
+            connection);
+
+        var filters = new List<string>();
+
+        await using (var reader = await command.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+            {
+                filters.Add(reader.GetString(0));
+            }
+        }
 
         // INVERTED BY `007`, 2026-08-29. `001` wrote this to assert the filtered indexes did NOT
         // exist yet — "the duplicate rule and its filtered indexes are feature 007's, tested

@@ -39,13 +39,39 @@ dotnet run --project src/Wasl.Api
 Two commands. `appsettings.Development.json` points at `.\SQLEXPRESS` with
 `Trusted_Connection=True`, which is safe to commit because it contains no credential.
 
-**If your instance is named differently**, override it without editing a tracked file:
+**SUPERSEDED by `003b`, 2026-08-30 — there are TWO connection strings now, and they are two
+different database principals.**
+
+| Name | Principal | Used by |
+|---|---|---|
+| `ConnectionStrings:Wasl` | `wasl_app` — restricted, **cannot UPDATE or DELETE `dbo.AuditLog`** | every request the application serves |
+| `ConnectionStrings:WaslMigrator` | a DDL principal (`sa` on the compose container) | `--provision`, `--seed`, and the integration fixture. **Nothing at request time** |
+
+`AddInfrastructure` reads only the first, and refuses to start if the two hold the same value.
+
+Setting up a clone is three commands rather than one, and the reason is that a password cannot
+live in a committed migration file:
 
 ```bash
+# 1. the wasl_app password. No default, by rule — the host refuses to start without it.
+dotnet user-secrets --project src/Wasl.Api set "Database:AppPassword" "<a password>"
+
+# 2. the runtime connection, carrying that same password.
 dotnet user-secrets --project src/Wasl.Api set \
   "ConnectionStrings:Wasl" \
-  "Server=.\\YOURINSTANCE;Database=Wasl;Trusted_Connection=True;TrustServerCertificate=True"
+  "Server=localhost,14330;Database=Wasl;User Id=wasl_app;Password=<the same>;TrustServerCertificate=True;MultipleActiveResultSets=True"
+
+# 3. apply the schema AND create the principal. Idempotent; safe to re-run.
+dotnet run --project src/Wasl.Api -- --provision
 ```
+
+**`dotnet ef database update` on its own is no longer enough.** It applies the schema and does not
+create the principal, so the application then cannot log in at all. That is the price of keeping
+the credential out of source control, and it is written here rather than left to be discovered.
+
+Until step 2 is done, `appsettings.Development.json` carries an obviously invalid placeholder and
+the host fails with a sentence naming what to set — rather than SQL Server's *"Login failed for
+user 'wasl_app'"*, which reads as a broken database rather than an unfinished setup.
 
 **Docker is only needed for the integration suite**, not to run the application:
 

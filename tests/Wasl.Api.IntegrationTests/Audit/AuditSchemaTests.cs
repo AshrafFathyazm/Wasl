@@ -22,7 +22,7 @@ public sealed class AuditSchemaTests(WaslApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
 
-        await using var connection = new SqlConnection(context.Database.GetConnectionString());
+        await using var connection = new SqlConnection(factory.MigratorConnectionString);
         await connection.OpenAsync();
 
         await using var command = new SqlCommand(sql, connection);
@@ -50,7 +50,7 @@ public sealed class AuditSchemaTests(WaslApiFactory factory)
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
 
-        await using var connection = new SqlConnection(context.Database.GetConnectionString());
+        await using var connection = new SqlConnection(factory.MigratorConnectionString);
         await connection.OpenAsync();
 
         await using var command = new SqlCommand(sql, connection);
