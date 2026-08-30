@@ -35,8 +35,8 @@ public sealed class AuthController(ISender sender) : ControllerBase
     [ServiceFilter<SignInThrottleFilter>]
     [HttpPost("token")]
     [ProducesResponseType(typeof(IssueTokenResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Token(
         [FromBody] IssueTokenCommand command,
         CancellationToken cancellationToken) =>

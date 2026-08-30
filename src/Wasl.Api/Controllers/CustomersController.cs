@@ -46,7 +46,7 @@ public sealed class CustomersController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<CustomerListItem>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> List(
         [FromQuery] string? search,
         [FromQuery] int page = 1,
@@ -71,9 +71,9 @@ public sealed class CustomersController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(CustomerProfile), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateCustomerRequest request,
         CancellationToken cancellationToken)
@@ -101,8 +101,8 @@ public sealed class CustomersController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(CustomerProfile), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken) =>
         Ok(await sender.Send(new GetCustomerByIdQuery(id), cancellationToken));
 }

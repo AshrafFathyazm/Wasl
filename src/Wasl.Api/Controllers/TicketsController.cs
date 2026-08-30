@@ -55,8 +55,8 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Create(
         [FromBody] CreateTicketCommand command,
         CancellationToken cancellationToken)
@@ -98,7 +98,7 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpGet("{id:guid}", Name = nameof(GetById))]
     [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken) =>
         Ok(await sender.Send(new GetTicketByIdQuery(id), cancellationToken));
 
@@ -121,9 +121,9 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpPut("{id:guid}/status")]
     [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ChangeStatus(
         Guid id,
         [FromBody] ChangeTicketStatusRequest request,
@@ -155,10 +155,10 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpPut("{id:guid}/assignee")]
     [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Assign(
         Guid id,
         [FromBody] AssignTicketRequest request,
@@ -185,9 +185,9 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpPost("{id:guid}/comments")]
     [ProducesResponseType(typeof(TicketCommentResult), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> AddComment(
         Guid id,
         [FromBody] AddTicketCommentRequest request,
@@ -213,7 +213,7 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpGet("{id:guid}/timeline")]
     [ProducesResponseType(typeof(TimelinePage), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Timeline(
         Guid id,
         [FromQuery] string? before,

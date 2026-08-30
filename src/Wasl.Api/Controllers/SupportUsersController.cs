@@ -37,7 +37,7 @@ public sealed class SupportUsersController(ISender sender) : ControllerBase
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<SupportUserOption>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetActive(CancellationToken cancellationToken) =>
         Ok(await sender.Send(new GetActiveSupportUsersQuery(), cancellationToken));
 }

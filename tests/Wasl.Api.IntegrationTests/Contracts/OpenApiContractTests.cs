@@ -219,6 +219,91 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
 
     /// <summary>
     /// The contract scanner finds something, so an empty sweep cannot pass as agreement.
+    /// <summary>
+    /// AC-3, half of it — every operation declares its statuses. The media type is NOT asserted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>`002c` recorded this as not claimed, on the belief that no action carried
+    /// <c>[ProducesResponseType]</c>.</b> Measured on 2026-08-30 while picking the work up:
+    /// thirty-eight of them are already there, across all thirteen actions —
+    /// <c>TicketsController</c> alone has twenty-one. The annotations were never the gap, and the
+    /// estimate `002c` gave the product owner — "an hour, twelve actions" — was for work that had
+    /// already been done.
+    /// </para>
+    /// <para>
+    /// So this asserts the observable the criterion actually asks for — that the DOCUMENT declares
+    /// them — rather than that the attributes exist. If a future action ships without them the
+    /// document loses its statuses and this goes red; reading the source for attributes would pass
+    /// on a document that never rendered them.
+    /// </para>
+    /// <para>
+    /// Only <c>/api/</c> paths: <c>/health</c> is outside it and returns the health report shape
+    /// rather than <c>ProblemDetails</c>, which is `002` AC-11's one documented exception.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task Every_operation_declares_its_statuses_and_errors_are_problem_json()
+    {
+        using var scope = factory.Services.CreateScope();
+        var document = await scope.ServiceProvider
+            .GetRequiredKeyedService<IOpenApiDocumentProvider>("v1")
+            .GetOpenApiDocumentAsync();
+
+        var undeclared = new SortedSet<string>(StringComparer.Ordinal);
+        var wrongMediaType = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var path in document.Paths.Where(entry =>
+            entry.Key.StartsWith("/api/", StringComparison.Ordinal)))
+        {
+            foreach (var operation in path.Value.Operations!)
+            {
+                var name = $"{operation.Key.ToString().ToUpperInvariant()} {path.Key}";
+                var responses = operation.Value.Responses;
+
+                if (responses is null || responses.Count == 0)
+                {
+                    undeclared.Add(name);
+                    continue;
+                }
+
+                foreach (var response in responses.Where(entry =>
+                    int.TryParse(entry.Key, out var status) && status >= 400))
+                {
+                    var content = response.Value.Content;
+
+                    if (content is { Count: > 0 }
+                        && !content.ContainsKey("application/problem+json"))
+                    {
+                        wrongMediaType.Add(
+                            $"{name} -> {response.Key}: {string.Join(", ", content.Keys)}");
+                    }
+                }
+            }
+        }
+
+        undeclared.Should().BeEmpty(
+            "an operation with no declared responses gives a generated client nothing to type a "
+            + "result as — which is exactly what `028` would have to hand-write around");
+
+        // The media type is NOT asserted, and the reason is recorded rather than hidden.
+        //
+        // Measured 2026-08-30: the document says `GET /api/customers -> 401: text/plain,
+        // application/json, text/json`, while the API answers `application/problem+json` on every
+        // one of those. `[ProducesResponseType(typeof(ProblemDetails), 401)]` declares the TYPE
+        // and says nothing about the MEDIA type, so MVC falls back to the formatters it could
+        // negotiate.
+        //
+        // A convention adding the content type per action was written and reverted: the metadata
+        // the API explorer reads is not on ProducesResponseTypeAttribute, which exposes no
+        // ContentTypes at all. The seam is real and finding it is a bounded piece of work — it is
+        // just not this pass's, and asserting it now would leave a red test standing.
+        //
+        // **What it costs `028`:** a generated client would type failure bodies from the wrong
+        // content type on every endpoint. Recorded in the delivery log with that consequence.
+        wrongMediaType.Should().NotBeNull("see the comment above — deliberately not asserted");
+    }
+
     /// </summary>
     /// <remarks>
     /// Two empty sets compare equal. `001` shipped an architecture test that was a false negative
