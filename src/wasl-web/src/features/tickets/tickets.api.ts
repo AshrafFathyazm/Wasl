@@ -3,6 +3,7 @@ import type {
   CreateTicketRequest,
   CustomerListItem,
   PagedResult,
+  TicketListItem,
   TicketResponse,
 } from '../../lib/api-types.provisional';
 
@@ -126,3 +127,53 @@ export async function searchCustomers(
     totalPages: items.length === 0 ? 0 : 1,
   };
 }
+
+/* ---- `010`, the list -------------------------------------------------------
+ * Source: specs/010-ticket-list-and-detail/contracts/tickets-list-api.md and
+ * its FRONTEND-API-GUIDE. The endpoint IS built.
+ * -------------------------------------------------------------------------- */
+
+/* NOT a contract shape — it is the request parameters this feature sends, and
+ * the same object the query key is built from. Named ListParams rather than
+ * TicketListParams because check-no-domain-types.mjs reads a domain prefix as a
+ * hand-written contract type, and it is right to: the prefix would claim this
+ * came from tickets-list-api.md, which it did not. */
+export interface ListParams {
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * `GET /api/tickets?page=&pageSize=`
+ *
+ * NOTHING IS SORTED OR FILTERED HERE, and that is a rule rather than an
+ * omission: the order is a contract (`CreatedAtUtc DESC, Id DESC`). Sorting one
+ * page in the browser produces an order that is right on the page you are
+ * looking at and wrong across pages, and it fails on exactly the rows the tie
+ * breaker exists for.
+ *
+ * `page` and `pageSize` come back as the EFFECTIVE values after the server's
+ * clamping — BR-7.2 clamps rather than rejecting, so a request for pageSize 500
+ * is a `200` carrying 100. The control renders what came back, never what was
+ * sent.
+ */
+export function listTickets(
+  params: ListParams,
+  signal?: AbortSignal,
+): Promise<PagedResult<TicketListItem>> {
+  return apiFetch<PagedResult<TicketListItem>>('/api/tickets', {
+    query: { page: params.page, pageSize: params.pageSize },
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * THE KEY IS AN OBJECT FROM THE START, and the guide is explicit about why:
+ * `015` adds filter properties to this same object, and caching per filter
+ * combination falls out of it (ADR-011 §2). `['tickets', page, pageSize]` would
+ * have to be restructured then, invalidating every cached list on the way.
+ */
+export const ticketKeys = {
+  list: (params: ListParams) => ['tickets', 'list', params] as const,
+  detail: (id: string) => ['tickets', 'detail', id] as const,
+};

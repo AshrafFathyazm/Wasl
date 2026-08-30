@@ -22,6 +22,7 @@ import { NAV_PATHS } from './shell/navItems';
 
 const HomePage = lazy(() => import('./features/home/HomePage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
+const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 
 /* A PLACEHOLDER for `010`'s detail screen, and the reason it exists at all: the
  * frozen contract promises `Location: /api/tickets/{id}` resolves. Without this
@@ -67,6 +68,10 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
     })()
   : [];
 
+/** Paths that now have a real screen. Listed once so the placeholder spread and
+ *  the real routes cannot disagree about which is which. */
+const OWNED_PATHS = new Set(['/tickets']);
+
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 
 /*
@@ -96,8 +101,23 @@ export const routes: RouteObject[] = [
         element: <AppShell />,
         children: [
           /* The nav destinations that have no screen yet keep their placeholder,
-           * so the active state and the breadcrumb stay verifiable (`023`). */
-          ...NAV_PATHS.map((path) => ({ path, element: <HomePage /> })),
+           * so the active state and the breadcrumb stay verifiable (`023`).
+           *
+           * A path with a REAL screen is filtered out here rather than shadowed.
+           * The first attempt declared `/tickets` after this spread and relied on
+           * react-router preferring the later of two identical paths. IT DOES
+           * NOT — `matchRoutes` returns the first, so `/tickets` rendered the
+           * placeholder while every TicketListPage test still passed, because
+           * those mount the page directly and never go through the router.
+           *
+           * NAV_PATHS is not edited: the nav item has to keep pointing at
+           * `/tickets`, and deleting the path there would delete the link. */
+          ...NAV_PATHS.filter((path) => !OWNED_PATHS.has(path)).map((path) => ({
+            path,
+            element: <HomePage />,
+          })),
+
+          { path: '/tickets', element: <TicketListPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
           { path: '/tickets/:id', element: <TicketCreatedPage /> },
         ],

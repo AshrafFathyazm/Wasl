@@ -167,6 +167,55 @@ export interface TicketResponse {
   version: string;
 }
 
+/* ---- `010`, the ticket list row ------------------------------------------
+ * Source: specs/010-ticket-list-and-detail/contracts/tickets-list-api.md —
+ * FROZEN. Transcribed from the field table, not from the JSON example: the
+ * example shows one populated row and cannot express which fields are nullable.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against specs/010-ticket-list-and-detail/
+// contracts/tickets-list-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** A LIST ROW, NOT A TICKET. It is deliberately smaller than `TicketResponse`,
+ *  and the contract names what it leaves out and why: `description` (4,000
+ *  characters × 100 rows of payload nothing renders), `version` (nothing on the
+ *  list mutates) and `allowedTransitions` (nothing on the list acts).
+ *
+ *  Those absences are a decision, not an oversight. A screen that needs any of
+ *  the three is asking for the detail endpoint. */
+export interface TicketListItem {
+  id: string;
+
+  /** `TCK-yyyy-000000`. Identical in every locale, Latin digits (BR-8.13). */
+  ticketNumber: string;
+
+  /** User content, verbatim, and it may be Arabic in an English UI or the
+   *  reverse. Isolate it when rendering — `<bdi>` or `unicode-bidi: isolate`,
+   *  never `dir="auto"`, which also rewrites the element direction and pushes a
+   *  Latin subject to the opposite edge of a column of Arabic ones. */
+  subject: string;
+
+  customerId: string;
+  customerName: string;
+
+  status: TicketStatus;
+  priority: TicketPriority;
+  category: TicketCategory;
+  channel: CommunicationChannel;
+
+  /** BOTH null when unassigned, together. The row is still returned — the join
+   *  is a left join — so an unassigned ticket is a normal row with an empty
+   *  cell, not a missing one. */
+  assigneeId: string | null;
+  assigneeName: string | null;
+
+  /** The escalation REASON is on the detail only. */
+  isEscalated: boolean;
+
+  /** ISO 8601, UTC, `Z`. Also the sort key: `CreatedAtUtc DESC, Id DESC`. */
+  createdAtUtc: string;
+}
+
 /* ---- `008`, for the customer picker ---------------------------------------
  * Source: specs/008-customer-list-and-profile/contracts/customers-read-api.md —
  * frozen. THE ENDPOINT IS NOT BUILT (spec Q-1); the picker's fetcher is stubbed

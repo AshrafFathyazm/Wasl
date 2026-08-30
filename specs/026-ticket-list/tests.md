@@ -771,6 +771,134 @@ Each named the real cause. Restored and re-run green after every one.
   work. Left alone: reformatting eight unrelated files inside this change would hide what
   this change did.
 
+## 1d — `FE-026-02` … `05`
+
+The four independent tasks that feed `FE-026-06`. Built 2026-08-30.
+
+### 1d.1 — A gate I claimed and had not run
+
+`a6cdb0c` was committed with **`npm run lint:types` failing.** The pre-commit run listed six
+checks — prettier, tsc, eslint, stylelint, lint:i18n, test, build — and that was not one of
+them, while the report said "every gate green".
+
+What it caught, one command later: `interface Customer` in `TablePreview.tsx`. A
+domain-shaped name in a component file is exactly what `check-no-domain-types.mjs` exists to
+stop, and it cannot tell a fixture from a real shape.
+
+Renamed to `SampleRow` rather than added to the ALLOWED list, because the shape genuinely is
+not a customer — `kind` appears nowhere in `customers-read-api.md`. It is arbitrary data
+whose only job is to be UNLIKE a ticket.
+
+**The rule this breaks is the repo's own: the run output is recorded, never asserted from
+memory.** A gate omitted from the command is not a gate that passed.
+
+### 1d.2 — `FE-026-02`, and a negative control that failed by being right
+
+`lib/formatters.ts`. Two silent locale defaults, both of which produce a plausible screen:
+
+| Default | What it does | Pin |
+|---|---|---|
+| Numbering system | `ar` may render `٢٩/٠٨/٢٠٢٦` beside a Latin-digit `TCK-2026-001042` | `-nu-latn` |
+| Calendar | `ar-SA` returns a **different year** — 1448, not 2026. Nothing throws | `-ca-gregory` |
+
+**The control asserting the first one failed on its first run, and the failure was the
+finding.** It asserted that bare `ar` renders Arabic-Indic digits. In this ICU build it does
+not — it returns `29‏/08‏/2026`: Latin digits with RLM marks embedded. So
+`-nu-latn` is doing nothing *here*, and a test written to prove it was needed would have
+proved the reverse.
+
+The risk is real and `ar-EG` is where it shows: same language, same code, Arabic-Indic
+digits. **That is the actual argument for pinning** — not that today's engine flips, but
+that the numbering system is a locale default, and a different build or a regional
+preference changes it under a screen nobody re-tested. Both halves are asserted now: that
+the platform really does flip, and that our formatter does not, whichever locale it is given.
+
+Unpinning both extensions turns two tests red with `expected '٢٩/٠٨/٢٠٢٦' to be
+'29/08/2026'` — the wrong digits and the wrong calendar in one string.
+
+### 1d.3 — `FE-026-03` / `04` / `05`
+
+| Task | Built | Note |
+|---|---|---|
+| `FE-026-03` | `TicketListItem` | Transcribed from the **field table** of the frozen `tickets-list-api.md`, not the JSON example — an example shows one populated row and cannot express which fields are nullable. `assigneeId` and `assigneeName` are null **together**; the row is still returned, because the join is a left join |
+| `FE-026-04` | `TicketStatusBadge`, `TicketPriorityText` | The domain leak `Badge` refused, taken where the inventory says it belongs |
+| `FE-026-05` | 33 keys × 2 | Suite-wide parity now 135 keys |
+
+`STATUS_TONE` is asserted **by value**, because a colour map is the kind of thing that gets
+tidied — and the tidy actually proposed, twice, was giving `New` and `Open` the same blue.
+Making that change turns `gives New and Open DIFFERENT tones` red.
+
+**The more valuable control is the second one.** Re-keying the tone on the *translated*
+label instead of the wire value fails `renders Open with the same tone in ar and en` — and
+nothing else. That is the silent failure the map is arranged to prevent: every badge goes
+neutral for an Arabic user, with no exception, no error, and nothing visibly wrong in
+English.
+
+## 1e — `FE-026-06`, `TicketListPage`
+
+The screen, wired to the real endpoint. `/tickets` now resolves to it instead of the `023`
+placeholder.
+
+### 1e.1 — A comment that asserted a library rule I had not checked
+
+`/tickets` is in `NAV_PATHS`, and `NAV_PATHS` is spread into the route table as `023`
+placeholders. I declared the real route **after** that spread and wrote a comment saying
+react-router takes the last of two identical paths.
+
+**It does not.** `matchRoutes` returned the first — the placeholder. So `/tickets` rendered
+the `023` page while **every `TicketListPage` test still passed**, because they mount the
+component directly and never go through the router. The screen was wired and unreachable.
+
+The fix is to filter rather than shadow: `OWNED_PATHS` removes a path from the placeholder
+spread once a real screen exists. `NAV_PATHS` is untouched — deleting `/tickets` there would
+delete the nav item with it.
+
+**A second guard in the same file was passing for the wrong reason.** It asserted that
+`/tickets` and `/customers` had different `element` values — and `<HomePage />` is a fresh
+object on every `.map()` call, so two placeholders compare unequal by identity. It compared
+component TYPES after the fix, and it now also asserts that two placeholders DO share a
+component, which is what makes the first half meaningful rather than trivially true.
+
+| Break | Observed |
+|---|---|
+| Restore the shadowing (two `/tickets` entries) | **2 failed** — `expected [ … ] to have a length of 1 but got 2`, and the component-type comparison |
+
+### 1e.2 — `lint:types` fired again, and again it was right
+
+`interface TicketListParams` in `tickets.api.ts`. It is **not** a contract shape — it is the
+request parameters this feature sends, and the object the query key is built from — but the
+domain prefix claims it came from `tickets-list-api.md`. Renamed `ListParams`.
+
+Second time this session the guard has caught something (after `interface Customer` in the
+table preview), and both were the same mistake: a domain-shaped NAME on a local shape. Both
+were renamed rather than allow-listed, because in both cases the shape genuinely was not the
+domain type it was claiming to be.
+
+### 1e.3 — What the screen holds, and what it refuses to
+
+| | Rule |
+|---|---|
+| `page` / `pageSize` | In the **URL**, not state (ADR-011 §1). Back moves between pages, a link to page 4 is a link to page 4, a refresh lands where you were |
+| A malformed `?page=abc` | Falls back to 1. `NaN` in a query key is a cache entry nothing can ever match — no request, no error, a permanent skeleton |
+| `pageSize` control | Renders what the **server returned**, never what was sent. BR-7.2 clamps, so asking 500 shows 100 |
+| Changing page size | Returns to page 1. Page 7 of 20-row pages is not page 7 of 100-row pages, and on a short list it lands past the end |
+| Sorting / filtering | **Never client-side.** The order is a contract (`CreatedAtUtc DESC, Id DESC`); sorting one page is right on the page you are reading and wrong across pages |
+| Error copy | The **server's** `detail` when it authored one, ours otherwise. A transport failure has no ProblemDetails, and an empty string says nothing |
+
+### 1e.4 — AC-026-16, asserted at the source
+
+Spec §5 forbids seeding the cache from a write response: a body a write returns is what the
+server HAD, not what it STORED, and the two already differ by four digits of a timestamp.
+
+**The defect is a call that is ABSENT, so only reading the source can prove it.** Every
+non-test file under `features/tickets/` is scanned for `setQueryData` / `setQueriesData`,
+comments stripped. The sweep asserts it read **more than three files** first — a guard that
+silently scanned nothing would be green forever, which is the failure mode three other
+guards in this feature already had.
+
+The other half is a render: the date on screen comes from the `GET` payload the cache holds,
+asserted by changing `createdAtUtc` in the fixture and reading the formatted result.
+
 ### 1b.8 — Open, and recorded rather than smoothed over
 
 - **`.colPriority` is now 92px, and it is the canvas's number, not a render.** This was

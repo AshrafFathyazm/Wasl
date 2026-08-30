@@ -22,7 +22,17 @@ import styles from './TablePreview.module.css';
  * ships — routes.tsx strips /_preview from the production bundle.
  */
 
-interface Customer {
+/* NOT the contract's customer, and deliberately not named after it.
+ *
+ * check-no-domain-types.mjs flagged `interface Customer` here, and it was
+ * right to: a domain-shaped name in a component file is exactly what that
+ * guard exists to stop, and it cannot tell a fixture from a real shape.
+ *
+ * Renaming rather than adding an exception, because the shape genuinely is
+ * not a customer — `kind` is not in customers-read-api.md at all. It is
+ * arbitrary sample data whose only job is to be UNLIKE a ticket, so that
+ * rendering it through Table proves the primitive carries no domain. */
+interface SampleRow {
   id: string;
   ref: string;
   name: string;
@@ -44,7 +54,7 @@ const NAMES = [
 
 /* Deterministic — a preview that changes between two reads cannot be compared
  * against itself, and a screenshot of it is not evidence of anything. */
-const CUSTOMERS: Customer[] = Array.from({ length: 24 }, (_, i) => ({
+const SAMPLE_ROWS: SampleRow[] = Array.from({ length: 24 }, (_, i) => ({
   id: `c-${i}`,
   ref: String(54632 + i * 137),
   name: NAMES[i % NAMES.length]!,
@@ -59,15 +69,15 @@ export default function TablePreview() {
   const [state, setState] = useState<'data' | 'loading' | 'empty'>('data');
 
   const sorted = (() => {
-    if (!sort) return CUSTOMERS;
+    if (!sort) return SAMPLE_ROWS;
     const dir = sort.direction === 'asc' ? 1 : -1;
-    return [...CUSTOMERS].sort((a, b) => {
-      const key = sort.columnId as keyof Customer;
+    return [...SAMPLE_ROWS].sort((a, b) => {
+      const key = sort.columnId as keyof SampleRow;
       return String(a[key]).localeCompare(String(b[key]), 'ar') * dir;
     });
   })();
 
-  const columns: TableColumn<Customer>[] = [
+  const columns: TableColumn<SampleRow>[] = [
     { id: 'ref', header: 'المعرّف', width: 96, cell: (c) => c.ref, sortable: true },
     /* The flexible column here is the NAME, not the subject. A primitive that
      * only works when the wide column is second is not a primitive. */
