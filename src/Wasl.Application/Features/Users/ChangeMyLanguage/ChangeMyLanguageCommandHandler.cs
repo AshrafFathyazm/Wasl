@@ -5,7 +5,7 @@ using Wasl.Domain.Common.Exceptions;
 namespace Wasl.Application.Features.Users.ChangeMyLanguage;
 
 /// <summary>
-/// Writes the caller's language preference. `005b` AC-1, AC-4, AC-9.
+/// Writes the caller's language preference. `014` AC-1, AC-4, AC-9.
 /// </summary>
 /// <remarks>
 /// <para>

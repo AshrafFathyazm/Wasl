@@ -5,7 +5,7 @@ using Wasl.Domain.Audit;
 namespace Wasl.Application.Features.Users.ChangeMyLanguage;
 
 /// <summary>
-/// Stores the caller's interface language. `005b`, FR-5.5.
+/// Stores the caller's interface language. `014`, FR-5.5.
 /// </summary>
 /// <remarks>
 /// <para>

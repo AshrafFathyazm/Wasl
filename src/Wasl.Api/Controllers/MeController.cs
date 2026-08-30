@@ -6,7 +6,7 @@ using Wasl.Application.Features.Users.ChangeMyLanguage;
 namespace Wasl.Api.Controllers;
 
 /// <summary>
-/// The signed-in user's own settings. `005b`.
+/// The signed-in user's own settings. `014`.
 /// </summary>
 /// <remarks>
 /// <b><c>me</c> is the subject of the bearer token.</b> There is no path parameter and no field

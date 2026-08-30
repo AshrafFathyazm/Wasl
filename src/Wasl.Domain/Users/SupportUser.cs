@@ -109,7 +109,7 @@ public sealed class SupportUser
     }
 
     /// <summary>
-    /// Stores the language this user reads the interface in. `005b`, FR-5.5.
+    /// Stores the language this user reads the interface in. `014`, FR-5.5.
     /// </summary>
     /// <remarks>
     /// <para>

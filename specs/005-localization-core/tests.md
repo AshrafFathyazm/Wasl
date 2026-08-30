@@ -1,7 +1,7 @@
 # `005-localization-core` — test evidence
 
 **Scope:** the server half only, ruled 2026-08-29 (Q-J). `023` built the client half; the
-switcher and `PUT /api/me/language` are **`005b`**, a named row on the board. Frontend criteria
+switcher and `PUT /api/me/language` are **`014`**, a named row on the board. Frontend criteria
 AC-20 … AC-32 are **not claimed here** and not built by this feature.
 
 **Run:** 2026-08-29, Windows 11, .NET 10.0.200 SDK, SQL Server 2022 via `Testcontainers.MsSql`
@@ -230,5 +230,5 @@ After the catalogues and the move:
 | AC-2 | The source guard on the new ordering constraint is not written. Control 1 covers the behaviour |
 | AC-19 | `Localization:SupportedCultures` is read from configuration, and no test configures a third culture. NFR-9's claim is implemented, not proven |
 | The Arabic copy is correct | **Sixty-three strings, written by this agent, reviewed by nobody who reads Arabic.** A-4 called this a delivery risk rather than a code risk, and it still is. `014`'s manual Arabic pass is where it gets read |
-| Anything on a screen | No screen is touched. `023` shipped the client catalogues; `005b` and `014` own what a user sees |
+| Anything on a screen | No screen is touched. `023` shipped the client catalogues; `014` and `014` own what a user sees |
 | That `?culture=` is safe to expose | Q-F says it is, because it can only select from the supported list. Unchanged and untested — the supported-culture filter is what makes it true, and AC-9 tests that filter |

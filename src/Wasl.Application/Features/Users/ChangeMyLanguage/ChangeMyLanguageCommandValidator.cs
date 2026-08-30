@@ -4,7 +4,7 @@ using Wasl.Domain.Users;
 namespace Wasl.Application.Features.Users.ChangeMyLanguage;
 
 /// <summary>
-/// Exactly `en` or `ar`, lowercase. `005b` AC-3, BR-8.1.
+/// Exactly `en` or `ar`, lowercase. `014` AC-3, BR-8.1.
 /// </summary>
 /// <remarks>
 /// <para>

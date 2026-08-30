@@ -11,7 +11,7 @@ using Wasl.Infrastructure.Persistence.Seed;
 namespace Wasl.Api.IntegrationTests.Users;
 
 /// <summary>
-/// `PUT /api/me/language`. `005b`, FR-5.5, BR-8.1.
+/// `PUT /api/me/language`. `014`, FR-5.5, BR-8.1.
 /// </summary>
 /// <remarks>
 /// The column, the claim and the culture provider that reads them were built by `004` and `005`.

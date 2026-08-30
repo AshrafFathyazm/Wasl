@@ -55,7 +55,7 @@ breaking it on purpose said so.**
 
 | # | Spec says | Built | Reason |
 |---|---|---|---|
-| D-1 | The feature spans both lanes | server only | Q-J, ruled. `023` already shipped the client half; the switcher and `PUT /api/me/language` are **`005b`**, a named board row. *A feature that crosses the lane boundary makes both lanes wait for each other* |
+| D-1 | The feature spans both lanes | server only | Q-J, ruled. `023` already shipped the client half; the switcher and `PUT /api/me/language` are **`014`**, a named board row. *A feature that crosses the lane boundary makes both lanes wait for each other* |
 | D-2 | `IStringLocalizer` over `.resx` "in `src/Wasl.Api/Common/Localization/`" with a `ResourcesPath` | same folder, **no `ResourcesPath` at all** | With one, the factory composes `{RootNamespace}.{ResourcesPath}.{TypeName minus root}` — so a marker in `Wasl.Api.Common.Localization` looks for `Resources/Common/Localization/SharedResource.resx`, a path nobody would guess from either end. Side by side, the manifest name a `.resx` compiles to *is* the marker's full name. Control 2 measured what the alternative costs |
 | D-3 | `LocalizationClaims.cs` holding the claim name | deleted; uses `004`'s `ActorClaimTypes.PreferredLanguage` | It was a duplicate of a constant that already existed. Two constants for one wire value is a bug that only bites when one changes |
 | D-4 | AC-2's source-level guard on middleware order | not written | `004`'s `MiddlewareOrderTests` covers the `UseAuthentication` half; the new `UseAuthorization` half is covered by control 1's behaviour but not by a source guard. **Recorded as a gap in `tests.md`, not claimed** |
@@ -103,7 +103,7 @@ the API issues a working token from the moved issuer, an authenticated `GET` ret
   it gets reviewed.
 - **AC-2 and AC-19 are gaps**, both recorded above and in `tests.md`.
 - **Nothing lets a user change their language.** The column and claim exist; the endpoint and the
-  switcher are `005b`.
+  switcher are `014`.
 - **A `429`'s `Retry-After` is untested across locales.** AC-12b was written and the throttle is
   per-process, so exercising it inside the shared-container suite would spend the window other
   tests need. The body's `title` is covered by the catalogue tests; the header carries a number,
