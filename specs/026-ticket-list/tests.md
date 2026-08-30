@@ -899,6 +899,118 @@ guards in this feature already had.
 The other half is a render: the date on screen comes from the `GET` payload the cache holds,
 asserted by changing `createdAtUtc` in the fixture and reading the formatted result.
 
+## 1f — `FE-026-09`, and a spec decision I overrode without noticing
+
+### 1f.1 — The deviation
+
+Spec **Q-7** ruled, before any code: *"No row menu. Open is the row click, and copy the
+number is one action behind two clicks. It arrives with the first action that changes
+something (`011`/`012`)."*
+
+`FE-026-06` shipped a row menu holding a single **View ticket** item — which duplicated the
+row click — **and no row click at all.** The exact thing Q-7 called "an empty menu", with
+one thing in it.
+
+**Nothing caught it, because no test asked what a row does.** Twenty tests covered the
+query, the URL, the clamping, the five states and the cache rule, and not one of them asked
+whether clicking a row went anywhere. The screen was green and wrong.
+
+That is a gate failure, not a coding one: the working agreement says a decision already made
+is not re-decided, and this re-decided one silently. It is recorded here rather than
+quietly fixed, and it was named in `0ef201a`'s own commit message before the fix landed.
+
+### 1f.2 — What replaced it
+
+| | |
+|---|---|
+| Row menu | **Removed.** `Table` keeps the capability — the customer preview uses it, and `011`/`012` earn it back here |
+| Row click | `onRowClick` on the primitive. Mouse convenience only: **no tabindex, no role** |
+| The keyboard path | A real `<Link>` in the subject cell |
+
+**The primitive deliberately does not make the row itself focusable.** A `<tr>` given
+`role="button"` announces the whole row as one control and swallows every cell inside it;
+a `<tr>` given `tabindex` puts a stop in the tab order that leads nowhere for a screen
+reader. So the row handler ignores clicks that originate inside an `<a>` or `<button>` —
+the link does not fire twice, and a future row action is not hijacked — and the anchor is
+the accessible affordance.
+
+**Without that anchor the row is reachable by mouse only, and the failure is invisible to
+anyone testing with a mouse.** AC-T-07-adjacent, and asserted: removing the `<Link>` turns
+`gives the subject a real link` red; removing `onRowClick` turns `navigates when the row
+itself is clicked` red. One each, neither overlapping.
+
+### 1f.3 — A test that asserted an absence, and could not
+
+The navigation test first asserted the ticket list was *gone* after a row click. It failed:
+the page is mounted on its own, so navigating away unmounts nothing. "The list is gone" was
+never going to be true, and had the route not changed at all the assertion would have
+failed identically — right result, no information.
+
+A `LocationProbe` reports `useLocation().pathname` instead, so the assertion names the
+destination: `/tickets/{id}`.
+
+### 1f.4 — Q-1, the placeholder that lied
+
+`/tickets/:id` renders `024`'s placeholder, headed **"Ticket created"**. True when the
+create flow navigates there; a lie when a list row does — it reads as the app having created
+something the reader did not ask for.
+
+Retitled to *"Ticket detail — not built yet"*, in both catalogues. **The toast needed no
+change**: it already keys on navigation state that only the create flow supplies, so it stays
+correct without a second condition. One key, as Q-1 predicted.
+
+## 1g — `FE-026-08`, the two states that look like one
+
+### 1g.1 — Past-the-end is not empty, and only the contract separates them
+
+Both arrive as `items: []`. The contract clamps `page` **UP** to 1 and never **DOWN**, so
+`?page=99` on a three-page list returns page 99, zero items, and a `totalCount` of 137.
+
+`totalCount` is the only thing that tells them apart — and the screen was rendering
+**"No tickets yet"** over a list holding 137 of them. It is the one state on this screen
+reachable by editing the address bar, which is how it will actually be met, and it tells the
+reader their data is gone.
+
+| | `items` | `totalCount` | Renders |
+|---|---|---|---|
+| Genuinely empty | `[]` | `0` | "No tickets yet" |
+| Past the end | `[]` | `137` | "That page is past the end" + a way back to the last page |
+
+The tests assert the **absence of the wrong copy**, not only the presence of the right one —
+the defect was the wrong copy showing, and a test that checks only for the right string
+passes on a screen that shows both.
+
+### 1g.2 — A negative control that stayed silent, and what it exposed
+
+`refreshing` was added to `Table` — the rows dim and stay, `aria-busy` carries it to a reader
+who cannot see a dim — with four tests on the primitive. All green.
+
+**Then the control: swap `isPending` for `isFetching` on the page, which re-skeletons on
+every refetch. All 27 page tests stayed green.** The primitive was covered; the caller
+handing it the right flag was not. Nothing asserted what the page does.
+
+The test written to close that gap **failed against the real screen** — and the reason was
+not the flag at all:
+
+> A page change is a **different query key**. The new entry is genuinely pending and there
+> is nothing in the cache to show, so the table collapses to a skeleton and back on every
+> click of Next. React Query was behaving correctly; the screen was asking the wrong
+> question.
+
+`placeholderData: keepPreviousData` is the fix: the previous page stays on screen, dimmed,
+until the next arrives. `refreshing` now reads `isPlaceholderData || (isFetching &&
+!isPending)` — the rows belong to the previous page, or the same key is being refetched.
+Both mean "these rows are not fresh"; neither is a first load.
+
+**The assertion was written before the behaviour existed, and it is what found the gap.**
+Reading the code would not have: `refreshing` was wired, correct, and irrelevant.
+
+| Break | Observed |
+|---|---|
+| `pastEnd` forced to `false` | **3 failed** — past-end copy, the way back, and the headings |
+| `isPending` → `isFetching` (before the new test) | **0 failed** — the hole |
+| `placeholderData` removed (after) | **1 failed** — `does not return to the skeleton when moving page` |
+
 ### 1b.8 — Open, and recorded rather than smoothed over
 
 - **`.colPriority` is now 92px, and it is the canvas's number, not a render.** This was

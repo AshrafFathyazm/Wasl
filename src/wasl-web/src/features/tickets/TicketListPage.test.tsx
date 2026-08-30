@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../lib/api';
@@ -46,9 +46,17 @@ const page = (
   page: 1,
   pageSize: 20,
   totalCount: 1,
-  totalPages: 1,
+  totalPages: 3,
   ...over,
 });
+
+/* The page is mounted on its own, so navigating away unmounts nothing and
+ * "the list is gone" is not an assertion. This reports the router location
+ * instead, which is the thing actually under test. */
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <span data-testid="pathname">{pathname}</span>;
+}
 
 const mounted = (url = '/tickets') => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -57,6 +65,7 @@ const mounted = (url = '/tickets') => {
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={[url]}>
           <TicketListPage />
+          <LocationProbe />
         </MemoryRouter>
       </QueryClientProvider>
     </I18nextProvider>,
@@ -219,5 +228,136 @@ describe('AC-026-16 — nothing under features/tickets seeds the cache from a wr
     );
     mounted();
     expect(await screen.findByText('09/01/2026')).toBeInTheDocument();
+  });
+});
+
+/*
+ * FE-026-09 / Q-7. The first version of this screen shipped a row MENU holding a
+ * single "View ticket" item, and no row click — the opposite of what the spec
+ * ruled. Nothing caught it, because no test asked what the row does.
+ *
+ * These are the assertions that would have.
+ */
+describe('FE-026-09 — the row navigates, and there is no row menu', () => {
+  it('renders NO row menu, per Q-7', async () => {
+    mounted();
+    await screen.findByText('TCK-2026-000042');
+    /* An actions column, a kebab trigger, or a menu role — none of the three.
+     * Q-7: "Open is the row click", and a menu with one entry duplicating it is
+     * the empty menu that ruling was about. */
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(
+      screen.queryByRole('columnheader', { name: i18n.t('tickets:list.column.actions') }),
+    ).toBeNull();
+  });
+
+  it('gives the subject a real link — the keyboard and screen-reader path', async () => {
+    mounted();
+    const link = await screen.findByRole('link', { name: ROW.subject });
+    /* onRowClick adds no tabindex and no role, deliberately. Without this anchor
+     * the row is reachable by mouse only, and the failure is invisible to
+     * anyone testing with a mouse. */
+    expect(link).toHaveAttribute('href', `/tickets/${ROW.id}`);
+  });
+
+  it('navigates when the row itself is clicked', async () => {
+    const u = userEvent.setup();
+    mounted();
+    const cell = await screen.findByText('علي الأحمد');
+    await u.click(cell);
+    await waitFor(() =>
+      expect(screen.getByTestId('pathname')).toHaveTextContent(`/tickets/${ROW.id}`),
+    );
+  });
+});
+
+/*
+ * FE-026-08 — the two states that are NOT distinguishable from the array alone.
+ *
+ * Both arrive as `items: []`. The contract clamps `page` UP to 1 and never DOWN,
+ * so `?page=99` on a three-page list returns page 99 with zero items and a
+ * totalCount of 137. Only totalCount separates them — and telling a reader
+ * "No tickets yet" over a list holding 137 of them says their data is gone.
+ */
+describe('FE-026-08 — past-the-end is not the same as empty', () => {
+  const emptyPage = { items: [], totalCount: 0, totalPages: 0, page: 1 };
+  const pastEnd = { items: [], totalCount: 137, totalPages: 7, page: 99 };
+
+  it('says "no tickets yet" only when there are genuinely none', async () => {
+    vi.mocked(listTickets).mockResolvedValue(page(emptyPage));
+    mounted();
+    expect(
+      await screen.findByText(i18n.t('tickets:list.emptyTitle')),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('tickets:list.pastEndTitle'))).toBeNull();
+  });
+
+  it('says past-the-end when the list has rows on other pages', async () => {
+    vi.mocked(listTickets).mockResolvedValue(page(pastEnd));
+    mounted('/tickets?page=99');
+    expect(
+      await screen.findByText(i18n.t('tickets:list.pastEndTitle')),
+    ).toBeInTheDocument();
+    /* The wrong copy is the whole defect — assert its absence, not just the
+     * right copy's presence. */
+    expect(screen.queryByText(i18n.t('tickets:list.emptyTitle'))).toBeNull();
+  });
+
+  it('offers a way back, and it goes to the LAST page', async () => {
+    const u = userEvent.setup();
+    vi.mocked(listTickets).mockResolvedValue(page(pastEnd));
+    mounted('/tickets?page=99');
+    await screen.findByText(i18n.t('tickets:list.pastEndTitle'));
+    vi.mocked(listTickets).mockClear();
+
+    await u.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.pastEndCta') }),
+    );
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+    expect(vi.mocked(listTickets).mock.calls[0]![0]!.page).toBe(7);
+  });
+
+  it('keeps the column headings in both states', async () => {
+    vi.mocked(listTickets).mockResolvedValue(page(pastEnd));
+    mounted('/tickets?page=99');
+    await screen.findByText(i18n.t('tickets:list.pastEndTitle'));
+    expect(
+      screen.getByRole('columnheader', { name: i18n.t('tickets:list.column.subject') }),
+    ).toBeInTheDocument();
+  });
+});
+
+/*
+ * THE GAP A NEGATIVE CONTROL FOUND.
+ *
+ * `Table` has its own tests for `refreshing`, and they pass. But nothing here
+ * asserted that the PAGE hands it the right flag — so swapping `isPending` for
+ * `isFetching` (which re-skeletons on every refetch) left all 27 tests green.
+ * The primitive was covered and its caller was not.
+ */
+describe('AC-026-06 — a refetch keeps the rows on screen', () => {
+  it('does not return to the skeleton when moving page', async () => {
+    mounted('/tickets?page=1');
+    await screen.findByText('TCK-2026-000042');
+    const u = userEvent.setup();
+
+    /* Second request never settles, so the refetching state is the one under
+     * assertion rather than a frame that has already passed. */
+    let release: (v: PagedResult<TicketListItem>) => void = () => {};
+    vi.mocked(listTickets).mockImplementation(
+      () => new Promise((resolve) => (release = resolve)),
+    );
+
+    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.next') }));
+    await waitFor(() => expect(listTickets).toHaveBeenCalledTimes(2));
+
+    /* The row the reader was looking at is still there... */
+    expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument();
+    /* ...and no skeleton replaced it. Skeleton rows are aria-hidden. */
+    expect(document.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(0);
+    /* ...and the table says it is busy, for a reader who cannot see the dim. */
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+
+    release(page());
   });
 });

@@ -358,3 +358,41 @@ describe('the guards jsdom cannot express', () => {
     expect(body).not.toContain('TicketStatus');
   });
 });
+
+/*
+ * A REFETCH DIMS AND KEEPS ITS ROWS. It never returns to the skeleton.
+ *
+ * Re-skeletoning throws away the content the reader is looking at, to say
+ * something they did not ask about — and on a fast connection it is a flash
+ * rather than a state. The rows staying put is the assertion; the dim is how it
+ * is said quietly, and aria-busy is how it reaches someone who cannot see dim.
+ */
+describe('AC-026-06 — refreshing dims, never re-skeletons', () => {
+  it('keeps every row while refreshing', () => {
+    const { container } = renderTable({ refreshing: true });
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(PEOPLE.length);
+    /* Skeleton rows are aria-hidden; real rows are not. If a refetch had
+     * re-skeletoned, this would be PEOPLE.length instead of zero. */
+    expect(container.querySelectorAll('tbody tr[aria-hidden="true"]')).toHaveLength(0);
+    expect(screen.getByText('Sara Khan')).toBeInTheDocument();
+  });
+
+  it('announces itself to a screen reader, which cannot see a dim', () => {
+    const { container } = renderTable({ refreshing: true });
+    expect(container.firstElementChild).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('sets no aria-busy when it is not refreshing', () => {
+    /* aria-busy="false" is not the same as absent to every assistive tech, and
+     * a permanently-present attribute is one nobody notices changing. */
+    const { container } = renderTable();
+    expect(container.firstElementChild).not.toHaveAttribute('aria-busy');
+  });
+
+  it('dims through a class, so the rows are not re-rendered to say it', () => {
+    const plain = renderTable().container.firstElementChild!.className;
+    const dim = renderTable({ refreshing: true }).container.firstElementChild!.className;
+    expect(dim).not.toBe(plain);
+    expect(dim).toContain('refreshing');
+  });
+});

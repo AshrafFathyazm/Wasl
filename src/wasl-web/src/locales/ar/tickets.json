@@ -38,8 +38,8 @@
   "channel.LiveChat": "محادثة مباشرة",
   "channel.Sms": "رسالة نصية",
   "channel.WebForm": "نموذج ويب",
-  "detail.placeholderTitle": "تم إنشاء التذكرة",
-  "detail.placeholderBody": "شاشة التذكرة الكاملة لم تُبنَ بعد. المعرّف بالأسفل هو ما أعاده الخادم.",
+  "detail.placeholderTitle": "تفاصيل التذكرة — غير مبنية بعد",
+  "detail.placeholderBody": "هذه الشاشة لم تُبنَ بعد. المعرّف أدناه هو الموجود في شريط العنوان.",
   "new.customerSection": "العميل",
   "new.priorityDefault": "{{value}} (افتراضي)",
   "status.New": "جديدة",
@@ -78,5 +78,8 @@
   "list.prev": "السابق",
   "list.next": "التالي",
   "list.view": "عرض التذكرة",
-  "list.pageOf": "{{page}} من {{total}}"
+  "list.pageOf": "{{page}} من {{total}}",
+  "list.pastEndTitle": "هذه الصفحة بعد نهاية القائمة",
+  "list.pastEndBody": "القائمة تنتهي قبل هذه الصفحة. لم يُفقد شيء — لا يوجد هنا شيء ببساطة.",
+  "list.pastEndCta": "اذهب إلى آخر صفحة"
 }

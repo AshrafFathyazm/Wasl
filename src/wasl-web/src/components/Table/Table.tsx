@@ -102,11 +102,33 @@ export interface TableProps<TRow> {
    *  its own flyout reproduces the clipping defect — see `.scroller` in the CSS. */
   rowFlyout?: TableRowFlyout<TRow>;
 
+  /** Mouse convenience for navigating a row.
+   *
+   * IT IS NOT THE KEYBOARD PATH, and the primitive does not pretend otherwise:
+   * it adds no tabindex and no role. A <tr> given role="button" announces the
+   * whole row as one control and swallows every cell inside it, and a row with
+   * tabindex puts a stop in the tab order that leads nowhere for a screen
+   * reader. The caller MUST put a real link in one cell — that is what a
+   * keyboard and a screen reader use, and this only saves a mouse user aiming.
+   *
+   * Clicks originating inside a link or a button are ignored, so the link in
+   * the cell does not navigate twice and a row action is not hijacked. */
+  onRowClick?: (row: TRow) => void;
+
   sort?: TableSort | null;
   onSortChange?: (next: TableSort | null) => void;
 
   /** Accessible suffix for a sortable heading's button, already translated. */
   sortLabel?: string;
+
+  /** A background refetch is in flight. The table DIMS and keeps its rows —
+   *  it never returns to the skeleton.
+   *
+   *  Re-skeletoning on every refetch throws away content the reader is looking
+   *  at to say something they did not ask about, and on a fast connection it is
+   *  a flash rather than a state. Dimming says the same thing without moving
+   *  anything. aria-busy carries it to a screen reader, which cannot see dim. */
+  refreshing?: boolean;
 
   /** Defaults to `visibleRows`. */
   skeletonRows?: number;
@@ -331,6 +353,8 @@ export function Table<TRow>({
   density = 'default',
   footer,
   rowFlyout,
+  onRowClick,
+  refreshing = false,
   sort,
   onSortChange,
   sortLabel = '',
@@ -424,7 +448,10 @@ export function Table<TRow>({
   );
 
   return (
-    <div className={cx(styles.card, styles[density])}>
+    <div
+      className={cx(styles.card, styles[density], refreshing && styles.refreshing)}
+      aria-busy={refreshing || undefined}
+    >
       <div
         className={cx(styles.scroller, capped && styles.capped)}
         style={bodyStyle}
@@ -464,7 +491,21 @@ export function Table<TRow>({
                 : rows.map((row) => {
                     const key = rowKey(row);
                     return (
-                      <tr key={key} className={styles.row}>
+                      <tr
+                        key={key}
+                        className={cx(styles.row, onRowClick && styles.rowClickable)}
+                        onClick={
+                          onRowClick
+                            ? (e) => {
+                                /* A click that started on a link or a button
+                                 * belongs to that control, not to the row. */
+                                const el = e.target as HTMLElement;
+                                if (el.closest('a, button')) return;
+                                onRowClick(row);
+                              }
+                            : undefined
+                        }
+                      >
                         {columns.map((col, ci) => (
                           <td
                             key={col.id}

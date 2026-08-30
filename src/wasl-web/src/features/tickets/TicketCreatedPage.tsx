@@ -53,6 +53,13 @@ export default function TicketCreatedPage() {
         </Toast>
       ) : null}
 
+      {/* Q-1. This heading said "Ticket created" — true when the create flow
+          navigates here, a LIE when a list row does. It reads as the app having
+          created something the reader did not ask for.
+
+          The TOAST is what marks a create, and it already keys on navigation
+          state that only the create flow supplies, so it stays correct without
+          a second condition. Only the heading changed. */}
       <h2 className={styles.title}>{t('tickets:detail.placeholderTitle')}</h2>
       <p className={styles.disabledNote}>{t('tickets:detail.placeholderBody')}</p>
       <p className={styles.resultMeta} dir="ltr">

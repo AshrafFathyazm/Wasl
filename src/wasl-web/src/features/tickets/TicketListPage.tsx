@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Table, type TableColumn } from '../../components/Table/Table';
 import { ApiError } from '../../lib/api';
@@ -131,6 +131,22 @@ export default function TicketListPage() {
   const query = useQuery({
     queryKey: ticketKeys.list({ page, pageSize }),
     queryFn: ({ signal }) => listTickets({ page, pageSize }, signal),
+
+    /* KEEP THE ROWS WHILE THE NEXT PAGE LOADS.
+     *
+     * Without this, moving page re-skeletons — and it is not a refetch doing
+     * it, which is why "refreshing" alone did not fix it: a page change is a
+     * DIFFERENT query key, so the new entry is genuinely pending and there is
+     * nothing in the cache to show. React Query is behaving correctly; the
+     * screen was asking the wrong question.
+     *
+     * With it, the previous page stays on screen, dimmed, until the next one
+     * arrives. The table does not collapse to a skeleton and back on every
+     * click of Next, which on a fast connection is a flash rather than a state.
+     *
+     * Found by a test, not by reading: the assertion was written first and the
+     * page failed it. */
+    placeholderData: keepPreviousData,
   });
 
   /* THE SERVER'S NUMBERS, NEVER THE REQUEST'S. BR-7.2 clamps rather than
@@ -162,7 +178,13 @@ export default function TicketListPage() {
       header: t('list.column.subject'),
       cell: (row) => (
         <span className={styles.subject}>
-          <span className={styles.subjectLine}>{row.subject}</span>
+          {/* A REAL LINK, and it is not decoration. onRowClick is a mouse
+              convenience — it adds no tabindex and no role, deliberately — so
+              this anchor is the only way a keyboard or a screen reader reaches
+              the ticket. Removing it leaves the row navigable by mouse only. */}
+          <Link className={styles.subjectLine} to={`/tickets/${row.id}`}>
+            {row.subject}
+          </Link>
           <span className={styles.subjectMeta}>
             <span className={styles.ticketNumber} dir="ltr">
               {row.ticketNumber}
@@ -224,7 +246,30 @@ export default function TicketListPage() {
     },
   ];
 
+  /* NO ROW MENU. Spec Q-7 ruled one out — "Open is the row click, and copy-
+   * the-number is one action behind two clicks" — and this screen shipped one
+   * anyway, holding a single View item that duplicated the row click. That is
+   * the empty menu Q-7 was about, with one thing in it.
+   *
+   * `Table` keeps the capability: the customer preview uses it, and the first
+   * action that CHANGES something (011, 012) is what earns it back here. */
+  const openTicket = (row: TicketListItem) => {
+    void navigate(`/tickets/${row.id}`);
+  };
+
   const items = query.data?.items ?? [];
+  const totalPages = query.data?.totalPages ?? 0;
+
+  /* PAST THE END IS NOT EMPTY, and the contract is what makes them separable:
+   * `page` clamps UP to 1 and is never clamped DOWN, so `?page=99` on a list of
+   * three pages returns page 99, zero items, and a totalCount of 137. Both
+   * states arrive as an empty array; only totalCount tells them apart.
+   *
+   * Rendering "No tickets yet" over a list that holds 137 of them tells the
+   * reader their data is gone. It is the one state here reachable by editing
+   * the address bar, which is how it will actually be met. */
+  const pastEnd = items.length === 0 && (query.data?.totalCount ?? 0) > 0;
+
   const state = query.isPending ? 'loading' : items.length > 0 ? 'data' : 'empty';
 
   return (
@@ -240,35 +285,40 @@ export default function TicketListPage() {
           rows={items}
           rowKey={(row) => row.id}
           state={state}
+          /* A refetch DIMS and keeps the rows. isPending is the FIRST load;
+           * isFetching is any load, so this is true only for a background one. */
+          /* isPlaceholderData: the rows on screen belong to the PREVIOUS page
+           * and the next one is in flight. isFetching-without-isPending: the
+           * same key is being refetched. Both are "these rows are not fresh",
+           * and neither is the first load. */
+          refreshing={query.isPlaceholderData || (query.isFetching && !query.isPending)}
           skeletonRows={Math.min(effectivePageSize, 10)}
           empty={
             <div className={styles.empty}>
-              <p className={styles.emptyTitle}>{t('list.emptyTitle')}</p>
-              <p className={styles.emptyBody}>{t('list.emptyBody')}</p>
+              <p className={styles.emptyTitle}>
+                {t(pastEnd ? 'list.pastEndTitle' : 'list.emptyTitle')}
+              </p>
+              <p className={styles.emptyBody}>
+                {t(pastEnd ? 'list.pastEndBody' : 'list.emptyBody')}
+              </p>
+              {pastEnd ? (
+                <button
+                  type="button"
+                  className={styles.retry}
+                  onClick={() => setPage(Math.max(totalPages, 1))}
+                >
+                  {t('list.pastEndCta')}
+                </button>
+              ) : null}
             </div>
           }
-          rowFlyout={{
-            header: t('list.column.actions'),
-            triggerLabel: t('list.rowActions'),
-            render: (row, close) => (
-              <button
-                type="button"
-                className={styles.menuItem}
-                onClick={() => {
-                  close();
-                  void navigate(`/tickets/${row.id}`);
-                }}
-              >
-                {t('list.view')}
-              </button>
-            ),
-          }}
+          onRowClick={openTicket}
           footer={
             <Footer
               lang={lang}
               page={effectivePage}
               pageSize={effectivePageSize}
-              totalPages={query.data?.totalPages ?? 0}
+              totalPages={totalPages}
               onPage={setPage}
               onPageSize={setPageSize}
             />

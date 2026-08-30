@@ -65,6 +65,15 @@
   -webkit-text-fill-color: currentcolor !important;
 }
 
+/* A refetch DIMS. It never re-skeletons: throwing away the rows the reader is
+ * looking at, to say something they did not ask about, is worse than saying it
+ * quietly — and on a fast connection it is a flash rather than a state. */
+.refreshing .scroller {
+  opacity: 0.55;
+  transition: opacity 120ms;
+  pointer-events: none;
+}
+
 .scroller {
   overflow: auto;
 }
@@ -125,6 +134,12 @@
 
 .row:hover .td {
   background-color: var(--surface-row-hover);
+}
+
+/* Cursor only. No focus ring and no tabindex — the keyboard path is the link
+ * the caller puts in a cell, and a ring on a whole row would claim otherwise. */
+.rowClickable {
+  cursor: pointer;
 }
 
 .center {
