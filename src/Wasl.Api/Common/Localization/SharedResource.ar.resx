@@ -241,4 +241,10 @@
   <data name="Validation.Request.FieldUnreadable" xml:space="preserve">
     <value>تعذّرت قراءة هذه القيمة.</value>
   </data>
+  <data name="Validation.User.LanguageRequired" xml:space="preserve">
+    <value>اختر لغة.</value>
+  </data>
+  <data name="Validation.User.LanguageUnsupported" xml:space="preserve">
+    <value>اختر الإنجليزية أو العربية.</value>
+  </data>
 </root>

@@ -52,7 +52,6 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
         ["GET /api/settings/branding"] = "022-tenant-theming-settings",
         ["PUT /api/settings/branding"] = "022-tenant-theming-settings",
         ["GET /api/locales"] = "005b-language-preference",
-        ["PUT /api/me/language"] = "005b-language-preference",
         ["GET /api/customers/{id}/overview"] = "018-customer-overview",
         ["PUT /api/customers/{id}"] = "017-update-customer",
         ["POST /api/tickets/{id}/escalate"] = "016-escalate-ticket",

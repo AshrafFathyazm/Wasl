@@ -28,6 +28,13 @@ endpoint becomes `200` with a token body.
 
 ---
 
+> **Implemented by `005b-language-preference` on 2026-08-30, backend half only.** This contract
+> stays here rather than moving: a frozen contract that changes folders is worse than a
+> cross-reference. The switcher screen `014` also needs is the frontend lane's, as its own row.
+>
+> **The numbering conflict is recorded, not resolved:** the product owner named the work `005b`
+> and this contract lives under `014`. See `specs/005b-language-preference/summary.md`.
+
 ## `PUT /api/me/language`
 
 Stores the caller's interface language so the choice follows them across devices

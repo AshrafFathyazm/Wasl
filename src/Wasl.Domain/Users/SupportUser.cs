@@ -107,4 +107,46 @@ public sealed class SupportUser
             CreatedAtUtc = createdAtUtc,
         };
     }
+
+    /// <summary>
+    /// Stores the language this user reads the interface in. `005b`, FR-5.5.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The first mutator this entity has ever had.</b> Every other property is set once by
+    /// <see cref="Create"/> and never changes, which is why they are all `private set` with no
+    /// method behind them.
+    /// </para>
+    /// <para>
+    /// <b>The supported list is checked here as well as in the validator, and that is not
+    /// duplication.</b> The validator answers a request with a `400` naming the field; this
+    /// refuses to construct an invalid state at all, and it is what stops a seeder, a migration,
+    /// or a future endpoint storing a value with no catalogue behind it. `007` made the same call
+    /// for `Customer` and `CLAUDE.md` records the reasoning: a rule that only exists at the edge
+    /// is a rule the next caller does not have.
+    /// </para>
+    /// <para>
+    /// <b>A region tag is refused</b> — `ar-SA` is rejected even though `Accept-Language: ar-SA`
+    /// resolves to `ar` when READING. Resolution may fall back; storage may not, because a stored
+    /// `ar-SA` is a stored value with no catalogue behind it.
+    /// </para>
+    /// </remarks>
+    public void ChangeLanguage(string language)
+    {
+        if (!SupportedLanguages.Contains(language, StringComparer.Ordinal))
+        {
+            throw new ArgumentException(
+                $"'{language}' is not a supported interface language.", nameof(language));
+        }
+
+        PreferredLanguage = language;
+    }
+
+    /// <summary>The two locales this product speaks. BR-8.1.</summary>
+    /// <remarks>
+    /// Ordinal and case-sensitive: `AR` is refused rather than normalised, because a stored
+    /// preference is compared to a catalogue name and normalising here would hide a caller that
+    /// is sending the wrong shape.
+    /// </remarks>
+    public static readonly IReadOnlyList<string> SupportedLanguages = ["en", "ar"];
 }
