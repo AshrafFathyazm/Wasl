@@ -120,13 +120,19 @@ Then log in as the Agent and try to reassign the ticket to somebody else: `403`.
   HANDLER, not a policy** — BR-6, and `011` measured why: a handler denial writes an audit
   row and a policy denial does not, because a policy refuses before MediatR ever runs.
 
-**Scripting this act from the API:** `GET /api/support-users` returns
-`{"value":[…],"Count":3}` — a wrapped object, not a bare array — and its items carry `id`,
-`fullName` and `role` with **no `email`**. That is `011`'s contract and it is correct for a
-picker. It is written down because the rehearsal lost four attempts to it: PowerShell 5.1
-silently yields empty values for `$_.id` over that wrapper, so the request went out with an
-empty assignee and the API answered `400 errors/validation` — an accurate answer to a
-request nobody meant to send. `curl` got the `403` first try.
+**Scripting this act from the API:** `GET /api/support-users` returns a **bare JSON array**,
+and its items carry `id`, `fullName` and `role` with **no `email`**. That is `011`'s
+contract and it is correct for a picker.
+
+It is written down because the rehearsal lost four attempts to it — and then **recorded the
+wrong cause, which is the part worth keeping.** The first version of this paragraph said the
+endpoint returned `{"value":[…],"Count":3}`, a wrapped object, and called it the contract.
+It is not: `ConvertTo-Json -InputObject $array` in PowerShell 5.1 wraps an array as
+`{"value":…,"Count":…}` while piping the same array does not, so the wrapper was the
+inspection pipeline and never the wire. **What disproved it had been green the whole time**
+— `AssignTicketTests.The_picker_lists_active_users_and_never_a_hash` calls
+`EnumerateArray()` on the root, which throws on an object. Use `curl` for a shape, and
+never `-InputObject`.
 
 ---
 
