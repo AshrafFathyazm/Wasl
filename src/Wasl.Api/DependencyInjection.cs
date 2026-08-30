@@ -78,6 +78,27 @@ public static class DependencyInjection
         services.Configure<ApiBehaviorOptions>(options =>
             options.InvalidModelStateResponseFactory = ModelStateEnvelope.Build);
 
+        // ── `002c` AC-5. The framework stops writing validation messages ────────────
+        //
+        // With nullable reference types enabled, the model binder treats a non-nullable reference
+        // property as implicitly required and reports it missing BEFORE the MediatR pipeline runs
+        // — so ValidationBehaviour never executes and the catalogue key is never reached. The
+        // measured result was an English sentence inside an Arabic response:
+        //
+        //   POST /api/tickets {"subject":"s"}   ->  description = The Description field is required.
+        //   POST /api/customers {"fullName":"x"} ->  email = أدخل بريدًا إلكترونيًا أو رقم هاتف.
+        //
+        // Same locale, same shape, different half of the stack answering. The second endpoint's
+        // fields are nullable, so its request BINDS and FluentValidation gets to speak.
+        //
+        // SUPPRESSED ONLY BECAUSE AC-4 IS GREEN. That gate enumerates every ICommand's
+        // non-nullable members and requires a FluentValidation rule for each — because without
+        // one, a missing field now arrives as null in a non-nullable property and reaches a
+        // handler. That trades a `400` with awkward wording for a `500`: a worse defect wearing a
+        // localization fix. If RequiredMemberCoverageTests ever goes red, this line comes out.
+        services.Configure<MvcOptions>(options =>
+            options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+
         // Who is asking, and about which request. Both scoped because both describe one request;
         // IHttpContextAccessor is what makes them resolvable outside a controller.
         services.AddHttpContextAccessor();
@@ -118,6 +139,16 @@ public static class DependencyInjection
         // AddProblemDetails supplies the framework's own writer; the handler and the factory
         // below make every response go through one producer (AC-2).
         services.AddProblemDetails();
+
+        // `002c` Q-B: the document is REGISTERED so a test can generate it, and is deliberately
+        // NOT MAPPED — `Program.cs` never calls MapOpenApi. A served document is an unauthenticated
+        // description of every endpoint, and this API's fallback policy is closed on purpose:
+        // exposing it would need AllowAnonymous, making it the third anonymous endpoint after
+        // /health and POST /api/auth/token, which `004` AC-10 counts and asserts.
+        //
+        // Ruled: if a demo ever wants the explorer, it is Development-only AND a test asserts it
+        // answers 404 in Production. Not now.
+        services.AddOpenApi();
         // `005` moved this to AddWaslLocalization: the implementation is localizer-backed now and
         // belongs beside the catalogues it reads. `002` predicted one changed line here; it is
         // one deleted line instead, because the registration moved rather than changed shape.

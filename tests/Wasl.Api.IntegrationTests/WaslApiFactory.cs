@@ -164,6 +164,10 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             // `003b`. Reports the DATABASE principal the pipeline holds while serving a request.
             services.AddSingleton<IStartupFilter>(new Audit.Probe.LeastPrivilegeProbeStartupFilter());
 
+            // `002c` AC-9. Captures the host's log so a test can assert BR-9.9 — that the traceId
+            // in a response is the one an operator would search the log for.
+            services.AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider, Errors.LogCapture>();
+
             // `004`'s probes. Authenticated, unlike the other two.
             services.AddSingleton<IStartupFilter>(new Auth.AuthProbeStartupFilter());
 

@@ -45,6 +45,25 @@ public sealed class ResourceKeyLeakTests(WaslApiFactory factory)
     public static TheoryData<string, Func<HttpClient, Task<HttpResponseMessage>>> ErrorResponses() =>
         new()
         {
+            // `002c` AC-11. The three statuses `002b` gave bodies to. They were EMPTY before it —
+            // and an empty body cannot render a raw key, which is why this guard never covered
+            // them and why adding them is not redundant.
+            { "404 unmatched route", client => client.GetAsync("/api/nope") },
+            { "405 undeclared method", client => client.DeleteAsync("/api/tickets") },
+            {
+                "415 wrong content type",
+                client => client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/tickets")
+                {
+                    Content = new StringContent("x", System.Text.Encoding.UTF8, "text/plain"),
+                })
+            },
+            {
+                "400 malformed body",
+                client => client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/tickets")
+                {
+                    Content = new StringContent("{not json", System.Text.Encoding.UTF8, "application/json"),
+                })
+            },
             {
                 "401 rejected credentials",
                 client => client.PostAsJsonAsync("/api/auth/token", new

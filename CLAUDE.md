@@ -97,13 +97,23 @@ dotnet test tests/Wasl.Domain.Tests                  # unit only (no Docker need
 dotnet test tests/Wasl.Api.IntegrationTests          # needs Docker running
 dotnet ef migrations add <Name> -p src/Wasl.Infrastructure -s src/Wasl.Api
 dotnet ef database update -p src/Wasl.Infrastructure -s src/Wasl.Api
-dotnet run --project src/Wasl.Api                    # /health, /swagger
+dotnet run --project src/Wasl.Api                    # /health only — see below
+dotnet run --project src/Wasl.Api -- --provision      # schema + the restricted principal (003b)
+dotnet run --project src/Wasl.Api -- --seed          # provision, then demo data
 docker compose up -d db                              # SQL Server 2022
 
 # frontend
 cd src/wasl-web && npm ci && npm run dev
 npm run build && npm run test && npm run lint
 ```
+
+**There is no `/swagger`, and there never was.** That line said there was until `002c` measured it
+— the path returned `401` from the fallback policy on an unmatched route, which reads like a
+protected endpoint rather than an absent one. An OpenAPI document IS generated now, and
+deliberately **not served**: it would need `AllowAnonymous` and become the third anonymous
+endpoint after `/health` and `POST /api/auth/token`, a list `004` AC-10 counts. It is produced
+in a test and compared against the frozen `contracts/` — which is the Definition of Done item
+that had never been satisfiable for any feature.
 
 Full run-from-clean-clone script: [specs/001-solution-skeleton/quickstart.md](specs/001-solution-skeleton/quickstart.md).
 
@@ -156,6 +166,7 @@ and `ar`.
 - **`005-localization-core` server half delivered** 2026-08-29 — `.resx` in `en` + `ar` (63 keys), `LocalizedProblemMessageSource` replacing `002`'s dictionary, `PreferredLanguageCultureProvider`, the three-provider order with the **cookie provider removed**, and `UseRequestLocalization()` **between `UseAuthentication()` and `UseAuthorization()`** (472 tests). **The frontend reported one defect; measuring found three with three owners** — and `AC-11` is recorded **unmet**: a response produced by *throwing* loses `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s. Ruled **server-only**; the switcher and `PUT /api/me/language` are **`005b`**
 - **`002b-error-contract-completion` delivered** 2026-08-30 — `404`/`405` enveloped by `UseStatusCodePages`, the **`415`** by substituting MVC's `ProblemDetailsFactory` (which is what makes `002` AC-2 — one producer — finally true), a malformed body split from an invalid one, and `Content-Language` re-applied after `ExceptionHandlerMiddleware` clears it (495 tests). Closed `005` AC-11/AC-2/AC-19 and `008` AC-3 + `011` D-2. **`002`'s summary called the `415` an empty body; it was MVC's own envelope with an RFC section URI — worse, because a plausible envelope branches nowhere while an empty one breaks a parser loudly.** The tail is **`002c`**
 - **`003b-audit-least-privilege` delivered** 2026-08-30 — `wasl_app` with `DENY UPDATE, DELETE` on `dbo.AuditLog`, **two connection strings**, and a guard that refuses to start if they match (501 tests). **BR-9.5 is a database permission now, not a convention.** Two negative controls produced identical output — removing the `DENY`, and keeping it while running as `sa` — which is the proof that **the connection string is the load-bearing half**. `dotnet ef database update` alone is no longer enough: `--provision` is the second step
+- **`002c-error-contract-tail` delivered** 2026-08-30 — the OpenAPI document (generated, **not served**), the contract comparison, `002`'s four unwritten tests, and the framework's English validation messages replaced by catalogue keys (521 tests). **The Definition of Done's OpenAPI item had never been satisfiable for any feature.** The comparison immediately found two endpoints in frozen contracts nobody had counted. `002`, `002b` and `002c` close together; **AC-3 is not claimed** — no action carries `[ProducesResponseType]`, so the document declares no statuses
 - **Placement cleanup** 2026-08-29 — `JwtAccessTokenIssuer` + `JwtOptions` → `Wasl.Infrastructure/Auth/`, the three seeders → `Wasl.Infrastructure/Persistence/Seed/`, and `JwtRegisteredClaimNames` → **`WaslJwtClaimNames`** in `Wasl.Application/Common/Abstractions/`. The old name shadowed `System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames`, imported in the same file, so every reference bound silently to the local type
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
 - **`007-create-customer` backend delivered** 2026-08-29 — `Customer.Create`, `ContactNormalisation` (**no value objects**, ruled), `POST /api/customers`, BR-4.8's two **filtered** unique indexes with the violation translated into the pre-check's exception (434 tests, run twice). **AC-13 is the project's first concurrency test.** Found that `Customer` timestamps had never been stamped, and that a create and a read returned different timestamps for the same resource
@@ -305,6 +316,22 @@ an assignee. `PendingCustomer → Resolved` is not permitted directly.
   `002`'s summary recorded the `415` as an empty body; it was not, and **a plausible envelope
   with a foreign `type` is worse than an empty one**, because it passes every parser and every
   shape assertion while `code === 'unsupported-media-type'` stays false forever.
+- **A non-nullable reference parameter is implicitly REQUIRED at the model binder**, which refuses
+  before the MediatR pipeline runs — so `ValidationBehaviour` never executes and the symbolic key
+  is never reached. `002c` set
+  `MvcOptions.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true` to move that
+  check into FluentValidation. **It is gated:** `RequiredMemberCoverageTests` requires every
+  non-nullable member of every `ICommand` to have a validator rule, because without one a missing
+  field arrives as `null` in a non-nullable property and reaches a handler — a `500` in place of a
+  `400`, *a worse defect wearing a localization fix*. **If that test goes red, the setting comes
+  out.**
+- **The OpenAPI document is generated and NOT served** (`002c`). `AddOpenApi()` is registered;
+  `MapOpenApi` is deliberately absent, because serving it needs `AllowAnonymous` and would make it
+  the third anonymous endpoint after `/health` and `POST /api/auth/token` — a list `004` AC-10
+  counts and asserts. **There is no `/swagger`, and there never was.** `OpenApiContractTests`
+  compares the document to the frozen `contracts/` in both directions: a built endpoint missing
+  from every contract has **no exception list at all**, and a contracted endpoint that is unbuilt
+  is named individually with its owning feature — never resolved by loosening the comparison.
 - **A body that could not be parsed is `errors/malformed-request` with NO `errors` object**
   (`002b`). A field that could not be parsed stays `errors/validation`, with the field named and
   the message replaced by `Validation.Request.FieldUnreadable`. **Never let a parser diagnostic

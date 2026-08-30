@@ -8,7 +8,7 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Fifteen backend features are delivered: `001` · `002` + `002b` · `003` + `003b` · `004` + `004b` · `005` · `007` · `008` ·
+Sixteen backend features are delivered: `001` · `002` + `002b` + `002c` · `003` + `003b` · `004` + `004b` · `005` · `007` · `008` ·
 `009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
 013-ticket-timeline-and-comments    DONE 2026-08-28
@@ -17,7 +17,8 @@ Fifteen backend features are delivered: `001` · `002` + `002b` · `003` + `003b
 004b-auth-hardening                 DONE 2026-08-29
 002b-error-contract-completion      DONE 2026-08-30
 003b-audit-least-privilege          DONE 2026-08-30
-002c · 005b                         NEXT
+002c-error-contract-tail           DONE 2026-08-30
+005b · 014 · 026/027               NEXT — see below
 005-localization-core               DONE 2026-08-29 (server half)
 005b-language-preference            NEW — the switcher and PUT /api/me/language
 ```
@@ -32,7 +33,8 @@ Fifteen backend features are delivered: `001` · `002` + `002b` · `003` + `003b
 | ✅ | `004b` | **Done 2026-08-29.** 442 tests. Both gaps `004` named as open: the denial audit row — which needed the `401`/`403` body, because AC-19 compares the row's trace id to the one *in the response* — and the sign-in rate limit. The ruling's "per IP" and AC-37 contradicted each other, and a negative control settled it rather than an argument: see `004`'s `tests.md` |
 | ✅ | `002b` | **Done 2026-08-30.** 495 tests. `404`/`405`/`415` enveloped, the malformed body split from the invalid one, `Content-Language` on every path. **A criterion's stated reason was disproved by its own control, and the guard written for it was deleted** — see its `tests.md` |
 | ✅ | `003b` | **Done 2026-08-30.** 501 tests. `wasl_app`, the `DENY`, and two connection strings. **Two negative controls produced identical output** — removing the `DENY`, and keeping it while running as `sa` — which is the measurement proving the connection string is the load-bearing half |
-| 1 | **NEXT** — `002c` · `005b` | `002c` is the tail `002b` did not take. `005b` is `PUT /api/me/language` and the switcher |
+| ✅ | `002c` | **Done 2026-08-30.** 521 tests. The OpenAPI document, the contract comparison, and the framework's English validation messages replaced by catalogue keys — **behind a gate whose first failure was its own false positive**. `002`, `002b` and `002c` close together |
+| 1 | **NEXT** — `005b` | `PUT /api/me/language` and the switcher. **It crosses the lane boundary as named**, so it needs splitting before it starts — the backend half is one endpoint against a column that already exists |
 | ✅ | `005` | **Server half done 2026-08-29.** 472 tests. Raised from last by the product owner because the frontend lane confirmed on the wire that `Accept-Language: ar` returned the same English sentence from every endpoint — BR-8.6 broken product-wide. **Measuring found three defects where the report named one**, and `AC-11` is recorded **unmet**: exception-path responses lose `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s to fix |
 | 2 | `005b` | **New, named 2026-08-29.** `PUT /api/me/language`, the column's producer, and the switcher screen. Split out of `005` rather than deferred inside it — *a feature that crosses the lane boundary makes both lanes wait for each other* |
 
