@@ -4,10 +4,12 @@ import { initReactI18next } from 'react-i18next';
 import arAuth from '../locales/ar/auth.json';
 import arCommon from '../locales/ar/common.json';
 import arCustomers from '../locales/ar/customers.json';
+import arSettings from '../locales/ar/settings.json';
 import arTickets from '../locales/ar/tickets.json';
 import enAuth from '../locales/en/auth.json';
 import enCommon from '../locales/en/common.json';
 import enCustomers from '../locales/en/customers.json';
+import enSettings from '../locales/en/settings.json';
 import enTickets from '../locales/en/tickets.json';
 import { setLanguageResolver } from './api';
 import {
@@ -23,10 +25,15 @@ import {
  * i18n.ts
  * ============================================================================
  *
- * FOUR NAMESPACES, and no more. `customers` is registered with an empty
- * catalogue in both languages so the namespace exists once rather than being
- * added under time pressure later; it is deliberately empty because no customer
- * screen is built (spec Q-2).
+ * FIVE NAMESPACES. `customers` is registered with an empty catalogue in both
+ * languages so the namespace exists once rather than being added under time
+ * pressure later; it is deliberately empty because no customer screen is built
+ * (spec Q-2).
+ *
+ * `settings` was added by `014` for /settings/localization. **This said FOUR
+ * until then** — a count in prose is a fact that goes stale the moment the list
+ * it describes is edited, and nothing fails when it does. Corrected in the same
+ * commit that added the fifth, which is the only time it is cheap.
  *
  * Keys are SYMBOLIC — `common:nav.tickets`, never the English text as the key.
  * Using the source text is a common shortcut and it was rejected twice over
@@ -47,7 +54,7 @@ import {
  * has no strings in it.
  * ============================================================================ */
 
-export const NAMESPACES = ['common', 'auth', 'tickets', 'customers'] as const;
+export const NAMESPACES = ['common', 'auth', 'tickets', 'customers', 'settings'] as const;
 
 const resources = {
   en: {
@@ -55,12 +62,14 @@ const resources = {
     auth: enAuth,
     tickets: enTickets,
     customers: enCustomers,
+    settings: enSettings,
   },
   ar: {
     common: arCommon,
     auth: arAuth,
     tickets: arTickets,
     customers: arCustomers,
+    settings: arSettings,
   },
 } as const;
 

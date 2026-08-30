@@ -38,6 +38,27 @@
   font-variant-numeric: lining-nums;
 }
 
+/* TRACKING IS NEUTRALISED ON EVERY ARABIC DESCENDANT, not only on the root.
+ *
+ * The rule above sets `letter-spacing: 0` on `[lang='ar']`, and that was read as
+ * "letter-spacing stays 0, permanent". It is not: a component class beats an
+ * inherited value, so any component with its own tracking wins under Arabic.
+ *
+ * Measured on the login screen: `.panelHeadline` carries **-0.4px** and applies
+ * it to `كل محادثة، في مكان واحد.` — NEGATIVE tracking on cursive text, which
+ * pulls joins together rather than merely spacing them apart. Worse than the
+ * positive case the original rule was written against.
+ *
+ * `:not([lang])` is what keeps this honest. A Latin run inside an Arabic page —
+ * a wordmark, a product name, a code — may legitimately be tracked, and it says
+ * so by declaring its own language. That is correct markup independently of this
+ * rule, and it is the only way a stylesheet can tell the two cases apart.
+ *
+ * Specificity (0,2,0) so it beats a single class. Deliberate: this has to win. */
+[lang='ar'] *:not([lang]) {
+  letter-spacing: 0;
+}
+
 [lang='ar'] h1,
 [lang='ar'] h2,
 [lang='ar'] h3,

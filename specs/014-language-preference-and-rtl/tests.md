@@ -195,3 +195,159 @@ suite: **533 / 533.**
 | `GET /api/locales` | Still deferred, still in `002c`'s `NotBuiltYet` with its reason: two locales, both known at build time |
 | That the Arabic strings are correct | Two more added to the sixty-five nobody who reads Arabic has reviewed. Q-8 |
 | That `014` can now start | Its manual Arabic pass needs the **switcher**, not this endpoint. This unblocks the frontend lane, which unblocks `014` |
+
+---
+
+## Frontend half — `FE-014-00`, `03`, `04`, `10` (2026-08-30)
+
+Suite 203 → 214.
+
+### The preview gate found two defects before any wiring
+
+**`English` sat at the far left of an RTL row**, its radio at the right, the whole row width
+between them. `dir` was on the language name. Both `dir` and `unicode-bidi: isolate` isolate
+the run; only `dir` also rewrites the element direction, and `text-align: start` resolves
+against that. `lang` stays — it selects the face. Measured after: both names 17px from their
+radio and 54px from the row start, identical across scripts.
+
+**The same defect as the ticket list customer column, in a screen written after that one was
+fixed.**
+
+**The preview callout showed nothing changing.** Its stated purpose is that the reader sees
+the format change *before* committing to a language they may not be able to read. It used
+`dd/MM/yyyy`, which is **byte-identical** in both locales once BR-8.13 pins the digits — it
+rendered, changed nothing, and implied it had.
+
+The screen design says `24 August 2026`. Once digits are pinned the **month name is the only
+part that can differ**, so `formatDateLong` was added and the callout now reads
+`24 أغسطس 2026` against `24 August 2026`. Three tests, including the negative half —
+`formatDate(ar) === formatDate(en)` — so nobody simplifies it back.
+
+### `FE-014-10` — measured against the running server, not inferred
+
+Q-7 rests on `?culture=` outranking a stale `preferred_language` claim. `005` rewrote the
+provider list, so the assumption was two days old. Checked twice:
+
+1. **Registration**: `QueryStringRequestCultureProvider` is first, ahead of
+   `PreferredLanguageCultureProvider`, ahead of `AcceptLanguageHeaderRequestCultureProvider`.
+2. **Behaviour**, one token whose claim is `ar`, same request twice:
+
+| Request | `400` title |
+|---|---|
+| `PUT /api/me/language` | `حدث خطأ أو أكثر في البيانات المُدخلة.` |
+| `PUT /api/me/language?culture=en` | `One or more validation errors occurred.` |
+
+**Same token, same claim, different language.** That is the whole mechanism, and reading the
+registration alone would not have proved the ordering actually applies.
+
+### The lifetime is the part that could rot
+
+An override that outlived its token would sit at the TOP of BR-8.4's order, above a claim
+that is finally correct — the same defect one session later. `clearSessionCulture()` is
+called on **both** credential changes:
+
+- **sign-in**, before the preference is adopted, so ordering cannot matter
+- **sign-out**, or it survives onto the login screen and onto the sign-in request itself,
+  where it would outrank the browser's own `Accept-Language` for a different user
+
+### Negative controls
+
+| Break | Observed |
+|---|---|
+| Never append the culture | 1 failed — `appends ?culture= to every request once set` |
+| `clearSessionCulture()` made a no-op | **3 failed** — the drop test, and both "not set" tests, because the override leaked across cases |
+| Failure does not revert the language | 1 failed — `REVERTS when the request fails, and says so` |
+
+### Two things fixed on the way that were nobody's task
+
+- **`useNavigate` was declared after an early return** in `Sidebar` — a conditional hook
+  call. eslint caught it; it is now above every return, with the reason written down.
+- **`i18n.ts` said "FOUR NAMESPACES"** while registering five. A count in prose goes stale
+  the moment the list is edited and nothing fails when it does. Corrected in the same commit
+  that added the fifth, which is the only time it is cheap.
+
+### Open
+
+- **The settings area has no shell.** The design shows a sub-nav with `Profile` and
+  `Localization`; only the second exists. One screen behind a nav of one item is a section
+  that does not exist, and a disabled `Profile` row would promise something the product has
+  not. The screen is reached from the user popover, which is the design's other route to it.
+- **`FE-014-06`, the Arabic pass over every screen, is not done.** It is the task on the
+  critical path and it is bigger than when it was written: login, create ticket, ticket list,
+  the detail placeholder, and now this screen.
+---
+
+## `FE-014-06` — the Arabic pass, and `FE-014-11`
+
+Run 2026-08-30 on the **real app** against the real API — dev server proxied to a running
+`Wasl.Api`, signed in as the seeded Manager, switched to Arabic **through the settings screen**
+rather than by forcing a flag.
+
+### `FE-014-11` was already built, and it holds
+
+`locale.css` covers all four points the task names, and keys on **`lang`, not `dir`** — which
+is more correct than the task text: the face follows the language, not the direction. Verified
+live under `lang="ar"`:
+
+| | Measured |
+|---|---|
+| Body face | `IBM Plex Sans Arabic` |
+| Body line-height | `28px` = 16 × `--leading-ar-normal` (1.75) |
+| Cap-height trim | `text-box-trim: none` |
+| Arabic leaf nodes tighter than 1.25 | **none**, on any screen |
+
+`letter-spacing` computes as `normal` rather than `0px`, and that is **not** a defect: Chrome
+serialises `letter-spacing: 0` as `normal`. Checked before reporting it as one.
+
+### The defect the pass found
+
+**`.panelHeadline` applied `-0.4px` to `كل محادثة، في مكان واحد.`** — negative tracking on
+cursive text, which pulls joins together rather than spacing them apart. Worse than the
+positive case the rule was written against.
+
+**`locale.css` said "letter-spacing stays 0. PERMANENT." and it was not true.** The rule sat on
+`[lang='ar']` and `[lang='ar'] body`, so it was inherited — and **a component class beats an
+inherited value**. Every component with its own tracking won under Arabic, silently.
+
+Fixed at the level the claim was made at:
+
+```css
+[lang='ar'] *:not([lang]) { letter-spacing: 0; }
+```
+
+`:not([lang])` is what keeps it honest. A Latin run inside an Arabic page may legitimately be
+tracked — and it says so by declaring its own language, which is correct markup regardless.
+The `WASL` wordmark now carries `lang="en"` and keeps its `0.19em`; it is the only tracked
+element left under Arabic, and it is tracked **because** it declares what it is.
+
+### Five screens, measured not eyeballed
+
+| Screen | Tracked under Arabic | Arabic lines < 1.25 |
+|---|---|---|
+| `/login` | only the `lang="en"` wordmark | none |
+| `/tickets` | none | none |
+| `/tickets/new` | none | none |
+| `/settings/localization` | none | none |
+| `/tickets/:id`, `/` | none | none |
+
+### `FE-014-04` and `FE-014-10`, end to end in the real app
+
+Switching through the settings screen: `lang` `en` → `ar`, `dir` `ltr` → `rtl`, the preview
+callout re-rendered to `24 أغسطس 2026 · 1,250`, no error.
+
+Then the override, **on the wire** rather than in a unit test:
+
+```
+/api/tickets?page=1&pageSize=20&culture=ar
+/api/tickets?page=1&pageSize=20&culture=ar
+```
+
+Every API call after the switch carried it. The unit tests assert the mechanism; this is the
+only thing that shows it survives the client, the proxy and the router.
+
+### Noted
+
+The seeded Manager's stored preference is now `en` rather than `ar` — changed by the earlier
+endpoint measurements (`ar`, `en`, `ar-SA`, `AR` in that order, so `en` was the last accepted
+value). Not a defect and not seed drift to chase: the feature working. Recorded because a
+later reader will find the seed and the database disagreeing.

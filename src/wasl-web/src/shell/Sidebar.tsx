@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '../components/Button/Button';
 import { IconAdd, IconChevronDown, IconResolved } from '../icons/icons';
@@ -247,6 +247,11 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+
+  /* ABOVE the `user === null` early return. Declared below it, this is a
+   * conditional hook call — the component returns before it on one path and
+   * after it on another, so the hook order changes between renders. */
+  const navigate = useNavigate();
   const anchor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -323,7 +328,22 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
 
             {/* Both glyphs are ours — the inherited set has neither a gear nor
                 an exit. Drawn to the set's own rules; see icons-added.tsx. */}
-            <button type="button" className={styles.popoverRow} role="menuitem">
+            {/* FE-014-03 — this row existed and did nothing. It is the only
+                route to /settings/localization: the settings area has no nav
+                entry of its own, deliberately, because one screen behind a
+                sidebar item is a section that does not exist yet.
+
+                The popover closes first, so it is not left open behind the
+                navigation — the same reason sign-out closes it. */}
+            <button
+              type="button"
+              className={styles.popoverRow}
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                void navigate('/settings/localization');
+              }}
+            >
               <span className={styles.rowIcon} aria-hidden="true">
                 <IconSettings size={16} />
               </span>

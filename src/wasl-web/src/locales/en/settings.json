@@ -1,0 +1,13 @@
+{
+  "localization.title": "Localization",
+  "localization.body": "How the interface is shown to you.",
+  "localization.group": "Language",
+  "localization.preview": "Preview",
+  "localization.saving": "Saving…",
+  "localization.failed": "Could not save the language. Nothing changed.",
+  "general": "General",
+  "nav.profile": "Profile",
+  "nav.localization": "Localization",
+  "title": "Settings",
+  "localization.sample": "{{date}} · {{count}}"
+}

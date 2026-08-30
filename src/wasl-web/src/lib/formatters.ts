@@ -72,6 +72,28 @@ export function formatDate(iso: string, lang: Lang): string {
   );
 }
 
+/**
+ * LONG FORM — `24 August 2026` / `24 أغسطس 2026`.
+ *
+ * Not a nicety. The localization settings screen previews a date so the reader
+ * can see the format change BEFORE committing to a language they may not be
+ * able to read. With `formatDate` that preview shows `24/08/2026` in both,
+ * because BR-8.13 pins Latin digits and the numeric form is identical — the
+ * callout renders, changes nothing, and quietly claims it did something.
+ *
+ * The month NAME is the only part of a date that differs between these two
+ * locales once the digits are pinned, so it is the only thing the preview can
+ * honestly show. The screen design says `24 August 2026`; the numeric form was
+ * mine and it was wrong.
+ */
+export function formatDateLong(iso: string, lang: Lang): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return strip(
+    formatter(lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(d),
+  );
+}
+
 /** Date and time. For a timeline entry, where the hour is the point. */
 export function formatDateTime(iso: string, lang: Lang): string {
   const d = new Date(iso);

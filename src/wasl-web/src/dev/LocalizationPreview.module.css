@@ -1,0 +1,228 @@
+/* FE-014-00 — preview chrome plus the screen itself.
+ * Geometry from docs/sdd/design/screens/09-settings-localization.md. */
+
+.page {
+  padding: var(--space-8);
+  background-color: var(--surface-page);
+  min-block-size: 100vh;
+}
+
+.pageTitle {
+  margin-block: 0 var(--space-2);
+  font-size: var(--text-page-title);
+  font-weight: var(--weight-bold);
+}
+
+.pageNote {
+  margin-block: 0 var(--space-8);
+  max-inline-size: 72ch;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.block {
+  margin-block-end: var(--space-8);
+}
+
+.blockTitle {
+  margin-block: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+/* Side by side, not behind a toggle — the defects this screen can have are
+ * comparative, and a toggle makes them a memory test. */
+.pair {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+}
+
+.frame {
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  overflow: hidden;
+}
+
+/* ---- The screen ----------------------------------------------------------- */
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.back {
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.crumbTitle {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.body {
+  display: flex;
+  align-items: stretch;
+}
+
+/* The sub-nav follows the reading direction with no second layout: RTL puts it
+ * at the inline-end because that is what `flex` already does, and the border
+ * and the active bar are logical properties. A mirrored copy of this block is
+ * how the two directions drift apart. */
+.subnav {
+  flex: none;
+  inline-size: 180px;
+  padding: var(--space-4) 0;
+  border-inline-end: var(--border-width) solid var(--border-subtle);
+}
+
+.navCaption {
+  margin-block: 0 var(--space-2);
+  padding-inline: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.navItem {
+  display: block;
+  padding: var(--space-2) var(--space-4);
+  border-inline-start: 3px solid transparent;
+  color: var(--text-secondary);
+  font-size: var(--type-label-md);
+  text-decoration: none;
+}
+
+.navItemActive {
+  border-inline-start-color: var(--navy-900);
+  background-color: var(--surface-sunken);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.content {
+  flex: 1;
+  min-inline-size: 0;
+  padding: var(--space-6);
+  background-color: var(--surface-content);
+}
+
+.title {
+  margin-block: 0 var(--space-1);
+  font-size: var(--text-section-title);
+  font-weight: var(--weight-bold);
+}
+
+.subtitle {
+  margin-block: 0 var(--space-4);
+  color: var(--neutral-800);
+  font-size: var(--type-label-md);
+}
+
+.error {
+  margin-block: 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  font-size: var(--text-helper);
+}
+
+/* ---- The option group ----------------------------------------------------- */
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: var(--border-width) solid var(--Neutral-200);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.groupBusy {
+  opacity: 0.6;
+}
+
+.legend {
+  padding-inline: var(--space-2);
+  margin-inline-start: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+}
+
+/* h48 and a FULL-WIDTH hit area. A radio whose label is not part of the target
+ * is a 16px tap target next to 300px of dead space. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 48px;
+  padding-inline: var(--space-4);
+  cursor: pointer;
+}
+
+.row + .row {
+  border-block-start: var(--border-width) solid var(--Neutral-200);
+}
+
+/* base.css rule 17 paints every input, and names the escape: a class repeating
+ * the properties with !important. accent-color is what keeps the native radio
+ * rather than rebuilding one — a hand-drawn radio loses the platform's own
+ * focus, hover and forced-colours behaviour. */
+.radio {
+  flex: none;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  accent-color: var(--navy-900);
+  background-color: transparent !important;
+}
+
+.name {
+  flex: 1;
+  min-inline-size: 0;
+
+  /* Isolation without a direction change — the run orders correctly inside
+   * itself and still starts on the row own start edge. */
+  unicode-bidi: isolate;
+  color: var(--text-primary);
+  font-size: var(--type-label-md);
+}
+
+.rowBusy {
+  flex: none;
+  display: inline-flex;
+}
+
+/* ---- The preview callout -------------------------------------------------- */
+
+.callout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-block: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+.calloutLabel {
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+.calloutValue {
+  color: var(--text-primary);
+  font-size: var(--type-label-md);
+  font-variant-numeric: tabular-nums;
+}

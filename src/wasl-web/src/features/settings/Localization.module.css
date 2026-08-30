@@ -1,0 +1,122 @@
+/* /settings/localization — geometry from
+ * docs/sdd/design/screens/09-settings-localization.md.
+ *
+ * The sub-nav and the settings frame belong to the settings SHELL, not to this
+ * screen. Until a second settings screen exists there is no shell to build:
+ * one page behind a nav of one item is a nav that says nothing. `Profile` in
+ * the design is not built, and inventing a disabled row for it would be a
+ * promise the product has not made. */
+
+.page {
+  padding: var(--space-8);
+  max-inline-size: 640px;
+}
+
+.title {
+  margin-block: 0 var(--space-1);
+  font-size: var(--text-section-title);
+  font-weight: var(--weight-bold);
+}
+
+.subtitle {
+  margin-block: 0 var(--space-4);
+  color: var(--neutral-800);
+  font-size: var(--type-label-md);
+}
+
+.error {
+  margin-block: 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  font-size: var(--text-helper);
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: var(--border-width) solid var(--Neutral-200);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.groupBusy {
+  opacity: 0.6;
+}
+
+.legend {
+  padding-inline: var(--space-2);
+  margin-inline-start: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+}
+
+/* h48 and a FULL-WIDTH hit area. A radio whose label is not part of the target
+ * is an 18px tap target beside 300px of dead space. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 48px;
+  padding-inline: var(--space-4);
+  cursor: pointer;
+}
+
+.row + .row {
+  border-block-start: var(--border-width) solid var(--Neutral-200);
+}
+
+/* accent-color keeps the NATIVE radio. A hand-drawn one loses the platform's
+ * own focus, hover and forced-colours behaviour, and has to reimplement all
+ * three. base.css rule 17 paints every input, so the background is repeated
+ * here with !important — the escape that file names. */
+.radio {
+  flex: none;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  accent-color: var(--navy-900);
+  background-color: transparent !important;
+}
+
+.name {
+  flex: 1;
+  min-inline-size: 0;
+  color: var(--text-primary);
+  font-size: var(--type-label-md);
+
+  /* Isolation WITHOUT a direction change. `dir="auto"` also isolates, and also
+   * rewrites the element direction — which put `English` at the far edge of an
+   * RTL row, the full row width from its own radio. Found in the preview. */
+  unicode-bidi: isolate;
+}
+
+.rowBusy {
+  flex: none;
+  display: inline-flex;
+}
+
+.callout {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-block: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+}
+
+.calloutLabel {
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+.calloutValue {
+  color: var(--text-primary);
+  font-size: var(--type-label-md);
+  font-variant-numeric: tabular-nums;
+}

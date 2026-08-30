@@ -140,6 +140,52 @@ export function setLanguageResolver(resolver: () => string): void {
   resolveLanguage = resolver;
 }
 
+/* ---- The in-session culture override — FE-014-10 ---------------------------
+ *
+ * THE PROBLEM IT SOLVES. A token is signed and immutable, so the
+ * `preferred_language` claim keeps its old value for the rest of the session
+ * after a language change. That claim OUTRANKS `Accept-Language` (BR-8.5), so
+ * without this the interface flips to Arabic and every server-authored sentence
+ * — every validation message, every error title — keeps arriving in English
+ * until the next sign-in. Arabic labels around an English error.
+ *
+ * THE FIX IS BR-8.4 ORDER, NOT A NEW MECHANISM. `?culture=` is the TOP of the
+ * resolution order, above the claim, precisely so an explicit intent outranks a
+ * stored one — and a user who just chose a language is an explicit intent.
+ * Measured 2026-08-30: `QueryStringRequestCultureProvider` is registered first,
+ * ahead of `PreferredLanguageCultureProvider`. `005` rewrote that list, so this
+ * was checked rather than assumed.
+ *
+ * It costs no token reissue, no per-request database read, and no contract
+ * change. The alternative — reissuing the token from the language endpoint —
+ * turns a `204` into a `200` carrying a token, which is a contract other
+ * features cite.
+ *
+ * IT MUST NOT OUTLIVE THE TOKEN. Once a new token is issued the claim carries
+ * the right value and the override is not merely redundant, it is a stale
+ * opinion that would outrank a correct claim. `clearSessionCulture()` is called
+ * on every credential change — sign-in AND sign-out — so the override cannot
+ * survive the thing that made it necessary.
+ * -------------------------------------------------------------------------- */
+
+let sessionCulture: string | null = null;
+
+/** Set after an in-session language change. Dropped at the next token issue. */
+export function setSessionCulture(culture: string): void {
+  sessionCulture = culture;
+}
+
+/** Called on every credential change. The new token carries the new claim, so
+ *  the override has done its job and must stop. */
+export function clearSessionCulture(): void {
+  sessionCulture = null;
+}
+
+/** Exported for the tests that prove it is set, sent, and then dropped. */
+export function currentSessionCulture(): string | null {
+  return sessionCulture;
+}
+
 /* ---- Auth — 025 ------------------------------------------------------------
  * The credential and the `401` response are wired here through resolvers, for
  * the same reason the language is: this module must not import `AuthContext`,
@@ -217,6 +263,17 @@ function buildUrl(path: string, query: Record<string, QueryValue> | undefined): 
         url.searchParams.append(key, String(value));
       }
     }
+  }
+
+  /* THE OVERRIDE GOES ON EVERY REQUEST, INCLUDING SIGN-IN — and that is
+   * harmless: it is null until someone changes language in-session, and the
+   * only way to reach sign-in with it set is to sign out, which clears it.
+   *
+   * Appended LAST and only when absent, so a caller that passes its own
+   * `culture` wins. A caller doing that is being explicit about one request,
+   * which is exactly what the query parameter means. */
+  if (sessionCulture !== null && !url.searchParams.has('culture')) {
+    url.searchParams.append('culture', sessionCulture);
   }
 
   return url.toString();

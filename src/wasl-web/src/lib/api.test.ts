@@ -7,6 +7,9 @@ import {
   setCredentialResolver,
   setUnauthenticatedHandler,
   SIGN_IN_PATH,
+  setSessionCulture,
+  clearSessionCulture,
+  currentSessionCulture,
 } from './api';
 
 /* ============================================================================
@@ -23,7 +26,11 @@ import {
  * the module instead would test the stub.
  * ============================================================================ */
 
-function jsonResponse(status: number, body: unknown, headers: Record<string, string> = {}) {
+function jsonResponse(
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...headers },
@@ -93,7 +100,9 @@ describe('AC-27 — the sign-in endpoint is excluded', () => {
     setUnauthenticatedHandler(vi.fn());
     fetchMock.mockResolvedValue(jsonResponse(401, problem401));
 
-    const error = await apiFetch(SIGN_IN_PATH, { method: 'POST' }).catch((e: unknown) => e);
+    const error = await apiFetch(SIGN_IN_PATH, { method: 'POST' }).catch(
+      (e: unknown) => e,
+    );
 
     expect(error).toBeInstanceOf(ApiError);
     expect((error as ApiError).status).toBe(401);
@@ -138,7 +147,10 @@ describe('AC-025-05 — a burst of 401s clears once, and does not loop', () => {
 
 describe('AC-025-03 — Authorization is composed from tokenType', () => {
   function sentHeaders(): Record<string, string> {
-    return (fetchMock.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+    return (fetchMock.mock.calls[0]?.[1] as RequestInit).headers as Record<
+      string,
+      string
+    >;
   }
 
   it('sends `${tokenType} ${accessToken}`', async () => {
@@ -169,5 +181,68 @@ describe('AC-025-03 — Authorization is composed from tokenType', () => {
     await apiFetch('/api/tickets');
 
     expect(sentHeaders()['Authorization']).toBeUndefined();
+  });
+});
+
+/*
+ * FE-014-10 — THE OVERRIDE IS SENT, AND IT DIES WITH THE TOKEN.
+ *
+ * A token is signed and immutable, so `preferred_language` keeps its old value
+ * for the rest of the session after a language change — and that claim outranks
+ * `Accept-Language` (BR-8.5). `?culture=` is the TOP of BR-8.4's order, so an
+ * explicit intent beats a stale stored one.
+ *
+ * Measured 2026-08-30 against the running server: `QueryStringRequestCultureProvider`
+ * is registered FIRST, ahead of `PreferredLanguageCultureProvider`. `005` rewrote
+ * that list, so it was checked rather than assumed.
+ *
+ * The lifetime is the point. An override that outlived its token would sit above
+ * a claim that is finally correct.
+ */
+describe('the in-session culture override', () => {
+  beforeEach(() => {
+    clearSessionCulture();
+  });
+
+  const urlOf = (mock: ReturnType<typeof vi.fn>) => String(mock.mock.calls[0]?.[0] ?? '');
+
+  it('sends nothing until a language is changed in-session', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await apiFetch('/api/tickets');
+    expect(urlOf(fetchMock)).not.toContain('culture=');
+  });
+
+  it('appends ?culture= to every request once set', async () => {
+    setSessionCulture('ar');
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await apiFetch('/api/tickets');
+    expect(urlOf(fetchMock)).toContain('culture=ar');
+  });
+
+  it('does not overwrite a culture the caller passed itself', async () => {
+    setSessionCulture('ar');
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await apiFetch('/api/tickets', { query: { culture: 'en' } });
+    const url = urlOf(fetchMock);
+    /* A caller naming a culture is being explicit about ONE request, which is
+     * exactly what the query parameter means. */
+    expect(url).toContain('culture=en');
+    expect(url).not.toContain('culture=ar');
+  });
+
+  it('IS DROPPED when it is cleared — the token renewal case', async () => {
+    setSessionCulture('ar');
+    clearSessionCulture();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await apiFetch('/api/tickets');
+    /* A new token carries the new claim. Leaving the override in place would
+     * put a stale opinion ABOVE a claim that is finally correct — the exact
+     * failure this mechanism exists to avoid, one session later. */
+    expect(urlOf(fetchMock)).not.toContain('culture=');
+    expect(currentSessionCulture()).toBeNull();
   });
 });

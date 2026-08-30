@@ -158,7 +158,13 @@ export function LoginForm({
         </span>
         <span className={styles.lockupText}>
           <span className={styles.wordmarkAr}>{WORDMARK_AR}</span>
-          <span className={styles.wordmarkLatin}>{WORDMARK_LATIN}</span>
+          {/* `lang="en"` is correct markup for a Latin wordmark inside an Arabic
+              page, and it is also what lets locale.css leave this alone: tracking
+              is neutralised on untagged Arabic descendants, and 0.19em here is
+              deliberate. Untagged, it would be flattened with the rest. */}
+          <span className={styles.wordmarkLatin} lang="en">
+            {WORDMARK_LATIN}
+          </span>
         </span>
       </div>
 

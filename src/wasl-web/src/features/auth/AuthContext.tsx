@@ -14,6 +14,7 @@ import {
   setCredentialResolver,
   setUnauthenticatedHandler,
   type Credential,
+  clearSessionCulture,
 } from '../../lib/api';
 import type { AuthenticatedUser, SignInResponse } from '../../lib/api-types.provisional';
 import { applyDocumentLanguage, isLanguage, storeLanguage } from '../../lib/direction';
@@ -123,6 +124,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * ended in a `401` would leave the guard latched and the NEXT expiry would
        * pass through unintercepted. */
       resetUnauthenticatedGuard();
+
+      /* FE-014-10 — THE OVERRIDE DIES WITH THE TOKEN THAT MADE IT NECESSARY.
+       *
+       * `?culture=` exists only because the previous token carried a stale
+       * `preferred_language` claim. This token carries the current one, so the
+       * override is now not merely redundant — it is a stale opinion sitting at
+       * the TOP of BR-8.4's order, above a claim that is finally correct.
+       *
+       * Cleared BEFORE the preference is adopted, so the order cannot matter. */
+      clearSessionCulture();
       adoptPreferredLanguage(response.user);
     },
     [],
@@ -132,6 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
     setSession(null);
     resetUnauthenticatedGuard();
+    /* Sign-out is a credential change too. Without this the override survives
+     * into the login screen and onto the sign-in request itself — where it would
+     * outrank the browser's own Accept-Language for a user who is no longer the
+     * one who chose it. */
+    clearSessionCulture();
   }, []);
 
   /* BACK AFTER SIGN-OUT — AC-28's second half, and it does not work without this.

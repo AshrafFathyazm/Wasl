@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatDateTime, formatNumber } from './formatters';
+import { formatDate, formatDateLong, formatDateTime, formatNumber } from './formatters';
 
 /*
  * TEST-026-02. Two of these assert a DEFAULT, not our code — and that is the
@@ -103,5 +103,37 @@ describe('a malformed instant returns empty, not "Invalid Date"', () => {
   it.each(['', 'not-a-date', '2026-13-45T99:99:99Z'])('returns empty for %j', (bad) => {
     expect(formatDate(bad, 'ar')).toBe('');
     expect(formatDateTime(bad, 'en')).toBe('');
+  });
+});
+
+/*
+ * THE PREVIEW CALLOUT'S WHOLE JOB, asserted.
+ *
+ * `/settings/localization` shows a formatted date so the reader can see the
+ * format change before committing to a language they may not be able to read
+ * the rest of. That only works if the two locales actually produce different
+ * strings — and with `formatDate` they do NOT: BR-8.13 pins Latin digits, so
+ * `24/08/2026` is byte-identical in both. The callout would render, change
+ * nothing, and claim it had.
+ */
+describe('formatDateLong — the one format that differs once digits are pinned', () => {
+  it('produces DIFFERENT strings for ar and en', () => {
+    const ar = formatDateLong(ISO, 'ar');
+    const en = formatDateLong(ISO, 'en');
+    expect(ar).not.toBe(en);
+    /* The month name is the difference — everything else is pinned. */
+    expect(en).toContain('August');
+    expect(ar).not.toContain('August');
+  });
+
+  it('still writes Latin digits and a Gregorian year in Arabic', () => {
+    const ar = formatDateLong(ISO, 'ar');
+    expect(ar).toContain('2026');
+    expect(ar).not.toMatch(/[٠-٩]/);
+  });
+
+  /* The negative half: this is why the callout cannot use `formatDate`. */
+  it('is needed BECAUSE the numeric form is identical in both', () => {
+    expect(formatDate(ISO, 'ar')).toBe(formatDate(ISO, 'en'));
   });
 });

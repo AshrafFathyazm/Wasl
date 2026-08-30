@@ -23,6 +23,7 @@ import { NAV_PATHS } from './shell/navItems';
 const HomePage = lazy(() => import('./features/home/HomePage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
 const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
+const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
 
 /* A PLACEHOLDER for `010`'s detail screen, and the reason it exists at all: the
  * frozen contract promises `Location: /api/tickets/{id}` resolves. Without this
@@ -51,6 +52,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const CreateTicketPreview = lazy(() => import('./dev/CreateTicketPreview'));
       const TicketListPreview = lazy(() => import('./dev/TicketListPreview'));
       const TablePreview = lazy(() => import('./dev/TablePreview'));
+      const LocalizationPreview = lazy(() => import('./dev/LocalizationPreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
@@ -64,6 +66,9 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
          * A component used by exactly one screen and shaped by that screen is
          * indistinguishable from that screen private layout. */
         { path: '/_preview/table', element: <TablePreview /> },
+        /* FE-014-00. The Phase 3b gate: /settings/localization is previewed and
+         * reviewed before anything is wired to PUT /api/me/language. */
+        { path: '/_preview/localization', element: <LocalizationPreview /> },
       ];
     })()
   : [];
@@ -118,6 +123,7 @@ export const routes: RouteObject[] = [
           })),
 
           { path: '/tickets', element: <TicketListPage /> },
+          { path: '/settings/localization', element: <LocalizationPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
           { path: '/tickets/:id', element: <TicketCreatedPage /> },
         ],

@@ -1,0 +1,13 @@
+{
+  "localization.title": "اللغة والمنطقة",
+  "localization.body": "كيف تُعرض الواجهة لك.",
+  "localization.group": "اللغة",
+  "localization.preview": "معاينة",
+  "localization.saving": "يُحفظ…",
+  "localization.failed": "تعذّر حفظ اللغة. لم يتغيّر شيء.",
+  "general": "عام",
+  "nav.profile": "الملف الشخصي",
+  "nav.localization": "اللغة والمنطقة",
+  "title": "الإعدادات",
+  "localization.sample": "{{date}} · {{count}}"
+}
