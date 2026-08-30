@@ -37,6 +37,33 @@ internal sealed class GetTicketByIdQueryHandler(IApplicationDbContext context)
         // customer's own id is the honest minimum.
         customer ??= new TicketCustomerSummary(ticket.CustomerId, string.Empty, null);
 
-        return CreateTicketCommandHandler.Map(ticket, customer);
+        // A third read, and it is the one this handler was missing.
+        //
+        // `Map` takes an `assignee` parameter that DEFAULTS TO NULL, which is correct for a
+        // create — `009` AC-2 says a ticket is never assigned at creation — and
+        // AssignTicketCommandHandler passes it. This caller did not, so a read of an assigned
+        // ticket returned the id with no name for three days after `004` created the table.
+        //
+        // **The write path was always right, which is what made it invisible:** assign a ticket
+        // and the response names the assignee; reload the same ticket and it says unassigned. An
+        // action that succeeded looks undone, in the chapter `011` exists to demonstrate — and
+        // `026` §5 forbids the client papering over it, because a screen may not render a ticket
+        // from a write response.
+        //
+        // Not a join in the projection: this handler deliberately does two reads and one shared
+        // mapping, so the create and the read stay byte-identical (`007` AC-14). A third read
+        // keeps that; a projection here would be the second mapping the contract forbids.
+        TicketAssignee? assignee = null;
+
+        if (ticket.AssignedToUserId is { } assigneeId)
+        {
+            assignee = await context.FirstOrDefaultAsync(
+                context.SupportUsers
+                    .Where(user => user.Id == assigneeId)
+                    .Select(user => new TicketAssignee(user.Id, user.FullName, user.Role.ToString())),
+                cancellationToken);
+        }
+
+        return CreateTicketCommandHandler.Map(ticket, customer, assignee);
     }
 }

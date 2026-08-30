@@ -20,10 +20,15 @@ namespace Wasl.Application.Features.Tickets.GetTickets;
 /// thousand.
 /// </para>
 /// <para>
-/// <see cref="AssigneeId"/> and <see cref="AssigneeName"/> are both <c>null</c> until `004`:
-/// <c>dbo.SupportUsers</c> does not exist, so there is no name to join to. The contract already
-/// specifies both as nullable for the unassigned case, so the shape is right and only the values
-/// are missing.
+/// <b><see cref="AssigneeName"/> was hard-coded to <c>null</c> until 2026-08-30.</b> This block
+/// used to read *"both are null until `004`: `dbo.SupportUsers` does not exist, so there is no
+/// name to join to"* — true when written, and `004` created that table on 2026-08-27. The join
+/// was not added with it, and the comment went on explaining an absence whose cause had gone.
+/// <br/>
+/// It is a CONTRACT VIOLATION and not merely a gap: `010`'s contract says the two are
+/// *"both null when unassigned"* — together — so an id with no name is a shape it does not
+/// describe. `002c`'s OpenAPI comparison cannot catch that, because it compares paths and
+/// methods and this shape is legal. Only a value shows it.
 /// </para>
 /// </remarks>
 public sealed record TicketListItem(

@@ -56,10 +56,21 @@ internal sealed class GetTicketsQueryHandler(IApplicationDbContext context)
                     ticket.Channel,
                     ticket.AssignedToUserId,
 
-                    // Null until `004` creates dbo.SupportUsers. The contract already types it
-                    // nullable for the unassigned case, so the shape is right and only the value
-                    // is missing.
-                    null,
+                    // Was `null`, and the comment beside it read "Null until `004` creates
+                    // dbo.SupportUsers". `004` created it on 2026-08-27 and this stayed hard-coded
+                    // for three days — a comment that went on explaining an absence whose cause
+                    // had gone.
+                    //
+                    // The same correlated sub-select as the customer name above. A LEFT JOIN by
+                    // construction: FirstOrDefault over no match yields null, which is exactly what
+                    // `010`'s contract requires — "both null when unassigned. The row is still
+                    // returned — the join is a left join." An inner join would drop unassigned
+                    // tickets from the list, so the shape is load-bearing and the unassigned case
+                    // is asserted next to the assigned one.
+                    context.SupportUsers
+                        .Where(user => user.Id == ticket.AssignedToUserId)
+                        .Select(user => user.FullName)
+                        .FirstOrDefault(),
                     ticket.IsEscalated,
                     ticket.CreatedAtUtc)),
             cancellationToken);
