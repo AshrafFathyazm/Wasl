@@ -208,7 +208,9 @@ public sealed class CultureResolutionTests(WaslApiFactory factory)
         var response = await ClientWith(TokenWithLanguage("de"), "ar")
             .GetAsync("/api/tickets/11111111-1111-1111-1111-111111111111");
 
-        ContentLanguage(response).Should().BeNull("Q-G — see AuditedStatusesCarryContentLanguage");
+        // Was BeNull() while `005` shipped: the exception path lost the header. `002b` closed
+        // that, so this now asserts what the fixed behaviour is rather than what the gap was.
+        ContentLanguage(response).Should().Be("ar");
 
         (await BodyOf(response)).GetProperty("title").GetString()
             .Should().Be("العنصر المطلوب غير موجود.",

@@ -29,7 +29,7 @@ All in `CustomerReadTests` unless noted.
 |---|---|---|
 | AC-1 | `The_profile_returns_the_whole_record_including_a_version` | pass |
 | AC-2 | `An_unknown_id_is_not_found_and_names_nothing` | pass |
-| AC-3 | `A_malformed_id_returns_404_which_the_contract_says_should_be_400` | **KNOWINGLY UNMET** — Q-A, see below |
+| AC-3 | `A_malformed_id_returns_404_which_the_contract_says_should_be_400` | **CLOSED 2026-08-30 by `002b`, answered differently.** Was KNOWINGLY UNMET — Q-A, below. The `404` stands, and it now carries a proper envelope. **The status was ruled deliberate, not tolerated:** a `400` tells an unauthenticated prober that the id SHAPE was wrong, which is the same enumeration oracle BR-4.4 closes for customers. See `002b` Q-B |
 | AC-4 | `The_list_returns_the_frozen_envelope_with_the_default_page_size` | pass |
 | AC-5 | `The_page_size_is_clamped` (3 cases: 500 → 100, 0 → 20, −3 → 20) | pass |
 | AC-6 | `The_page_is_clamped_up_to_one` (2 cases) | pass |

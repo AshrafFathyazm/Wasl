@@ -8,14 +8,15 @@
 
 ## Delivery order — set by the product owner 2026-08-28
 
-Thirteen backend features are delivered: `001` · `002` core · `003` core · `004` + `004b` · `005` · `007` · `008` ·
+Fourteen backend features are delivered: `001` · `002` + `002b` · `003` core · `004` + `004b` · `005` · `007` · `008` ·
 `009` · `010` · `011` · `012` · `013`. `006` was delivered **inside `023`** — see its row below.
 
 013-ticket-timeline-and-comments    DONE 2026-08-28
 008-customer-list-and-profile       DONE 2026-08-28
 007-create-customer                 DONE 2026-08-29
 004b-auth-hardening                 DONE 2026-08-29
-002b · 003b                         NEXT — the remaining deferred halves
+002b-error-contract-completion      DONE 2026-08-30
+002c · 003b                         NEXT — the remaining tails
 005-localization-core               DONE 2026-08-29 (server half)
 005b-language-preference            NEW — the switcher and PUT /api/me/language
 ```
@@ -28,7 +29,8 @@ Thirteen backend features are delivered: `001` · `002` core · `003` core · `0
 | ✅ | `008` | **Done — and it removed the stub.** `024-frontend-create-ticket-form` has a finished customer picker running on hard-coded data because `GET /api/customers` does not exist. This makes a built screen work on real data, which is the cheapest remaining unit of visible progress |
 | ✅ | `007` | **Done.**  Closes the circle `008` opens: a customer created from the screen instead of by `--seed` |
 | ✅ | `004b` | **Done 2026-08-29.** 442 tests. Both gaps `004` named as open: the denial audit row — which needed the `401`/`403` body, because AC-19 compares the row's trace id to the one *in the response* — and the sign-in rate limit. The ruling's "per IP" and AC-37 contradicted each other, and a negative control settled it rather than an argument: see `004`'s `tests.md` |
-| 1 | **NEXT** — `002b` · `003b` | The remaining deferred halves. Each is named with its reason in the README's *Deferred halves* table, and neither unblocks another feature |
+| ✅ | `002b` | **Done 2026-08-30.** 495 tests. `404`/`405`/`415` enveloped, the malformed body split from the invalid one, `Content-Language` on every path. **A criterion's stated reason was disproved by its own control, and the guard written for it was deleted** — see its `tests.md` |
+| 1 | **NEXT** — `002c` · `003b` | `002c` is the tail `002b` did not take, named on the board so nothing stays open under a closed feature. `003b` is the `wasl_app` role and `DENY` — until then, append-only is an application property |
 | ✅ | `005` | **Server half done 2026-08-29.** 472 tests. Raised from last by the product owner because the frontend lane confirmed on the wire that `Accept-Language: ar` returned the same English sentence from every endpoint — BR-8.6 broken product-wide. **Measuring found three defects where the report named one**, and `AC-11` is recorded **unmet**: exception-path responses lose `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s to fix |
 | 2 | `005b` | **New, named 2026-08-29.** `PUT /api/me/language`, the column's producer, and the switcher screen. Split out of `005` rather than deferred inside it — *a feature that crosses the lane boundary makes both lanes wait for each other* |
 

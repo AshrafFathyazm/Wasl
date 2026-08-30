@@ -49,6 +49,30 @@ public sealed class MiddlewareOrderTests
     }
 
     /// <summary>
+    /// AND localization before authorization. `005` AC-2, closed by `002b`.
+    /// </summary>
+    /// <remarks>
+    /// <b>ADR-007 fixes only the half above; this half is `005`'s addition and it is what makes a
+    /// `401` and a `403` translatable at all.</b> `004b`'s AuthDenialResultHandler produces those
+    /// two bodies INSIDE UseAuthorization, so with localization registered after it the middleware
+    /// never runs for a denial: no culture resolved, no Content-Language, and the title served in
+    /// whatever the process default happens to be.
+    /// <br/>
+    /// <b>Both orderings fail silently</b>, which is the whole reason for a source guard. `005`
+    /// control 1 measured it: seven tests red, header `null`, Arabic title back to English — and
+    /// the build green throughout. ADR-007 does not forbid the old position, so nothing but this
+    /// stops someone restoring it.
+    /// </remarks>
+    [Fact]
+    public void Request_localization_is_registered_before_authorization()
+    {
+        Position("app.UseRequestLocalization(")
+            .Should().BeLessThan(Position("app.UseAuthorization()"),
+                "the 401 and the 403 are produced inside UseAuthorization, so localization has to "
+                + "have run before it or those two responses can never be translated");
+    }
+
+    /// <summary>
     /// The exception handler stays first. `002`'s criterion, re-asserted because `004` inserted
     /// three calls directly beneath it.
     /// </summary>

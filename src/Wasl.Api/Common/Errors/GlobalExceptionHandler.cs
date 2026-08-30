@@ -43,6 +43,30 @@ internal sealed class GlobalExceptionHandler(
             return false;
         }
 
+        // ── `002b` AC-8, AC-9. Closes `005` AC-11 ───────────────────────────────────
+        //
+        // Re-applied, not set for the first time. RequestLocalizationMiddleware already wrote
+        // Content-Language on the way down — and ExceptionHandlerMiddleware called
+        // Response.Clear() before invoking this handler, taking the headers with it.
+        //
+        // Measured on one endpoint, two ways of failing: a 400 from model binding kept the
+        // header, a 400 from FluentValidation lost it. Same status, same request headers; the
+        // only difference is whether an exception was raised. Everything else about the response
+        // was already correct, which is why this went unnoticed until someone compared the two.
+        //
+        // Read from IRequestCultureFeature, never from CultureInfo.CurrentUICulture: this runs at
+        // the TOP of the pipeline, so the localization middleware has already unwound and restored
+        // the ambient culture. That is the same trap `005` documented for the BODY, and it would
+        // put `en` in the header of a correctly-Arabic response.
+        var culture = context.Features
+            .Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>()?
+            .RequestCulture.UICulture.Name;
+
+        if (!string.IsNullOrEmpty(culture))
+        {
+            context.Response.Headers.ContentLanguage = culture;
+        }
+
         // `004b` AC-35. Set BEFORE the body is written, because a header cannot be added once the
         // response has started — and a 429 without Retry-After tells a client to wait without
         // saying how long, so it retries immediately and the limit achieves nothing.

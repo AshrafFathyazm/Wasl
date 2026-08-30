@@ -1,5 +1,6 @@
 using Wasl.Api;
 using Wasl.Api.Common;
+using Wasl.Api.Common.Errors;
 using Wasl.Api.Health;
 using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application;
@@ -87,10 +88,29 @@ app.UseAuthentication();
 app.UseRequestLocalization();
 app.UseAuthorization();
 
-// Still deferred to 002b: UseStatusCodePages, which envelopes the statuses the framework
-// short-circuits without throwing — 404 on a mistyped path, 405, 415. No exception
-// handler in any framework sees those, which 002's research.md R-1 calls its most
-// important finding.
+// ── 002b. The statuses nobody throws ─────────────────────────────────────────────
+//
+// Routing answers a 404 for an unmatched path and a 405 for an undeclared method by writing
+// a status and stopping. Nothing is thrown, so UseExceptionHandler is never entered — 002's
+// research.md R-1 calls that the feature's most important finding, and it is why this needs
+// a separate mechanism rather than a wider catch.
+//
+// An anonymous caller cannot tell a real route from an invented one: a GET to /api/nope, to
+// /api/tickets, to /nope, and a DELETE on a GET-only route all return an IDENTICAL 401.
+// AC-18 asserts that, and it must keep holding.
+//
+// THE REASON IS THE FALLBACK POLICY, NOT THIS LINE'S POSITION — and that correction is worth
+// the space, because the first version of this comment claimed the opposite in capital letters.
+// Moving the registration above UseAuthorization was measured: AC-18 still passed. The 401 is
+// produced INSIDE the wrapped section and short-circuits before routing ever resolves a 404, so
+// this middleware never sees the request at all. The position is conventional; the security
+// property is RequireAuthenticatedUser's, and it is `004`'s.
+//
+// It writes only into an EMPTY response, so every envelope that already exists — a thrown
+// 409, 004b's 401 and 403, MVC's 400 — passes through untouched. AC-6 proves that by
+// comparing whole bodies before and after, because double-writing onto a response that was
+// already correct is precisely what a shape assertion cannot see.
+app.UseStatusCodePages(StatusCodeEnvelope.WriteAsync);
 
 app.UseHttpsRedirection();
 

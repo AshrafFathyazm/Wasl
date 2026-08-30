@@ -154,6 +154,7 @@ and `ar`.
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). Login screen and route guard belong to the frontend lane
 - **`004b` delivered** 2026-08-29 — the two gaps `004` named as open, closed together because they are one path: a request refused before any handler runs. `AuthDenialResultHandler` writes `Auth.Unauthenticated` / `Auth.Forbidden` **and envelopes those bodies**, which AC-19 forces (it compares the row's trace id to the one *in the response*, and there was no response body). A **(address, email)** throttle answers `429 errors/rate-limited` with `Retry-After` and writes `Auth.RateLimited`. `expectedVersion` is length-checked before any base64 buffer (442 tests). **The ruling said "per IP" and AC-37 forbids locking out a NAT office — the two contradicted, and a negative control settled it, not an argument**
 - **`005-localization-core` server half delivered** 2026-08-29 — `.resx` in `en` + `ar` (63 keys), `LocalizedProblemMessageSource` replacing `002`'s dictionary, `PreferredLanguageCultureProvider`, the three-provider order with the **cookie provider removed**, and `UseRequestLocalization()` **between `UseAuthentication()` and `UseAuthorization()`** (472 tests). **The frontend reported one defect; measuring found three with three owners** — and `AC-11` is recorded **unmet**: a response produced by *throwing* loses `Content-Language` because `ExceptionHandlerMiddleware` clears the response, which is `002`'s. Ruled **server-only**; the switcher and `PUT /api/me/language` are **`005b`**
+- **`002b-error-contract-completion` delivered** 2026-08-30 — `404`/`405` enveloped by `UseStatusCodePages`, the **`415`** by substituting MVC's `ProblemDetailsFactory` (which is what makes `002` AC-2 — one producer — finally true), a malformed body split from an invalid one, and `Content-Language` re-applied after `ExceptionHandlerMiddleware` clears it (495 tests). Closed `005` AC-11/AC-2/AC-19 and `008` AC-3 + `011` D-2. **`002`'s summary called the `415` an empty body; it was MVC's own envelope with an RFC section URI — worse, because a plausible envelope branches nowhere while an empty one breaks a parser loudly.** The tail is **`002c`**
 - **Placement cleanup** 2026-08-29 — `JwtAccessTokenIssuer` + `JwtOptions` → `Wasl.Infrastructure/Auth/`, the three seeders → `Wasl.Infrastructure/Persistence/Seed/`, and `JwtRegisteredClaimNames` → **`WaslJwtClaimNames`** in `Wasl.Application/Common/Abstractions/`. The old name shadowed `System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames`, imported in the same file, so every reference bound silently to the local type
 - **`011-assign-ticket` backend delivered** 2026-08-28 — `PUT /api/tickets/{id}/assignee`, `GET /api/support-users`, BR-2 in full, `Assigned`/`Unassigned` history rows, a second seeded Agent, **no migration** (340 tests). Fixed a defect two releases old: `TicketHistory.PerformedByUserId` was NULL on every row ever written. Picker UI is the frontend lane's
 - **`007-create-customer` backend delivered** 2026-08-29 — `Customer.Create`, `ContactNormalisation` (**no value objects**, ruled), `POST /api/customers`, BR-4.8's two **filtered** unique indexes with the violation translated into the pre-check's exception (434 tests, run twice). **AC-13 is the project's first concurrency test.** Found that `Customer` timestamps had never been stamped, and that a create and a read returned different timestamps for the same resource
@@ -289,11 +290,26 @@ an assignee. `PendingCustomer → Resolved` is not permitted directly.
   has unwound and restored the ambient culture. `002` wrote the instruction and called it
   belt-and-braces; `005` measured that without it **every error is English while every success
   is Arabic**.
-- **`Content-Language` is absent on any response produced by throwing** — `005` AC-11,
-  recorded **unmet**, cause identified: `ExceptionHandlerMiddleware` clears the response, headers
-  included, before invoking any `IExceptionHandler`. Owned by `002`. Bodies are correctly
-  localized on those paths; only the header is missing. **Do not "fix" it by reading the ambient
-  culture — that is the row above, and it is a different defect.**
+- **`Content-Language` is re-applied in `GlobalExceptionHandler`, and that line is load-bearing.**
+  `ExceptionHandlerMiddleware` calls `Response.Clear()` before invoking any `IExceptionHandler`,
+  taking the header the localization middleware wrote on the way down. `002b` restores it —
+  reading `IRequestCultureFeature`, never the ambient culture, for the reason in the row above.
+  **The probe that found it is the one to repeat:** on one endpoint, a `400` from model binding
+  keeps the header and a `400` from FluentValidation loses it. Same status, same request headers.
+- **Every status the framework produces on its own goes through `MvcProblemDetailsFactory` or
+  `StatusCodeEnvelope`** (`002b`). `404` and `405` arrive with an empty body and
+  `UseStatusCodePages` fills them; a `415` arrives with MVC's OWN envelope, so
+  `UseStatusCodePages` never sees it and the substituted factory is what fixes it. **Two
+  mechanisms, and each has its own negative control** — removing one leaves the other green.
+  `002`'s summary recorded the `415` as an empty body; it was not, and **a plausible envelope
+  with a foreign `type` is worse than an empty one**, because it passes every parser and every
+  shape assertion while `code === 'unsupported-media-type'` stays false forever.
+- **A body that could not be parsed is `errors/malformed-request` with NO `errors` object**
+  (`002b`). A field that could not be parsed stays `errors/validation`, with the field named and
+  the message replaced by `Validation.Request.FieldUnreadable`. **Never let a parser diagnostic
+  reach the wire:** the measured one carried a fully-qualified internal type name and a byte
+  offset, and `002` has a test for that exact request which passes because it asserts the status
+  and never reads the message.
 - **BR-9 audit** — every state-changing command implements `IAuditableCommand`; a
   pipeline behaviour writes the row in the **same transaction** as the change, so it is
   absent when that transaction rolls back. Denials and failures write a row too, outside

@@ -70,34 +70,13 @@ public static class DependencyInjection
         // `002` A-2 assumed this would surface as a BadHttpRequestException. The observed
         // behaviour is different and more mundane: it never becomes an exception at all.
         //
-        // The messages here are the framework's English sentences rather than symbolic keys,
-        // because they describe a JSON parse failure and no catalogue could translate them
-        // usefully. That is the one place a sentence enters a response without passing through
-        // IProblemMessageSource, and it is `002b`'s to finish along with the rest of the
-        // malformed-request work.
+        // `002b` FINISHED IT. The framework's English sentences no longer reach the wire: a
+        // JSON parse failure is now `errors/malformed-request` with a localized `detail` and NO
+        // `errors` object, and the field errors that remain are filtered. See ModelStateEnvelope
+        // for what was measured leaking before that — a parser diagnostic naming byte offsets,
+        // and the action method's own parameter name presented as a form field.
         services.Configure<ApiBehaviorOptions>(options =>
-            options.InvalidModelStateResponseFactory = context =>
-            {
-                var factory = context.HttpContext.RequestServices
-                    .GetRequiredService<ProblemDetailsFactory>();
-
-                var failures = context.ModelState
-                    .Where(entry => entry.Value?.Errors.Count > 0)
-                    .ToDictionary(
-                        entry => entry.Key,
-                        entry => entry.Value!.Errors
-                            .Select(error => error.ErrorMessage)
-                            .ToArray(),
-                        StringComparer.Ordinal);
-
-                var problem = factory.FromValidationFailures(context.HttpContext, failures);
-
-                return new ObjectResult(problem)
-                {
-                    StatusCode = problem.Status,
-                    ContentTypes = { "application/problem+json" },
-                };
-            });
+            options.InvalidModelStateResponseFactory = ModelStateEnvelope.Build);
 
         // Who is asking, and about which request. Both scoped because both describe one request;
         // IHttpContextAccessor is what makes them resolvable outside a controller.
@@ -157,5 +136,13 @@ public static class DependencyInjection
         // injecting ICurrentUser here at `004` reintroduces the capture, and the fix then is to
         // pass it in rather than inject it.
         services.AddSingleton<ProblemDetailsFactory>();
+
+        // `002b` AC-3. Substituting MVC's factory is what finally makes `002` AC-2 — ONE producer
+        // of the envelope — true for the statuses MVC composes on its own. The `415` was the
+        // proof it was not: a well-formed body carrying an RFC section URI instead of our
+        // registered `type`, which every shape assertion passed and no client could branch on.
+        services.AddSingleton<
+            Microsoft.AspNetCore.Mvc.Infrastructure.ProblemDetailsFactory,
+            MvcProblemDetailsFactory>();
     }
 }

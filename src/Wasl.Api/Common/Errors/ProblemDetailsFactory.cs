@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Wasl.Domain.Common.Exceptions;
 
 namespace Wasl.Api.Common.Errors;
@@ -138,6 +139,71 @@ internal sealed class ProblemDetailsFactory(
     /// </remarks>
     public ProblemDetails Internal(HttpContext context) =>
         Create(context, ProblemTypes.Internal, ProblemTypes.Find(ProblemTypes.Internal)!);
+
+    /// <summary>
+    /// The body could not be read at all. `002b` AC-15, AC-16, AC-17.
+    /// </summary>
+    /// <remarks>
+    /// <b>No <c>errors</c> object, deliberately.</b> Nothing about an unparseable payload is a field
+    /// the client can fix, and the measured alternative put <c>$</c> — the JSON root — and
+    /// <c>command</c> — the action method's parameter name — on the wire as though they were form
+    /// fields. <c>detail</c> is one localized sentence and carries no parser text, no byte offset
+    /// and no line number: AC-17 searches the whole body for each.
+    /// </remarks>
+    public ProblemDetails Malformed(HttpContext context)
+    {
+        var problem = ForCode(context, ProblemTypes.MalformedRequest);
+        problem.Detail = messages.Resolve(context, "Error.MalformedRequest.Detail");
+
+        return problem;
+    }
+
+    /// <summary>
+    /// A status the registry does not document, kept as the framework composed it. `002b` AC-3.
+    /// </summary>
+    /// <remarks>
+    /// <b>Here rather than in <c>MvcProblemDetailsFactory</c>, because `002` AC-2 says one
+    /// producer and means it.</b> The first version constructed <c>ProblemDetails</c> inside the
+    /// MVC adapter, and <c>ErrorEnvelopeTests.OnlyTheFactory_ConstructsProblemDetails</c> went
+    /// red — correctly. A second constructor is a second shape, and the second shape is found by
+    /// a client that already parsed the first.
+    /// <br/>
+    /// The registry IS the contract, so a status with no row is NOT forced into an invented
+    /// envelope: manufacturing a `type` that `error-contract.md` does not document would relocate
+    /// this feature's defect rather than remove it.
+    /// </remarks>
+    public ProblemDetails Passthrough(
+        HttpContext context, int status, string? title, string? type, string? detail, string? instance) =>
+        new()
+        {
+            Status = status,
+            Title = title,
+            Type = type,
+            Detail = detail,
+            Instance = instance ?? context.Request.Path.Value,
+        };
+
+    /// <summary>
+    /// MVC's validation shape, kept as MVC composed it. `002b` AC-3.
+    /// </summary>
+    /// <remarks>
+    /// Validation problems reach the wire through <c>ApiBehaviorOptions</c> —
+    /// <c>ModelStateEnvelope</c> — which already decides between <c>validation</c> and
+    /// <c>malformed-request</c>. Giving this method the same job would create two paths to one
+    /// answer, and the day they disagreed the response would depend on which one MVC happened to
+    /// call.
+    /// </remarks>
+    public ValidationProblemDetails PassthroughValidation(
+        HttpContext context, ModelStateDictionary modelState,
+        int status, string? title, string? type, string? detail, string? instance) =>
+        new(modelState)
+        {
+            Status = status,
+            Title = title,
+            Type = type,
+            Detail = detail,
+            Instance = instance ?? context.Request.Path.Value,
+        };
 
     /// <summary>Builds the envelope for a status the framework produced without an exception.</summary>
     public ProblemDetails ForCode(HttpContext context, string code)

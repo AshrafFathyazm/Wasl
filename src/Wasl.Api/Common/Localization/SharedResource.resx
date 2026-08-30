@@ -235,4 +235,10 @@
   <data name="Validation.Ticket.AssigneeInactive" xml:space="preserve">
     <value>This user is not active and cannot be assigned tickets.</value>
   </data>
+  <data name="Error.MalformedRequest.Detail" xml:space="preserve">
+    <value>The request body could not be read as JSON.</value>
+  </data>
+  <data name="Validation.Request.FieldUnreadable" xml:space="preserve">
+    <value>This value could not be read.</value>
+  </data>
 </root>
