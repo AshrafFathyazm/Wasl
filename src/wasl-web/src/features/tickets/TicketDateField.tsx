@@ -28,18 +28,45 @@ import styles from './TicketFilterBar.module.css';
 const CAL_ROWS = 6;
 const CAL_COLS = 7;
 
-/* Wrapped, because `islamic-umalqura` is not guaranteed: an engine without it
+/* =============================================================================
+ * THE CALENDAR'S DIGITS FOLLOW THE INTERFACE LANGUAGE — a ruled deviation
+ * =============================================================================
+ * BR-8.13 pins Latin digits to dates product-wide, and the first version obeyed
+ * it here too. The product owner overruled it FOR THE CALENDAR POPOVER with two
+ * example frames on 2026-09-01: Arabic interface → Arabic-Indic digits (١٤٤٨),
+ * English interface → Latin digits and English month names (Rabi' al-awwal).
+ * The deviation's scope is exactly the grid and its title:
+ *
+ *   - the VALUE never moves — `?createdFrom=` carries the ISO Gregorian day
+ *   - the TRIGGER stays dd/mm/yyyy in Latin digits, which is what the panel
+ *     frames themselves draw inside an Arabic interface
+ *   - every date COLUMN in the product keeps BR-8.13 untouched
+ *
+ * Wrapped, because `islamic-umalqura` is not guaranteed: an engine without it
  * throws on CONSTRUCTION, and a locale gap must degrade to "no toggle", never
- * take the panel down. `-nu-latn` pins Latin digits — BR-8.13, and a picker
- * writing ١٤٤٨ beside a column showing 2026 is two numeral systems in one flow. */
-const HIJRI_LOCALE = 'ar-SA-u-ca-islamic-umalqura-nu-latn';
+ * take the panel down. */
+const hijriLocale = (lang: Lang) =>
+  lang === 'ar'
+    ? 'ar-SA-u-ca-islamic-umalqura'
+    : 'en-u-ca-islamic-umalqura-nu-latn';
 
-function makeHijri(options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat | null {
+function makeHijri(
+  lang: Lang,
+  options: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormat | null {
   try {
-    return new Intl.DateTimeFormat(HIJRI_LOCALE, options);
+    return new Intl.DateTimeFormat(hijriLocale(lang), options);
   } catch {
     return null;
   }
+}
+
+/** A bare number in the interface's own numerals — the grid's day and year
+ *  cells. No grouping: ١٬٤٤٨ is a quantity, ١٤٤٨ is a year. */
+function uiDigits(lang: Lang, value: number): string {
+  return new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en', {
+    useGrouping: false,
+  }).format(value);
 }
 
 const isoDay = (d: Date) =>
@@ -52,6 +79,34 @@ const prettyDay = (iso: string) => {
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
 };
+
+/**
+ * The Hijri form of the trigger text, COMPOSED FROM PARTS: dd/mm/yyyy هـ.
+ *
+ * `format()` was tried first and produced `18-ربيع الأول-1448` — the engine
+ * chose the month NAME, and inside the trigger's LTR box the mixed Arabic/digit
+ * runs reordered into a date nobody wrote (reported: "ترتيب التاريخ في
+ * الهجري"). `formatToParts` with numeric fields hands over three plain numbers,
+ * and composing them keeps the string ASCII-ordered — same shape as the
+ * Gregorian form, same slot, with هـ marking which calendar it is.
+ */
+function hijriDay(iso: string): string | null {
+  /* 'en' on purpose: the trigger keeps Latin dd/mm/yyyy in both interface
+   * languages — that is what the panel frames draw — and هـ carries which
+   * calendar it is. */
+  const fmt = makeHijri('en', { day: 'numeric', month: 'numeric', year: 'numeric' });
+  if (!fmt) return null;
+
+  const parts = new Map(
+    fmt.formatToParts(new Date(`${iso}T00:00:00`)).map((p) => [p.type, p.value]),
+  );
+  const day = parts.get('day');
+  const month = parts.get('month');
+  const year = parts.get('year');
+  if (!day || !month || !year) return null;
+
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year} هـ`;
+}
 
 /* Monday-first, seven CLIPPED WORDS from the catalogue — the preview measured
  * why no Intl width produces them: ar `short` and `long` are identical full
@@ -68,7 +123,7 @@ const WEEKDAY_KEYS = [
 ] as const;
 
 function monthNames(lang: Lang): string[] {
-  const fmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-u-nu-latn' : 'en', {
+  const fmt = new Intl.DateTimeFormat(lang === 'ar' ? 'ar' : 'en', {
     month: 'long',
   });
   return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(2026, i, 15)));
@@ -85,6 +140,18 @@ export interface TicketDateFieldProps {
 export function TicketDateField({ label, value, onChange, lang }: TicketDateFieldProps) {
   const { t } = useTranslation('tickets');
   const [open, setOpen] = useState(false);
+
+  /* THE HIJRI TOGGLE LIVES ON THE FIELD, NOT IN THE CALENDAR — reported
+   * 2026-09-01: with the toggle on, picking a day wrote the Gregorian form into
+   * the trigger, because the toggle's state died with the popover and the
+   * trigger never knew it existed. The VALUE is still the ISO Gregorian day in
+   * every case; this state only decides which calendar the READER sees it in,
+   * here and in the grid. */
+  const [hijri, setHijri] = useState(false);
+
+  const triggerText =
+    value === '' ? null : hijri ? hijriDay(value) ?? prettyDay(value) : prettyDay(value);
+
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   /* Closed on an outside pointer, the same contract every popover here keeps.
@@ -105,6 +172,12 @@ export function TicketDateField({ label, value, onChange, lang }: TicketDateFiel
       <button
         type="button"
         className={styles.dateBtn}
+        /* THE NAME IS THE LABEL, EXPLICITLY. The visible label above is a plain
+           span — `htmlFor` cannot point at a button — so without this the
+           control's accessible name was its CONTENT: "dd/mm/yyyy", and both
+           date fields announced identically. Found by the test that queried the
+           trigger by its field name and could not. */
+        aria-label={label}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
@@ -113,12 +186,12 @@ export function TicketDateField({ label, value, onChange, lang }: TicketDateFiel
             directionally weak, and an RTL line reorders the runs — the same
             defect the list's date column had, avoided rather than re-measured. */}
         <span className={styles.dateBtnValue} dir="ltr">
-          {value === '' ? (
+          {triggerText === null ? (
             <span className={styles.dateBtnPlaceholder}>
               {t('list.datePlaceholder')}
             </span>
           ) : (
-            prettyDay(value)
+            triggerText
           )}
         </span>
         <IconCalendar size={16} aria-hidden="true" />
@@ -129,6 +202,8 @@ export function TicketDateField({ label, value, onChange, lang }: TicketDateFiel
           lang={lang}
           label={label}
           value={value}
+          hijri={hijri}
+          onHijri={setHijri}
           onApply={(iso) => {
             onChange(iso);
             setOpen(false);
@@ -144,12 +219,16 @@ function Calendar({
   lang,
   label,
   value,
+  hijri,
+  onHijri,
   onApply,
   onCancel,
 }: {
   lang: Lang;
   label: string;
   value: string;
+  hijri: boolean;
+  onHijri: (next: boolean) => void;
   onApply: (iso: string) => void;
   onCancel: () => void;
 }) {
@@ -162,17 +241,22 @@ function Calendar({
   );
   const [sel, setSel] = useState(value || isoDay(new Date()));
   const [mode, setMode] = useState<'days' | 'months' | 'years'>('days');
-  const [hijri, setHijri] = useState(false);
 
   const months = useMemo(() => monthNames(lang), [lang]);
-  const dayFmt = useMemo(() => (hijri ? makeHijri({ day: 'numeric' }) : null), [hijri]);
+  const dayFmt = useMemo(
+    () =>
+      hijri
+        ? makeHijri(lang, { day: 'numeric' })
+        : new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA' : 'en', { day: 'numeric' }),
+    [hijri, lang],
+  );
   const titleFmt = useMemo(
-    () => (hijri ? makeHijri({ month: 'long', year: 'numeric' }) : null),
-    [hijri],
+    () => (hijri ? makeHijri(lang, { month: 'long', year: 'numeric' }) : null),
+    [hijri, lang],
   );
   /* The toggle only renders when the engine can honour it — a switch that
    * flips and changes nothing is a broken control, not a degradation. */
-  const hijriAvailable = useMemo(() => makeHijri({ day: 'numeric' }) !== null, []);
+  const hijriAvailable = useMemo(() => makeHijri(lang, { day: 'numeric' }) !== null, [lang]);
 
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
@@ -191,12 +275,12 @@ function Calendar({
     mode === 'years'
       ? (() => {
           const base = year - (((year % 12) + 12) % 12);
-          return `${base} – ${base + 11}`;
+          return `${uiDigits(lang, base)} – ${uiDigits(lang, base + 11)}`;
         })()
       : mode === 'months'
-        ? String(year)
+        ? uiDigits(lang, year)
         : (titleFmt?.format(new Date(year, monthIndex, 15)) ??
-          `${months[monthIndex] ?? ''} ${year}`);
+          `${months[monthIndex] ?? ''} ${uiDigits(lang, year)}`);
 
   /* role="dialog" with the FIELD's name: two تطبيق buttons can be on screen at
    * once — the panel's and this one's — and without a named container they are
@@ -296,7 +380,7 @@ function Calendar({
                       setMode(years ? 'months' : 'days');
                     }}
                   >
-                    {years ? base + i : (months[i] ?? '')}
+                    {years ? uiDigits(lang, base + i) : (months[i] ?? '')}
                   </button>
                 );
               });
@@ -310,7 +394,7 @@ function Calendar({
             role="switch"
             aria-checked={hijri}
             className={cx(styles.hijriSwitch, hijri && styles.hijriSwitchOn)}
-            onClick={() => setHijri(!hijri)}
+            onClick={() => onHijri(!hijri)}
           >
             <span className={styles.switchTrack}>
               <span className={styles.switchKnob} />

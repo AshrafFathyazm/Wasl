@@ -2,16 +2,21 @@
  * primitive, and a rule in this file that turns out to be needed for the table
  * to look right is the tell that something leaked out of it. */
 
+/* The type-and-spacing spec (2026-09-01): the page pads 28px on top and 40px
+   at the bottom — it breathes from below, not from above. */
 .page {
-  padding: var(--space-8);
+  padding-block: 28px 40px;
+  padding-inline: var(--space-8);
 }
 
 .title {
   /* The subtitle now sits under it, so the gap belongs to the pair rather than
-     to the heading. */
+     to the heading. 26/700/1.45 — the spec's measured value, one step under the
+     token scale's h2. */
   margin-block: 0 var(--space-1);
-  font-size: var(--text-page-title);
+  font-size: 26px;
   font-weight: var(--weight-bold);
+  line-height: 1.45;
 }
 
 /* "124 open tickets · updated 3 minutes ago" — how much work there is, and how
@@ -62,7 +67,10 @@
   overflow: hidden;
   color: var(--text-primary);
   text-decoration: none;
+  /* 14/500/1.5 — the one text the spec raises above 13px inside the rows. */
+  font-size: 14px;
   font-weight: var(--weight-medium);
+  line-height: 1.5;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -76,7 +84,10 @@
   align-items: center;
   gap: var(--space-2);
   color: var(--text-muted);
-  font-size: var(--text-helper);
+  /* 12/400/1.4 — the spec keeps the data line under the subject tighter than
+     the 1.5 rule, so the two-line cell fits the row height it measured. */
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .ticketNumber {
@@ -212,26 +223,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* base.css rule 17 paints every <button> the primary navy with !important, and
- * names the only escape: a class repeating the same properties, also with
- * !important. Omitting it does not win. */
-.pageBtn {
-  block-size: 32px;
-  padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  background-color: var(--surface-card) !important;
-  color: var(--text-primary) !important;
-  -webkit-text-fill-color: currentcolor !important;
-  font: inherit;
-  font-size: var(--text-helper);
-  cursor: pointer;
-}
-
-.pageBtn:disabled {
-  color: var(--text-placeholder) !important;
-  cursor: not-allowed;
-}
+/* THE !important BLOCK THAT STOOD HERE IS GONE — it predates the base.css
+ * scoping to :not([class]), and it had turned on its own side: its
+ * surface-card fill outranked .pageBtnActive's navy, so the CURRENT page
+ * rendered as an ordinary white button. The active fill is a plain declaration
+ * now and wins the normal way, on order. */
 
 /* ---- States --------------------------------------------------------------- */
 
@@ -391,7 +387,7 @@
      a rounded block inset from the surface rather than a full-bleed strip, which
      is how the design draws it. */
   padding: var(--space-1);
-  min-inline-size: 200px;
+  min-inline-size: 188px; /* the spec's own box */
 }
 
 .rowMenuItem {
@@ -403,16 +399,18 @@
      is the target, not the label. A menu that only responds on the text is a
      menu people miss. */
   inline-size: 100%;
-  /* 40, not the 48 of a list row: the design's menu is tighter than a table row,
-     and four items at 48 make a menu taller than the rows it acts on. */
-  block-size: var(--button-height-md);
-  padding-inline: var(--space-3);
+  /* 36 / 10 / 9 — the spec measures the item, its inline padding, and the gap
+     between glyph and label. */
+  block-size: 36px;
+  padding-inline: 10px;
+  gap: 9px;
 
   border: 0;
   border-radius: var(--radius-sm);
   background-color: transparent;
   color: var(--text-primary);
-  font-size: var(--type-label-md);
+  font-size: 13px;
+  line-height: 1.5;
   /* `start`, so the label sits at the reading edge in both directions and the
      icon leads it. */
   text-align: start;
@@ -474,6 +472,12 @@
   unicode-bidi: isolate;
 }
 
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 .pageBtn,
 .pageArrow {
   display: grid;
@@ -484,16 +488,23 @@
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background-color: transparent;
-  color: var(--text-secondary);
-  font-size: var(--type-label-md);
+  /* NAVY INK, at rest and under the pointer — ruled by frame 2026-09-01
+     ("خلي لونها زي ما هي كحلي"). The spec sheet filed inactive page numbers
+     under muted #606873; the frame overrules it, and hover still moves only
+     the ground. */
+  color: var(--brand);
+  /* 12px — the spec files page numbers with the counters, not with the cells. */
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 
+/* HOVER MOVES THE GROUND, NEVER THE INK — reported 2026-09-01: the page
+   number's colour jumped under the pointer. The surface says "you are here";
+   the digit stays exactly as it was. */
 .pageBtn:hover:not(:disabled),
 .pageArrow:hover:not(:disabled) {
   background-color: var(--surface-chip);
-  color: var(--text-primary);
 }
 
 .pageBtn:focus-visible,
@@ -516,17 +527,26 @@
   color: var(--on-brand);
 }
 
+.pageArrow {
+  color: var(--text-muted);
+}
+
 .pageArrow:disabled {
   color: var(--text-placeholder);
   cursor: not-allowed;
 }
 
+/* THE ELLIPSIS IS BOXED, per the frame — it reads as a member of the row, not
+   as punctuation floating between buttons. Still not a control: no border
+   colour change on hover, no cursor, no tab stop. */
 .pageGap {
   display: grid;
   place-items: center;
-  min-inline-size: 24px;
+  min-inline-size: 34px;
   block-size: 34px;
-  color: var(--text-placeholder);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
 }
 
 /* ONE ASSET, ROTATED, and the rotation is the direction. `IconChevronDown`
@@ -563,17 +583,42 @@
   inset-block-end: calc(100% + var(--space-2));
   inset-inline-start: 0;
   z-index: var(--z-flyout, 30);
-  max-inline-size: 46ch;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  /* The spec's box: 7x10 padding, radius 6, 12/400/1.6, capped at 420px. */
+  max-inline-size: 420px;
+  padding: 7px 10px;
+  border-radius: 6px;
   background-color: var(--surface-inverse);
   color: var(--text-on-inverse);
-  font-size: var(--type-body-sm);
-  line-height: var(--leading-ar-normal);
+  font-size: 12px;
+  line-height: 1.6;
   box-shadow: var(--shadow-md);
   /* Multi-line on purpose — a tooltip that truncates the text it exists to
      un-truncate would be the joke version of itself. */
   white-space: normal;
   text-wrap: pretty;
   pointer-events: none;
+}
+
+
+/* The near-top flip: same pill, other side of the link. */
+.subjectTipBelow {
+  inset-block-end: auto;
+  inset-block-start: calc(100% + var(--space-1));
+}
+
+
+/* The frame's footer: rows-per-page and the range share the start; the pager
+   stands alone at the end. */
+.footStart {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* A disabled arrow sits in a quiet grey square — the frame draws the OFF state
+   as a surface, not as faded ink alone, so "there is no previous page" is
+   visible before it is tried. */
+.pageArrow:disabled {
+  background-color: var(--surface-sunken);
+  border-radius: var(--radius-sm);
 }

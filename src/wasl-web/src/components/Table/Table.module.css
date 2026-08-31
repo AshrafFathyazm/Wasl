@@ -19,6 +19,15 @@
  * ============================================================================ */
 
 .card {
+  /* THE CORNERS ARE CLIPPED NOW, and it is safe for exactly one reason: the row
+   * flyout is position: fixed, so nothing inside the card ever needs to escape
+   * it. Without the clip the sticky header row paints its opaque background
+   * square across the card's rounded corners, and the radius reads as erased —
+   * reported 2026-09-01 as "زوايا الجدول ممسوحة". The header cannot clip itself:
+   * it has to be opaque (rows pass under it) and it has to reach the card's
+   * edge (a gap shows rows leaking beside it). */
+  overflow: hidden;
+
   /* MEASURED per density: the subject cell is two lines and its own
    * line-heights are part of the total, so this cannot be computed from the
    * padding. It lives beside --row-pad so the two cannot drift apart. */

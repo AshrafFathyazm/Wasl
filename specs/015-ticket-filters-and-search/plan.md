@@ -288,6 +288,38 @@ Both lanes are told when this lands, and
 [`FRONTEND-API-GUIDE.md`](FRONTEND-API-GUIDE.md) is the regenerated handoff. A contract change
 discovered by the frontend failing to compile is the failure this process exists to prevent.
 
+### 2026-08-31 — `createdFrom` / `createdTo`
+
+Two more query parameters on `GET /api/tickets`, added at the product owner's direction the day
+the filter panel's date range went from drawn-and-disabled to live ("شغل فلتر البحث بالتاريخ").
+
+| Change | Shape | Effect on an existing client |
+|---|---|---|
+| `?createdFrom=YYYY-MM-DD` and `?createdTo=YYYY-MM-DD` | Additive | None. Sending neither yields the prior behaviour exactly |
+| A new binder-`400` cause — an unparseable date | Additive | None for a client that sends none |
+
+The semantics are written where they bind, in `GetTicketsQuery`'s XML docs, and they are the
+part a reader needs before reusing the parameters:
+
+- **`DateOnly`, not `DateTime`** — the wire carries a day, and a stray time-of-day component
+  would silently shave tickets off the first day of the range.
+- **The bounds are UTC days**, because `CreatedAtUtc` is what the column stores; a Riyadh-local
+  day is a different slice and choosing it silently would make the filter disagree with every
+  timestamp the product renders.
+- **Both ends inclusive** — `to 31/08` includes the 31st, implemented as `< 01/09T00:00` rather
+  than a per-row date cast, which no index would cover.
+
+Three integration tests pin the bounds (`TicketFilterTests`): inclusivity at 09:00 on the first
+day and 23:30 on the last, composition with the other filters (BR-7.3), and the binder's `400`
+on `?createdFrom=not-a-date`. Full suite after the change: 384 integration, 189 domain, 0 failed.
+
+The panel's calendar is the `026` preview's `Calendar` promoted to
+`features/tickets/TicketDateField.tsx` — Monday-first clipped-word weekdays, the day→month→decade
+drill, Latin digits in both calendars, and a Hijri toggle that changes the **display only**; the
+value is always the ISO Gregorian day this parameter accepts. One physical `translate` became
+logical on the way in (the switch knob left its track under RTL), and the trigger gained the
+accessible name its preview version never had.
+
 ### If this feature is cut
 
 `docs/sdd/08-board.md`'s compression order puts it first out. Cutting it leaves:

@@ -87,8 +87,25 @@ const CHANNEL_CLASS: Record<string, string | undefined> = {
  * truncation is visual — a screen reader was never given the shortened form.
  */
 function SubjectLink({ to, subject }: { to: string; subject: string }) {
-  const [tip, setTip] = useState(false);
-  const measure = (el: HTMLElement) => setTip(el.scrollWidth > el.clientWidth);
+  const [tip, setTip] = useState<false | 'above' | 'below'>(false);
+
+  /* ABOVE by default, BELOW for the first rows. The tooltip lives inside the
+   * table's scroller, and a scroller clips on both axes — the same fact that
+   * made the row flyout position: fixed. A tip popping above row one leaves the
+   * scroll box and is cut mid-sentence, which was the report: "أول تول تيب
+   * بيختفي جزء منه". Rows near the top get the tip under the link instead;
+   * everywhere else keeps the design's above placement. */
+  const measure = (el: HTMLElement) => {
+    if (el.scrollWidth <= el.clientWidth) {
+      setTip(false);
+      return;
+    }
+    const table = el.closest('table');
+    const room = table
+      ? el.getBoundingClientRect().top - table.getBoundingClientRect().top
+      : Number.POSITIVE_INFINITY;
+    setTip(room < 110 ? 'below' : 'above');
+  };
 
   return (
     <span className={styles.subjectAnchor}>
@@ -103,11 +120,15 @@ function SubjectLink({ to, subject }: { to: string; subject: string }) {
       >
         {subject}
       </Link>
-      {tip ? (
-        <span className={styles.subjectTip} aria-hidden="true" dir="auto">
+      {tip === false ? null : (
+        <span
+          className={cx(styles.subjectTip, tip === 'below' && styles.subjectTipBelow)}
+          aria-hidden="true"
+          dir="auto"
+        >
           {subject}
         </span>
-      ) : null}
+      )}
     </span>
   );
 }
@@ -185,6 +206,7 @@ function Footer({
   const { t } = useTranslation('tickets');
   return (
     <div className={styles.footer}>
+      <div className={styles.footStart}>
       {/* `031` replaced the raw `<select>` that used to sit here. The visible
           text stays a `<span>` and the control's own label is hidden, because
           `Dropdown` stacks its label above its trigger and this footer is one
@@ -226,6 +248,7 @@ function Footer({
           total: formatNumber(totalCount, lang),
         })}
       </span>
+      </div>
 
       <div className={styles.pager}>
         {/* THE ARROWS ARE GLYPHS AND THEY MIRROR THEMSELVES. `IconChevronDown`
@@ -239,7 +262,7 @@ function Footer({
           aria-label={t('list.prev')}
           onClick={() => onPage(page - 1)}
         >
-          <IconChevronDown size={16} className={styles.arrowPrev} aria-hidden="true" />
+          <IconChevronDown size={18} className={styles.arrowPrev} aria-hidden="true" />
         </button>
 
         {pageWindow(page, totalPages).map((n, index) =>
@@ -276,7 +299,7 @@ function Footer({
           aria-label={t('list.next')}
           onClick={() => onPage(page + 1)}
         >
-          <IconChevronDown size={16} className={styles.arrowNext} aria-hidden="true" />
+          <IconChevronDown size={18} className={styles.arrowNext} aria-hidden="true" />
         </button>
       </div>
     </div>

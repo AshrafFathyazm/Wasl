@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
+import { TicketDateField } from './TicketDateField';
 import { IconClose, IconFilter, IconSearch } from '../../icons/icons';
 import {
   COMMUNICATION_CHANNELS,
@@ -125,11 +126,23 @@ export function TicketFilterBar({
   const [panelDraft, setPanelDraft] = useState<{
     priority: readonly string[];
     channel: readonly string[];
-  }>({ priority: filters.priority, channel: filters.channel });
+    createdFrom: string;
+    createdTo: string;
+  }>({
+    priority: filters.priority,
+    channel: filters.channel,
+    createdFrom: filters.createdFrom,
+    createdTo: filters.createdTo,
+  });
 
   useEffect(() => {
     if (panelOpen) {
-      setPanelDraft({ priority: filters.priority, channel: filters.channel });
+      setPanelDraft({
+        priority: filters.priority,
+        channel: filters.channel,
+        createdFrom: filters.createdFrom,
+        createdTo: filters.createdTo,
+      });
     }
     /* filters is read at the moment of opening, not subscribed to. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,6 +224,22 @@ export function TicketFilterBar({
             remove: () => onChange({ ...filters, assignee: '' }),
           },
         ]),
+    ...(['createdFrom', 'createdTo'] as const).flatMap((key) =>
+      filters[key] === ''
+        ? []
+        : [
+            {
+              key,
+              /* dd/mm/yyyy, the trigger's own rendering — an ISO day in a chip
+                 label is the wire format shown to a person. */
+              label:
+                t(key === 'createdFrom' ? 'list.createdFrom' : 'list.createdTo') +
+                ': ' +
+                filters[key].split('-').reverse().join('/'),
+              remove: () => onChange({ ...filters, [key]: '' }),
+            },
+          ],
+    ),
     ...(filters.escalated === undefined
       ? []
       : [
@@ -337,29 +366,29 @@ export function TicketFilterBar({
                 </div>
               </fieldset>
 
-              {/* DRAWN AND DISABLED, the escalate-menu-item precedent: the
-                  frames draw a created-date range and GET /api/tickets accepts
-                  no createdFrom/createdTo — measured against the controller,
-                  which binds status, priority, category, channel, assignee,
-                  escalated, search and nothing else. Wiring these to a
-                  client-side filter would lie about the data (it can only see
-                  the page it has), so they are inert with the reason attached
-                  until 015's backend grows the parameters. */}
+              {/* LIVE AS OF 2026-08-31. These stood here drawn-and-disabled —
+                  the escalate precedent — because the endpoint bound no dates.
+                  The product owner said "شغل فلتر البحث بالتاريخ", so the
+                  endpoint grew \`createdFrom\`/\`createdTo\` (GetTicketsQuery
+                  documents the UTC-day reading; three integration tests pin the
+                  inclusive bounds) and the calendar the 026 preview proved was
+                  promoted to TicketDateField. */}
               <div className={styles.dates}>
-                <Input
+                <TicketDateField
                   label={t('list.createdFrom')}
-                  value={''}
-                  onChange={() => {}}
-                  placeholder={t('list.datePlaceholder')}
-                  disabled
-                  helperText={t('list.dateUnavailable')}
+                  value={panelDraft.createdFrom}
+                  onChange={(createdFrom) =>
+                    setPanelDraft((current) => ({ ...current, createdFrom }))
+                  }
+                  lang={lang}
                 />
-                <Input
+                <TicketDateField
                   label={t('list.createdTo')}
-                  value={''}
-                  onChange={() => {}}
-                  placeholder={t('list.datePlaceholder')}
-                  disabled
+                  value={panelDraft.createdTo}
+                  onChange={(createdTo) =>
+                    setPanelDraft((current) => ({ ...current, createdTo }))
+                  }
+                  lang={lang}
                 />
               </div>
 
@@ -372,7 +401,12 @@ export function TicketFilterBar({
                        needs تطبيق is a clear that looks broken. The SEARCH
                        survives: it is a question the reader typed, not a facet
                        they ticked, and the box has its own ×. */
-                    setPanelDraft({ priority: [], channel: [] });
+                    setPanelDraft({
+                      priority: [],
+                      channel: [],
+                      createdFrom: '',
+                      createdTo: '',
+                    });
                     onChange({
                       status: [],
                       priority: [],
@@ -397,6 +431,8 @@ export function TicketFilterBar({
                       ...filters,
                       priority: panelDraft.priority,
                       channel: panelDraft.channel,
+                      createdFrom: panelDraft.createdFrom,
+                      createdTo: panelDraft.createdTo,
                     });
                     setPanelOpen(false);
                   }}

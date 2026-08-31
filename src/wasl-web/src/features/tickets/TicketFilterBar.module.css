@@ -330,7 +330,10 @@
   align-items: center;
   gap: var(--space-3);
   flex-wrap: wrap;
-  margin-block-start: var(--space-4);
+  /* 18 above, 12 below — the spec's gradient: the chips are the table's tool,
+     so they sit closer to it than to the heading. */
+  margin-block-start: 18px;
+  margin-block-end: 12px;
 }
 
 /* Beside the track now — the row above owns the spacing. */
@@ -366,9 +369,10 @@
 .facetLabel {
   padding: 0;
   margin-block-end: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--type-body-sm);
-  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  /* 11.5/600 — the spec's panel section headings. */
+  font-size: 11.5px;
+  font-weight: 600;
 }
 
 .facetChips {
@@ -427,9 +431,17 @@
   gap: var(--space-3);
 }
 
+/* A BUTTON, per the frame — bordered box on hover, not an underlined link.
+   Reported 2026-09-01: "مسح الكل دا زرار برضو بتهوفر عليه … مش مجرد لينك".
+   Quiet at rest so تطبيق stays the loud one; button chrome on hover so the
+   pointer learns it acts. */
 .clearAll {
-  padding: 0;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
@@ -438,6 +450,315 @@
 }
 
 .clearAll:hover {
+  border-color: var(--border-subtle);
+  background-color: var(--surface-subtle);
   color: var(--text-primary);
-  text-decoration: underline;
+}
+
+.clearAll:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+
+/* ============================================================================
+ * The search box keeps a QUIET focus — product owner, 2026-08-31
+ * ============================================================================
+ * `Input` darkens its border on hover and draws the brand ring on focus; on a
+ * search box in the page header the ring reads as a claim on the whole screen,
+ * and the report was "شيل الهوفر لما بدخل جوا". Suppressed for the POINTER
+ * only: `:focus-visible` keeps the full ring, because a keyboard user has no
+ * caret-in-box cue and the ring is how they know where they are. Specificity
+ * (0,3,1) beats the primitive's (0,2,0) without !important.
+ * ========================================================================== */
+.searchField input:hover:not(:disabled) {
+  border-color: var(--border-subtle);
+}
+
+/* THE :not(:focus-visible) VERSION OF THIS RULE NEVER FIRED — Chrome grants
+   :focus-visible to every text input on ANY focus, mouse included, so the
+   pointer/keyboard split that works on buttons does not exist here and the ring
+   survived its own suppression (reported twice). Unconditional now: a text
+   field's caret is its focus indicator, which is why the split was pointless
+   for this control in the first place. */
+.searchField input:focus,
+.searchField input:focus-visible {
+  border-color: var(--border-subtle);
+  outline: none;
+  box-shadow: none;
+}
+
+/* ---- the date field + calendar, ported from the 026 preview ----------------
+ * The preview proved the shape (Monday-first clipped words, the drill-up title,
+ * Latin digits in both calendars); this is that CSS on real tokens. Its two
+ * local shadow variables became --shadow-md, and one physical `translate` was
+ * fixed on the way in — see .hijriSwitchOn .switchKnob.
+ * -------------------------------------------------------------------------- */
+
+.dateField {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.dateBtn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  block-size: 36px;
+  padding-inline: var(--space-3);
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+  background-color: var(--field-fill);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px; /* the spec's date-field size */
+  text-align: start;
+  cursor: pointer;
+}
+
+.dateBtnValue {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+}
+
+.dateBtnPlaceholder {
+  color: var(--text-placeholder);
+}
+
+.calendar {
+  position: absolute;
+  inset-inline-end: 0;
+  /* UPWARD, over the panel's own body — reported 2026-09-01: opening downward
+     hung the calendar over the table, visually detached from the panel that
+     owns it. The date fields sit at the panel's bottom, so above them is panel
+     ground all the way up, and the frames draw exactly that overlap. */
+  inset-block-end: calc(100% + var(--space-2));
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  inline-size: 316px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.calHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-block-end: var(--border-width) solid var(--surface-sunken);
+}
+
+.calNav {
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.calNav:hover {
+  background-color: var(--surface-chip);
+}
+
+.calTitle {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  block-size: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent;
+  font: inherit;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.calTitle:hover {
+  background-color: var(--surface-chip);
+}
+
+.calCaretUp {
+  rotate: 180deg;
+}
+
+/* One glyph, quarter-turned; --ld-dir flips both under RTL, the pager's trick. */
+.chevPrev {
+  transform: rotate(calc(90deg * var(--ld-dir, 1)));
+}
+
+.chevNext {
+  transform: rotate(calc(-90deg * var(--ld-dir, 1)));
+}
+
+.calWeek {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: var(--space-2) var(--space-2) 0;
+}
+
+.calWeekday {
+  text-align: center;
+  font-size: 11px; /* the spec's floor; nothing renders below it */
+  color: var(--text-muted);
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+}
+
+.calGridWide {
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+}
+
+.calCell {
+  display: grid;
+  place-items: center;
+  block-size: 38px;
+  padding: 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.calCell:hover {
+  background-color: var(--surface-chip);
+}
+
+.calCellWide {
+  block-size: 44px;
+}
+
+.calCellOutside {
+  color: var(--border-default);
+}
+
+.calCellToday {
+  background-color: var(--surface-chip);
+}
+
+.calCellOn {
+  background-color: var(--brand-subtle);
+  border-color: var(--action-primary-border);
+  color: var(--action-primary-bg);
+  font-weight: var(--weight-bold);
+}
+
+.calFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-block-start: var(--border-width) solid var(--surface-sunken);
+}
+
+.hijriSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--text-helper);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.switchTrack {
+  position: relative;
+  flex: none;
+  inline-size: 34px;
+  block-size: 20px;
+  border-radius: var(--radius-pill);
+  background-color: var(--border-subtle);
+}
+
+.switchKnob {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  /* A knob-sized lift; --shadow-md is a plane between two DISTANT planes and
+     swallows a 16px circle. */
+  box-shadow: 0 1px 2px rgb(13 38 38 / 18%);
+}
+
+.hijriSwitchOn .switchTrack {
+  background-color: var(--action-primary-bg);
+}
+
+/* THE PREVIEW'S `translate: 14px` WAS A PHYSICAL MOVE, and this is the port's
+   one fix: under RTL the knob starts at the track's RIGHT edge, and +14px
+   pushed it off the track instead of across it. --ld-dir carries the writing
+   direction, the same way the loaders and the pager arrows take it. */
+.hijriSwitchOn .switchKnob {
+  translate: calc(14px * var(--ld-dir, 1)) 0;
+}
+
+.calLinkBtn {
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--button-radius);
+  background-color: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+.calLinkBtn:hover {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+.calPushEnd {
+  margin-inline-start: auto;
+}
+
+.calSolidBtn {
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: var(--space-4);
+  border: var(--button-border) solid var(--action-primary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-primary-bg);
+  color: var(--action-primary-text);
+  font: inherit;
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
 }

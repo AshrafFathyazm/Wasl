@@ -313,11 +313,12 @@ describe('the panel', () => {
     await waitFor(() => expect(lastParams()?.priority).toEqual(['High']));
   });
 
-  /* Drawn and disabled, the escalate precedent: the frames draw a created-date
-   * range and the endpoint binds no createdFrom/createdTo. If this goes red
-   * because the fields became enabled, 015's backend grew the parameters and
-   * the wiring is the next task — that is the failure saying something. */
-  it('draws the date range inert until the endpoint can filter by it', async () => {
+  /* THIS TEST WENT RED EXACTLY AS ITS PREDECESSOR PROMISED. The old assertion
+   * held the fields disabled "until the endpoint can filter by it", with a note
+   * that the red would mean 015's backend grew the parameters — it did, on
+   * 2026-08-31, with three integration tests pinning the inclusive UTC-day
+   * bounds. So the assertion flipped from "inert" to "works end to end". */
+  it('picks a day in the calendar and تطبيق puts it in the URL and the request', async () => {
     mounted();
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
@@ -325,9 +326,33 @@ describe('the panel', () => {
       screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter')) }),
     );
 
-    expect(
-      screen.getByLabelText(i18n.t('tickets:list.createdFrom')),
-    ).toBeDisabled();
-    expect(screen.getByLabelText(i18n.t('tickets:list.createdTo'))).toBeDisabled();
+    /* The trigger opens a DIALOG named after its field — two تطبيق buttons can
+     * be on screen at once, and the name is what tells them apart. */
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.createdFrom')) }),
+    );
+    const dialog = screen.getByRole('dialog', {
+      name: i18n.t('tickets:list.createdFrom'),
+    });
+
+    /* Day 15 of the current month — always on the grid, never in the outside
+     * fringe of an adjacent month. */
+    await userEvent.click(within(dialog).getByRole('button', { name: '15' }));
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: i18n.t('tickets:list.apply') }),
+    );
+
+    /* The calendar wrote the DRAFT; nothing reaches the URL until the panel's
+     * own تطبيق — the same draft-until-apply contract the chips keep. */
+    expect(urlSearch()).not.toContain('createdFrom=');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.apply') }),
+    );
+
+    const now = new Date();
+    const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
+    await waitFor(() => expect(urlSearch()).toContain(`createdFrom=${iso}`));
+    await waitFor(() => expect(lastParams()?.createdFrom).toBe(iso));
   });
 });
