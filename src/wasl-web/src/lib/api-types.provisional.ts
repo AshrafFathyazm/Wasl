@@ -127,6 +127,23 @@ export interface TicketCustomerSummary {
 // PROVISIONAL — hand-written against specs/009-create-ticket/
 // contracts/tickets-api.md (frozen). Delete when OpenAPI
 // generation lands. ADR-011 §6.
+// PROVISIONAL — hand-written against specs/011-assign-ticket/
+// contracts/ticket-assignee-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** The two roles BR-6 knows. Transcribed, not inferred from a sample. */
+export type SupportUserRole = 'Agent' | 'Manager';
+
+// PROVISIONAL — hand-written against specs/011-assign-ticket/
+// contracts/ticket-assignee-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** The nested assignee on a ticket DETAIL. Never a bare id: the contract says
+ *  the client must not have to look the name up. */
+export interface TicketAssignee {
+  id: string;
+  fullName: string;
+  role: SupportUserRole;
+}
+
 export interface TicketResponse {
   id: string;
 
@@ -142,7 +159,36 @@ export interface TicketResponse {
   priority: TicketPriority;
   channel: CommunicationChannel;
   status: TicketStatus;
+  /* TWO SHAPES FOR ONE FACT, AND THEY ARE NOT TO BE UNIFIED.
+   *
+   * The DETAIL carries a bare id AND a nested object; the LIST row carries a
+   * flat `assigneeId` / `assigneeName` pair. Two contracts, two audiences, both
+   * frozen — `009` for the detail, `010` for the row. The backend lane named
+   * this explicitly on 2026-08-30 because it looks exactly like an
+   * inconsistency somebody should tidy, and tidying it breaks one of the two.
+   *
+   * The nested object exists so the client never has to look a name up. The
+   * flat pair exists because a hundred list rows do not need a role. */
   assignedToUserId: string | null;
+
+  /** The nested form. `null` when unassigned.
+   *
+   * THE API RETURNS THIS KEY AND THIS TYPE DID NOT DECLARE IT — measured
+   * against the running server on 2026-08-30, seventeen keys in the response
+   * and sixteen here. Transcribed from `011`'s frozen contract, not from the
+   * response, because a response cannot say which fields are nullable.
+   *
+   * ~~KNOWN DEFECT, BACKEND, `de5ddd6`~~ — **FIXED 2026-08-30, `62af3cc`**, and
+   * verified independently on the running server in all four cases: assigned
+   * and unassigned, on both the list and the detail. The cause was narrower
+   * than either lane first said: `Map` takes `assignee` as a parameter
+   * DEFAULTING TO NULL — correct at creation, because `009` AC-2 says a ticket
+   * is never assigned then — and the write call passed it while the two reads
+   * did not. One mapper, three call sites, one of them right.
+   *
+   * The note that no workaround was added is why there is nothing to unwind
+   * now. A fallback would have survived the fix and outlived it. */
+  assignee: TicketAssignee | null;
   isEscalated: boolean;
 
   /** NULLABLE, NOT OPTIONAL. `009` ships before `004`, so the server has no
@@ -305,3 +351,297 @@ export interface SignInResponse {
   expiresAtUtc: string;
   user: AuthenticatedUser;
 }
+
+/* ---- `011`, the assignee picker -------------------------------------------
+ * Source: specs/011-assign-ticket/contracts/ticket-assignee-api.md — FROZEN
+ * 2026-08-23. Transcribed from the field table, not from the JSON example.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against specs/011-assign-ticket/
+// contracts/ticket-assignee-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/**
+ * One row of `GET /api/support-users`.
+ *
+ * **THE RESPONSE IS A BARE JSON ARRAY OF THESE** — not `PagedResult<T>`, not a
+ * `{ value: [...] }` wrapper. The contract says so and an integration test calls
+ * `EnumerateArray()` on the root, which would throw on an object. The set is
+ * seeded and bounded (ADR-005), so a page control nobody can use is worse than
+ * none; if user management ever ships this becomes paged, and that is a breaking
+ * change recorded as `011` `spec.md` A-4 rather than designed around.
+ *
+ * **No email**, deliberately: a picker needs a name and a role.
+ *
+ * Two things about consuming it, both from the contract's own behaviour table:
+ *
+ *   1. **Ordering is `FullName` ascending under the DATABASE collation**, which
+ *      does not follow `Accept-Language`. A mixed Arabic and English list looks
+ *      correctly ordered in English and arbitrary in Arabic, and nothing errors.
+ *      Sort with `Intl.Collator` at the render site.
+ *   2. **The current assignee may be ABSENT from this list.** A user deactivated
+ *      after assignment keeps their tickets and leaves the picker. Render the
+ *      current assignee from `TicketResponse.assignee`; looking the id up here
+ *      yields nothing and reads as missing data.
+ */
+export interface SupportUser {
+  id: string;
+  fullName: string;
+  role: SupportUserRole;
+}
+
+// PROVISIONAL — hand-written against specs/011-assign-ticket/
+// contracts/ticket-assignee-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `PUT /api/tickets/{id}/assignee`. Returns `TicketResponse`. */
+export interface ChangeTicketAssigneeRequest {
+  /** **Nullable, and `null` MEANS UNASSIGN** — it is not "no opinion". Omitting
+   *  the property is treated as `null` by the server, so it is always sent
+   *  explicitly rather than left off. */
+  assigneeId: string | null;
+
+  /** The `version` from the ticket the user was looking at. Required: a missing,
+   *  empty, or non-base64 value is `400`, never an unchecked write. */
+  expectedVersion: string;
+}
+
+/* ---- `012`, the status change ---------------------------------------------
+ * Source: specs/012-change-ticket-status/contracts/ticket-status-api.md —
+ * FROZEN 2026-08-23.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against specs/012-change-ticket-status/
+// contracts/ticket-status-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `PUT /api/tickets/{id}/status`. Returns `TicketResponse`. */
+export interface ChangeTicketStatusRequest {
+  /** A value outside the enum is `400` listing the accepted values, **never**
+   *  `409`. The client only ever sends a member of `allowedTransitions`. */
+  status: TicketStatus;
+
+  /** **REQUIRED when closing from `New` or `Open`** (BR-1.2), and accepted on
+   *  any transition — a volunteered reason is useful. Max 500: 501 characters is
+   *  `400`, because `TicketHistory.Note` is `nvarchar(500)` and a truncated
+   *  reason is worse than a rejected one. */
+  note?: string;
+
+  /** Required, not optional. Treating a missing token as "no opinion" would make
+   *  the concurrency check opt-in, and the client that forgets it is exactly the
+   *  one that overwrites someone else's work. */
+  expectedVersion: string;
+}
+
+/* ---- `013`, comments ------------------------------------------------------
+ * Source: specs/013-ticket-timeline-and-comments/contracts/ticket-timeline-api.md
+ * — FROZEN 2026-08-23. The COMMENTS half of that contract matches what the
+ * server implements. The TIMELINE half does not — see the block at the foot of
+ * this file, and do not transcribe it until that is resolved.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against specs/013-ticket-timeline-and-comments/
+// contracts/ticket-timeline-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `POST /api/tickets/{id}/comments`. Append-only: there is no `PUT`, `PATCH`
+ *  or `DELETE` on a comment, in this contract or any future one (BR-5.3). */
+export interface AddTicketCommentRequest {
+  /** 1..4000, not whitespace-only. Length is counted in **UTF-16 code units** —
+   *  the same count `String.length` gives here and `string.Length` gives in
+   *  .NET, and the same one `nvarchar(4000)` stores. So a client counter agrees
+   *  with the server; counting graphemes instead would read 3998 while the
+   *  server read 4001. */
+  body: string;
+
+  /** BR-5.4. **Marks** the comment. It is NOT a visibility filter: the server
+   *  returns internal comments in full to every support user, and the client
+   *  does not hide them either. The flag exists so a future customer-facing view
+   *  can exclude them without a data migration. */
+  isInternal?: boolean;
+
+  /** Absent when the comment was typed here rather than received (FR-3.3). */
+  channel?: CommunicationChannel;
+}
+
+// PROVISIONAL — hand-written against specs/013-ticket-timeline-and-comments/
+// contracts/ticket-timeline-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** The `201` body. **There is no `Location` header** — a deliberate deviation
+ *  recorded in `013` `plan.md`: BR-5.3 gives a comment no addressable identity,
+ *  there is no `GET .../comments/{id}` and there will not be one, and a
+ *  `Location` pointing at a route that answers `404` is worse than no header. */
+export interface TicketCommentResponse {
+  id: string;
+  ticketId: string;
+  /** The author is taken from the token. There is no `authorUserId` on the
+   *  REQUEST; sending one is ignored rather than an error. */
+  authorUserId: string;
+  authorName: string;
+  body: string;
+  isInternal: boolean;
+  channel: CommunicationChannel | null;
+  createdAtUtc: string;
+}
+
+/* ============================================================================
+ * `013` TIMELINE — NOT TRANSCRIBED. BLOCKED 2026-08-31.
+ * ============================================================================
+ * `GET /api/tickets/{id}/timeline` is the one shape `027` needs that is NOT in
+ * this file, and the omission is deliberate.
+ *
+ * The frozen contract and the running server disagree, and the disagreement was
+ * never recorded:
+ *
+ *   contract + FRONTEND-API-GUIDE   `?page=&pageSize=`, the BR-7 envelope
+ *                                   (`items/page/pageSize/totalCount/totalPages`),
+ *                                   ordered ASCENDING, entries shaped
+ *                                   `{ entryType: 'Comment'|'History',
+ *                                      actorUserId, actorName,
+ *                                      comment: {…}|null, history: {…}|null }`
+ *
+ *   implementation                  `?before=<cursor>&limit=`, a CURSOR page
+ *                                   (`items/hasMore/nextCursor`, no total),
+ *                                   ordered DESCENDING, entries shaped
+ *                                   `{ type: <seven values>, actor: {…}, cursor,
+ *                                      body, isInternal, channel, oldValue,
+ *                                      newValue, note }`
+ *
+ * `013` `summary.md` records the cursor as a chosen design (`spec.md` Q-B) and
+ * `plan.md`'s **Contract changes** section says nothing moved. Both the frozen
+ * contract and the guide written FOR this lane still describe the envelope, and
+ * the guide gives a paging recipe — `page=N-1`, "at page 1 stop" — plus a cache
+ * key of `['ticket', id, 'timeline', { page, pageSize }]`.
+ *
+ * Writing either shape here would be wrong. The CONTRACT shape produces a client
+ * that sends `?page=2`, has both parameters ignored, receives the newest page
+ * every time, and renders a timeline that silently refuses to scroll back — no
+ * error, nothing red, the exact failure class this repository keeps writing
+ * rules about. The IMPLEMENTATION shape ratifies an unrecorded contract change
+ * from the client side, which `CLAUDE.md` forbids by name: a difference is a
+ * defect in one of the two, never fixed silently.
+ *
+ * `002c`'s `OpenApiContractTests` cannot see it — that gate compares **paths,
+ * methods and statuses only**, ruled at its Q-C, with request and response
+ * bodies and query parameters explicitly out of scope.
+ *
+ * `FE-027-08` is blocked until the backend lane says which document is the
+ * truth. Nothing else in `027` is.
+ * ========================================================================== */
+
+/* ==========================================================================
+ * `032` — the customer profile and the customer create
+ * ==========================================================================
+ * TRANSCRIBED FROM TWO FROZEN CONTRACTS, not from one:
+ *   specs/008-customer-list-and-profile/contracts/customers-read-api.md  (read)
+ *   specs/007-create-customer/contracts/customers-api.md                (write)
+ * `008`'s own header says the write side "is not reopened here", so a single
+ * type covering both would be a shape neither document describes.
+ *
+ * BOTH ENDPOINTS ARE BUILT. This is the first customer shape in this file whose
+ * transport is real rather than stubbed, and that is why the divergences below
+ * were findable at all: `CustomerListItem` above was written against a contract
+ * and never met a server.
+ * ========================================================================== */
+
+// PROVISIONAL — hand-written against specs/008-customer-list-and-profile/
+// contracts/customers-read-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/**
+ * `GET /api/customers/{id}` — `CustomerDetailResponse` in the contract, and a
+ * distinct type from `007`'s `201` body rather than a superset of it.
+ *
+ * **`isActive` IS HERE AND THE CONTRACT SAYS IT IS NOT.** The contract states it
+ * plainly: *"`IsActive` is not in the response. Nothing sets it in release 1 …
+ * It arrives with `017`."* The built DTO
+ * (`Wasl.Application/Features/Customers/GetCustomerById/GetCustomerByIdQuery.cs`)
+ * declares `bool IsActive`, and `The_profile_shows_an_inactive_customer_and_the_list_hides_it`
+ * asserts a deactivated customer answers `200` with `isActive: false` — so the
+ * field is not merely present, its false case is a supported response.
+ *
+ * Declared, because the wire carries it and a client that omits a field it
+ * receives cannot render the one state that field exists to describe (`032`
+ * Q-5). Recorded as a contract-vs-build difference in `032`'s `tests.md` and
+ * raised, not normalised: `CLAUDE.md` makes it a defect in one of the two
+ * documents, and which one is the backend lane's ruling.
+ */
+export interface CustomerDetail {
+  id: string;
+  /** Verbatim as stored, never translated (BR-8.10). `dir="auto"` at render. */
+  fullName: string;
+  /** Normalised — lowercased and trimmed by the server (BR-4.2). */
+  email: string | null;
+  /** E.164. `null` when the customer has only an email. */
+  phone: string | null;
+  companyName: string | null;
+  /** Up to 2000 characters, line breaks preserved. */
+  notes: string | null;
+
+  /** See the note above. Present on the wire, absent from the contract. */
+  isActive: boolean;
+
+  createdAtUtc: string;
+  /** **Equal to `createdAtUtc` until `017` ships an update path.** Rendered
+   *  anyway: the field is real and the equality is a fact about this release,
+   *  not about the screen. */
+  updatedAtUtc: string;
+  /** Base64 `rowversion`. Returned by a read that does not consume it, so `017`
+   *  does not have to change this shape later. Nothing in `032` sends it. */
+  version: string;
+}
+
+// PROVISIONAL — hand-written against specs/007-create-customer/
+// contracts/customers-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/**
+ * `POST /api/customers`.
+ *
+ * `email` and `phone` are each optional and **at least one must be present**
+ * (BR-4.1). That rule cannot be expressed in this interface — a union of two
+ * variants could express it and would then need a discriminator the wire does
+ * not carry — so it lives in the Zod schema as a cross-field refinement, and on
+ * the server, which is the authority.
+ *
+ * `null` rather than `undefined` for an absent optional: the contract's own
+ * example sends `"companyName": null`, and the endpoint binds what it declares.
+ */
+export interface CreateCustomerRequest {
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  companyName: string | null;
+  notes: string | null;
+}
+
+// PROVISIONAL — hand-written against specs/007-create-customer/
+// contracts/customers-api.md (frozen) AND the built action, which disagree.
+// Delete when OpenAPI generation lands. ADR-011 §6.
+/**
+ * The `201` body — **the SAME shape as the read, and the contracts say it is
+ * not.** This is an alias on purpose, not a convenience.
+ *
+ * WHAT THE TWO CONTRACTS SAY. `007`'s `201` example carries seven fields and
+ * neither `updatedAtUtc` nor `isActive`. `008` goes further and states the
+ * relationship: *"This shape is a **superset** of `007`'s `201` body: it adds
+ * `updatedAtUtc`. It is a distinct type, `CustomerDetailResponse`, and not the
+ * same one reused."*
+ *
+ * WHAT THE BUILD DOES. `CreateCustomerCommand : IAuditableCommand<CustomerProfile>`
+ * and `[ProducesResponseType(typeof(CustomerProfile), 201)]` — one DTO, returned
+ * by both actions. There is no `CustomerDetailResponse` type in the solution.
+ * `CreateCustomerTests` asserts `isActive` on the `201` body, so the extra
+ * fields are not an accident of serialisation; one of them is covered by a test.
+ *
+ * WHY AN ALIAS RATHER THAN A SECOND INTERFACE. Declaring the contract's narrower
+ * shape would make `updatedAtUtc` and `isActive` unreachable from a `201` the
+ * server demonstrably sends, and the first person to need them would widen the
+ * type without finding this note. Declaring a structurally identical twin would
+ * put two names on one wire shape and invite them to drift — which is precisely
+ * what `008`'s sentence was trying to prevent by making them different.
+ *
+ * IT DOES NOT SANCTION READING A CUSTOMER FROM THE WRITE RESPONSE. AC-1 forbids
+ * that regardless of shape: `032` navigates to the profile by the `Location`
+ * header and the profile fetches its own. The types being identical removes the
+ * compiler's objection, so the rule is carried by the test rather than by the
+ * type — recorded here because that is a weakening, and an unrecorded weakening
+ * is how the rule dies.
+ *
+ * Raised as a contract-vs-build difference in `032`'s `tests.md`, Q-7.
+ */
+export type CreateCustomerResponse = CustomerDetail;

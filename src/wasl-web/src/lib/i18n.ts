@@ -25,10 +25,10 @@ import {
  * i18n.ts
  * ============================================================================
  *
- * FIVE NAMESPACES. `customers` is registered with an empty catalogue in both
- * languages so the namespace exists once rather than being added under time
- * pressure later; it is deliberately empty because no customer screen is built
- * (spec Q-2).
+ * FIVE NAMESPACES. `customers` WAS registered with an empty catalogue, on the
+ * grounds that no customer screen was built. `032` built two — the profile and
+ * the create form — and filled it. The empty-catalogue note is kept in this
+ * shape as the record of why the namespace existed before its screens did.
  *
  * `settings` was added by `014` for /settings/localization. **This said FOUR
  * until then** — a count in prose is a fact that goes stale the moment the list

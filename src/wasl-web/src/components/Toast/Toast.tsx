@@ -3,7 +3,11 @@ import { useEffect, type ReactNode } from 'react';
 import { cx } from '../../lib/cx';
 import styles from './Toast.module.css';
 
-export type ToastTone = 'success' | 'error' | 'info';
+/* 'inverse' added by 032 — the dark pill the design draws for an acknowledgement
+ * that floats over the page rather than reporting an outcome on it. Additive:
+ * the other three are untouched. 030 owns the product-wide rules and may keep,
+ * rename, or drop it. */
+export type ToastTone = 'success' | 'error' | 'info' | 'inverse';
 
 export interface ToastProps {
   tone?: ToastTone | undefined;

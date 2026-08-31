@@ -293,6 +293,32 @@
   --list-row-height: 48px; /* the most common row height across exports */
   --table-row-height: 61px;
 
+  /* ==== THE BRAND PATTERN (E) — added by `032` ============================
+   * AN EMPTY SURFACE CARRIES THE MARK. Ruled by the product owner 2026-08-31:
+   * every empty background in the product shows the Wasl mark, tiled and faint,
+   * rather than sitting blank. `Wasl Customer Screens.dc.html` is where it was
+   * drawn, on the not-found and the failed-request states.
+   *
+   * It is the Converge geometry from `brand.md` §1 — three threads arriving at
+   * one node — at the same proportions `Mark` uses, tiled on a 144px cell with
+   * the rows offset so the eye reads a weave rather than a grid.
+   *
+   * THE NAVY IS A LITERAL HERE, and that is the one place it may be: a `var()`
+   * cannot be interpolated into a `data:` URI, and the alternative — an SVG file
+   * fetched per screen — is a request for decoration. `tokens.css` is the
+   * provenance file, so the literal lives beside every other measured value
+   * rather than inside a feature stylesheet, where the AC-12 guard would refuse
+   * it and be right to.
+   *
+   * THE MASK IS NOT DECORATION. Without it the tiles run straight under the
+   * heading and the icon, and the pattern competes with the sentence the state
+   * exists to say. `closest-side` fades the middle out, so the copy sits on
+   * clean ground and the pattern only fills what would otherwise be empty. */
+  --wasl-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3E%3Cg fill='none' stroke='%231D174D' stroke-width='1.6' stroke-linecap='round' opacity='0.13'%3E%3Cg transform='translate(26,26)'%3E%3Cpath d='M0 3h6c3 0 4 3.5 7 5.5M0 8.5h13M0 14h6c3 0 4-3.5 7-5.5'/%3E%3Ccircle cx='18.5' cy='8.5' r='2' fill='%231D174D' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(98,26)'%3E%3Cpath d='M0 3h6c3 0 4 3.5 7 5.5M0 8.5h13M0 14h6c3 0 4-3.5 7-5.5'/%3E%3Ccircle cx='18.5' cy='8.5' r='2' fill='%231D174D' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(-10,98)'%3E%3Cpath d='M0 3h6c3 0 4 3.5 7 5.5M0 8.5h13M0 14h6c3 0 4-3.5 7-5.5'/%3E%3Ccircle cx='18.5' cy='8.5' r='2' fill='%231D174D' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(62,98)'%3E%3Cpath d='M0 3h6c3 0 4 3.5 7 5.5M0 8.5h13M0 14h6c3 0 4-3.5 7-5.5'/%3E%3Ccircle cx='18.5' cy='8.5' r='2' fill='%231D174D' stroke='none'/%3E%3C/g%3E%3Cg transform='translate(134,98)'%3E%3Cpath d='M0 3h6c3 0 4 3.5 7 5.5M0 8.5h13M0 14h6c3 0 4-3.5 7-5.5'/%3E%3Ccircle cx='18.5' cy='8.5' r='2' fill='%231D174D' stroke='none'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  --wasl-pattern-size: 144px;
+  --wasl-pattern-mask: radial-gradient(closest-side at 50% 46%, transparent 40%, #000 92%);
+  --wasl-pattern-opacity: 0.55;
+
   /* ==== MOTION — loaders (E) ==============================================
    * A FIFTH PROVENANCE, and it is why these exist at all. See note 11.
    *

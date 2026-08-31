@@ -159,10 +159,20 @@ export function CustomerPicker({
         </div>
 
         {/* `007` is not built (spec Q-3). Visibly unavailable with the reason,
-            never a link to nowhere. */}
+            never a link to nowhere.
+            ^ THAT IS NOW STALE, AND `032` DID NOT ACT ON IT. `007` is delivered
+            and `/customers/new` exists as of `032`, so this button and the
+            "new customer unavailable" line below both say something untrue.
+            Enabling it is not a one-line change — the picker has to consume the
+            created customer from the navigation state and `024`'s suite covers
+            this flow — so it belongs to the lane that owns this screen. `032`
+            touched only the catalogue KEY here, because `customers:new` became an
+            object (`08-create-customer.md` specifies `customers:new.submit`) and
+            leaving the old key would render the raw key as this button's label.
+            Recorded in `032`'s summary. */}
         <Button
           buttonType="secondary-outline"
-          text={t('customers:new')}
+          text={t('customers:new.link')}
           iconStart={<IconAdd size={16} />}
           disabled
         />
@@ -199,7 +209,7 @@ export function CustomerPicker({
         <div className={styles.empty}>
           <IconSearch size={16} />
           <span>{t('tickets:new.noMatches')}</span>
-          <span className={styles.linkDisabled}>{t('customers:new')}</span>
+          <span className={styles.linkDisabled}>{t('customers:new.link')}</span>
           <span>{t('tickets:new.newCustomerUnavailable')}</span>
         </div>
       ) : null}

@@ -115,3 +115,38 @@ export function formatDateTime(iso: string, lang: Lang): string {
 export function formatNumber(value: number, lang: Lang): string {
   return strip(new Intl.NumberFormat(NUMBER_LOCALE[lang]).format(value));
 }
+
+/* ============================================================================
+ * formatPhone — DISPLAY ONLY, added by `032`
+ * ============================================================================
+ * The server stores and returns E.164: `+966501234567`. That is correct on the
+ * wire and hard to read in a strip beside a name, so the design groups it —
+ * `+966 50 123 4567`.
+ *
+ * WHAT IS COPIED IS STILL THE RAW VALUE. `CopyValue` takes the API's string and
+ * renders this one, which is the whole reason that split exists: a grouped
+ * number pasted into a dialler or a form field fails validation. `032` AC-4
+ * asserts the clipboard against the API value rather than against the DOM, and
+ * this function is what makes that assertion mean something for the phone rather
+ * than only for the truncated id.
+ *
+ * SAUDI NUMBERS ONLY, AND EVERYTHING ELSE IS RETURNED UNCHANGED. Grouping is
+ * per-country — `+44 20 7123 4567` and `+1 415 555 0132` break differently — and
+ * a wrong grouping is worse than none: it reads as a typo in someone's number.
+ * `POST /api/customers` accepts any parseable E.164 (BR-4.3), so the general case
+ * is real and is left alone deliberately rather than guessed at.
+ *
+ * NOT LOCALE-DEPENDENT, and it takes no `lang`. The digits stay Latin in both
+ * languages (BR-8.13) and the grouping of a phone number is a property of the
+ * number, not of the reader.
+ * ========================================================================== */
+export function formatPhone(e164: string): string {
+  /* `+966` + `5` + eight digits — a Saudi mobile, which is every number the
+   * product's own seed data and both design documents use. */
+  const saudiMobile = /^\+966(5\d)(\d{3})(\d{4})$/.exec(e164);
+  if (saudiMobile) {
+    return `+966 ${saudiMobile[1]} ${saudiMobile[2]} ${saudiMobile[3]}`;
+  }
+
+  return e164;
+}

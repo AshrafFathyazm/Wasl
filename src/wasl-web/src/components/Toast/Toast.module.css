@@ -41,6 +41,30 @@
   border-color: var(--state-info-text);
 }
 
+/* A FOURTH TONE, added by `032`, and it is ADDITIVE: the three above are
+ * untouched, so no existing caller moves.
+ *
+ * `Wasl Customer Screens.dc.html` draws the copy confirmation as a dark pill
+ * with a green tick, not as a tinted panel — and the reason holds: the three
+ * tones above describe an OUTCOME on the surface the user is working on, while
+ * this one is an acknowledgement floating over it. A light-green panel at the
+ * corner of a light page has no edge to sit against, which is why the design
+ * inverts it.
+ *
+ * `030-feedback-layer` owns the toast rules product-wide and is approved for
+ * spec, NOT for implementation. This adds a tone it can keep, rename, or drop —
+ * it does not decide anything for the other three. */
+.inverse {
+  background-color: var(--surface-inverse);
+  color: var(--text-on-inverse);
+  border-color: var(--surface-inverse);
+  /* The pill is the design's shape, and the shadow is what lifts it off the page
+     — a flat dark rectangle at the corner of a white screen reads as a rendering
+     artefact. */
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 28px rgb(13 38 38 / 22%);
+}
+
 .body {
   flex: 1;
   min-inline-size: 0;

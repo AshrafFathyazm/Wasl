@@ -1,0 +1,118 @@
+/* ============================================================================
+ * 032 — /customers/new
+ * ============================================================================
+ * The geometry FE-007-00's preview established, moved onto the real screen:
+ * single column, 640 maximum, the contact hint above the two fields it governs.
+ *
+ * `08-create-customer.md` gives the 640 and the reason — a two-column form makes
+ * the reader choose a path through it, and this one has a cross-field rule that
+ * only reads correctly top to bottom.
+ * ========================================================================== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  max-inline-size: 680px;
+  margin-inline: auto;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.back {
+  color: var(--text-secondary);
+  font-size: var(--type-caption);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-h3);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-ar-heading);
+}
+
+/* The failure with no field to attach itself to: a `409` whose body named
+ * nothing, a `500`, a dropped connection. `role="alert"` on the element, not
+ * `status` — the submit the user just made did not happen, and that is worth
+ * interrupting for. */
+.notice {
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--state-danger-text);
+  border-radius: var(--radius-md);
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+  font-size: var(--type-label-md);
+  text-wrap: pretty;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+/* A HINT, NOT AN ERROR — the info surface, never the danger one. An empty form
+ * has failed nothing, and a red rule above two empty fields reads as a rejection
+ * of something the user has not submitted yet. */
+.hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+  font-size: var(--type-caption);
+}
+
+/* Appears only after a `409`, directly under the pair it concerns. It is the
+ * only path to the existing record — BR-4.7 keeps the id out of the response —
+ * so it is a link and not a hint. */
+.findExisting {
+  margin: 0;
+  font-size: var(--type-caption);
+}
+
+.findExisting a {
+  color: var(--text-link);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+}
+
+/* Cancel is a LINK, not a button, because it navigates. A control that changes
+ * the URL and looks like a submit is one the keyboard and the middle mouse
+ * button disagree about. */
+.cancel {
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+  border-radius: var(--button-radius);
+  color: var(--text-secondary);
+  font-size: var(--type-label-md);
+}
+
+.cancel:hover {
+  background-color: var(--surface-chip);
+  color: var(--brand);
+}
+
+/* `margin-inline-start: auto` — logical, so the note sits at the far end in both
+ * directions. `margin-left` would put it beside Cancel in Arabic. */
+.optionalNote {
+  margin-inline-start: auto;
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+}

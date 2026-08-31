@@ -1,0 +1,592 @@
+/* ============================================================================
+ * 032 — the customer profile
+ * ============================================================================
+ * Geometry from `Wasl Customer Screens.dc.html`. THE SOURCE IS RAW HEX AND RAW
+ * PIXELS — roughly forty colour literals — and every one of them is mapped to a
+ * semantic token here rather than copied. The mapping is recorded in
+ * `specs/032-customer-screens/tests.md` §4, because a mapping that lives only in
+ * someone's head is a mapping the next screen re-derives differently.
+ *
+ * Nothing physical: `margin-inline`, `border-inline-start`, `padding-inline`.
+ * The design is authored RTL-first, so an author who reaches for `left` here has
+ * already broken the language the file is written in.
+ * ========================================================================== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  max-inline-size: 1000px;
+  margin-inline: auto;
+}
+
+/* ---- breadcrumb ---------------------------------------------------------- */
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-caption);
+  color: var(--text-muted);
+}
+
+.crumbLink {
+  color: var(--text-secondary);
+}
+
+/* A NEUTRAL SEPARATOR RATHER THAN THE DESIGN'S CHEVRON, and the reason is
+ * direction. The source draws a chevron and mirrors it with
+ * `transform: scaleX(-1)` — a physical flip that only holds while the document
+ * is RTL, so the same markup points backwards in English. A slash has no
+ * handedness to get wrong. */
+.crumbSep {
+  color: var(--neutral-350);
+}
+
+.crumbCurrent {
+  color: var(--text-primary);
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- header ------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 57px;
+}
+
+.headText {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 52px;
+  block-size: 52px;
+  border-radius: var(--radius-pill);
+  border: var(--border-width) solid var(--brand-border);
+  background-color: var(--brand-subtle);
+  color: var(--brand);
+  font-size: var(--type-h4);
+  font-weight: var(--weight-medium);
+}
+
+.name {
+  margin: 0;
+  font-size: var(--type-h3);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-ar-heading);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company {
+  margin: 0;
+  font-size: var(--type-label-md);
+  color: var(--text-muted);
+}
+
+/* ---- body --------------------------------------------------------------- */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Three cells in one card, divided rather than separated — three cards would
+ * read as three unrelated facts, and these are one identity. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.stripCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  min-inline-size: 0;
+}
+
+/* LOGICAL, so the divider lands between the cells in both directions. With
+ * `border-left` the first cell in Arabic would carry a stray edge against the
+ * card. */
+.stripCell + .stripCell {
+  border-inline-start: var(--border-width) solid var(--border-divider);
+}
+
+.cellLabel {
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+}
+
+.cellValue,
+.cellLink,
+.cellNumeric,
+.cellMono {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-label-md);
+  color: var(--text-primary);
+  /* ISOLATE, not `direction`. The value keeps its own ordering while the label
+   * beside it keeps the paragraph's — which is what stops an address dragging an
+   * Arabic label to the other end of the cell. */
+  unicode-bidi: isolate;
+}
+
+/* DARK, NOT LINK-BLUE, and it follows the design document rather than the
+ * default: the strip is an identity, and three blue values in a row read as
+ * three navigations rather than as this customer's details. The affordance stays
+ * — they are still `mailto:` and `tel:` anchors, and the underline appears on
+ * hover, which is where it is needed. */
+.cellLink,
+.cellNumeric {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.cellLink:hover,
+.cellNumeric:hover {
+  text-decoration: underline;
+}
+
+.cellNumeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.cellMono {
+  /* SYSTEM MONO, NOT THE DESIGN'S IBM PLEX MONO. index.html loads Plex Sans
+   * and Plex Sans Arabic only, and a third webfont for two identifier strings is
+   * a network request on every page load of the product. There is no --font-mono
+   * token to reference, and inventing one with a fallback would read as though
+   * the system had a mono face when it does not. Recorded in summary.md. */
+  font-family: monospace;
+  font-size: var(--type-body-sm);
+  color: var(--text-muted);
+}
+
+.cellEmpty {
+  font-size: var(--type-label-md);
+  color: var(--text-placeholder);
+}
+
+/* ---- copy control ------------------------------------------------------- */
+
+.copyRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.copyButton {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  /* `block-size` alone is not enough: `base.css` also sets `block-size` and
+     `padding-inline` on every `button`, so without these the 28px square is a
+     40px pill with 12px of padding beside a 14px value. */
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+
+  /* `!important`, for the same reason `Input`'s reveal affix and `Toast`'s
+     dismiss use it — and it is not a preference.
+     `base.css` gives EVERY bare `<button>` the primary fill:
+
+       button { background-color: var(--action-primary-bg) !important;
+                color: var(--action-primary-text) !important;
+                -webkit-text-fill-color: var(--action-primary-text) !important; }
+
+     A class cannot beat `!important` on specificity, so the first version of
+     this file — `background-color: transparent` with no `!important` — rendered
+     three navy squares with white icons beside the values. MEASURED, after the
+     product owner spotted it against the design: computed
+     `background-color: rgb(29, 23, 77)`, `color: rgb(255, 255, 255)`, while the
+     rule in this stylesheet said `transparent`.
+     `-webkit-text-fill-color` is the third one and it is the one that looks
+     optional: without it the icon's stroke stays white in WebKit even once the
+     colour is fixed, which is the defect `025` recorded on the login screen. */
+  background-color: transparent !important;
+  color: var(--neutral-400) !important;
+  -webkit-text-fill-color: currentcolor !important;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background-color: var(--surface-chip) !important;
+  color: var(--brand) !important;
+}
+
+.copyButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* The confirmation colour is the presence accent, not success green: the copy
+ * did not change anything, so it is an acknowledgement rather than an outcome. */
+.copyButtonDone {
+  color: var(--accent-presence) !important;
+}
+
+/* ---- the two columns ---------------------------------------------------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* One breakpoint, and it is where the record card stops having room for a date
+ * on one line rather than at a device width. */
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stripCell + .stripCell {
+    border-inline-start: 0;
+    border-block-start: var(--border-width) solid var(--border-divider);
+  }
+}
+
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-inline-size: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  min-inline-size: 0;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.notes {
+  margin: 0;
+  font-size: var(--type-label-md);
+  line-height: var(--leading-ar-normal);
+  color: var(--text-secondary);
+  /* The contract preserves line breaks in `notes`; `pre-wrap` is what renders
+   * them. Without it a note written as three lines arrives as one paragraph and
+   * nothing says the breaks were dropped. */
+  white-space: pre-wrap;
+  text-wrap: pretty;
+}
+
+/* MUTED, AND STILL A SENTENCE. The placeholder colour is the one that reads as
+ * "nothing here" rather than as content — and it is a different colour from
+ * `.notes`, which is what AC-5 asserts. */
+.notesEmpty {
+  margin: 0;
+  font-size: var(--type-label-md);
+  color: var(--text-placeholder);
+}
+
+/* ---- the named gap (`018`) --------------------------------------------- */
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--surface-subtle);
+  /* DASHED, deliberately: the same solid border as a card would make this read
+   * as content that finished loading. */
+  border: var(--border-width) dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.pendingIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 36px;
+  block-size: 36px;
+  border-radius: var(--radius-md);
+  background-color: var(--surface-chip);
+  color: var(--neutral-400);
+}
+
+.pendingText {
+  display: flex;
+  flex-direction: column;
+  /* The source draws 1px here. `--space-1` is 4px, and the guard for AC-12
+     caught the literal — which is the right outcome: a one-off 2px gap is how a
+     spacing scale stops being a scale, and at this size the difference between
+     1 and 4 is not a difference anyone reviews. */
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.pendingTitle {
+  font-size: var(--type-label-md);
+  color: var(--text-secondary);
+}
+
+.pendingBody {
+  font-size: var(--type-body-sm);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* ---- record card rows --------------------------------------------------- */
+
+.recordRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+}
+
+.recordRow + .recordRow {
+  border-block-start: var(--border-width) solid var(--border-divider);
+}
+
+.recordLabel {
+  font-size: var(--type-body-sm);
+  color: var(--text-muted);
+}
+
+.recordValue {
+  font-size: var(--type-body-sm);
+  color: var(--text-primary);
+  /* Dates are Latin digits in both locales (`lib/formatters.ts`), and tabular
+   * figures stop the two rows jittering against each other. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the two blank states ---------------------------------------------- */
+
+/* AN EMPTY SURFACE CARRIES THE MARK — product owner, 2026-08-31, and the tokens
+ * are in `tokens.css` so the next empty state in the product uses the same
+ * asset rather than drawing a second one. */
+.blank {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) var(--space-6);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  overflow: hidden;
+}
+
+/* A PSEUDO-ELEMENT, not a `<span>` in the JSX as the design draws it: the
+ * pattern is decoration, and decoration that exists in the markup is decoration
+ * a screen reader has to be told to ignore. `aria-hidden` on a real element
+ * works and is a second thing to remember; `::before` cannot be read at all. */
+.blank::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--wasl-pattern);
+  background-size: var(--wasl-pattern-size);
+  /* Fades out under the heading and the icon, so the copy sits on clean ground
+     and the mark only fills what would otherwise be blank. */
+  -webkit-mask-image: var(--wasl-pattern-mask);
+  mask-image: var(--wasl-pattern-mask);
+  opacity: var(--wasl-pattern-opacity);
+  pointer-events: none;
+}
+
+/* Everything inside has to sit ABOVE the pattern. Without this the pattern
+   paints over the glyph and the buttons — a stacking-context defect that looks
+   like a colour mistake. */
+.blank > * {
+  position: relative;
+}
+
+.blankIcon,
+.blankIconDanger {
+  display: grid;
+  place-items: center;
+  inline-size: 58px;
+  block-size: 58px;
+  border-radius: var(--radius-pill);
+}
+
+.blankIcon {
+  background-color: var(--surface-chip);
+  border: var(--border-width) solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+/* THE DIFFERENCE BETWEEN THE TWO STATES IS CARRIED BY MORE THAN COLOUR — a
+ * different glyph, a different heading, and Retry on one of them only. A `404`
+ * is an answer; a failed request is the absence of one. */
+.blankIconDanger {
+  background-color: var(--state-danger-bg);
+  border: var(--border-width) solid var(--state-danger-text);
+  color: var(--state-danger-text);
+}
+
+.blankTitle {
+  margin-block: var(--space-4) 0;
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.blankBody {
+  margin-block: var(--space-1) 0;
+  max-inline-size: 46ch;
+  font-size: var(--type-label-md);
+  color: var(--text-secondary);
+  text-wrap: pretty;
+}
+
+.trace {
+  margin-block: var(--space-2) 0;
+  /* SYSTEM MONO, NOT THE DESIGN'S IBM PLEX MONO. index.html loads Plex Sans
+   * and Plex Sans Arabic only, and a third webfont for two identifier strings is
+   * a network request on every page load of the product. There is no --font-mono
+   * token to reference, and inventing one with a fallback would read as though
+   * the system had a mono face when it does not. Recorded in summary.md. */
+  font-family: monospace;
+  font-size: var(--type-body-sm);
+  color: var(--text-muted);
+  unicode-bidi: isolate;
+}
+
+.blankActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+}
+
+.blankLink {
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+  border: var(--button-border) solid var(--action-secondary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-secondary-bg);
+  color: var(--action-secondary-text);
+  font-size: var(--type-label-md);
+}
+
+.blankLink:hover {
+  background-color: var(--brand-subtle);
+}
+
+/* ---- the toast slot ----------------------------------------------------- */
+
+/* FIXED, at the bottom inline-start, which is the source document's placement.
+ * `inset-inline-start` rather than `left`: in Arabic it sits at the right, where
+ * the reader's eye already is.
+ *
+ * `Toast` renders inline where its caller puts it and is not portalled, so the
+ * positioning belongs to the caller — this slot is that decision, made once for
+ * this screen. `030` may move it product-wide later; it owns that rule and is
+ * not approved for implementation. */
+.toastSlot {
+  position: fixed;
+  inset-inline-start: var(--space-6);
+  inset-block-end: var(--space-6);
+  z-index: 200;
+
+  /* HUGS ITS CONTENT. `Toast` is a block-level flex container with no width of
+     its own — by design, since it is rendered inline wherever a caller puts it —
+     so in a slot with no constraint it filled the whole line and the dismiss
+     control ended up an inch from the sentence. Measured after the product owner
+     flagged it: a full-width navy bar for a four-word acknowledgement.
+     `max-content` is the pill; the cap keeps a long field name from running off
+     a narrow window. */
+  inline-size: max-content;
+  max-inline-size: min(420px, calc(100vw - var(--space-12)));
+}
+
+/* `margin-block-end` on the primitive is for an INLINE toast with content under
+   it. This one floats, so the gap would push it off its own corner.
+
+   AND IT IS SMALLER HERE THAN THE PRIMITIVE'S DEFAULT — scoped to this slot on
+   purpose, not changed in `Toast.module.css`. The primitive's 12/16 padding and
+   14px text are right for an inline message that reports an outcome inside a
+   form; this is a floating acknowledgement that a value reached the clipboard,
+   and the design draws it noticeably tighter. Two callers, two sizes, one
+   component: the alternative is a `size` prop on a primitive `030` is about to
+   rule on anyway. */
+.toastSlot > * {
+  margin-block-end: 0;
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  gap: var(--space-2);
+  font-size: var(--type-body-sm);
+}
+
+/* ---- the copy confirmation ---------------------------------------------- */
+
+.toastBody {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The tick is the one green thing on a dark pill, and it is the design's own
+ * accent rather than the success token: `--state-success-text` is a dark green
+ * for a light panel and disappears against `--surface-inverse`. */
+.toastTick {
+  display: grid;
+  place-items: center;
+  color: var(--teal-400);
+}
+
+/* THE DISMISS CONTROL IS WHAT SET THE PILL'S HEIGHT, not the padding.
+   `base.css` gives every `button` `block-size: var(--button-height-md)` — 40px —
+   so an 8px-padded pill measured 58px tall while every padding value in this
+   file said otherwise. MEASURED: 139x58 before, and the paddings were already
+   8/12.
+   `block-size: auto` lets it be as tall as its glyph, and the pill collapses to
+   the size the design draws. */
+.toastSlot button {
+  block-size: auto;
+  padding-inline: var(--space-1);
+  line-height: 1;
+}

@@ -1,3 +1,47 @@
 {
-  "new": "New customer"
+  "field": {
+    "name": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "company": "Company",
+    "notes": "Notes",
+    "created": "Added",
+    "updated": "Last updated",
+    "id": "Identifier"
+  },
+  "profile": {
+    "unknownCustomer": "Unknown customer",
+    "contact": "Contact details",
+    "inactive": "Deactivated",
+    "noNotes": "No notes on this customer",
+    "record": "Record details",
+    "ticketsTitle": "Ticket history",
+    "ticketsSoon": "This customer's tickets will appear here.",
+    "copyEmail": "Copy the email address",
+    "copyPhone": "Copy the phone number",
+    "copyId": "Copy the identifier",
+    "copied": "{{field}} copied",
+    "notFoundTitle": "That customer does not exist",
+    "notFoundBody": "The link may be incomplete or mistyped, or the record was removed. Go back to the list and pick again.",
+    "errorTitle": "The profile could not be loaded",
+    "errorBody": "The request did not complete. Try again, and if it keeps happening send this reference to support.",
+    "retry": "Try again",
+    "backToList": "Back to customers"
+  },
+  "new": {
+    "link": "New customer",
+    "title": "New customer",
+    "submit": "Create",
+    "nameHelp": "Shown in the list and on every ticket for this customer.",
+    "contactRequired": "At least one contact method is required — an email address or a phone number.",
+    "nameRequired": "A full name is required.",
+    "emailInvalid": "That is not a valid email address.",
+    "phoneInvalid": "That is not a valid phone number.",
+    "phonePlaceholder": "+966 5X XXX XXXX",
+    "phoneHelp": "Saved in international format. The server normalises what you type.",
+    "tooLong": "That is longer than the field allows.",
+    "findExisting": "Find the existing customer",
+    "optionalNote": "Fields without an asterisk are optional.",
+    "unknownError": "The server could not be reached. Try again."
+  }
 }

@@ -127,6 +127,7 @@ and the name would give a reader no way to tell.
 | `023-frontend-foundation` | Scaffold, tokens, primitives, shell, i18n. No endpoint, no migration, no `.cs` file |
 | `024-frontend-create-ticket-form` | The screen for `009`. `009` is the backend feature and owns the frozen contract; this consumes it |
 | `025-frontend-auth` | The login screen and route guard for `004`. Same relationship: `004` owns the contract, this consumes it |
+| `032-customer-screens` | The two customer screens for `007` and `008`. Same relationship again: the backend features own the frozen contracts, this folder owns the screens — and it is the first frontend folder whose endpoints were BOTH already delivered, so nothing in it is stubbed |
 
 Two conditions, and both must hold:
 
@@ -339,6 +340,8 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `023-frontend-foundation` | — | **✅ Delivered by the frontend lane.** Scaffold, design tokens, primitives, shell, i18n catalogues in `en` and `ar`, RTL. No endpoint, no migration, no `.cs` file. **`006-design-system` was delivered inside this feature** |
 | `024-frontend-create-ticket-form` | — | The screen for `009`. In progress in the frontend lane. Its customer picker runs on a **stub** until `008` ships `GET /api/customers` |
 | `025-frontend-auth` | — | The login screen, route guard, `401` interceptor and sign-out — `004`'s frontend half (AC-24 … AC-30). In progress in the frontend lane |
+| `026-ticket-list` · `027-ticket-detail` · `028-generated-api-types` · `029-loader-system` · `030-feedback-layer` · `031-frontend-dropdown` | — | The frontend lane's. **Not indexed here individually, and that is a gap in this file rather than in the work** — each has its own folder. `029` and `031` are delivered; `028` is blocked pending authorisation; `030` is approved for spec and NOT for implementation |
+| **`032-customer-screens`** | — | **✅ Frontend delivered 2026-08-31** — 376 tests, 60 new. `/customers/:id` and `/customers/new`, the screen halves of US-002 and US-001, over two endpoints delivered in August and called by nothing until now. Scope ruled **view and add only**: `017` is unbuilt, so Edit is absent rather than disabled, and `/customers` keeps `023`'s placeholder. **Three defects found by a browser and invisible to sixty green tests** — a nested `<Router>` that made the preview page an error boundary, `dir="auto"` beside a `<bdi>` putting the Arabic name 610px from its own avatar (the frozen design document asks for that attribute), and an Arabic phone placeholder rendering `5X XXX XXXX 966+`, fixed by a contract change on `Input`. **Four contract-vs-build differences raised, not resolved** |
 
 ### What "migrated" means
 

@@ -137,3 +137,66 @@ export const IconGlobe = ({ size = 13, ...props }: IconProps) => (
     <path d="M12 4a10 10 0 0 1 0 16a10 10 0 0 1 0-16" />
   </svg>
 );
+
+/**
+ * (D) Copy — two overlapping sheets, added by `032`.
+ *
+ * The inherited twenty have no copy glyph, and `032`'s design puts one beside
+ * three values on the customer profile. Drawn to the same rules rather than
+ * borrowed from another set, per DESIGN-BRIEF rule 3.
+ *
+ * The FRONT sheet is a closed rounded rect; the BACK one is an open path that
+ * stops where the front sheet covers it. Drawing two closed rects instead reads
+ * as a window with a pane, because the hidden edges are still there — the eye
+ * finds the crossing lines before it finds the depth.
+ *
+ * NOT DIRECTIONAL. Two stacked sheets have no handedness to mirror: flipping it
+ * under RTL would move the shadow to the other side of a shape that has no
+ * light source. ADR-007 §6.
+ */
+export const IconCopy = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M15 5.5A2.5 2.5 0 0 0 12.5 3H6.5A3.5 3.5 0 0 0 3 6.5v6A2.5 2.5 0 0 0 5.5 15" />
+  </svg>
+);
+
+/**
+ * (D) Retry — an arc that does not close, with the head at the opening.
+ *
+ * A full circle with an arrowhead reads as a status ring; the 40° gap is what
+ * makes it an action. The head sits at the END of the stroke rather than beside
+ * it, so the glyph reads as motion rather than as a circle wearing a tick.
+ *
+ * NOT DIRECTIONAL, deliberately, and this one is the tempting exception: a
+ * rotation has a direction, so mirroring it under RTL would reverse the
+ * direction of a physical action nobody performs. `design/icons.md` mirrors
+ * glyphs that point ALONG the reading axis; a rotation points around one.
+ */
+export const IconRetry = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+    <path d="M20 4v4h-4" />
+  </svg>
+);
+
+/**
+ * (D) Alert — a circle, a stem, and a detached dot.
+ *
+ * The dot is DETACHED from the stem by 1.5 units and that gap is the glyph. A
+ * continuous stroke from 8 to 17 is an exclamation mark drawn by accident; the
+ * break is what a reader recognises at 16px, before they can resolve either
+ * shape.
+ *
+ * A circle rather than the design's triangle, and the two are not
+ * interchangeable: `032` uses this on a request that FAILED, where the triangle
+ * is reserved for a refusal the user can act on — a conflict, a stale record.
+ * Same set, two meanings, and the shape is what carries the difference.
+ */
+export const IconAlert = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7.5v5" />
+    <path d="M12 16v.5" />
+  </svg>
+);

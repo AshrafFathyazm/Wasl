@@ -1,0 +1,110 @@
+/* FE-032-00 — the harness chrome. The screen's own geometry is in
+ * features/customers/Customers.module.css, so what the preview shows is the
+ * shipped stylesheet and not a copy of it. */
+
+.page {
+  padding: var(--space-8);
+  background-color: var(--surface-page);
+  min-block-size: 100vh;
+}
+
+.pageTitle {
+  margin-block: 0 var(--space-2);
+  font-size: var(--text-page-title);
+  font-weight: var(--weight-bold);
+}
+
+.pageNote {
+  margin-block: 0 var(--space-3);
+  max-inline-size: 78ch;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.finding {
+  padding: var(--space-3);
+  border-inline-start: 3px solid var(--state-warning-text);
+  background-color: var(--state-warning-bg);
+  color: var(--text-primary);
+  margin-block-end: var(--space-8);
+}
+
+.block {
+  margin-block-end: var(--space-8);
+}
+
+.blockTitle {
+  margin-block: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+/* Side by side, not behind a toggle — the defects on this screen are comparative
+ * and a toggle turns each of them into a memory test. */
+.pair {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+}
+
+.frame {
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-content);
+  overflow: hidden;
+}
+
+/* Stands in for the page's fixed toast. Eight real ones would pile up in one
+ * corner of the harness and hide each other. */
+.copyEcho {
+  margin: 0;
+  padding: var(--space-2) var(--space-6) var(--space-3);
+  font-size: var(--type-caption);
+  color: var(--accent-presence);
+  unicode-bidi: isolate;
+}
+
+.copyEchoIdle {
+  color: var(--text-placeholder);
+}
+
+/* The toast lives INSIDE the frame here, not fixed to the viewport: eight fixed
+ * pills would stack in one corner of the harness and hide each other. The page
+ * itself positions it bottom inline-start — see Customers.module.css. */
+.toastSlot {
+  padding: var(--space-2) var(--space-6) var(--space-4);
+}
+
+/* HUGS ITS CONTENT, same as the page slot. `Toast` is a block-level flex
+ * container with no width of its own, so without this the pill filled the frame
+ * and the dismiss control sat an inch from a four-word sentence. */
+.toastSlot > * {
+  inline-size: max-content;
+  max-inline-size: 100%;
+  margin-block-end: 0;
+  /* The shipped size, not the primitive default — see Customers.module.css. */
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  gap: var(--space-2);
+  font-size: var(--type-body-sm);
+}
+
+.toastSlot button {
+  block-size: auto;
+  padding-inline: var(--space-1);
+  line-height: 1;
+}
+
+.toastBody {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.toastTick {
+  display: grid;
+  place-items: center;
+  color: var(--teal-400);
+}

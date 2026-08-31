@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatDateLong, formatDateTime, formatNumber } from './formatters';
+import {
+  formatDate,
+  formatDateLong,
+  formatDateTime,
+  formatNumber,
+  formatPhone,
+} from './formatters';
 
 /*
  * TEST-026-02. Two of these assert a DEFAULT, not our code — and that is the
@@ -135,5 +141,33 @@ describe('formatDateLong — the one format that differs once digits are pinned'
   /* The negative half: this is why the callout cannot use `formatDate`. */
   it('is needed BECAUSE the numeric form is identical in both', () => {
     expect(formatDate(ISO, 'ar')).toBe(formatDate(ISO, 'en'));
+  });
+});
+
+describe('formatPhone — 032, display only', () => {
+  it('groups a Saudi mobile the way the design draws it', () => {
+    expect(formatPhone('+966501234567')).toBe('+966 50 123 4567');
+    expect(formatPhone('+966555512345')).toBe('+966 55 551 2345');
+  });
+
+  it('returns every other number UNCHANGED', () => {
+    /* Grouping is per-country and a wrong grouping reads as a typo in someone's
+     * number. `POST /api/customers` accepts any parseable E.164 (BR-4.3), so
+     * these are real inputs and they are deliberately left alone. */
+    for (const untouched of [
+      '+441234567890',
+      '+14155550132',
+      '+9661234567',
+      '0501234567',
+      '',
+    ]) {
+      expect(formatPhone(untouched)).toBe(untouched);
+    }
+  });
+
+  it('does not localise the digits', () => {
+    /* BR-8.13. The grouping of a phone number is a property of the number, not
+     * of the reader, which is why this function takes no `lang` at all. */
+    expect(formatPhone('+966501234567')).toMatch(/^\+966 50 123 4567$/);
   });
 });

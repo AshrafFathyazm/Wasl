@@ -24,6 +24,8 @@ const HomePage = lazy(() => import('./features/home/HomePage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
 const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
+const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
+const CustomerProfilePage = lazy(() => import('./features/customers/CustomerProfilePage'));
 
 /* A PLACEHOLDER for `010`'s detail screen, and the reason it exists at all: the
  * frozen contract promises `Location: /api/tickets/{id}` resolves. Without this
@@ -56,6 +58,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const CreateCustomerPreview = lazy(() => import('./dev/CreateCustomerPreview'));
       const TicketDetailPreview = lazy(() => import('./dev/TicketDetailPreview'));
       const LoadersPreview = lazy(() => import('./dev/LoadersPreview'));
+      const CustomerProfilePreview = lazy(() => import('./dev/CustomerProfilePreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
@@ -83,6 +86,11 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
          * rewired consumer: nothing moves onto a new shape until the ten are
          * reviewed in Arabic, in both directions, with reduced motion on. */
         { path: '/_preview/loaders', element: <LoadersPreview /> },
+        /* FE-032-00. The Phase 3b gate for `/customers/:id`, and it gates every
+         * other `032` task. Eight variants including the two a wired screen can
+         * only reach by breaking something — a `404` and a failed request, which
+         * are different states for the reason the preview page states. */
+        { path: '/_preview/customer-profile', element: <CustomerProfilePreview /> },
       ];
     })()
   : [];
@@ -140,6 +148,20 @@ export const routes: RouteObject[] = [
           { path: '/settings/localization', element: <LocalizationPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
           { path: '/tickets/:id', element: <TicketCreatedPage /> },
+
+          /* `032`. `/customers` ITSELF IS NOT HERE and keeps `023`'s
+           * placeholder: the list screen is a later feature, and the placeholder
+           * is what makes the breadcrumb, the two back-to-list controls and the
+           * `409`'s find-existing link land somewhere instead of on a 404 (spec
+           * Q-1). It is filtered in from NAV_PATHS above, so nothing to add.
+           *
+           * `/customers/new` before `/customers/:id` for the reader's sake only
+           * — `matchRoutes` ranks a static segment above a dynamic one whatever
+           * the order, so `new` is not swallowed by `:id`. Written this way round
+           * because relying on that ranking silently is how `/tickets` came to
+           * render a placeholder for a whole release. */
+          { path: '/customers/new', element: <CreateCustomerPage /> },
+          { path: '/customers/:id', element: <CustomerProfilePage /> },
         ],
       },
     ],

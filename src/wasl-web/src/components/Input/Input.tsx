@@ -123,6 +123,36 @@ export interface InputProps {
   /** The native attribute only. Not a validator. */
   maxLength?: number | undefined;
 
+  /* ---- Direction, added by 032 -----------------------------------------------
+   * A CONTRACT CHANGE on a frozen primitive, and it is measured rather than
+   * argued. Recorded in `specs/032-customer-screens/summary.md`.
+   *
+   * `dir` was `type === 'password' ? 'ltr' : 'auto'`, with the reason written
+   * beside it: a password renders dots, so `auto` has no strong character to
+   * read and the caret jumps ends under RTL. A PHONE NUMBER IS THE SAME CLASS OF
+   * VALUE and the same thing happens to it — measured in Chrome on
+   * `/customers/new` with the interface in Arabic:
+   *
+   *   field     placeholder            computed direction   rendered
+   *   name      (none)                 ltr                  —
+   *   email     (none)                 ltr                  —
+   *   phone     +966 5X XXX XXXX       rtl                  5X XXX XXXX 966+
+   *
+   * The country code moved to the far end of the field. `+`, the spaces and the
+   * digit groups are all directionally weak or neutral, so an RTL paragraph
+   * reorders the runs and the string still looks like a phone number — which is
+   * why it survives a glance.
+   *
+   * DEFAULT UNCHANGED, so no existing caller moves. `08-create-customer.md`
+   * already requires "email and phone inputs stay LTR"; this is what makes the
+   * second half of that sentence true for a field with a placeholder.
+   * -------------------------------------------------------------------------- */
+
+  /** `'auto'` (the default) lets the value decide. `'ltr'` pins it, for a value
+   *  that is not language content: a phone number, an identifier, a URL. A
+   *  password is always `'ltr'` regardless of this prop. */
+  dir?: 'auto' | 'ltr' | undefined;
+
   /* ---- Waiting, added by 029 -------------------------------------------------
    * A CONTRACT CHANGE on a frozen primitive, recorded in 029/plan.md.
    * design/loaders.md §7 is the source, and its three rules are the reason this
@@ -200,6 +230,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     revealLabel,
     hideLabel,
     maxLength,
+    dir = 'auto',
     busy = false,
     busyPlacement = 'end',
     loadingValue = false,
@@ -314,7 +345,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
          * Everything else keeps it: an Arabic name typed into an English form is
          * normal, and without it the punctuation lands at the wrong end and reads
          * as a typo (ADR-007 §8). */
-        dir={type === 'password' ? 'ltr' : 'auto'}
+        dir={type === 'password' ? 'ltr' : dir}
         value={value}
         placeholder={placeholder}
         disabled={disabled}
