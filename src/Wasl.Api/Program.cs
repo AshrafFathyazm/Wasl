@@ -85,6 +85,31 @@ if (args.Contains(DemoSeeder.Switch))
     return;
 }
 
+// ── A queue big enough to work ───────────────────────────────────────────────────
+// `dotnet run --project src/Wasl.Api -- --seed-bulk 120` adds N tickets on top of
+// whatever is there, spread across the three views the navigation offers: assigned
+// to the signed-in Manager, assigned to the two Agents, and unassigned.
+//
+// SEPARATE FROM --seed, and additive rather than idempotent. --seed writes a fixed
+// five and stops when tickets exist, which is right for a demo from a known state
+// and useless for the thing this is for: five rows make every tab count a single
+// digit, never produce a second page, and leave "unassigned" a blank screen that
+// reads as a broken filter rather than an empty queue.
+//
+// It refuses when there are no customers instead of inventing them — a second
+// definition of a demo customer in a second file is how the two drift.
+if (args.Contains(BulkTicketSeeder.Switch))
+{
+    var index = Array.IndexOf(args, BulkTicketSeeder.Switch);
+    var count = index >= 0 && index + 1 < args.Length
+        && int.TryParse(args[index + 1], out var requested) && requested > 0
+        ? requested
+        : BulkTicketSeeder.DefaultCount;
+
+    await BulkTicketSeeder.RunAsync(app.Services, count);
+    return;
+}
+
 // ── Middleware order ─────────────────────────────────────────────────────────────
 // UseExceptionHandler goes FIRST, and it is first for a reason: it can only catch what
 // is thrown downstream of it. Registered after anything else and that middleware's
