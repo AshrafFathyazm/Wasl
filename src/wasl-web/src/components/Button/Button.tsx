@@ -47,6 +47,17 @@ export interface ButtonProps {
 
   /** REQUIRED when `withText` is false. */
   'aria-label'?: string;
+
+  /* A DISCLOSURE BUTTON needs both of these, and this component forwarded
+   * neither until `015` needed a Filters toggle. Added rather than worked around
+   * with a bare <button>: a design-system button that cannot be a disclosure
+   * sends the next caller outside the system for a common shape, and then the
+   * toggle looks nothing like the buttons beside it.
+   *
+   * Optional and absent by default, so nothing that already renders a Button
+   * gains an attribute it did not have. */
+  'aria-expanded'?: boolean | undefined;
+  'aria-controls'?: string | undefined;
 }
 
 export function Button({
@@ -60,6 +71,8 @@ export function Button({
   type = 'button',
   onClick,
   'aria-label': ariaLabel,
+  'aria-expanded': ariaExpanded,
+  'aria-controls': ariaControls,
 }: ButtonProps) {
   /* An icon-only button with no accessible name is invisible to a sighted
    * reviewer and to the design. It fails loudly in development instead. */
@@ -95,6 +108,8 @@ export function Button({
        * introduced, because a primitive holds no strings. */
       aria-busy={loading || undefined}
       aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
       onClick={onClick}
     >
       <span className={cx(styles.content, showIndicator && styles.contentHidden)}>

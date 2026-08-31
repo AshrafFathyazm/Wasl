@@ -15,6 +15,14 @@ import { ApiError } from '../../lib/api';
 import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
 import { formatDate, formatNumber, type Lang } from '../../lib/formatters';
+import { TicketFilterBar } from './TicketFilterBar';
+import {
+  isFiltering,
+  readFilters,
+  toListParams,
+  withFilters,
+  type TicketFilters,
+} from './ticketFilters';
 import { listTickets, ticketKeys } from './tickets.api';
 import { TicketPriorityText, TicketStatusBadge } from './TicketBadges';
 import styles from './TicketList.module.css';
@@ -180,9 +188,20 @@ export default function TicketListPage() {
   const page = readInt(params.get('page'), 1);
   const pageSize = readInt(params.get('pageSize'), DEFAULT_PAGE_SIZE);
 
+  /* `015` AC-14. The filters are READ FROM THE URL on every render — there is no
+   * state and no mirror. A filtered list therefore survives a reload, the back
+   * button, and being pasted to a colleague, and `readFilters` drops anything
+   * the server would not accept so a stale link degrades to a wider list rather
+   * than to a 400 (ADR-011 §2). */
+  const filters = readFilters(params);
+  const listParams = toListParams(filters, page, pageSize);
+
   const query = useQuery({
-    queryKey: ticketKeys.list({ page, pageSize }),
-    queryFn: ({ signal }) => listTickets({ page, pageSize }, signal),
+    /* The key is the WHOLE parameter object, which is what the fetcher was
+     * written for: "`015` adds filter properties to this same object, and
+     * caching per filter combination falls out of it." */
+    queryKey: ticketKeys.list(listParams),
+    queryFn: ({ signal }) => listTickets(listParams, signal),
 
     /* KEEP THE ROWS WHILE THE NEXT PAGE LOADS.
      *
@@ -223,6 +242,13 @@ export default function TicketListPage() {
     p.set('page', '1');
     setParams(p);
   };
+
+  /* A filter change RESETS THE PAGE — `withFilters` drops it — for the same
+   * reason a page-size change does: page 5 of an unfiltered list is rarely page
+   * 5 of a filtered one, and keeping it turns "filter to Open" into an empty
+   * table with a pager reading 5 of 2. `pageSize` survives, because it is a
+   * preference about the viewport rather than a position in a result set. */
+  const setFilters = (next: TicketFilters) => setParams(withFilters(params, next));
 
   const columns: TableColumn<TicketListItem>[] = [
     {
@@ -336,11 +362,30 @@ export default function TicketListPage() {
    * the address bar, which is how it will actually be met. */
   const pastEnd = items.length === 0 && (query.data?.totalCount ?? 0) > 0;
 
+  /* NO MATCHES IS NOT NO TICKETS, and the two must not share a component — it is
+   * `015`'s own criterion and the preventive half of the feature. "No tickets
+   * yet" over a filtered list tells the reader their data is gone; "nothing
+   * matches these filters" tells them what to undo, and its call to action
+   * clears the filters rather than offering to create something.
+   *
+   * The three states are ordered: past the end wins over no-matches, because a
+   * filtered list CAN be paged past its end and the pager is the thing to fix
+   * first. */
+  const noMatches = items.length === 0 && !pastEnd && isFiltering(filters);
+
+  const emptyKey = pastEnd ? 'pastEnd' : noMatches ? 'noMatch' : 'empty';
+
   const state = query.isPending ? 'loading' : items.length > 0 ? 'data' : 'empty';
 
   return (
     <main className={styles.page}>
       <h1 className={styles.title}>{t('list.title')}</h1>
+
+      <TicketFilterBar
+        filters={filters}
+        onChange={setFilters}
+        totalCount={query.data?.totalCount}
+      />
 
       {query.isError ? (
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
@@ -361,12 +406,8 @@ export default function TicketListPage() {
           skeletonRows={Math.min(effectivePageSize, 10)}
           empty={
             <div className={styles.empty}>
-              <p className={styles.emptyTitle}>
-                {t(pastEnd ? 'list.pastEndTitle' : 'list.emptyTitle')}
-              </p>
-              <p className={styles.emptyBody}>
-                {t(pastEnd ? 'list.pastEndBody' : 'list.emptyBody')}
-              </p>
+              <p className={styles.emptyTitle}>{t(`list.${emptyKey}Title`)}</p>
+              <p className={styles.emptyBody}>{t(`list.${emptyKey}Body`)}</p>
               {pastEnd ? (
                 <button
                   type="button"
@@ -374,6 +415,27 @@ export default function TicketListPage() {
                   onClick={() => setPage(Math.max(totalPages, 1))}
                 >
                   {t('list.pastEndCta')}
+                </button>
+              ) : noMatches ? (
+                /* Clears the FACETS and keeps the search term, matching the bar's
+                   own Clear all: the reader's typed question is the last thing to
+                   throw away, and the search box has its own clear beside it. */
+                <button
+                  type="button"
+                  className={styles.retry}
+                  onClick={() =>
+                    setFilters({
+                      status: [],
+                      priority: [],
+                      category: [],
+                      channel: [],
+                      assignee: '',
+                      escalated: undefined,
+                      search: filters.search,
+                    })
+                  }
+                >
+                  {t('list.noMatchCta')}
                 </button>
               ) : null}
             </div>

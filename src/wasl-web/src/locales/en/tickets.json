@@ -135,5 +135,11 @@
   "detail.event.statusChanged": "changed the status from {{from}} to {{to}}",
   "detail.event.assigned": "assigned the ticket to {{name}}",
   "detail.event.unassigned": "removed the assignee",
-  "detail.event.escalated": "escalated the ticket"
+  "detail.event.escalated": "escalated the ticket",
+  "list.clearFilters": "Clear filters",
+  "list.anyValue": "Any",
+  "list.assignedToMe": "Assigned to me",
+  "list.escalatedFilter": "Escalation",
+  "list.escalatedOnly": "Escalated only",
+  "list.notEscalated": "Not escalated"
 }

@@ -1,8 +1,9 @@
 # US-006 (filter half) — Specification
 
 **Phase:** 5 · **Story:** US-006 · **Feature:** `015-ticket-filters-and-search` ·
-**Status:** **backend half DELIVERED 2026-08-31**, 589 tests. Frontend half — the filter bar, the
-status tabs, AC-14, the "no matches" state — is the other lane's and is open.
+**Status:** **DELIVERED 2026-08-31, both halves.** Backend 589 tests; frontend 420 tests —
+the filter bar, the status tabs, AC-14 and the "no matches" state are built. **Nothing visual
+was verified: no browser was driven** (see `tests.md`), and the Arabic pass has not happened.
 
 > **AC-24's premise is DISPROVED and the criterion is met a different way.** It says AC-7 "was
 > written against PostgreSQL and is incomplete on SQL Server", meaning `%` and `_` need escaping by

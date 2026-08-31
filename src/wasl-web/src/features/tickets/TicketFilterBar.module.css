@@ -1,0 +1,192 @@
+/* `015` frontend half — the tab strip, the search box, and the filter panel.
+ *
+ * Geometry from `docs/sdd/design/screens/03-tickets-list.md`: tabs h40 with a
+ * 14px inline padding and a divider between, a 7px status dot, search h40, the
+ * container 1px `--Neutral-200` at `--radius-sm`.
+ *
+ * EVERY inset is logical — `inset-inline-start`, `padding-inline`,
+ * `border-inline-end`. Nothing here uses `left` or `right`, so the whole bar
+ * mirrors in Arabic without a second rule and without an `[dir="rtl"]` block
+ * that somebody has to remember to extend. */
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-block-end: var(--space-4);
+}
+
+/* ── the tabs ─────────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 40px;
+  padding-inline: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The divider between tabs, not around them — so the strip has no double line
+   at either end. `:not(:first-child)` rather than `:not(:last-child)` because a
+   leading border is what mirrors correctly with `border-inline-start`. */
+.tab:not(:first-child) {
+  border-inline-start: 1px solid var(--border-subtle);
+}
+
+.tab:hover {
+  background: var(--surface-content);
+}
+
+/* Focus is visible on the tab itself, not on the strip. A focus ring drawn on
+   the container tells a keyboard user the strip has focus and not which tab. */
+.tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.tabActive {
+  color: var(--text-primary);
+  font-weight: 600;
+  background: var(--surface-content);
+}
+
+.count {
+  color: var(--text-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabActive .count {
+  color: var(--text-primary);
+}
+
+.dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* One class per status, from the same state tokens the Badge uses — so a tab and
+   the badge in its rows cannot disagree about what colour Open is. */
+.dotOpen {
+  background: var(--state-info-text);
+}
+
+.dotInProgress {
+  background: var(--state-warning-text);
+}
+
+.dotResolved {
+  background: var(--state-success-text);
+}
+
+/* ── the toolbar ──────────────────────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.searchField {
+  position: relative;
+  flex: 1 1 260px;
+  max-inline-size: 420px;
+}
+
+/* The icon sits inside the field, and the field's own padding is what makes
+   room for it. `Input` has no icon prop — checked, not assumed — so this is the
+   wrapper's job. */
+.searchIcon {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  color: var(--text-placeholder);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchField input {
+  padding-inline-start: calc(var(--space-3) * 2 + 16px);
+  padding-inline-end: calc(var(--space-3) * 2 + 14px);
+}
+
+.searchClear {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.searchClear:hover {
+  background: var(--surface-content);
+  color: var(--text-primary);
+}
+
+.searchClear:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.clear {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-link, var(--state-info-text));
+  font: inherit;
+  font-size: var(--type-body-sm);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.clear:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── the panel ────────────────────────────────────────────────────────────── */
+
+/* A grid rather than a row, because six selects in a row overflow a laptop and a
+   horizontally scrolling filter panel hides filters behind an edge nobody looks
+   at. `auto-fit` with a floor means it collapses to one column on a phone
+   without a media query. */
+.panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}

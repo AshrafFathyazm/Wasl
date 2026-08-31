@@ -135,5 +135,11 @@
   "detail.event.statusChanged": "غيّر الحالة من {{from}} إلى {{to}}",
   "detail.event.assigned": "عيّن التذكرة إلى {{name}}",
   "detail.event.unassigned": "ألغى تعيين التذكرة",
-  "detail.event.escalated": "صعّد التذكرة"
+  "detail.event.escalated": "صعّد التذكرة",
+  "list.clearFilters": "مسح عوامل التصفية",
+  "list.anyValue": "الكل",
+  "list.assignedToMe": "المُسندة إليّ",
+  "list.escalatedFilter": "التصعيد",
+  "list.escalatedOnly": "المصعّدة فقط",
+  "list.notEscalated": "غير المصعّدة"
 }

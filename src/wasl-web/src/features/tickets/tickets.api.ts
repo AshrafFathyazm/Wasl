@@ -146,6 +146,30 @@ export async function searchCustomers(
 export interface ListParams {
   page: number;
   pageSize: number;
+
+  /* `015`. Repeated on the wire — `status=Open&status=InProgress` — which
+   * `apiFetch` already does for an array. OR within one key, AND across keys
+   * (BR-7.3, BR-7.4).
+   *
+   * OPTIONAL AND OMITTED WHEN EMPTY, not sent blank. `?status=` binds on the
+   * server as an array holding one empty string rather than an empty array, and
+   * that was a real defect in the backend half's first run: the invalid-check
+   * saw `[""]` and answered `400` for a parameter that must mean *no filter*.
+   * It is fixed there, and sending nothing is unambiguous against any server. */
+  status?: readonly string[];
+  priority?: readonly string[];
+  category?: readonly string[];
+  channel?: readonly string[];
+
+  /** `me` | `unassigned` | a user id. `me` is resolved from the TOKEN by the
+   *  server, so this client never sends its own id for it. */
+  assignee?: string;
+
+  /** Three-state. Omitted is "any"; `false` is "not escalated". */
+  escalated?: boolean;
+
+  /** Ticket number, subject, or customer name. Debounced by the caller. */
+  search?: string;
 }
 
 /**
@@ -167,7 +191,21 @@ export function listTickets(
   signal?: AbortSignal,
 ): Promise<PagedResult<TicketListItem>> {
   return apiFetch<PagedResult<TicketListItem>>('/api/tickets', {
-    query: { page: params.page, pageSize: params.pageSize },
+    /* Spread, not a hand-built object: `apiFetch` drops `undefined` entries and
+     * repeats an array, so every filter is one line and adding the next one is
+     * a property rather than a branch. `ticketFilters.toListParams` is what
+     * decides which of them are present. */
+    query: {
+      page: params.page,
+      pageSize: params.pageSize,
+      ...(params.status ? { status: [...params.status] } : {}),
+      ...(params.priority ? { priority: [...params.priority] } : {}),
+      ...(params.category ? { category: [...params.category] } : {}),
+      ...(params.channel ? { channel: [...params.channel] } : {}),
+      ...(params.assignee ? { assignee: params.assignee } : {}),
+      ...(params.escalated !== undefined ? { escalated: params.escalated } : {}),
+      ...(params.search ? { search: params.search } : {}),
+    },
     ...(signal ? { signal } : {}),
   });
 }

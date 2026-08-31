@@ -193,3 +193,111 @@ never asked for. `?status=3` from a client that guessed the wire format would si
 | **A query-count assertion over the filtered list** | `010` AC-12 covers the unfiltered projection and still passes. Whether a seven-way filter changes the count was **not measured**, and `008`'s `CountQueries()` probe exists — this is a gap, named rather than assumed away |
 | **A frozen contract of its own** | `015/contracts/` is empty. The parameters are recorded as a **Contract change** at the foot of `010`'s frozen contract, which is the rule `error-contract.md` set when `429` arrived late and what `033` did for `008` on the same day |
 | **CI** | Not run at the time of writing. `003b`'s limitation row claimed the same thing and was **false in both directions** — CI had been running every push and was red — so this one says only *not yet*, and the next push settles it |
+
+---
+
+# The FRONTEND half — run 2026-08-31
+
+```text
+npx tsc -b --force              no output — clean
+npm run build                   ✓ built
+npm run lint                    eslint . — no output
+npm run test                    26 files, 420 tests, all passed
+```
+
+Before this half: 379 tests in 24 files. **41 added** — 24 in `ticketFilters.test.ts`
+(the URL round-trip, no DOM) and 17 across `TicketFilterBar.test.tsx` (rendered, through
+Testing Library and the real page).
+
+## Acceptance criteria → named tests
+
+| AC | Test | Result |
+|---|---|---|
+| AC-14 (the URL is the state container) | `renders a filtered list straight from the URL` **+** the whole `writing filters back to the URL` block | pass |
+| The filter bar | `puts the status in the URL and in the request`, `clicking the active tab clears the filter` | pass |
+| The search box | `does not request on every keystroke`, `shows the term the URL carries, not a stale draft` | pass |
+| The status tabs | `marks the active tab with aria-selected, not only a class` | pass |
+| "No matches" distinct from "no tickets" | `says nothing matched when a filter is on` **+** `says there are no tickets when nothing is filtered` **+** `past the end wins over no matches` | pass |
+| The panel is a disclosure | `is a disclosure — closed, named, and reporting its state` | pass |
+| Active-filter count | `counts the active filters on the button` | pass |
+| Clear keeps the search | `Clear filters keeps the search term` | pass |
+| Arabic plural result count | — | **not built. See *Not claimed*** |
+
+## The three states are ordered, and each has a control
+
+`items.length === 0` arrives for three different reasons and they must not share a
+component:
+
+| State | Reached by | Message |
+|---|---|---|
+| Past the end | `?page=99`, and `totalCount > 0` | `list.pastEnd*` — the CTA jumps to the last page |
+| No matches | a filter is on and `totalCount === 0` | `list.noMatch*` — the CTA clears the facets |
+| No tickets | nothing filtered, nothing exists | `list.empty*` |
+
+**Past the end wins**, because a filtered list can also be paged past its end and the pager
+is the thing to fix first. Each of the three has its own test asserting the OTHER two
+messages are absent — a test that only checks its own message present would pass on a
+component that renders all three.
+
+**"No tickets yet" over a filtered list tells the reader their data is gone.** That is why
+this is `015`'s criterion and not a nicety.
+
+## A negative control, because fourteen tests passing on the first run is not evidence
+
+The rendered suite went green immediately, and this project's rule is that a guard nobody
+has seen fail has not been verified. So `withFilters` was changed to keep the page:
+
+```text
+× writing filters back to the URL > drops the page but keeps the page size
+    → expected '5' to be null
+
+× the tabs write the URL … > drops the page when a filter changes and keeps the page size
+    → expected { page: 5, pageSize: 50, …(1) } to match object { page: 1, pageSize: 50 }
+```
+
+Two tests, at two levels, with messages that name the actual values. Reverted; 420/420.
+
+**The defect it protects against is not cosmetic.** Page 5 of an unfiltered list is rarely
+page 5 of a filtered one, so keeping the page turns *filter to Open* into an empty table
+with a pager reading 5 of 1 — and the empty table then says "nothing matches these
+filters", so the FILTER looks broken rather than the pager.
+
+## The endpoints, measured against the running API
+
+Not asserted from the client's types — the API was started and asked. `--seed` data, one
+Manager token:
+
+```text
+?（none）                 6 of 6          ?status=Bogus       400
+?status=New                1 of 1          ?status=3           400
+?status=Open               1 of 1          ?assignee=nobody    400
+?status=New&status=Open    2 of 2  ← OR    ?status=            200  ← Q-4
+?assignee=unassigned       2 of 2
+?escalated=true            0 of 0
+?escalated=false           6 of 6  ← both directions, so the parameter is not ignored
+?search=zzzznomatch        0 of 0
+```
+
+```json
+{"type":"https://wasl.local/errors/validation","status":400,
+ "errors":{"status":["Not an accepted status. Accepted values: New, Open, InProgress,
+                     PendingCustomer, Resolved, Closed."]}}
+```
+
+**`?escalated=` is asserted in both directions on purpose.** `false` returning six rows
+proves nothing on its own — an ignored parameter returns them too. `true` returning zero is
+the half that can fail.
+
+The dev server proxy was checked as well: `/api/tickets` through Vite answers **`401`**,
+which is the API's fallback policy rather than a Vite `404` — so the proxy is reaching the
+server and not swallowing the path.
+
+## Not claimed — and the first one is the biggest
+
+| What | Why |
+|---|---|
+| **Anything visual.** The rendered look, RTL on screen, colour contrast, focus rings, the tab strip at a real viewport width | **No browser was driven.** The `chrome-devtools` MCP server disconnected during this session and there is no Playwright or Puppeteer in the project — searched, not assumed. Testing Library renders to jsdom, which has no layout: it can prove a control writes the URL and cannot prove the panel is not overlapping the table. **This is a gap, not a pass** |
+| The Arabic pass over this screen | Same reason. The catalogue has parity — 143 keys in `en` and 143 in `ar`, zero difference either way — and **parity is not a reading.** Q-8 still stands: nobody who reads Arabic has reviewed these strings |
+| The result count with Arabic plural forms | `spec.md` lists it in scope. The count is rendered on the *All* tab as a bare number, which needs no plural rule; a sentence like "12 tickets found" does, and it is not built |
+| `?sort=` / `?dir=` | Not in `015`'s scope on the ticket list |
+| A test that the 300ms debounce is exactly 300ms | The test proves no request fires during typing and one fires after the timer advances. Asserting the constant would be asserting the code against itself |
