@@ -1,3 +1,4 @@
+using Wasl.Application.Features.Tickets.Tags;
 using Wasl.Domain.Communications;
 using Wasl.Domain.Tickets;
 
@@ -75,7 +76,36 @@ public sealed record CreateTicketResult(
     /// </remarks>
     DateTime? ClosedAtUtc,
     IReadOnlyList<TicketStatus> AllowedTransitions,
-    string Version);
+    string Version,
+
+    /// <summary>The tags on this ticket, by name. `034`, read half added 2026-08-31.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>`034` built attach and detach and never returned them.</b> The UI therefore had no way
+    /// to show which tags a ticket carries — the writes worked and the screen could not render
+    /// their result, which is the same shape as the defect that left `assigneeName` null on every
+    /// list row for three days.
+    /// </para>
+    /// <para>
+    /// <b>Defaulted to empty rather than added as a required parameter</b>, for the reason the
+    /// <c>assignee</c> parameter above records: a create has no tags and every existing caller
+    /// would otherwise have to pass a value it cannot have. `009` AC-2's sibling — a ticket is
+    /// never tagged at creation.
+    /// </para>
+    /// <para>
+    /// Ordered by name in the query, so the client renders them in a stable order without
+    /// sorting — and a client that sorted would sort by the DATABASE collation's idea of Arabic,
+    /// which is not the interface language's.
+    /// </para>
+    /// </remarks>
+    /// <para>
+    /// <b>No default, and that is deliberate.</b> A record positional parameter cannot default to
+    /// an empty collection — only to a constant — so the alternatives were <c>null</c> or nothing.
+    /// <c>null</c> would put <c>"tags": null</c> on the wire where the client expects a list, and
+    /// every consumer would then write <c>tags ?? []</c>. <c>Map</c> supplies the empty list
+    /// instead, in one place.
+    /// </para>
+    IReadOnlyList<TagSummary> Tags);
 
 /// <summary>
 /// A summary, not the whole customer. The profile is `008`; embedding it here would be a second

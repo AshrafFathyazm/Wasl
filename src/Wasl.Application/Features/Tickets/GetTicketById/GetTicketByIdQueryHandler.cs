@@ -1,6 +1,7 @@
 using MediatR;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Application.Features.Tickets.CreateTicket;
+using Wasl.Application.Features.Tickets.Tags;
 using Wasl.Domain.Common.Exceptions;
 namespace Wasl.Application.Features.Tickets.GetTicketById;
 
@@ -64,6 +65,17 @@ internal sealed class GetTicketByIdQueryHandler(IApplicationDbContext context)
                 cancellationToken);
         }
 
-        return CreateTicketCommandHandler.Map(ticket, customer, assignee);
+        /* `034`'s read half, added 2026-08-31. THE WRITES SHIPPED WITHOUT IT: attach and
+         * detach existed and this response carried no `tags`, so a client could change tags it
+         * could not display. Same shape as the defect that left `assigneeName` null on every
+         * list row for three days — a write path proven and a read path nobody drove.
+         *
+         * `TicketTagReader` is reused rather than re-queried: it already joins in the projection
+         * for the attach/detach responses, so there is one query and one ordering. A second
+         * copy here would be a second thing to keep in step, and `010` AC-12's counter is what
+         * would eventually notice. */
+        var tags = await TicketTagReader.ReadAsync(context, ticket, cancellationToken);
+
+        return CreateTicketCommandHandler.Map(ticket, customer, assignee, tags.Tags);
     }
 }

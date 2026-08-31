@@ -1,4 +1,5 @@
 using MediatR;
+using Wasl.Application.Features.Tickets.Tags;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Domain.Common.Exceptions;
 using Wasl.Domain.Tickets;
@@ -110,7 +111,13 @@ internal sealed class CreateTicketCommandHandler(
     internal static CreateTicketResult Map(
         Ticket ticket,
         TicketCustomerSummary customer,
-        TicketAssignee? assignee = null) =>
+        TicketAssignee? assignee = null,
+
+        /* `034`'s read half, added 2026-08-31. Optional for the reason `assignee` is: a create
+         * has no tags, and making it required would force every existing caller to pass a value
+         * it cannot have. The empty list is supplied HERE rather than defaulted on the record,
+         * because a record positional parameter cannot default to a collection. */
+        IReadOnlyList<TagSummary>? tags = null) =>
         new(
             Id: ticket.Id,
             TicketNumber: ticket.TicketNumber,
@@ -135,5 +142,6 @@ internal sealed class CreateTicketCommandHandler(
 
             // Computed from the BR-1 map and its conditions, never stored (ADR-004).
             AllowedTransitions: ticket.AllowedTransitions,
-            Version: Convert.ToBase64String(ticket.RowVersion));
+            Version: Convert.ToBase64String(ticket.RowVersion),
+            Tags: tags ?? []);
 }
