@@ -69,6 +69,17 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
                 [$"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.MigratorConnectionStringName}"] =
                     _database.GetConnectionString(),
                 [Wasl.Infrastructure.Persistence.LeastPrivilegeProvisioner.PasswordKey] = AppPassword,
+
+                // Added 2026-08-31 with the post-provision verification. `--provision` could
+                // report success and leave the application unable to log in — CREATE LOGIN is
+                // skipped for a login that already exists on the SERVER, and the password is only
+                // written at creation. The check needs the RUNTIME string, and this configuration
+                // did not carry it, so the first run of the suite after the guard went in failed
+                // 335 times on a missing connection string. **That is the guard being verified:**
+                // it is now on the path every integration test takes, so a provisioned principal
+                // that cannot actually connect turns the whole suite red rather than one probe.
+                [$"ConnectionStrings:{Wasl.Infrastructure.DependencyInjection.ConnectionStringName}"] =
+                    RestrictedConnectionString(),
             })
             .Build();
 

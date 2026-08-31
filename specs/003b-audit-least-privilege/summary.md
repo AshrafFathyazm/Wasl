@@ -62,9 +62,33 @@ them the audit table:
   so nothing should need configuring — *should* is not *did*.
 - **An intermittent test was observed and recorded**, not re-run until green:
   `Two_simultaneous_identical_creates_produce_one_201_and_one_409` failed once in four full runs.
-  Whether `003b` made it more likely is **not established**.
+  **Followed up 2026-08-31 with ten consecutive full runs — 538/538 every time, and it did not
+  reproduce.** Still not called fixed and still not called noise: the conditions differed, and
+  **the original failure output was never captured**, so the failure mode is unknown. See
+  `tests.md`.
 - **`wasl_app` is broader than strictly necessary** — two roles rather than a per-table grant.
   Deliberate, D-3.
+
+## A defect found 2026-08-31, after delivery — and fixed the same day
+
+> **`--provision` can report success and leave the application unable to log in.**
+
+The login is created under `IF NOT EXISTS (sys.server_principals)`, which is **server-scoped**,
+and the password is only written on creation. A `wasl_app` login that already exists anywhere on
+that SQL Server keeps its old password while everything else succeeds and the command prints
+*"Schema applied and wasl_app provisioned."* Measured both ways in `tests.md`. Three real
+triggers: password rotation, two databases on one server, a forgotten password. **Every negative
+control this feature ran was blind to it**, because none of them ever provisioned twice with two
+different passwords.
+
+**Fixed by VERIFYING, not repairing.** `--provision` opens the runtime connection as its last act
+and refuses with a sentence naming the cause. `ALTER LOGIN … WITH PASSWORD` was the alternative
+and was turned down: it would silently rewrite a credential other databases on the same server may
+be using, and every other choice in this feature refuses loudly instead. The guard sits on the path
+every integration test takes — and **turned all 335 of them red on its first run**, because the
+fixture had not been passing it a runtime connection string. Controls E1 (`18456`) and E2 (`4060`)
+in `tests.md`, with one stated limit: it proves the principal can log in, not that it can use the
+application's database, because `master` is reachable through the `public` role.
 
 ## The limit of the claim
 

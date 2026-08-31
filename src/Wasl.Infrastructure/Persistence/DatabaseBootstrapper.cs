@@ -61,7 +61,34 @@ public static class DatabaseBootstrapper
             connectionString,
             LeastPrivilegeProvisioner.ReadPassword(configuration),
             cancellationToken);
+
+        // Found 2026-08-31: everything above can succeed while the application still cannot log
+        // in, because CREATE LOGIN is skipped for a login that already exists on this SERVER and
+        // the password is only written at creation. Verified rather than repaired — see
+        // VerifyRuntimeLoginAsync for why, and specs/003b-audit-least-privilege for the
+        // measurement. This is the last thing --provision does, so a success message means the
+        // principal it just configured actually works.
+        await LeastPrivilegeProvisioner.VerifyRuntimeLoginAsync(
+            RuntimeConnectionString(configuration),
+            cancellationToken);
     }
+
+    /// <summary>
+    /// Reads the RUNTIME connection string, for the post-provision verification only.
+    /// </summary>
+    /// <remarks>
+    /// <c>AddInfrastructure</c> has already refused to start if this is missing, a placeholder, or
+    /// identical to the migrator's — so by the time <c>--provision</c> runs it is present and
+    /// distinct. It is read again here rather than passed in because the verification belongs to
+    /// provisioning, not to the caller: a <c>--provision</c> that reports success without checking
+    /// is the defect this exists to close.
+    /// </remarks>
+    private static string RuntimeConnectionString(IConfiguration configuration) =>
+        configuration.GetConnectionString(DependencyInjection.ConnectionStringName)
+            ?? throw new InvalidOperationException(
+                $"Connection string '{DependencyInjection.ConnectionStringName}' is not "
+                + "configured, so provisioning cannot verify that the principal it created works. "
+                + "See specs/001-solution-skeleton/quickstart.md.");
 
     /// <summary>
     /// Reads the migrator connection string, refusing rather than falling back.

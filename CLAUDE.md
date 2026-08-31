@@ -205,6 +205,14 @@ permission. Both gates are per feature, every time.**
 
 Writing, editing, and `git add` need no permission. The line is at commit and push.
 
+**Always `git commit <paths>`, never a bare `git commit`. The lanes share one index, so
+whoever commits first takes whatever anyone else has staged — and it protects only the
+lane that uses it.** `029` measured this: `20d7785 feat(031)` carries `029`'s motion
+tokens, `--ld-dir`, the `Skeleton` reason and two i18n keys, because `031` committed
+without paths while `029` was still building. Nothing was lost and nothing was
+duplicated; the *attribution* was — `git log -- tokens.css` now says the motion tokens
+arrived with a dropdown.
+
 One feature in progress at a time. The plan — phases, feature numbering, task IDs, and
 who builds what — is [specs/README.md](specs/README.md).
 
@@ -605,10 +613,24 @@ you touch on this path:
 - **`429` is on that one action, not on the API.** A general rate limit is a different feature
   with different numbers.
 
-The secrets have no defaults and the host refuses to start without them —
-`Jwt:SigningKey` (32 bytes minimum), `Seed:ManagerPassword`, `Seed:AgentPassword`. Set them with
-`dotnet user-secrets -p src/Wasl.Api`. Do not add a fallback value: a random key per restart
-invalidates every token silently, and a hard-coded one is a signing key in the repository.
+The secrets have no defaults and the host refuses to start without them. **There are FIVE, and
+this line listed three until 2026-08-31** — `011` added the second Agent and `003b` added the
+restricted principal, and neither release extended the list, so a fresh clone following this file
+sets three and is then refused twice more:
+
+| Key | Added by | Guard |
+|---|---|---|
+| `Jwt:SigningKey` (32 bytes minimum) | `004` | `AddWaslAuthentication` |
+| `Seed:ManagerPassword` | `004` | `SeedOptions.cs:72,80` — presence **and** a minimum of 8 |
+| `Seed:AgentPassword` | `004` | same |
+| `Seed:AgentTwoPassword` | **`011`** | same |
+| `Database:AppPassword` | **`003b`** | `LeastPrivilegeProvisioner.cs:173`, and it fires **after** the migration |
+
+Set them with `dotnet user-secrets -p src/Wasl.Api`. Do not add a fallback value: a random key
+per restart invalidates every token silently, and a hard-coded one is a signing key in the
+repository. **The five guards and their order were measured, not read** — `003b` `tests.md`,
+Controls D1 to D3, and the list was found short because D1 had to be run four times before it
+reached the key it was actually testing.
 
 
 ## Definition of Done

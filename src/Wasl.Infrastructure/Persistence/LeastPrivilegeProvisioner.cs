@@ -131,6 +131,87 @@ public static class LeastPrivilegeProvisioner
             """, cancellationToken, ("@user", AppUser));
     }
 
+    /// <summary>SQL Server: the login itself was refused — wrong password, or no such login.</summary>
+    private const int LoginFailed = 18456;
+
+    /// <summary>SQL Server: the login succeeded and the database refused it — no database user.</summary>
+    private const int DatabaseRefusedTheLogin = 4060;
+
+    /// <summary>
+    /// Opens the RUNTIME connection once and refuses if it cannot. Found 2026-08-31; see
+    /// `003b` <c>tests.md</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>This exists because <c>--provision</c> could report success and leave the application
+    /// unable to log in.</b> The login is created under
+    /// <c>IF NOT EXISTS (SELECT 1 FROM sys.server_principals …)</c>, which is <b>server-scoped</b>,
+    /// and the password is only ever written at creation. So a <c>wasl_app</c> login that already
+    /// exists anywhere on that SQL Server — a second database, another clone, a rotated password —
+    /// keeps its OLD password, while <c>CREATE USER</c>, both role memberships, the sequence
+    /// <c>GRANT</c> and the audit <c>DENY</c> all succeed against the new database and the command
+    /// prints <i>"Schema applied and wasl_app provisioned."</i>
+    /// </para>
+    /// <para>
+    /// Measured both directions: a fresh clone provisioned with its own new password answered
+    /// <c>Login failed for user 'wasl_app'</c>, and the same database accepted <c>wasl_app</c>
+    /// immediately once the connection string was handed the other clone's password.
+    /// </para>
+    /// <para>
+    /// <b>It verifies rather than repairs, and that is the decision.</b> The alternative was
+    /// <c>ALTER LOGIN … WITH PASSWORD</c> when the login exists, which makes the command genuinely
+    /// idempotent — and silently rewrites a credential that other databases on the same server may
+    /// be using. This repository refuses loudly instead everywhere else it had the choice: the host
+    /// will not start without a secret, the migrator has no fallback to the runtime string, and a
+    /// plausible error envelope was called worse than an empty one. So: no repair, one sentence
+    /// naming the cause.
+    /// </para>
+    /// <para>
+    /// <b>Every integration run exercises this</b>, because <c>WaslApiFactory</c> goes through
+    /// <c>DatabaseBootstrapper.RunAsync</c>. A guard nobody has seen fail is not verified, and this
+    /// one is on the path 335 tests already take.
+    /// </para>
+    /// </remarks>
+    public static async Task VerifyRuntimeLoginAsync(
+        string runtimeConnectionString,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(runtimeConnectionString);
+
+        try
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+        catch (SqlException failure) when (failure.Number == LoginFailed)
+        {
+            // The password is deliberately absent from this message, and so is the connection
+            // string: `002` forbids a credential in any diagnostic, and this one is printed to a
+            // console by --provision.
+            throw new InvalidOperationException(
+                $"Provisioning finished, but '{AppUser}' cannot log in — so the application would "
+                + "not start. The likely cause is that this SQL Server ALREADY had a "
+                + $"'{AppUser}' login with a DIFFERENT password: the login is server-scoped and "
+                + $"its password is only written when it is created, so '{PasswordKey}' was "
+                + "applied to nothing and every other grant still succeeded. "
+                + "Fix: run 'dotnet run --project src/Wasl.Api -- --deprovision' and then "
+                + "'--provision' again — but ONLY if no other database on this server uses "
+                + $"'{AppUser}', because dropping a server-scoped login breaks all of them. "
+                + "See specs/003b-audit-least-privilege.",
+                failure);
+        }
+        catch (SqlException failure) when (failure.Number == DatabaseRefusedTheLogin)
+        {
+            throw new InvalidOperationException(
+                $"Provisioning finished and '{AppUser}' can log in, but the database named in "
+                + $"'ConnectionStrings:{DependencyInjection.ConnectionStringName}' refused it — "
+                + "the login exists at server level and has no user in that database. This means "
+                + "the runtime and migrator connection strings name DIFFERENT databases: "
+                + "--provision created the user in the migrator's one. "
+                + "See specs/003b-audit-least-privilege.",
+                failure);
+        }
+    }
+
     /// <summary>
     /// Removes everything <see cref="ProvisionAsync"/> creates. `003b` AC-10.
     /// </summary>

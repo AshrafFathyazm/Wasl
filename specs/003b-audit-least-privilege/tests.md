@@ -59,7 +59,7 @@ were measured rather than argued.
 | AC-1 | `LeastPrivilegeTests.The_application_cannot_mutate_the_audit_log` (`UPDATE`, `DELETE`) | pass |
 | AC-2 | `LeastPrivilegeTests.The_request_principal_is_neither_sysadmin_nor_db_owner` — **through the API**, via `/__probe/db/principal` | pass |
 | AC-3 | `LeastPrivilegeTests.The_deny_beats_the_role_grant` | pass |
-| AC-4 | `LeastPrivilegeProvisioner.ReadPassword` throws naming the key; the placeholder check in `AddInfrastructure` | **partial — see below** |
+| AC-4 | Controls **D1**, **D2** and **D3** — run as real startup failures 2026-08-31, see below | **pass — closed 2026-08-31** |
 | AC-5 | `The_application_cannot_mutate_the_audit_log`, and the live probe above | pass |
 | AC-6 | **The whole integration suite, 307 tests, on the restricted connection** | pass |
 | AC-7 | Live: `/health` → `Healthy`; `POST /api/tickets` → `TCK-2026-000008`; `--seed` runs | pass |
@@ -191,9 +191,9 @@ is the kind of thing that becomes a mystery if the first person to see it says n
 | What | Why |
 |---|---|
 | ~~**AC-10** — `Down` revokes and drops~~ | **CLOSED 2026-08-30.** Was: *"`DeprovisionAsync` is written and has never been run … unverified, and recorded as unverified."* It has a caller now — `dotnet run --project src/Wasl.Api -- --deprovision` — and the full cycle was measured on the compose container: login and user `1|1` → deprovision → `0|0` with `Tickets` still `5` → the API's own `/health` answering **`503 Unhealthy`** → provision → `Healthy`, five tickets. **The `503` is the half that matters**: it proves the command removed something real rather than printing a message |
-| **AC-4, second half** — the host refuses to start without the password | The `ReadPassword` throw and the placeholder check both exist and both were read. **Neither was run as a startup failure**, because the fixture always supplies both values. `004` AC-11 was proven by accident when `dotnet ef` failed for a missing key; this one has had no such accident |
+| ~~**AC-4, second half** — the host refuses to start without the password~~ | **CLOSED 2026-08-31.** Was: *"The `ReadPassword` throw and the placeholder check both exist and both were read. Neither was run as a startup failure, because the fixture always supplies both values."* Three controls were run instead of waiting for an accident — D1, D2 and D3 below. **Running them found two things reading them could not**, both recorded there: the required-secret list in `CLAUDE.md` is short by two, and `--provision` migrates before it reads the password |
 | **AC-13, second half** — `--seed` issues its requests on the runtime connection | `--seed` was run and works. That its *requests* go through the restricted principal follows from `AddInfrastructure` registering only that string, which is AC-12 — an argument, not a separate observation |
-| That CI passes | **The suite has not been run in CI with this change.** `ci.yml` was not touched, and the fixture generates its own password per run, so nothing should need configuring — but *should* is not *did* |
+| ~~That CI passes~~ | **DISPROVEN 2026-08-31, and the other way round: CI HAS been running this the whole time, and it is RED.** This row said the suite had not been run in CI. `gh run list` shows a run for every push — `003b` included — so the claim was never true; nothing checked. The provisioning works there: **the failure is `CustomerReadTests.Two_customers_sharing_a_name_are_each_reachable_exactly_once`**, and it is intermittent across commits that changed only documentation (`ce79c16` green, `f05f902` red). Root cause measured, and it is the trap `CLAUDE.md` records as having already recurred twice: `Marker()` is `$"m{Guid.CreateVersion7():N}"[..12]`, which is the leading **timestamp** of a v7 GUID — **2000 markers minted in a loop produced 2 distinct values, one of them used 1999 times.** Fourteen tests in that class seed a customer whose `FullName` carries the marker, and `FullName` is a searched column, so `?search={marker}` matches other tests' rows and the two-page traversal stops covering the two it seeded. The product's ordering is not at fault: `.OrderBy(FullName).ThenBy(Id)` is a total order. **FIXED 2026-08-31** — `Marker()` now uses `RandomNumberGenerator`, the identical line `007` already used. Suite green at 538/538 |
 | That `wasl_app` has exactly the permissions it needs and no more | It holds `db_datareader` + `db_datawriter`, which is broader than a hand-written per-table grant. Deliberate: a per-table list is a list somebody forgets to extend, and the next feature's table becomes a `500` that reads as a bug in the feature. **The audit `DENY` is what makes the broad grant safe**, and AC-3 asserts that it wins |
 
 ## The limit of the claim
@@ -244,3 +244,366 @@ identical row counts.
 permissions operation; undoing the data is `dotnet ef database drop`. Merging them would mean one
 mistyped flag destroying a database somebody wanted — and the `Tickets 5` above is the assertion
 that they stayed separate.
+
+---
+
+## AC-4, closed 2026-08-31 — three controls, and what running them found that reading them had not
+
+The criterion was *the host refuses to start without the password*, and it sat unclaimed with an
+honest reason: the integration fixture always supplies every secret, so no test can reach the
+failure, and `004` AC-11 had only been proven by an **accident** — `dotnet ef` happening to fail
+for a missing key. **Waiting for a second accident is not verification.**
+
+Each control removes exactly one value and supplies every other. `ASPNETCORE_ENVIRONMENT=Production`
+is the lever that makes a secret genuinely **absent** rather than blank: user secrets load only in
+Development, so nothing in the developer's own secret store had to be touched.
+
+`--no-launch-profile` is the second half of the method, and it is not optional. Without it
+`dotnet run` prints *"Using launch settings from launchSettings.json"* and applies that file's
+environment on top of the one the control set — so the control silently measures Development while
+reporting itself as Production. The first attempt did exactly that and produced **no output at
+all**, which is the only reason it was noticed.
+
+### Control D1 — `Database:AppPassword` absent
+
+```text
+Unhandled exception. System.InvalidOperationException: 'Database:AppPassword' is not
+configured. It is the password for the restricted 'wasl_app' principal the application runs
+as, and it has no default by design. Set it with: dotnet user-secrets -p src/Wasl.Api set
+"Database:AppPassword" "<a password>"
+   at LeastPrivilegeProvisioner.ReadPassword(IConfiguration)  LeastPrivilegeProvisioner.cs:173
+   at DatabaseBootstrapper.RunAsync(IConfiguration, CancellationToken)  DatabaseBootstrapper.cs:60
+   at Program.<Main>$(String[])  Program.cs:71
+```
+
+Names the key, gives the command, and **never echoes a value** — which is the half reading could
+not settle, because the throw is one interpolated string and the password is in scope on the line
+above it.
+
+### Control D2 — the connection string still carries the placeholder
+
+```text
+Connection string 'Wasl' still contains the placeholder 'REPLACED_BY_USER_SECRET'. Set the
+real one, which is never committed: dotnet user-secrets -p src/Wasl.Api set
+"Database:AppPassword" "<a password>" then set "ConnectionStrings:Wasl" with the same
+password and User Id=wasl_app, then run: dotnet run --project src/Wasl.Api -- --provision.
+   at DependencyInjection.AddInfrastructure(...)  DependencyInjection.cs:70
+```
+
+### Control D3 — no runtime connection string at all
+
+```text
+Connection string 'Wasl' is not configured. See specs/001-solution-skeleton/quickstart.md.
+   at DependencyInjection.AddInfrastructure(...)  DependencyInjection.cs:59
+```
+
+Three distinct messages from three distinct lines. **D2 and D3 are separate on purpose**: a fresh
+clone that has copied the development file hits D2 and needs to be told about a secret, while a
+deployment that configured nothing hits D3 and needs to be told about a connection string. One
+guard covering both would hand the wrong sentence to one of them.
+
+### The measured order of every startup guard
+
+Not reasoned from the registration order — **observed**, one control at a time, each run fixing
+the value the previous run complained about:
+
+| # | Guard | Where |
+|---|---|---|
+| 1 | `ConnectionStrings:Wasl` present | `DependencyInjection.cs:59` |
+| 2 | ...and not the placeholder | `DependencyInjection.cs:70` |
+| 3 | ...and not identical to `WaslMigrator` | `DependencyInjection.cs:93` — Control C, proven at delivery |
+| 4 | `Seed:ManagerPassword`, `Seed:AgentPassword`, `Seed:AgentTwoPassword` present and at least 8 characters | `SeedOptions.cs:72,80` |
+| 5 | `Database:AppPassword` present | `LeastPrivilegeProvisioner.cs:173` |
+
+### Two things the controls found that reading could not
+
+**1 · The required-secret list in `CLAUDE.md` was short by two.** It named `Jwt:SigningKey`,
+`Seed:ManagerPassword` and `Seed:AgentPassword`. There are **five**: `011` added
+`Seed:AgentTwoPassword` for its second Agent and `003b` added `Database:AppPassword`, and neither
+release updated the list. Somebody following `CLAUDE.md` on a fresh clone sets three secrets and
+is then refused twice more — by two guards that each name their own key correctly, so the fix is
+obvious every time and the document is simply wrong three times over. Found because D1 had to be
+**run four times**, each run naming the next missing key. Corrected in the same commit.
+
+**2 · `--provision` migrates BEFORE it reads the password.** `ReadPassword` is evaluated as an
+argument to `ProvisionAsync` on line 60, after `MigrateAsync` on line 57. So a clone missing only
+`Database:AppPassword` ends up with a **fully migrated schema and no `wasl_app` principal**, and
+the message says nothing about the schema having been applied. It is idempotent, so setting the
+secret and re-running finishes the job — but the intermediate state is one the message does not
+describe. **Confirmed on a genuinely fresh database 2026-08-31**, in the clean-clone walkthrough this row
+deferred it to: with `Database:AppPassword` unset, `--provision` created the database, applied all
+**7 tables** and **8 migrations**, left `wasl_app` a principal in it **zero** times, and then
+refused. A finished-looking schema with no principal — and that is one of the three causes of the
+single sentence `Login failed for user 'wasl_app'`.
+
+---
+
+## The intermittent test, followed up 2026-08-31 — ten runs, and why it is still not settled
+
+`CreateCustomerTests.Two_simultaneous_identical_creates_produce_one_201_and_one_409` — `007`
+AC-13 — was recorded above as **one failure in four full runs**, cause not established. Ten
+consecutive full-suite runs were done to settle it.
+
+```text
+run  1   538 passed   0 failed   3 suites
+run  2   538 passed   0 failed   3 suites
+run  3   538 passed   0 failed   3 suites
+run  4   538 passed   0 failed   3 suites
+run  5   538 passed   0 failed   3 suites
+run  6   538 passed   0 failed   3 suites
+run  7   538 passed   0 failed   3 suites
+run  8   538 passed   0 failed   3 suites
+run  9   538 passed   0 failed   3 suites
+run 10   538 passed   0 failed   3 suites
+```
+
+`Skipped: 0` in all three suites on every run, which is the only evidence available that the test
+in question actually executed: **a passing test is not named in the output**, so the log cannot be
+grepped for it. Stated rather than glossed.
+
+### The harness was verified before its result was believed
+
+Ten green runs reported by a loop whose own summary line printed `passed=?` for all ten — the
+arithmetic was silently broken while the verdict looked confident. That is the shape of every
+lying tool this project has recorded, so the loop was tested against a real failure before its
+output was used: one Domain assertion inverted, `TicketStatus.Open` to `TicketStatus.Closed`.
+
+```text
+exit=1
+parser says: passed=176 failed=1
+Failed Wasl.Domain.Tests.Tickets.ChangeStatusTests
+       .A_permitted_transition_moves_the_status_and_returns_a_history_row
+```
+
+Exit code, count and name all reacted. Reverted, rebuilt with `--no-incremental`, 177/177.
+
+### What this establishes, and what it does not
+
+**Does not reproduce.** One failure in fourteen observed full runs now, and none in ten under
+stable conditions.
+
+**It is not called fixed and it is not called noise.** The two sets of runs were not made under
+the same conditions: the original failure happened during `003b`'s own development, in a session
+where the schema and the database principal were being changed between runs, while these ten ran
+against a database that was already migrated and provisioned and was not touched.
+
+### The reason this cannot be closed is a recording gap, not a measurement gap
+
+The original observation is four words — `run 2 FAIL` — and **the failure output was never
+captured.** So the failure mode is unknown: whether both requests got `201` (a real BR-4.8 hole),
+whether both got `409` (a pre-check ordering problem), whether it was a timeout, or whether it was
+a `SqlException` from the shared container. Each of those has a different cause and a different
+fix, and a repro attempt without that string is searching blind — which is what ten green runs
+cost.
+
+**So the actionable output of this follow-up is an instruction rather than a verdict:** when this
+test next fails, keep the whole `Error Message` and `Stack Trace` block before re-running
+anything. This project's rule is *never write down a result that was not observed*; this is its
+neighbour — **a result that was observed and not captured is a result nobody can use.**
+
+`specs/007-create-customer/tests.md` owns AC-13 and was deliberately **not** edited: the frontend
+lane has uncommitted work in that file, and two lanes writing one file is how a commit sweeps in
+somebody else's change.
+
+---
+
+## A defect this feature shipped with, found 2026-08-31 — FIXED the same day, see the section below
+
+> **`--provision` can report success and leave the application unable to log in.**
+
+`ProvisionAsync` guards the login like this:
+
+```sql
+IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @user)
+BEGIN
+    ... CREATE LOGIN [wasl_app] WITH PASSWORD = ..., CHECK_POLICY = OFF
+END
+```
+
+**`sys.server_principals` is server-scoped, and the password is only ever written on creation.**
+So if a `wasl_app` login already exists anywhere on that SQL Server, `CREATE LOGIN` is skipped and
+the **existing** password is kept. `CREATE USER`, the two role memberships, the sequence `GRANT`
+and the audit `DENY` all then succeed against the new database, and the command prints:
+
+```text
+Schema applied and wasl_app provisioned.
+```
+
+The application cannot connect.
+
+### Measured, both directions
+
+A second clone was provisioned against its own separate database with its own new password:
+
+```text
+dotnet run --project src/Wasl.Api -- --provision
+  -> Schema applied and wasl_app provisioned.
+
+dotnet run --project src/Wasl.Api -- --seed
+  -> Microsoft.Data.SqlClient.SqlException (0x80131904): Login failed for user 'wasl_app'.
+```
+
+Then the same connection string, same database, with the **first** clone's password substituted
+and nothing else changed:
+
+```text
+dotnet run --project src/Wasl.Api -- --seed
+  -> Seeded 3 customers ...
+```
+
+Which is the whole proof: the principal works, and it works with a password that `--provision`
+was never given.
+
+### Three real triggers, not a contrived one
+
+| Trigger | What happens |
+|---|---|
+| **Password rotation** — set a new `Database:AppPassword`, re-run `--provision` | Reports success. Application is dead. The documented recovery *is* `--provision` |
+| **Two databases on one server** — a second environment, a clean-clone check, a colleague's box | Whichever was provisioned second inherits the first's password |
+| **A forgotten password** — set a new one, re-provision | Told it worked |
+
+### Why it stayed invisible through delivery and three negative controls
+
+`003b`'s controls all ran against **one** database on a server where the login was created by the
+**first** `--provision`, so `CREATE LOGIN` and the password were always in agreement. The
+integration fixture generates a password per run — but it also runs against a container whose
+login does not exist yet, so the same agreement holds. **Nothing in the feature ever provisioned
+twice with two different passwords**, which is the only shape that shows it.
+
+### And the symptom is a sentence three causes share
+
+`Login failed for user 'wasl_app'` is produced by:
+
+1. `--provision` never run.
+2. `--provision` run and refused for a missing secret **after** the migration — so the schema is
+   there and the database looks finished (measured above, AC-4).
+3. This defect.
+
+`quickstart.md` documented only cause 1, and its recovery — re-run `--provision` — is a no-op for
+2 and reports success for 3. All three rows are in its troubleshooting table now.
+
+### Not fixed, and what fixing it would mean
+
+Two candidate shapes, and **choosing between them is a decision, not a cleanup**:
+
+- **`ALTER LOGIN ... WITH PASSWORD`** when the login exists — makes the command genuinely
+  idempotent with respect to the password. It also means `--provision` silently rewrites a
+  credential other databases on that server may be using.
+- **Detect and refuse** — try the runtime connection after provisioning and fail with a sentence
+  naming `--deprovision`. Safer, and it turns a silent success into a loud failure, which is this
+  project's stated preference.
+
+`--deprovision` then `--provision` is the recovery today, and it is **not safe as a blanket
+instruction**: the login is server-scoped, so dropping it breaks every other database using it.
+
+**FIXED 2026-08-31 after the product owner chose between the two shapes: verify, do not repair.**
+Controls E1 and E2 in the next section, and the guard turned the whole suite red on its first run
+before it turned it green.
+
+---
+
+## Both defects fixed 2026-08-31, and each guard was seen to fail first
+
+538 tests, 0 warnings, built with `--no-incremental`.
+
+```text
+Wasl.Domain.Tests            Failed: 0   Passed: 177   Total: 177
+Wasl.Application.Tests       Failed: 0   Passed:  26   Total:  26
+Wasl.Api.IntegrationTests    Failed: 0   Passed: 335   Total: 335
+                                         ─────────────────────────
+                                         Passed: 538   Total: 538
+```
+
+### Fix 1 — the login password. `VerifyRuntimeLoginAsync`, and why it verifies rather than repairs
+
+`--provision` now opens the **runtime** connection as its last act, so a success message means the
+principal it just configured actually works.
+
+**The alternative was `ALTER LOGIN … WITH PASSWORD` when the login exists**, which would make the
+command genuinely idempotent — and would silently rewrite a credential other databases on the same
+server may be using. This repository refuses loudly everywhere else it had that choice: the host
+will not start without a secret, the migrator has **no** fallback to the runtime string, and a
+plausible error envelope was recorded as *worse* than an empty one. So: no repair, one sentence
+naming the cause and the recovery, and the `SqlException` kept as the inner exception.
+
+#### Control E1 — a `wasl_app` login that already exists with a different password
+
+The exact scenario measured before the fix, which had printed *"Schema applied and wasl_app
+provisioned."*:
+
+```text
+System.InvalidOperationException: Provisioning finished, but 'wasl_app' cannot log in — so
+the application would not start. The likely cause is that this SQL Server ALREADY had a
+'wasl_app' login with a DIFFERENT password: the login is server-scoped and its password is
+only written when it is created, so 'Database:AppPassword' was applied to nothing and every
+other grant still succeeded. Fix: run 'dotnet run --project src/Wasl.Api -- --deprovision'
+and then '--provision' again — but ONLY if no other database on this server uses
+'wasl_app', because dropping a server-scoped login breaks all of them.
+ ---> Microsoft.Data.SqlClient.SqlException: Login failed for user 'wasl_app'.
+      Error Number:18456,State:1,Class:14
+```
+
+No password and no connection string in the message — `002`'s rule, and this one is printed to a
+console.
+
+#### Control E2 — the runtime and migrator naming different databases
+
+**The first attempt at this control did not fail, and that is a recorded limit rather than a
+tidied-away detail.** Pointing the runtime at `master` printed *success*: `wasl_app` can connect
+to `master` through the `public` role. So the guard proves *the principal can log in*, **not**
+*the principal can use the application's database*. Retried against a database where `wasl_app`
+has no user at all:
+
+```text
+System.InvalidOperationException: Provisioning finished and 'wasl_app' can log in, but the
+database named in 'ConnectionStrings:Wasl' refused it — the login exists at server level and
+has no user in that database. This means the runtime and migrator connection strings name
+DIFFERENT databases: --provision created the user in the migrator's one.
+ ---> SqlException: Cannot open database "WaslNoUser" requested by the login. The login failed.
+      Error Number:4060,State:1,Class:11
+```
+
+#### The guard verified itself on its first suite run
+
+`WaslApiFactory` goes through `DatabaseBootstrapper.RunAsync`, so the check is on the path every
+integration test takes — which was the point of putting it there. **Its first run turned all 335
+integration tests red**, because the fixture's provisioning configuration carried the migrator
+string and the password but not the runtime string:
+
+```text
+System.InvalidOperationException : Connection string 'Wasl' is not configured, so
+provisioning cannot verify that the principal it created works.
+   at DatabaseBootstrapper.RuntimeConnectionString(IConfiguration)  DatabaseBootstrapper.cs:87
+   at WaslApiFactory.InitializeAsync()  WaslApiFactory.cs:75
+```
+
+Fixed by giving that configuration `ConnectionStrings:Wasl` from the fixture's own
+`RestrictedConnectionString()` — which it already had. **Not** by letting the check skip when the
+string is absent: a guard that quietly does nothing is the thing this feature was written against.
+
+### Fix 2 — `Marker()`, the third recurrence of a documented trap
+
+`CustomerReadTests.Marker()` was `$"m{Guid.CreateVersion7():N}"[..12]`, and it is now
+`$"m{Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToLowerInvariant()}"` — the identical
+line `007` already used for the identical reason.
+
+The measurement that settled it:
+
+```text
+2000 markers minted in a tight loop -> 2 distinct
+colliding markers: 1, worst reuse: 1999
+  m01a05709332 used 1999 times
+```
+
+The leading twelve hex digits of a version-7 GUID are its 48-bit millisecond timestamp, so this
+was a clock with roughly 16 ms of resolution rather than a discriminator. Fourteen tests in that
+class seed a customer whose `FullName` carries the marker, and `FullName` is a searched column —
+so once two share a marker, `?search={marker}` returns another test's rows.
+
+**It broke CI and never a local run**, which is why it survived: a fast Release runner lands
+consecutive tests inside one 16 ms window, and ten consecutive local Debug runs did not.
+`.OrderBy(FullName).ThenBy(Id)` was correct throughout; the product was never at fault.
+
+`008` recorded this trap as a search-term prefix and `007` hit it again as an email local-part.
+**Written down twice, repeated a third time, in the test file of the feature that recorded it
+first** — and the only reason it was found is that the CI result was finally read.

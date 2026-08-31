@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography;
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Data.SqlClient;
@@ -82,7 +83,30 @@ public sealed class CustomerReadTests(WaslApiFactory factory)
         return await BodyOf(response);
     }
 
-    private static string Marker() => $"m{Guid.CreateVersion7():N}"[..12];
+    /// <summary>A search term that no other test can collide with.</summary>
+    /// <remarks>
+    /// <b>Random, not a slice of a <c>Guid</c> — and this was the THIRD recurrence.</b> This
+    /// method was <c>$"m{Guid.CreateVersion7():N}"[..12]</c>, and the leading twelve hex digits of
+    /// a version-7 GUID are its 48-bit millisecond timestamp: <b>2000 markers minted in a tight
+    /// loop produced 2 distinct values, one of them used 1999 times.</b> A clock with roughly 16 ms
+    /// of resolution, not a discriminator.
+    /// <para>
+    /// It broke CI and not local runs, which is why it survived. Fourteen tests in this class seed
+    /// a customer whose <c>FullName</c> carries the marker, and <c>FullName</c> is a searched
+    /// column — so once two of them share a marker, <c>?search={marker}</c> returns rows another
+    /// test seeded, Latin names sort ahead of Arabic ones, and
+    /// <c>Two_customers_sharing_a_name_are_each_reachable_exactly_once</c> stops covering the two
+    /// rows it created. A fast Release runner lands consecutive tests inside one 16 ms window; ten
+    /// consecutive local Debug runs never did.
+    /// </para>
+    /// <para>
+    /// `008` recorded this trap as a search-term prefix, `007` hit it again as an email local-part
+    /// and fixed it with exactly the line below. <b>Written down twice and still repeated a third
+    /// time — in the test file of the feature that recorded it first.</b>
+    /// </para>
+    /// </remarks>
+    private static string Marker() =>
+        $"m{Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToLowerInvariant()}";
 
     // ── AC-1, AC-2 · the profile ────────────────────────────────────────────────────
 
