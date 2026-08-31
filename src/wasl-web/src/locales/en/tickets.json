@@ -148,5 +148,7 @@
   "detail.removeTag": "Remove {{name}}",
   "detail.cannedReplies": "Reply templates",
   "detail.useTemplate": "Insert a template",
-  "detail.templateGeneral": "Every category"
+  "detail.templateGeneral": "Every category",
+  "detail.event.commentAdded": "added a comment",
+  "detail.event.assignedUnknown": "assigned the ticket"
 }

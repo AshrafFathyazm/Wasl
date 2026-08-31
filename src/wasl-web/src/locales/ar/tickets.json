@@ -148,5 +148,7 @@
   "detail.removeTag": "إزالة {{name}}",
   "detail.cannedReplies": "قوالب الردود",
   "detail.useTemplate": "إدراج قالب",
-  "detail.templateGeneral": "كل التصنيفات"
+  "detail.templateGeneral": "كل التصنيفات",
+  "detail.event.commentAdded": "أضاف تعليقًا",
+  "detail.event.assignedUnknown": "عيّن التذكرة"
 }

@@ -140,9 +140,32 @@ const mounted = () => {
  * rather than passed beside it, so a test cannot construct one that disagrees
  * with itself. Read from the class; the first version of this file guessed
  * `(status, problem)` and `tsc` said so four times. */
-/** The button for one transition, named as the catalogue names it. */
+/** One transition, named as the catalogue names it. */
 const moveTo = (status: string) =>
   i18n.t('tickets:detail.moveTo', { status: i18n.t(`tickets:status.${status}`) });
+
+/**
+ * Opens the take-action MENU and picks a transition.
+ *
+ * The transitions were inline buttons until the screen was rebuilt on the
+ * approved preview. `027` Q-3 ruled a MENU — "controls that appear and disappear
+ * per state read as a broken toolbar" — and the first version of this page
+ * contradicted that ruling, which a screenshot showed and no test could.
+ */
+const openActions = async () =>
+  /* `.first()` — there are TWO triggers, the top bar's and the sticky bar's, and
+   * that is deliberate: the sticky one exists so a hundred timeline entries never
+   * force a scroll back up to act. Each owns its own menu, which is what the page
+   * had to be taught after a single boolean rendered the menu in the top bar only
+   * and the sticky trigger opened one nobody could see. */
+  userEvent.click(
+    screen.getAllByRole('button', { name: i18n.t('tickets:detail.takeAction') })[0]!,
+  );
+
+const chooseTransition = async (status: string) => {
+  await openActions();
+  await userEvent.click(screen.getByRole('menuitem', { name: moveTo(status) }));
+};
 
 const problem = (status: number, type: string, over: Record<string, unknown> = {}) =>
   new ApiError(
@@ -185,7 +208,7 @@ describe('AC-1 — the page reads the ticket and nothing renders one from a writ
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
     expect(getTicket).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await chooseTransition('InProgress');
 
     await waitFor(() => expect(changeTicketStatus).toHaveBeenCalled());
     await waitFor(() => expect(getTicket).toHaveBeenCalledTimes(2));
@@ -197,13 +220,15 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: moveTo('InProgress') })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: moveTo('Closed') })).toBeInTheDocument();
+    await openActions();
+
+    expect(screen.getByRole('menuitem', { name: moveTo('InProgress') })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: moveTo('Closed') })).toBeInTheDocument();
 
     /* The decoy. `Open` is a real status and is NOT in allowedTransitions, so a
      * control for it would be a control whose only outcome is a 409. Without
      * this line the test passes on a page that renders all six. */
-    expect(screen.queryByRole('button', { name: moveTo('Open') })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: moveTo('Open') })).not.toBeInTheDocument();
   });
 
   /* Asserted with `[]`, not only with a populated array — `027` AC-2 says so, and
@@ -214,9 +239,13 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    for (const status of ['InProgress', 'Closed', 'Open', 'Resolved']) {
-      expect(screen.queryByRole('button', { name: moveTo(status) })).not.toBeInTheDocument();
-    }
+    /* No trigger AT ALL for a Closed ticket — `allowedTransitions` is `[]`, so
+       neither the top bar nor the sticky bar offers one. Asserting the absence of
+       the TRIGGER is stronger than asserting the absence of the items: a menu
+       nobody can open would still pass the second. */
+    expect(
+      screen.queryAllByRole('button', { name: i18n.t('tickets:detail.takeAction') }),
+    ).toHaveLength(0);
   });
 
   /* Closed is terminal for comments too, so the composer is ABSENT rather than
@@ -240,7 +269,7 @@ describe('BR-1.2 — closing work that was never started asks for a reason first
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('Closed') }));
+    await chooseTransition('Closed');
 
     expect(changeTicketStatus).not.toHaveBeenCalled();
 
@@ -266,7 +295,7 @@ describe('BR-1.2 — closing work that was never started asks for a reason first
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('Closed') }));
+    await chooseTransition('Closed');
 
     await waitFor(() => expect(changeTicketStatus).toHaveBeenCalled());
     expect(screen.queryByLabelText(i18n.t('tickets:detail.note'))).not.toBeInTheDocument();
@@ -278,7 +307,7 @@ describe('AC-6 — expectedVersion comes from the read, and AC-4/AC-5 keep the a
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await chooseTransition('InProgress');
 
     await waitFor(() =>
       expect(changeTicketStatus).toHaveBeenCalledWith(
@@ -301,7 +330,7 @@ describe('AC-6 — expectedVersion comes from the read, and AC-4/AC-5 keep the a
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
     expect(getTicket).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await chooseTransition('InProgress');
 
     await waitFor(() =>
       expect(screen.getByText(i18n.t('tickets:detail.conflictTitle'))).toBeInTheDocument(),
@@ -324,7 +353,7 @@ describe('AC-6 — expectedVersion comes from the read, and AC-4/AC-5 keep the a
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await chooseTransition('InProgress');
 
     await waitFor(() =>
       expect(
@@ -540,7 +569,7 @@ describe("`034`'s tags — the read half it shipped without", () => {
     await rendered();
     expect(getTags).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await chooseTransition('InProgress');
     await waitFor(() => expect(getTicket).toHaveBeenCalledTimes(2));
 
     expect(getTags).toHaveBeenCalledTimes(1);

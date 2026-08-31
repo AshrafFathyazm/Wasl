@@ -8,7 +8,7 @@ import { Button } from '../../components/Button/Button';
 import { Checkbox } from '../../components/Checkbox/Checkbox';
 import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Textarea } from '../../components/Textarea/Textarea';
-import { IconClose } from '../../icons/icons';
+import { IconChevronDown, IconClose } from '../../icons/icons';
 import { ApiError } from '../../lib/api';
 import type {
   TicketResponse,
@@ -84,6 +84,53 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
+/**
+ * A collapsible section — the preview's, and the design document's accordion.
+ *
+ * The first version of this page rendered flat `<section>` boxes with an `<h3>`,
+ * which is why the screen looked like a stack of panels rather than the approved
+ * screen. The chevron ROTATES and does not mirror: a vertical disclosure has no
+ * direction, so `transform: rotate` is correct in both.
+ */
+function Section({
+  title,
+  count,
+  open,
+  onToggle,
+  children,
+  id,
+}: {
+  title: string;
+  count?: string | undefined;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+  id: string;
+}) {
+  return (
+    <section className={styles.section} id={id}>
+      <button
+        type="button"
+        className={styles.sectionHead}
+        aria-expanded={open}
+        aria-controls={`${id}-body`}
+        onClick={onToggle}
+      >
+        <span>{title}</span>
+        {count ? <span className={styles.sectionCount}>{count}</span> : null}
+        <span className={cx(styles.chev, open && styles.chevOpen)} aria-hidden="true">
+          <IconChevronDown size={16} />
+        </span>
+      </button>
+      {open ? (
+        <div className={styles.sectionBody} id={`${id}-body`}>
+          {children}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function StripItem({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className={styles.stripItem}>
@@ -93,51 +140,137 @@ function StripItem({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-/** One timeline row. Flat entry, `type` discriminating — the shape the server sends. */
-function Entry({ entry, lang }: { entry: TimelineEntry; lang: Lang }) {
+/**
+ * One timeline row, and it is TWO shapes rather than one.
+ *
+ * **The kind comes from `type`, never from which fields are null.** Inference is
+ * a rule, and two renderers eventually disagree about what an entry with a null
+ * body and a null `oldValue` means — the preview says so in the same words.
+ *
+ * THREE CONTENT DEFECTS WERE VISIBLE ON THE FIRST SCREENSHOT and are fixed here.
+ * All three shipped because this component rendered the wire's raw fields, and
+ * none of them is visible from jsdom, a type, or a passing test:
+ *
+ *   غيّر الحالة من {{from}} إلى {{to}}     ← the interpolation was never passed
+ *   CommentAdded — 01a053bb-fbb5-…         ← no key, and the raw comment id
+ *   عيّن التذكرة إلى {{name}} — 01a053ba…  ← both at once
+ *
+ * The last one is the interesting one: an `Assigned` row's `newValue` is the
+ * assignee's **id**, not their name — measured on the wire. The preview's own
+ * fixture put a name there, so the design could not have shown this. The id is
+ * resolved against the support-user list this page already fetches, and when it
+ * cannot be resolved the row says who assigned and drops the name rather than
+ * printing a GUID at a reader.
+ */
+function Entry({
+  entry,
+  lang,
+  nameOf,
+}: {
+  entry: TimelineEntry;
+  lang: Lang;
+  nameOf: (id: string | null) => string | null;
+}) {
   const { t } = useTranslation('tickets');
-  const actor = entry.actor?.fullName ?? '';
+  const time = formatDateTime(entry.occurredAtUtc, lang);
 
-  return (
-    <article className={styles.entry}>
-      <div className={styles.entryHead}>
-        {actor ? <Avatar name={actor} /> : null}
-        <span className={styles.entryActor} dir="auto">
-          {actor}
-        </span>
-        {entry.actor?.role ? (
-          <span className={styles.entryRole}>{t(`role.${entry.actor.role}`)}</span>
-        ) : null}
-        <time className={styles.entryTime} dateTime={entry.occurredAtUtc}>
-          {formatDateTime(entry.occurredAtUtc, lang)}
-        </time>
-        {entry.isInternal === true ? (
-          <span className={styles.internalMark}>{t('detail.internal')}</span>
-        ) : null}
-      </div>
-
-      <div className={styles.entryMain}>
-        {entry.type === 'Comment' ? (
-          /* dir="auto" on every body: a Latin comment in an Arabic thread starts
-             on the same edge as its neighbours (AC-8). */
+  /* A COMMENT, which is the only entry with a body. `CommentAdded` is its history
+   * shadow — same instant, same actor, `body: null` — so it is NOT grouped here:
+   * grouping it renders an empty paragraph, and `013` writes both rows from one
+   * memoized instant so the feed would show the comment twice. */
+  if (entry.type === 'Comment') {
+    return (
+      <article className={styles.entry}>
+        <Avatar name={entry.actor.fullName} />
+        <div className={styles.entryMain}>
+          <div className={styles.entryHead}>
+            <span className={styles.entryActor} dir="auto">
+              {entry.actor.fullName}
+            </span>
+            {entry.actor.role ? (
+              <span className={styles.entryRole}>{t(`role.${entry.actor.role}`)}</span>
+            ) : null}
+            {entry.isInternal ? (
+              /* BR-5.4 — MARKED, never hidden. The server does not filter these
+                 and neither does the client. */
+              <span className={styles.internalMark}>
+                <Badge tone="warning" appearance="outline" label={t('detail.internal')} dot={false} />
+              </span>
+            ) : null}
+            {entry.channel ? (
+              <span className={styles.entryRole}>{t(`channel.${entry.channel}`)}</span>
+            ) : null}
+            <time className={styles.entryTime} dateTime={entry.occurredAtUtc}>
+              {time}
+            </time>
+          </div>
+          {/* `dir="auto"` — AC-8. The BOX stays aligned with the page; only the
+              paragraph's internal direction follows its first strong character,
+              so a Latin comment in an Arabic thread starts on the same edge as
+              its neighbours instead of jumping to the other side. */}
           <p className={styles.entryBody} dir="auto">
             {entry.body}
           </p>
-        ) : (
-          <p className={styles.history}>
-            {t(`detail.event.${entry.type.charAt(0).toLowerCase()}${entry.type.slice(1)}`, {
-              defaultValue: entry.type,
-            })}
-            {entry.newValue ? ` — ${t(`status.${entry.newValue}`, { defaultValue: entry.newValue })}` : ''}
-          </p>
-        )}
-        {entry.note ? (
-          <p className={styles.historyNote} dir="auto">
-            {entry.note}
-          </p>
-        ) : null}
-      </div>
-    </article>
+        </div>
+      </article>
+    );
+  }
+
+  /* A HISTORY ROW. One line: who, what, when — the preview's shape. */
+  const describe = () => {
+    switch (entry.type) {
+      case 'Created':
+        return t('detail.event.created');
+
+      case 'StatusChanged':
+        /* The two statuses, TRANSLATED. The catalogue string interpolates them and
+           the first version passed neither, so three rows read
+           "غيّر الحالة من {{from}} إلى {{to}}" on screen. */
+        return t('detail.event.statusChanged', {
+          from: entry.oldValue ? t(`status.${entry.oldValue}`) : '',
+          to: entry.newValue ? t(`status.${entry.newValue}`) : '',
+        });
+
+      case 'Assigned': {
+        const name = nameOf(entry.newValue);
+        return name
+          ? t('detail.event.assigned', { name })
+          : /* The id did not resolve — a deactivated user, or a row from before
+               `011` fixed the actor columns. Say the ticket was assigned and stop;
+               a GUID on screen is worse than a missing name. */
+            t('detail.event.assignedUnknown');
+      }
+
+      case 'Unassigned':
+        return t('detail.event.unassigned');
+
+      case 'Escalated':
+        return t('detail.event.escalated');
+
+      case 'CommentAdded':
+        /* Its `newValue` is the COMMENT'S ID. It was being appended raw. */
+        return t('detail.event.commentAdded');
+
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div className={styles.history}>
+      <span className={styles.entryActor} dir="auto">
+        {entry.actor.fullName}
+      </span>
+      <span>{describe()}</span>
+      <time className={styles.entryTime} dateTime={entry.occurredAtUtc}>
+        {time}
+      </time>
+      {entry.note ? (
+        <span className={styles.historyNote} dir="auto">
+          {entry.note}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -157,6 +290,21 @@ export default function TicketDetailPage() {
    * a reload should not resume a half-finished status change. */
   const [pending, setPending] = useState<TicketStatus | null>(null);
   const [note, setNote] = useState('');
+
+  /* The accordion and the action menu. Local: they are view state, and a reload
+   * should not restore a half-open menu. */
+  const [descOpen, setDescOpen] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(true);
+  const [tagsOpen, setTagsOpen] = useState(true);
+  /* WHICH trigger opened the take-action menu, not merely whether one did.
+   *
+   * There are two — the top bar's and the sticky bar's — and the sticky one exists
+   * so a hundred timeline entries never force a scroll back up to act. A single
+   * boolean rendered the menu in the top bar only, so pressing the sticky trigger
+   * opened a menu off-screen: nothing appeared to happen. Two tests said "Found
+   * multiple elements with the role button and name Take action" and that was the
+   * same defect wearing a different hat. */
+  const [menuAt, setMenuAt] = useState<'top' | 'sticky' | null>(null);
 
   const ticketQuery = useQuery({
     queryKey: ticketKeys.detail(id),
@@ -373,163 +521,256 @@ export default function TicketDetailPage() {
    * impossible rather than that this particular assignment is. */
   const users = supportUsers.data ?? [];
 
+  /* An `Assigned` row carries the assignee's ID, not their name — measured. This
+   * resolves it against the list the picker already loaded, so the timeline costs
+   * no extra request. Null when it cannot be resolved: a deactivated user is
+   * absent from the picker (`011`'s contract says so explicitly), and a GUID on
+   * screen is worse than a missing name. */
+  const nameOf = (userId: string | null) =>
+    users.find((user) => user.id === userId)?.fullName ?? null;
+
   return (
+    /* THE PREVIEW'S STRUCTURE, and the first version of this page used none of it.
+     *
+     * `027` Q-5 ruled the preview IS the design, and this file already imported
+     * its stylesheet — so every class below existed and went unused while the
+     * screen rendered as a stack of full-width boxes. A screenshot is what showed
+     * it; no test could, because jsdom has no layout and every assertion here is
+     * about behaviour.
+     *
+     * page › screen › topBar › layout( rail | main ) › sections › stickyBar.
+     *
+     * THE OUTER `.page` IS LOAD-BEARING and the first relayout dropped it. It is
+     * where `--rail-width` is declared, and `.layout` reads
+     * `grid-template-columns: var(--rail-width) minmax(0, 1fr)` — an undefined
+     * custom property makes the whole declaration invalid, so the grid silently
+     * collapses to one column and the rail stacks full-width above the content.
+     * Nothing errors, the classes are all applied, and only a screenshot shows it. */
     <main className={styles.page}>
-      <div className={styles.pageHead}>
-        <h1 className={styles.pageTitle}>
-          <span className={styles.ticketNo} dir="ltr">
-            {ticket.ticketNumber}
-          </span>
-        </h1>
-      </div>
+      <div className={styles.screen}>
+      <header className={styles.topBar}>
+        <Link className={styles.anchor} to="/tickets">
+          {t('detail.backToList')}
+        </Link>
 
-      {conflict ? (
-        <div className={styles.banner} role="alert">
-          <div>
-            <strong>{t('detail.conflictTitle')}</strong>
-            <p>{t('detail.conflictBody')}</p>
+        {/* `bdi` and `dir="ltr"`. A ticket number is an identifier: never
+            localized, never digit-shaped by the locale, and never reordered by
+            the surrounding paragraph's direction. */}
+        <bdi className={styles.ticketNo} dir="ltr">
+          {ticket.ticketNumber}
+        </bdi>
+
+        <Badge
+          tone={STATUS_TONE[ticket.status] ?? 'neutral'}
+          label={t(`status.${ticket.status}`)}
+        />
+
+        <div className={cx(styles.topActions, styles.topSpacer)}>
+          {transitions.length > 0 ? (
+            <div className={styles.menuWrap}>
+              {/* A MENU, not inline buttons — `027` Q-3, ruled by the product
+                  owner: "controls that appear and disappear per state read as a
+                  broken toolbar". The first version of this page rendered one
+                  button per transition and contradicted that ruling. */}
+              <Button
+                text={t('detail.takeAction')}
+                iconEnd={<IconChevronDown size={16} />}
+                onClick={() => setMenuAt((at) => (at === 'top' ? null : 'top'))}
+                aria-expanded={menuAt === 'top'}
+                aria-controls="take-action-top"
+              />
+              {menuAt === 'top' ? (
+                <div className={styles.menu} role="menu" id="take-action-top">
+                  {/* RENDERED FROM `allowedTransitions`. BR-1 lives in
+                      `Wasl.Domain` once; an empty array renders no menu at all,
+                      which is the `Closed` case. */}
+                  {transitions.map((next) => (
+                    <button
+                      key={next}
+                      type="button"
+                      role="menuitem"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        setMenuAt(null);
+                        setPending(next);
+                        setNote('');
+                        if (!noteRequiredFor(next)) {
+                          status.mutate({ next, note: '' });
+                        }
+                      }}
+                    >
+                      {t('detail.moveTo', { status: t(`status.${next}`) })}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </header>
+
+      <div className={styles.layout}>
+        <aside className={styles.rail}>
+          <div className={styles.railBlock}>
+            <span className={styles.railLabel}>{t('list.column.priority')}</span>
+            <span className={styles.railValue}>{t(`priority.${ticket.priority}`)}</span>
           </div>
-          <button
-            type="button"
-            className={styles.bannerAction}
-            onClick={() => {
-              setConflict(false);
-              void ticketQuery.refetch();
-            }}
-          >
-            {t('detail.reload')}
-          </button>
-        </div>
-      ) : null}
 
-      {/* A `400` on expectedVersion is a defect in this client. It is shown as
-          one — not as a recoverable error with a retry — because a reader cannot
-          cause it and cannot fix it, and "try again" would be a lie (AC-5). */}
-      {clientBug ? (
-        <div className={cx(styles.banner, styles.clientBug)} role="alert">
-          <div>
-            <strong>{t('detail.versionRejectedTitle')}</strong>
-            <p>{clientBug}</p>
+          {ticket.isEscalated ? (
+            /* READ-ONLY. Escalation is `016`; the flag is on this response and
+               nothing here can raise or clear it. */
+            <div className={cx(styles.railBlock, styles.escalated)}>
+              <span className={styles.escalatedHead}>{t('detail.escalated')}</span>
+              <p className={styles.escalatedBody}>{t('detail.escalatedNote')}</p>
+            </div>
+          ) : null}
+
+          <nav className={styles.anchors}>
+            <button
+              type="button"
+              className={cx(styles.anchor, descOpen && styles.anchorActive)}
+              onClick={() => setDescOpen(true)}
+            >
+              {t('detail.description')}
+            </button>
+            <button
+              type="button"
+              className={cx(styles.anchor, tagsOpen && styles.anchorActive)}
+              onClick={() => setTagsOpen(true)}
+            >
+              {t('detail.tags')}
+            </button>
+            <button
+              type="button"
+              className={cx(styles.anchor, timelineOpen && styles.anchorActive)}
+              onClick={() => setTimelineOpen(true)}
+            >
+              {t('detail.timeline')}
+            </button>
+          </nav>
+        </aside>
+
+        <div className={styles.main}>
+          {conflict ? (
+            <div className={styles.banner} role="alert">
+              <strong>{t('detail.conflictTitle')}</strong>
+              <span>{t('detail.conflictBody')}</span>
+              <span className={styles.bannerAction}>
+                <Button
+                  buttonType="secondary-outline"
+                  text={t('detail.reload')}
+                  onClick={() => {
+                    setConflict(false);
+                    void ticketQuery.refetch();
+                  }}
+                />
+              </span>
+            </div>
+          ) : null}
+
+          {/* A `400` on `expectedVersion` is a defect in THIS client. Shown as one
+              — not as a recoverable error with a retry — because a reader cannot
+              cause it and cannot fix it, and "try again" would be a lie (AC-5). */}
+          {clientBug ? (
+            <div className={styles.clientBug} role="alert">
+              <strong>{t('detail.versionRejectedTitle')}</strong>
+              <p style={{ margin: 0 }}>{clientBug}</p>
+            </div>
+          ) : null}
+
+          <h2 className={styles.subject} dir="auto">
+            {ticket.subject}
+          </h2>
+
+          <div className={styles.strip}>
+            <StripItem label={t('list.column.status')}>
+              <Badge
+                tone={STATUS_TONE[ticket.status] ?? 'neutral'}
+                label={t(`status.${ticket.status}`)}
+              />
+            </StripItem>
+            <StripItem label={t('list.column.customer')}>
+              <span dir="auto">{ticket.customer?.fullName ?? ''}</span>
+            </StripItem>
+            <StripItem label={t('detail.assignee')}>
+              {ticket.assignee ? (
+                <span dir="auto">{ticket.assignee.fullName}</span>
+              ) : (
+                <span className={styles.stripMuted}>{t('detail.unassigned')}</span>
+              )}
+            </StripItem>
+            <StripItem label={t('list.column.channel')}>
+              {t(`channel.${ticket.channel}`)}
+            </StripItem>
+            <StripItem label={t('field.category')}>
+              {t(`category.${ticket.category}`)}
+            </StripItem>
+            <StripItem label={t('list.column.priority')}>
+              {t(`priority.${ticket.priority}`)}
+            </StripItem>
+            <StripItem label={t('list.column.created')}>
+              {formatDateTime(ticket.createdAtUtc, lang)}
+            </StripItem>
+            <StripItem label={t('detail.updated')}>
+              {formatDateTime(ticket.updatedAtUtc, lang)}
+            </StripItem>
           </div>
-        </div>
-      ) : null}
 
-      <h2 className={styles.subject} dir="auto">
-        {ticket.subject}
-      </h2>
-
-      <div className={styles.strip}>
-        <StripItem label={t('list.column.status')}>
-          <Badge
-            tone={STATUS_TONE[ticket.status] ?? 'neutral'}
-            label={t(`status.${ticket.status}`)}
-          />
-        </StripItem>
-        <StripItem label={t('list.column.priority')}>
-          {t(`priority.${ticket.priority}`)}
-        </StripItem>
-        <StripItem label={t('field.category')}>{t(`category.${ticket.category}`)}</StripItem>
-        <StripItem label={t('list.column.channel')}>{t(`channel.${ticket.channel}`)}</StripItem>
-        <StripItem label={t('list.column.customer')}>
-          <span dir="auto">{ticket.customer?.fullName ?? ''}</span>
-        </StripItem>
-        <StripItem label={t('detail.assignee')}>
-          {ticket.assignee ? (
-            <span dir="auto">{ticket.assignee.fullName}</span>
-          ) : (
-            <span className={styles.stripMuted}>{t('detail.unassigned')}</span>
-          )}
-        </StripItem>
-      </div>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3>{t('detail.description')}</h3>
-        </div>
-        <div className={styles.sectionBody}>
-          <p className={styles.description} dir="auto">
-            {ticket.description}
-          </p>
-        </div>
-      </section>
-
-      {/* ── the actions ──────────────────────────────────────────────────── */}
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3>{t('detail.takeAction')}</h3>
-        </div>
-        <div className={styles.sectionBody}>
-          <div className={styles.controls}>
-            {transitions.length > 0 ? (
-              <div className={styles.menuWrap}>
-                {/* ONE CONTROL PER ALLOWED TRANSITION, not a select.
-                 *
-                 * The catalogue decided this and it is the better shape anyway:
-                 * `detail.moveTo` is `"Move to {{status}}"` — an interpolated
-                 * per-transition label, which the design's take-action menu asks
-                 * for. The first version of this screen used it as a select's
-                 * label with no variable, so the control rendered literally
-                 * `Move to {{status}}` — caught by a test looking for the
-                 * accessible name, and it would otherwise have shipped as visible
-                 * text.
-                 *
-                 * Buttons also render what the server sent where a reader can see
-                 * it, instead of hiding the permitted set one click deep. */}
-                {transitions.map((next) => (
-                  <Button
-                    key={next}
-                    buttonType="secondary-outline"
-                    text={t('detail.moveTo', { status: t(`status.${next}`) })}
-                    loading={status.isPending && pending === next}
-                    onClick={() => {
-                      setPending(next);
-                      setNote('');
-
-                      /* Applied immediately unless BR-1.2 wants a reason. Asking
-                         for a note on every transition would train people to type
-                         nothing useful — `012` Q-1's own wording. */
-                      if (!noteRequiredFor(next)) {
-                        status.mutate({ next, note: '' });
-                      }
-                    }}
-                  />
-                ))}
-
-                {pending && noteRequiredFor(pending) ? (
-                  <div className={styles.dialogField}>
-                    <Textarea
-                      label={t('detail.note')}
-                      placeholder={t('detail.noteRequired')}
-                      value={note}
-                      onChange={setNote}
-                      rows={2}
-                    />
-                    <div className={styles.dialogActions}>
-                      <Button
-                        text={t('detail.confirm')}
-                        loading={status.isPending}
-                        disabled={note.trim() === ''}
-                        onClick={() => status.mutate({ next: pending, note })}
-                      />
-                      <Button
-                        buttonType="secondary-outline"
-                        text={t('detail.cancel', { defaultValue: '' }) || 'Cancel'}
-                        onClick={() => {
-                          setPending(null);
-                          setNote('');
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : null}
+          {/* The note BR-1.2 demands, when the chosen transition needs one. */}
+          {pending && noteRequiredFor(pending) ? (
+            <div className={styles.dialogCard}>
+              <h3 className={styles.dialogTitle}>
+                {t('detail.moveTo', { status: t(`status.${pending}`) })}
+              </h3>
+              <div className={styles.dialogBody}>
+                <Textarea
+                  label={t('detail.note')}
+                  placeholder={t('detail.noteRequired')}
+                  value={note}
+                  onChange={setNote}
+                  rows={2}
+                />
               </div>
-            ) : (
-              /* `Closed` is terminal — BR-1.5. The array is empty and nothing is
-                 rendered, which is AC-2 asserted with `[]` rather than only with
-                 a populated array. */
-              <p className={styles.stripMuted}>{t('detail.closedNoComment')}</p>
-            )}
+              <div className={styles.dialogActions}>
+                <Button
+                  buttonType="secondary-outline"
+                  text={t('detail.reload') === '' ? 'Cancel' : t('cancel', { ns: 'common' })}
+                  onClick={() => {
+                    setPending(null);
+                    setNote('');
+                  }}
+                />
+                <Button
+                  text={t('detail.confirm')}
+                  loading={status.isPending}
+                  disabled={note.trim() === ''}
+                  onClick={() => status.mutate({ next: pending, note })}
+                />
+              </div>
+            </div>
+          ) : null}
 
+          <Section
+            id="description"
+            title={t('detail.description')}
+            open={descOpen}
+            onToggle={() => setDescOpen((open) => !open)}
+          >
+            <p className={styles.description} dir="auto">
+              {ticket.description}
+            </p>
+          </Section>
+
+          <Section
+            id="assignment"
+            title={t('detail.assignee')}
+            open
+            onToggle={() => undefined}
+          >
+            {/* BR-2 is mirrored for AFFORDANCE ONLY — the server decides (AC-7).
+                The picker is offered to everyone and a refusal comes back as a
+                `403`: hiding it would tell an Agent that self-assignment is
+                impossible rather than that this assignment is. */}
             <Dropdown
               label={ticket.assignee ? t('detail.reassign') : t('detail.assign')}
               options={users.map((user) => ({
@@ -540,161 +781,208 @@ export default function TicketDetailPage() {
               value={ticket.assignee?.id ?? null}
               onChange={(next) => assignee.mutate(next)}
               placeholder={t('detail.pickAssignee')}
-              helperText={t('detail.pickerHint')}
               loading={supportUsers.isPending}
               clearable
               disabled={assignee.isPending}
               size="md"
             />
-          </div>
-        </div>
-      </section>
+          </Section>
 
-      {/* ── the timeline ─────────────────────────────────────────────────── */}
-      {/* ── `034`'s tags ─────────────────────────────────────────────────── */}
-      <section className={styles.section}>
-        <div className={styles.sectionHead}>
-          <h3>{t('detail.tags')}</h3>
-        </div>
-        <div className={styles.sectionBody}>
-          <div className={styles.controls}>
-            {ticket.tags.length === 0 ? (
-              <span className={styles.stripMuted}>{t('detail.noTags')}</span>
-            ) : (
-              ticket.tags.map((tag) => (
-                /* The name is Arabic user content, so dir="auto" — a Latin tag
-                   beside an Arabic one must not drag the row's direction. */
-                <span key={tag.id} className={styles.internalMark} dir="auto">
-                  {tag.name}
-                  <button
-                    type="button"
-                    className={styles.searchClear}
-                    aria-label={t('detail.removeTag', { name: tag.name })}
-                    disabled={tagWrite.isPending}
-                    onClick={() => tagWrite.mutate({ tagId: tag.id, attach: false })}
-                  >
-                    <IconClose size={12} />
-                  </button>
-                </span>
-              ))
-            )}
+          <Section
+            id="tags"
+            title={t('detail.tags')}
+            open={tagsOpen}
+            onToggle={() => setTagsOpen((open) => !open)}
+          >
+            <div className={styles.controls}>
+              {ticket.tags.length === 0 ? (
+                <span className={styles.stripMuted}>{t('detail.noTags')}</span>
+              ) : (
+                ticket.tags.map((tag) => (
+                  <span key={tag.id} className={styles.internalMark} dir="auto">
+                    {tag.name}
+                    <button
+                      type="button"
+                      className={styles.searchClear}
+                      aria-label={t('detail.removeTag', { name: tag.name })}
+                      disabled={tagWrite.isPending}
+                      onClick={() => tagWrite.mutate({ tagId: tag.id, attach: false })}
+                    >
+                      <IconClose size={12} />
+                    </button>
+                  </span>
+                ))
+              )}
 
-            {/* Only the tags NOT already attached. Offering an attached one is
-                offering a write whose outcome the server has already applied. */}
-            <Dropdown
-              label={t('detail.addTag')}
-              options={(tagVocabulary.data ?? [])
-                .filter((tag) => !ticket.tags.some((attached) => attached.id === tag.id))
-                .map((tag) => ({ value: tag.id, label: tag.name }))}
-              value={null}
-              onChange={(tagId) => {
-                if (tagId) tagWrite.mutate({ tagId, attach: true });
-              }}
-              placeholder={t('detail.addTag')}
-              loading={tagVocabulary.isPending}
-              disabled={tagWrite.isPending}
-              size="md"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.section} id="timeline">
-        <div className={styles.sectionHead}>
-          <h3>{t('detail.timeline')}</h3>
-          {counts ? (
-            <span className={styles.sectionCount}>
-              {t('detail.timelineEntries', {
-                count: counts.commentCount + counts.historyCount,
-                defaultValue: String(counts.commentCount + counts.historyCount),
-              })}
-            </span>
-          ) : null}
-        </div>
-
-        <div className={styles.sectionBody}>
-          {/* LOAD EARLIER IS AT THE TOP and appends older entries, which is Q-2's
-              ruling: a conversation reads down and the newest entry is what the
-              reader came for. */}
-          {timelineQuery.hasNextPage ? (
-            <button
-              type="button"
-              className={styles.loadEarlier}
-              onClick={() => void timelineQuery.fetchNextPage()}
-              disabled={timelineQuery.isFetchingNextPage}
-            >
-              {t('detail.loadEarlier')}
-            </button>
-          ) : entries.length > 0 ? (
-            <p className={styles.feedStart}>{t('detail.feedStart')}</p>
-          ) : null}
-
-          <div className={styles.feed}>
-            {entries.length === 0 && !timelineQuery.isPending ? (
-              <p className={styles.emptyBody}>{t('detail.emptyBody')}</p>
-            ) : (
-              /* The server sends newest first and the feed reads down, so the
-                 list is reversed for DISPLAY only — never for the cursor, which
-                 must keep the server's order. */
-              [...entries]
-                .reverse()
-                .map((entry) => <Entry key={entry.id} entry={entry} lang={lang} />)
-            )}
-          </div>
-
-          {/* `Closed` is terminal for comments too (BR-1.5), so the composer is
-              absent rather than disabled: a disabled box invites a reader to
-              hunt for what would enable it. */}
-          {transitions.length === 0 ? null : (
-            <div className={styles.composer}>
-              {/* `034`'s reply templates. THEY INSERT INTO THE DRAFT rather than
-                  sending: a template is a starting point, and a picker that sent
-                  it would post an unedited form letter with one click. */}
-              {(cannedReplies.data ?? []).length > 0 ? (
-                <Dropdown
-                  label={t('detail.useTemplate')}
-                  options={(cannedReplies.data ?? []).map((reply) => ({
-                    value: reply.id,
-                    label: reply.title,
-                    description: reply.category
-                      ? t(`category.${reply.category}`)
-                      : t('detail.templateGeneral'),
-                  }))}
-                  value={null}
-                  onChange={(replyId) => {
-                    const reply = (cannedReplies.data ?? []).find((r) => r.id === replyId);
-                    if (reply) setDraft(reply.body);
-                  }}
-                  placeholder={t('detail.useTemplate')}
-                  size="md"
-                />
-              ) : null}
-
-              <Textarea
-                label={t('detail.comment')}
-                placeholder={t('detail.commentPlaceholder')}
-                value={draft}
-                onChange={setDraft}
-                rows={3}
+              {/* Only the tags NOT already attached. Offering an attached one is
+                  offering a write whose outcome the server has already applied. */}
+              <Dropdown
+                label={t('detail.addTag')}
+                labelHidden
+                options={(tagVocabulary.data ?? [])
+                  .filter((tag) => !ticket.tags.some((attached) => attached.id === tag.id))
+                  .map((tag) => ({ value: tag.id, label: tag.name }))}
+                value={null}
+                onChange={(tagId) => {
+                  if (tagId) tagWrite.mutate({ tagId, attach: true });
+                }}
+                placeholder={t('detail.addTag')}
+                loading={tagVocabulary.isPending}
+                disabled={tagWrite.isPending}
+                size="sm"
               />
-              <div className={styles.composerControls}>
-                <Checkbox
-                  label={t('detail.markInternal')}
-                  checked={internal}
-                  onChange={setInternal}
-                  helperText={t('detail.internalHint')}
-                />
-                <Button
-                  text={t('detail.send')}
-                  loading={comment.isPending}
-                  disabled={draft.trim() === ''}
-                  onClick={() => comment.mutate(draft.trim())}
-                />
-              </div>
             </div>
-          )}
+          </Section>
+
+          <Section
+            id="timeline"
+            title={t('detail.timeline')}
+            {...(counts
+              ? {
+                  count: t('detail.timelineEntries', {
+                    count: counts.commentCount + counts.historyCount,
+                  }),
+                }
+              : {})}
+            open={timelineOpen}
+            onToggle={() => setTimelineOpen((open) => !open)}
+          >
+            {/* LOAD EARLIER IS AT THE TOP — Q-2: a conversation reads down and
+                the newest entry is what the reader came for. */}
+            {timelineQuery.hasNextPage ? (
+              <button
+                type="button"
+                className={styles.loadEarlier}
+                onClick={() => void timelineQuery.fetchNextPage()}
+                disabled={timelineQuery.isFetchingNextPage}
+              >
+                {t('detail.loadEarlier')}
+              </button>
+            ) : entries.length > 0 ? (
+              <p className={styles.feedStart}>{t('detail.feedStart')}</p>
+            ) : null}
+
+            <div className={styles.feed}>
+              {entries.length === 0 && !timelineQuery.isPending ? (
+                <div className={styles.empty}>
+                  <p className={styles.emptyTitle}>{t('detail.emptyTitle')}</p>
+                  <p className={styles.emptyBody}>{t('detail.emptyBody')}</p>
+                </div>
+              ) : (
+                /* The server sends newest first and the feed reads down, so the
+                   list is reversed for DISPLAY only — never for the cursor, which
+                   must keep the server's order. */
+                [...entries]
+                  .reverse()
+                  .map((item) => (
+                    <Entry key={item.id} entry={item} lang={lang} nameOf={nameOf} />
+                  ))
+              )}
+            </div>
+
+            {/* `Closed` is terminal for comments too (BR-1.5), so the composer is
+                ABSENT rather than disabled: a disabled box invites a reader to
+                hunt for what would enable it. */}
+            {transitions.length === 0 ? (
+              <p className={styles.stripMuted}>{t('detail.closedNoComment')}</p>
+            ) : (
+              <div className={styles.composer}>
+                {(cannedReplies.data ?? []).length > 0 ? (
+                  /* `034`'s templates. They INSERT into the draft rather than
+                     sending: a template is a starting point, and a picker that
+                     sent would post an unedited form letter with one click. */
+                  <Dropdown
+                    label={t('detail.useTemplate')}
+                    labelHidden
+                    options={(cannedReplies.data ?? []).map((reply) => ({
+                      value: reply.id,
+                      label: reply.title,
+                      description: reply.category
+                        ? t(`category.${reply.category}`)
+                        : t('detail.templateGeneral'),
+                    }))}
+                    value={null}
+                    onChange={(replyId) => {
+                      const reply = (cannedReplies.data ?? []).find((r) => r.id === replyId);
+                      if (reply) setDraft(reply.body);
+                    }}
+                    placeholder={t('detail.useTemplate')}
+                    size="sm"
+                  />
+                ) : null}
+
+                <Textarea
+                  label={t('detail.comment')}
+                  labelHidden
+                  placeholder={t('detail.commentPlaceholder')}
+                  value={draft}
+                  onChange={setDraft}
+                  rows={3}
+                />
+                <div className={styles.composerControls}>
+                  <Checkbox
+                    label={t('detail.markInternal')}
+                    checked={internal}
+                    onChange={setInternal}
+                    helperText={t('detail.internalHint')}
+                  />
+                  <span className={styles.composerSend}>
+                    <Button
+                      text={t('detail.send')}
+                      loading={comment.isPending}
+                      disabled={draft.trim() === ''}
+                      onClick={() => comment.mutate(draft.trim())}
+                    />
+                  </span>
+                </div>
+              </div>
+            )}
+          </Section>
         </div>
-      </section>
+      </div>
+
+      {/* Sticky, so a hundred entries never force a scroll back up to act. */}
+      <div className={styles.stickyBar}>
+        <Link className={styles.anchor} to="/tickets">
+          {t('detail.backToList')}
+        </Link>
+        {transitions.length > 0 ? (
+          <span className={styles.stickyEnd}>
+            <div className={styles.menuWrap}>
+              <Button
+                text={t('detail.takeAction')}
+                iconEnd={<IconChevronDown size={16} />}
+                onClick={() => setMenuAt((at) => (at === 'sticky' ? null : 'sticky'))}
+                aria-expanded={menuAt === 'sticky'}
+                aria-controls="take-action-sticky"
+              />
+              {menuAt === 'sticky' ? (
+                <div className={styles.menu} role="menu" id="take-action-sticky">
+                  {transitions.map((next) => (
+                    <button
+                      key={next}
+                      type="button"
+                      role="menuitem"
+                      className={styles.menuItem}
+                      onClick={() => {
+                        setMenuAt(null);
+                        setPending(next);
+                        setNote('');
+                        if (!noteRequiredFor(next)) {
+                          status.mutate({ next, note: '' });
+                        }
+                      }}
+                    >
+                      {t('detail.moveTo', { status: t(`status.${next}`) })}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </span>
+        ) : null}
+        </div>
+      </div>
     </main>
   );
 }
