@@ -163,6 +163,18 @@
   <data name="Validation.TicketFilter.AssigneeInvalid" xml:space="preserve">
     <value>مُسنَد غير مقبول. استخدم me أو unassigned أو معرّف مستخدم.</value>
   </data>
+  <data name="Validation.TicketFilter.CreatedDateInvalid" xml:space="preserve">
+    <value>تاريخ غير مقروء. استخدم الصيغة yyyy-MM-dd، مثال 2026-08-31.</value>
+  </data>
+  <data name="Validation.TicketFilter.CalendarInvalid" xml:space="preserve">
+    <value>تقويم غير مقبول. القيم المقبولة: gregorian, hijri.</value>
+  </data>
+  <data name="Validation.TicketFilter.CalendarUndeclared" xml:space="preserve">
+    <value>هذه السنة ليست ميلادية. إن كان التاريخ هجريًا فأضف calendar=hijri.</value>
+  </data>
+  <data name="Validation.TicketFilter.CreatedRangeInverted" xml:space="preserve">
+    <value>نهاية المدى الزمني تسبق بدايته.</value>
+  </data>
   <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
     <value>اختر تصنيفًا صحيحًا.</value>
   </data>

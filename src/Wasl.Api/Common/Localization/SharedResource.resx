@@ -163,6 +163,18 @@
   <data name="Validation.TicketFilter.AssigneeInvalid" xml:space="preserve">
     <value>Not an accepted assignee filter. Use me, unassigned, or a user id.</value>
   </data>
+  <data name="Validation.TicketFilter.CreatedDateInvalid" xml:space="preserve">
+    <value>Not a readable date. Use yyyy-MM-dd, for example 2026-08-31.</value>
+  </data>
+  <data name="Validation.TicketFilter.CalendarInvalid" xml:space="preserve">
+    <value>Not an accepted calendar. Accepted values: gregorian, hijri.</value>
+  </data>
+  <data name="Validation.TicketFilter.CalendarUndeclared" xml:space="preserve">
+    <value>That year is not a Gregorian one. If this is a Hijri date, add calendar=hijri.</value>
+  </data>
+  <data name="Validation.TicketFilter.CreatedRangeInverted" xml:space="preserve">
+    <value>The end of the date range is before its start.</value>
+  </data>
   <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
     <value>Choose a valid category.</value>
   </data>

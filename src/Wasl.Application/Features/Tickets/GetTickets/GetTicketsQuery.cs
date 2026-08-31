@@ -58,6 +58,26 @@ namespace Wasl.Application.Features.Tickets.GetTickets;
 /// Case-insensitive substring over ticket number, subject, and customer name (BR-7.5, AC-6).
 /// Trimmed; whitespace-only is absent, never a match-nothing filter.
 /// </param>
+/// <param name="CreatedFrom">
+/// Inclusive lower bound on the created DAY, <c>yyyy-MM-dd</c>, added 2026-08-31 at the product
+/// owner's direction — the filter panel's date range was drawn and inert until the endpoint grew
+/// these two.
+/// <b>The bounds are UTC days.</b> <c>CreatedAtUtc</c> is what the column stores, so
+/// "created on 31/08" means the UTC 31st; a Riyadh-local day (UTC+3) is a different slice and
+/// choosing it silently would make the filter disagree with every timestamp the product renders.
+/// <b>A DAY, never a timestamp</b> — a client that sends one for a day-range filter has a bug,
+/// and accepting it would hide it.
+/// </param>
+/// <param name="CreatedTo">
+/// Inclusive upper bound on the created day. Inclusive because that is how people read a date
+/// range — <c>to 31/08</c> means "including the 31st" — so the handler compares against the
+/// EXCLUSIVE start of the following day rather than truncating per row.
+/// </param>
+/// <param name="Calendar">
+/// <c>hijri</c> or <c>gregorian</c>, applying to BOTH bounds. Absent means Gregorian.
+/// <b>Declared, never inferred</b> — see <see cref="DateRangeFilter"/> for the measurement that
+/// made this a parameter instead of a heuristic.
+/// </param>
 public sealed record GetTicketsQuery(
     int? Page = null,
     int? PageSize = null,
@@ -68,7 +88,10 @@ public sealed record GetTicketsQuery(
     IReadOnlyList<string>? Channel = null,
     string? Assignee = null,
     bool? Escalated = null,
-    string? Search = null)
+    string? Search = null,
+    string? CreatedFrom = null,
+    string? CreatedTo = null,
+    string? Calendar = null)
     : IRequest<PagedResult<TicketListItem>>
 {
     /// <summary><c>?assignee=me</c>, spelled the way the contract spells it.</summary>
@@ -106,6 +129,33 @@ public sealed record GetTicketsQuery(
     /// whose subject is a space.
     /// </remarks>
     internal string? EffectiveSearch => string.IsNullOrWhiteSpace(Search) ? null : Search.Trim();
+
+    /// <summary>The lower bound as a Gregorian day, whichever calendar it arrived in.</summary>
+    /// <remarks>
+    /// <b>Both bounds bind as <c>string</c>, like the four enum filters and for the same measured
+    /// reason.</b> `002c` established that the model binder refuses a malformed value BEFORE the
+    /// MediatR pipeline runs, so a <c>DateOnly?</c> parameter puts the refusal somewhere
+    /// <c>ValidationBehaviour</c> cannot reach — and the response is then the framework's English
+    /// sentence rather than a catalogue message. Measured on this endpoint before the change:
+    /// <c>?createdFrom=2026-13-45</c> answered
+    /// <c>"The value '2026-13-45' is not valid."</c>, in English, to an Arabic client.
+    /// A Hijri bound could not have been parsed there either, which is the second reason.
+    /// </remarks>
+    internal DateOnly? EffectiveCreatedFrom => DateRangeFilter.Parse(CreatedFrom, Calendar);
+
+    /// <inheritdoc cref="EffectiveCreatedFrom"/>
+    internal DateOnly? EffectiveCreatedTo => DateRangeFilter.Parse(CreatedTo, Calendar);
+
+    /// <summary>True when the range ends before it starts — a <c>400</c>, not an empty page.</summary>
+    /// <remarks>
+    /// <b>Refused rather than answered, and the distinction is the point.</b> An inverted range
+    /// returns zero rows from a correct query, so a <c>200</c> would tell the reader there is no
+    /// work in that period — a false claim about the DATA in answer to a broken claim about the
+    /// REQUEST. Measured before the change: <c>?createdFrom=2026-09-01&amp;createdTo=2026-08-01</c>
+    /// answered <c>200</c> with <c>totalCount 0</c> against 186 tickets.
+    /// </remarks>
+    internal bool CreatedRangeIsInverted =>
+        EffectiveCreatedFrom is { } from && EffectiveCreatedTo is { } to && to < from;
 
     /// <summary>Which of the three meanings <c>?assignee=</c> carries. `015` AC-8, AC-9.</summary>
     internal AssigneeFilterKind AssigneeKind =>

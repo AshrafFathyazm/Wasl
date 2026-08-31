@@ -65,6 +65,39 @@ internal sealed class GetTicketsQueryValidator : AbstractValidator<GetTicketsQue
             .Must(values => TicketFilters.Invalid<CommunicationChannel>(values).Count == 0)
             .WithMessage("Validation.TicketFilter.ChannelInvalid");
 
+        /* THE CALENDAR IS CHECKED FIRST because both bounds are read through it: a typo in
+         * ?calendar= would otherwise make a perfectly good Hijri date "unreadable" and name the
+         * wrong parameter in the message. */
+        RuleFor(query => query.Calendar)
+            .Must(DateRangeFilter.IsKnownCalendar)
+            .WithMessage("Validation.TicketFilter.CalendarInvalid");
+
+        RuleFor(query => query.CreatedFrom)
+            .Must((query, raw) => !DateRangeFilter.IsUnreadable(raw, query.Calendar))
+            .WithMessage("Validation.TicketFilter.CreatedDateInvalid");
+
+        RuleFor(query => query.CreatedTo)
+            .Must((query, raw) => !DateRangeFilter.IsUnreadable(raw, query.Calendar))
+            .WithMessage("Validation.TicketFilter.CreatedDateInvalid");
+
+        /* THE RULE THIS FEATURE EXISTS FOR. A Hijri date is a valid Gregorian one, so without
+         * these two nothing is wrong with ?createdFrom=1448-03-05 — it simply means the year
+         * 1448 and matches everything. The message names ?calendar=hijri, which is the whole
+         * difference between a wrong answer and a usable one. */
+        RuleFor(query => query.CreatedFrom)
+            .Must((query, raw) => !DateRangeFilter.LooksHijriButUndeclared(raw, query.Calendar))
+            .WithMessage("Validation.TicketFilter.CalendarUndeclared");
+
+        RuleFor(query => query.CreatedTo)
+            .Must((query, raw) => !DateRangeFilter.LooksHijriButUndeclared(raw, query.Calendar))
+            .WithMessage("Validation.TicketFilter.CalendarUndeclared");
+
+        // Keyed to CreatedTo because that is the bound a caller raises to fix it, and an errors
+        // object naming both would read as two independent faults.
+        RuleFor(query => query.CreatedTo)
+            .Must((query, _) => !query.CreatedRangeIsInverted)
+            .WithMessage("Validation.TicketFilter.CreatedRangeInverted");
+
         // Keyed to Assignee so the errors object names `assignee`, which is the parameter the
         // client sent — the property is what FluentValidation turns into the key, and `002c`
         // lower-cases the first letter on the way out.

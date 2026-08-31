@@ -200,3 +200,66 @@ export const IconAlert = ({ size = 16, ...p }: IconProps) => (
     <path d="M12 16v.5" />
   </svg>
 );
+
+/**
+ * (D) Reassign — one line, two heads, on the diagonal.
+ *
+ * The inherited `IconAssign` is a person with a mark beside them: that is
+ * ASSIGN, the act of naming someone. The design's row menu draws REASSIGN, which
+ * is a move from one holder to another, and it draws it as a two-headed diagonal
+ * arrow — no person in it at all, because the subject is the ticket rather than
+ * the people.
+ *
+ * The diagonal runs 6.4 → 17.6 on both axes, so the glyph fills the 16-unit
+ * keyline corner to corner. The heads are 4.4 long, which reads at 16px; at 3.2
+ * they collapse into the shaft and the whole thing becomes a slash.
+ *
+ * NOT DIRECTIONAL. Both ends carry a head, so there is no direction for RTL to
+ * mirror — which is the point of the shape.
+ */
+export const IconReassign = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M17.6 6.4 6.4 17.6" />
+    <path d="M17.6 10.8V6.4h-4.4" />
+    <path d="M6.4 13.2v4.4h4.4" />
+  </svg>
+);
+
+/**
+ * (D) Escalate — a plain arrow, straight up.
+ *
+ * `IconEscalate` in the inherited set is an arrow inside a rounded square, which
+ * is the *escalation action on a card*; the menu row wants the bare direction.
+ * Up is not a metaphor here — every escalation surface in this product reads
+ * "raise", and the arrow is the shortest way to say it.
+ *
+ * NOT DIRECTIONAL, and it is the clearest case: the axis is vertical, so RTL has
+ * nothing to flip. ADR-007 §6.
+ */
+export const IconArrowUp = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M12 19.6V4.4" />
+    <path d="M6.6 9.8 12 4.4l5.4 5.4" />
+  </svg>
+);
+
+/**
+ * (D) Close — a circle with a cross inside it.
+ *
+ * `IconClosed` is a padlock: that is CLOSED as a state on a badge. This is the
+ * destructive ACTION, and the design gives it a circled cross — the same glyph
+ * every confirm-dialog in the world uses for "stop this". Keeping the two
+ * separate matters on the ticket list, where the padlock already appears in the
+ * status column: one row would then carry the same mark for "it is closed" and
+ * for "close it".
+ *
+ * The cross spans 9 → 15 inside an r-8 circle, so its ends stop 1.5 units short
+ * of the rim. Touching the rim turns the glyph into a filled-looking knot at
+ * 16px.
+ */
+export const IconCircleX = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="M9 9l6 6M15 9l-6 6" />
+  </svg>
+);

@@ -46,24 +46,25 @@
 }
 
 /* ----------------------------------------------------------------------------
- * base.css rule 17 forces EVERY <button> to the primary navy with !important, so
- * a dark-mode host stylesheet cannot repaint a native control. That file states
- * the only escape: a CLASS repeating the same three properties, with !important.
- * Omitting !important does NOT win.
+ * THE DEFENSIVE BLOCK THAT USED TO SIT HERE IS GONE — 2026-08-31.
  *
- * `:where(button)` contributes no specificity, so this weighs exactly `.card` —
- * (0,1,0). Enough to beat the element selector in base.css, and equal to every
- * class below, which therefore wins on order. It MUST stay first: moved lower it
- * wins instead and repaints every control transparent.
+ * It was `.card :where(button)` forcing `background-color: transparent`,
+ * `color: inherit` and `-webkit-text-fill-color: currentcolor`, all !important,
+ * because `base.css` rule 17 painted EVERY `<button>` primary-navy with
+ * !important and the only documented escape was to shout back. Its own comment
+ * recorded the damage that rule caused here: *"every tab, every filter chip,
+ * every pager cell and the kebab rendering as a solid navy pill — twenty-five
+ * classes, one cause."*
+ *
+ * base.css now scopes rule 17 to `:not([class])`, so a classed control is not
+ * painted at all and there is nothing left to defend against.
+ *
+ * REMOVING IT WAS NOT COSMETIC. `color: inherit !important` beat every class in
+ * this file that set a colour — measured on the ticket list's row menu, where the
+ * destructive item computed `rgb(13, 38, 38)` while its own rule said
+ * `var(--state-danger-text)`. A defence against one !important had become the
+ * loudest declaration in the module.
  * -------------------------------------------------------------------------- */
-.card :where(button) {
-  background-color: transparent !important;
-  color: inherit !important;
-
-  /* -webkit-text-fill-color beats a descendant's `color`, so it is pinned once
-   * here rather than repeated on each class. */
-  -webkit-text-fill-color: currentcolor !important;
-}
 
 /* A refetch DIMS. It never re-skeletons: throwing away the rows the reader is
  * looking at, to say something they did not ask about, is worse than saying it

@@ -50,7 +50,22 @@ export const STATUS_VALUES = [
  * rhythm belongs. Adding all six would make the tab strip wider than the table
  * on a laptop.
  */
-export const TAB_STATUSES = ['Open', 'InProgress', 'Resolved'] as const;
+/* THE FOUR THE DESIGN DRAWS, and `Open` is deliberately not among them.
+ *
+ * The design frames supplied on 2026-08-31 show five chips: All, New, In
+ * progress, Pending customer, Resolved. `Open` and `Closed` stay reachable from
+ * the filter panel — a tab strip carries the states a queue is worked through,
+ * not every value BR-1 defines.
+ *
+ * This list decides what the counts are fetched for: `TicketListPage` issues one
+ * count query per entry plus one for `Closed`, and the labels come from
+ * `status.*` in the catalogue. */
+export const TAB_STATUSES = [
+  'New',
+  'InProgress',
+  'PendingCustomer',
+  'Resolved',
+] as const;
 
 /** How many values one repeated filter may carry before the server clamps. */
 export const MAX_FILTER_VALUES = 20;
@@ -65,6 +80,12 @@ export interface FilterState {
   /** `undefined` is "any" — NOT `false`, which means "not escalated". */
   escalated: boolean | undefined;
   search: string;
+
+  /** ISO days — `2026-08-31` — or `''` for unset, the same shape `assignee`
+   *  uses. THE BOUNDS ARE UTC DAYS and both ends are inclusive; the server owns
+   *  that reading (GetTicketsQuery documents it), this only carries it. */
+  createdFrom: string;
+  createdTo: string;
 }
 
 export const NO_FILTERS: FilterState = {
@@ -75,6 +96,8 @@ export const NO_FILTERS: FilterState = {
   assignee: '',
   escalated: undefined,
   search: '',
+  createdFrom: '',
+  createdTo: '',
 };
 
 /**
@@ -122,6 +145,23 @@ function knownEscalated(raw: string | null): boolean | undefined {
   return undefined;
 }
 
+/**
+ * An ISO day the server's DateOnly will actually accept.
+ *
+ * The round-trip check is the half that matters: `2026-02-31` matches the
+ * pattern, `new Date` silently rolls it to March 3rd, and the URL would then
+ * filter by a day nobody typed. A value that does not survive the round trip is
+ * dropped like every other unknown filter value.
+ */
+function knownIsoDay(raw: string | null): string {
+  if (raw === null || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+  const parsed = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== raw
+    ? ''
+    : raw;
+}
+
 export function readFilters(params: URLSearchParams): FilterState {
   return {
     status: known(params.getAll('status'), STATUS_VALUES),
@@ -131,6 +171,8 @@ export function readFilters(params: URLSearchParams): FilterState {
     assignee: knownAssignee(params.get('assignee')),
     escalated: knownEscalated(params.get('escalated')),
     search: (params.get('search') ?? '').trim(),
+    createdFrom: knownIsoDay(params.get('createdFrom')),
+    createdTo: knownIsoDay(params.get('createdTo')),
   };
 }
 
@@ -162,6 +204,8 @@ export function withFilters(
   if (next.assignee) out.set('assignee', next.assignee);
   if (next.escalated !== undefined) out.set('escalated', String(next.escalated));
   if (next.search) out.set('search', next.search);
+  if (next.createdFrom) out.set('createdFrom', next.createdFrom);
+  if (next.createdTo) out.set('createdTo', next.createdTo);
 
   return out;
 }
@@ -175,7 +219,9 @@ export function isFiltering(filters: FilterState): boolean {
     filters.channel.length > 0 ||
     filters.assignee !== '' ||
     filters.escalated !== undefined ||
-    filters.search !== ''
+    filters.search !== '' ||
+    filters.createdFrom !== '' ||
+    filters.createdTo !== ''
   );
 }
 
@@ -187,7 +233,9 @@ export function activeFilterCount(filters: FilterState): number {
     filters.category.length +
     filters.channel.length +
     (filters.assignee ? 1 : 0) +
-    (filters.escalated !== undefined ? 1 : 0)
+    (filters.escalated !== undefined ? 1 : 0) +
+    (filters.createdFrom ? 1 : 0) +
+    (filters.createdTo ? 1 : 0)
   );
 }
 
@@ -214,5 +262,7 @@ export function toListParams(
     ...(filters.assignee ? { assignee: filters.assignee } : {}),
     ...(filters.escalated !== undefined ? { escalated: filters.escalated } : {}),
     ...(filters.search ? { search: filters.search } : {}),
+    ...(filters.createdFrom ? { createdFrom: filters.createdFrom } : {}),
+    ...(filters.createdTo ? { createdTo: filters.createdTo } : {}),
   };
 }

@@ -64,16 +64,47 @@ body {
  * repeats the same three properties with !important. Among !important declarations
  * the normal cascade still applies, and a class (0,1,0) beats an element (0,0,1) —
  * so the component wins. Omitting !important in the component does NOT win.
+ *
+ * ^ THAT PARAGRAPH IS WHY THE PRODUCT LOOKED BROKEN, and the rules below are now
+ * scoped to `:not([class])`. Ruled 2026-08-31 by the product owner, after four
+ * separate reports in one session.
+ *
+ * The trap: a component that styles a control and does NOT repeat !important
+ * loses silently, and what it loses to is the PRIMARY BUTTON FILL. So every
+ * classed `<button>` in the product that expected to be quiet rendered as a navy
+ * pill. MEASURED, not argued — the ticket list's status tabs declare
+ * `background: transparent` in their own module and computed
+ * `rgb(29, 23, 77)`; the same cause produced navy copy buttons on the customer
+ * profile, a 40px-tall 28px icon button, and a 58px toast whose own padding said
+ * 39. Four defects, one rule, and each was reported as "the design is broken".
+ *
+ * Rule 17's stated purpose is UNSTYLED controls — "in a dark-mode browser an
+ * unstyled control renders on a dark canvas" — and a control with a class is not
+ * unstyled: it has a stylesheet of its own. `:not([class])` keeps the safety net
+ * exactly where the reason for it applies and takes it off every component.
+ * There is no specificity fight left to lose: a classed control is not matched
+ * here at all, so its own rules apply with no !important anywhere.
+ *
+ * A component may still use !important. It no longer HAS to.
  * -------------------------------------------------------------------------- */
 
+button:not([class]),
+input:not([class]),
+select:not([class]),
+textarea:not([class]) {
+  background-color: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Typography and the border are NOT the trap — a component that sets its own
+ * border or font wins these on ordinary specificity, with no !important in
+ * sight. They stay on every control, so an unclassed one still looks like it
+ * belongs to this product. */
 button,
 input,
 select,
 textarea {
-  background-color: var(--surface-card) !important;
-  color: var(--text-primary) !important;
-  -webkit-text-fill-color: var(--text-primary) !important;
-
   border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-sm);
   font-family: inherit;
@@ -82,12 +113,17 @@ textarea {
   letter-spacing: var(--tracking);
 }
 
+input:not([class]),
+select:not([class]),
+textarea:not([class]) {
+  background-color: var(--field-fill) !important;
+}
+
 input,
 select,
 textarea {
   block-size: var(--field-height-md);
   padding-inline: var(--space-3);
-  background-color: var(--field-fill) !important;
   inline-size: 100%;
 }
 
@@ -97,13 +133,26 @@ textarea {
   resize: block;
 }
 
-button {
-  block-size: var(--button-height-md);
-  padding-inline: var(--button-padding);
+/* THE PRIMARY FILL BELONGS TO AN UNSTYLED BUTTON ONLY. `Button.module.css` paints
+ * the real primary button, and it always did — this element rule was a safety net
+ * that had become the loudest declaration in the product. */
+button:not([class]) {
   background-color: var(--action-primary-bg) !important;
   color: var(--action-primary-text) !important;
   -webkit-text-fill-color: var(--action-primary-text) !important;
   border-color: var(--action-primary-border);
+}
+
+/* GEOMETRY, and it was the other half of the trap: a 40px `block-size` and 12px
+ * of inline padding on EVERY button turned a 28px icon control into a 40px pill
+ * and set a toast's height from its dismiss glyph. Both were reported as size
+ * defects and neither was one. */
+button:not([class]) {
+  block-size: var(--button-height-md);
+  padding-inline: var(--button-padding);
+}
+
+button {
   font-weight: var(--weight-medium);
   cursor: pointer;
 }
@@ -123,14 +172,29 @@ textarea * {
 }
 
 /* Safari fades disabled input text regardless of `color` unless the fill colour is
- * set explicitly. One browser, silently. */
+ * set explicitly. One browser, silently.
+ *
+ * SCOPED THE SAME WAY as rule 17 above, and for the same measured reason: a
+ * disabled menu item with its own styling was given `--surface-sunken` as a
+ * filled block, because this rule shouts and the component did not. The design
+ * shows a disabled row as muted text on the menu's own surface. A classed control
+ * that offers a disabled state is expected to draw it.
+ *
+ * `cursor` and `border-color` stay unscoped — neither is a paint anyone fights
+ * over, and a disabled unclassed control should still refuse the pointer. */
+button:disabled:not([class]),
+input:disabled:not([class]),
+select:disabled:not([class]),
+textarea:disabled:not([class]) {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+}
+
 button:disabled,
 input:disabled,
 select:disabled,
 textarea:disabled {
-  background-color: var(--surface-sunken) !important;
-  color: var(--text-placeholder) !important;
-  -webkit-text-fill-color: var(--text-placeholder) !important;
   border-color: var(--border-subtle);
   cursor: not-allowed;
 }

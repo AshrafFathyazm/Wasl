@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, useLocation } from 'react-router-dom';
@@ -15,10 +15,13 @@ import i18n from '../../lib/i18n';
 
 vi.mock('./tickets.api', async () => {
   const actual = await vi.importActual<typeof import('./tickets.api')>('./tickets.api');
-  return { ...actual, listTickets: vi.fn() };
+  /* `countTickets` is mocked too, and separately: it is what the chip counts
+     call, and leaving it real would put five unmocked requests behind every
+     render in this file. */
+  return { ...actual, listTickets: vi.fn(), countTickets: vi.fn() };
 });
 
-const { listTickets } = await import('./tickets.api');
+const { listTickets, countTickets } = await import('./tickets.api');
 const { default: TicketListPage } = await import('./TicketListPage');
 
 const ROW: TicketListItem = {
@@ -76,6 +79,12 @@ const lastParams = () => vi.mocked(listTickets).mock.calls.at(-1)?.[0];
 beforeEach(() => {
   vi.mocked(listTickets).mockReset();
   vi.mocked(listTickets).mockResolvedValue(page());
+  /* THE CHIP COUNTS ARE A SEPARATE FETCHER, and they must answer here: the
+   * subtitle and every chip number wait on all five, so an unmocked count
+   * leaves the header permanently absent and the reason is not obvious from a
+   * failing query assertion. */
+  vi.mocked(countTickets).mockReset();
+  vi.mocked(countTickets).mockResolvedValue(0);
 });
 
 describe('the tabs write the URL, and the page requests what the URL says', () => {
@@ -91,19 +100,19 @@ describe('the tabs write the URL, and the page requests what the URL says', () =
     mounted();
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    await userEvent.click(screen.getByRole('tab', { name: /open/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /new/i }));
 
-    await waitFor(() => expect(urlSearch()).toContain('status=Open'));
-    await waitFor(() => expect(lastParams()?.status).toEqual(['Open']));
+    await waitFor(() => expect(urlSearch()).toContain('status=New'));
+    await waitFor(() => expect(lastParams()?.status).toEqual(['New']));
   });
 
   /* A tab is a shortcut, so clicking the active one returns to All rather than
    * leaving the reader with no way back except the browser's back button. */
   it('clicking the active tab clears the filter', async () => {
-    mounted('/tickets?status=Open');
+    mounted('/tickets?status=New');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    await userEvent.click(screen.getByRole('tab', { name: /open/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /new/i }));
 
     await waitFor(() => expect(urlSearch()).not.toContain('status='));
   });
@@ -122,10 +131,10 @@ describe('the tabs write the URL, and the page requests what the URL says', () =
   });
 
   it('marks the active tab with aria-selected, not only a class', async () => {
-    mounted('/tickets?status=Open');
+    mounted('/tickets?status=New');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    expect(screen.getByRole('tab', { name: /open/i })).toHaveAttribute(
+    expect(screen.getByRole('tab', { name: /new/i })).toHaveAttribute(
       'aria-selected',
       'true',
     );
@@ -143,7 +152,7 @@ describe('the tabs write the URL, and the page requests what the URL says', () =
     mounted('/tickets?page=5&pageSize=50');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    await userEvent.click(screen.getByRole('tab', { name: /open/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /new/i }));
 
     await waitFor(() => expect(lastParams()).toMatchObject({ page: 1, pageSize: 50 }));
     expect(urlSearch()).not.toContain('page=5');
@@ -242,25 +251,83 @@ describe('the panel', () => {
   });
 
   /* The count is what tells a reader a filter is on while the panel is shut. */
-  it('counts the active filters on the button', async () => {
+  it('counts the active filters in a badge, and keeps the button name stable', async () => {
     mounted('/tickets?status=Open&status=New&escalated=false');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    expect(
-      screen.getByRole('button', { name: /\(3\)/ }),
-    ).toBeInTheDocument();
+    /* THE NAME NO LONGER CARRIES THE COUNT — the design puts the number in a
+     * filled badge on the control, so the button is called "Filter" whether
+     * three filters are on or none. This test used to assert `/\(3\)/` in the
+     * accessible name and was the record of the old shape; the badge itself is
+     * the assertion now, and the stable name is asserted WITH it, because that
+     * is the half a regression would silently take back. */
+    const button = screen.getByRole('button', {
+      name: new RegExp(i18n.t('tickets:list.filter')),
+    });
+    expect(within(button).getByText('3')).toBeInTheDocument();
   });
 
   /* The search is a question the reader typed, not a facet they ticked. */
-  it('Clear filters keeps the search term', async () => {
+  /* The standalone "Clear filters" link left with the frame layout — مسح الكل
+   * lives inside the panel now, and it clears-and-applies in one press. The
+   * CLAIM is unchanged and is the point of the test: the search is a question
+   * the reader typed, not a facet they ticked, and clearing facets must not
+   * throw it away. */
+  it('مسح الكل clears the facets in one press and keeps the search term', async () => {
     mounted('/tickets?status=Open&search=gulf');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
     await userEvent.click(
-      screen.getByRole('button', { name: i18n.t('tickets:list.clearFilters') }),
+      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter')) }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.clearAll') }),
     );
 
     await waitFor(() => expect(urlSearch()).not.toContain('status='));
     expect(urlSearch()).toContain('search=gulf');
+  });
+
+  /* The panel edits a DRAFT and تطبيق is the write. Chips alone must send
+   * nothing — the old panel fired a request per click, and "these three
+   * together" was impossible to say. */
+  it('applies the chip draft only on تطبيق', async () => {
+    mounted();
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter')) }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:priority.High') }),
+    );
+
+    /* Nothing written yet — the URL still carries no priority. */
+    expect(urlSearch()).not.toContain('priority=');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.apply') }),
+    );
+
+    await waitFor(() => expect(urlSearch()).toContain('priority=High'));
+    await waitFor(() => expect(lastParams()?.priority).toEqual(['High']));
+  });
+
+  /* Drawn and disabled, the escalate precedent: the frames draw a created-date
+   * range and the endpoint binds no createdFrom/createdTo. If this goes red
+   * because the fields became enabled, 015's backend grew the parameters and
+   * the wiring is the next task — that is the failure saying something. */
+  it('draws the date range inert until the endpoint can filter by it', async () => {
+    mounted();
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter')) }),
+    );
+
+    expect(
+      screen.getByLabelText(i18n.t('tickets:list.createdFrom')),
+    ).toBeDisabled();
+    expect(screen.getByLabelText(i18n.t('tickets:list.createdTo'))).toBeDisabled();
   });
 });

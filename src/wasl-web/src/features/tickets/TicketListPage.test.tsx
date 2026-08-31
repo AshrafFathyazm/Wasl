@@ -17,10 +17,13 @@ import i18n from '../../lib/i18n';
  * are actually about. */
 vi.mock('./tickets.api', async () => {
   const actual = await vi.importActual<typeof import('./tickets.api')>('./tickets.api');
-  return { ...actual, listTickets: vi.fn() };
+  /* `countTickets` is mocked too, and separately: it is what the chip counts
+     call, and leaving it real would put five unmocked requests behind every
+     render in this file. */
+  return { ...actual, listTickets: vi.fn(), countTickets: vi.fn() };
 });
 
-const { listTickets } = await import('./tickets.api');
+const { listTickets, countTickets } = await import('./tickets.api');
 const { default: TicketListPage } = await import('./TicketListPage');
 
 const ROW: TicketListItem = {
@@ -75,6 +78,16 @@ const mounted = (url = '/tickets') => {
 beforeEach(() => {
   vi.mocked(listTickets).mockReset();
   vi.mocked(listTickets).mockResolvedValue(page());
+
+  /* THE CHIP COUNTS ARE A SEPARATE FETCHER — five of them, one per status chip
+   * plus `Closed` for the subtitle. Answered here so the header renders; left
+   * unmocked, every count stays pending, `allCount` stays undefined and the
+   * subtitle never appears, which reads as a copy bug rather than a missing
+   * stub. Distinct from `listTickets` on purpose: the assertions below count
+   * LIST requests, and before `countTickets` existed the counts were seven
+   * extra list calls that broke them. */
+  vi.mocked(countTickets).mockReset();
+  vi.mocked(countTickets).mockResolvedValue(0);
 });
 
 describe('AC-026-01 — the page is the only thing that fetches', () => {
@@ -244,17 +257,69 @@ describe('AC-026-16 — nothing under features/tickets seeds the cache from a wr
  *
  * These are the assertions that would have.
  */
-describe('FE-026-09 — the row navigates, and there is no row menu', () => {
-  it('renders NO row menu, per Q-7', async () => {
+describe('FE-026-09 — the row navigates, AND it has a menu again', () => {
+  /* Q-7 IS SUPERSEDED, and this test used to assert its opposite.
+   *
+   * Q-7 turned down a row menu, and it was right about what it was shown: a menu
+   * holding a single View item that duplicated the row click. The product owner
+   * supplied the design frames on 2026-08-31 — four actions, an icon each, a rule
+   * above a destructive one — and ruled the menu in. Three of the four are things
+   * the row click cannot do, which is the difference from what Q-7 refused.
+   *
+   * Kept as a rewritten test rather than deleted: the assertions below are the
+   * ones that would have caught the original defect too — they ask what the row
+   * and the trigger each do, which is what nothing asked before. */
+  it('renders the actions column and a four-item menu', async () => {
+    const u = userEvent.setup();
     mounted();
     await screen.findByText('TCK-2026-000042');
-    /* An actions column, a kebab trigger, or a menu role — none of the three.
-     * Q-7: "Open is the row click", and a menu with one entry duplicating it is
-     * the empty menu that ruling was about. */
-    expect(screen.queryByRole('menu')).toBeNull();
+
     expect(
-      screen.queryByRole('columnheader', { name: i18n.t('tickets:list.column.actions') }),
-    ).toBeNull();
+      screen.getByRole('columnheader', { name: i18n.t('tickets:list.column.actions') }),
+    ).toBeInTheDocument();
+
+    /* Closed until asked: a menu rendered inline in every row is six menus on a
+     * six-row page, and a screen reader walks all of them. */
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+
+    const items = screen.getAllByRole('menuitem');
+    expect(items.map((i) => i.textContent)).toEqual([
+      i18n.t('tickets:list.view'),
+      i18n.t('tickets:list.action.reassign'),
+      i18n.t('tickets:list.action.escalate'),
+      i18n.t('tickets:list.action.close'),
+    ]);
+  });
+
+  it('leaves escalate disabled, because 016 has no endpoint', async () => {
+    const u = userEvent.setup();
+    mounted();
+    await screen.findByText('TCK-2026-000042');
+    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+
+    /* The design draws the item, so it is drawn — and it does not pretend to
+     * work. There is no escalate endpoint in the API at all; `016` is unbuilt.
+     * Asserted by STATE rather than by absence, so building `016` turns this
+     * red at the line that says why. */
+    expect(
+      screen.getByRole('menuitem', { name: i18n.t('tickets:list.action.escalate') }),
+    ).toBeDisabled();
+  });
+
+  it('opens the menu without navigating — the trigger is not the row', async () => {
+    const u = userEvent.setup();
+    mounted();
+    await screen.findByText('TCK-2026-000042');
+
+    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+
+    /* The row's own handler ignores a click that started on a button, and the
+     * trigger stops propagation. Both halves are needed and neither is visible
+     * from the markup: without them, pressing the kebab opens the ticket. */
+    expect(screen.getByTestId('pathname')).not.toHaveTextContent(`/tickets/${ROW.id}`);
+    expect(screen.getAllByRole('menuitem')).toHaveLength(4);
   });
 
   it('gives the subject a real link — the keyboard and screen-reader path', async () => {

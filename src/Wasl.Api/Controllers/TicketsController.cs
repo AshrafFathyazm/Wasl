@@ -103,12 +103,22 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         [FromQuery] string? assignee,
         [FromQuery] bool? escalated,
         [FromQuery] string? search,
+        // string, not DateOnly?, for the reason the four enum filters are string[]: `002c`
+        // measured that the binder refuses a malformed value BEFORE the pipeline runs, so a
+        // typed parameter answers the framework's English sentence and never reaches the
+        // catalogue. Measured here too, before the change — ?createdFrom=2026-13-45 replied
+        // "The value '2026-13-45' is not valid." to an Arabic client.
+        [FromQuery] string? createdFrom,
+        [FromQuery] string? createdTo,
+        // Applies to BOTH bounds. hijri or gregorian; absent is Gregorian.
+        [FromQuery] string? calendar,
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(
             new GetTicketsQuery(
                 page, pageSize, customerId,
                 status, priority, category, channel,
-                assignee, escalated, search),
+                assignee, escalated, search,
+                createdFrom, createdTo, calendar),
             cancellationToken));
 
     /// <summary>

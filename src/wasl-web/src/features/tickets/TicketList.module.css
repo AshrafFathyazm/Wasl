@@ -7,9 +7,26 @@
 }
 
 .title {
-  margin-block: 0 var(--space-6);
+  /* The subtitle now sits under it, so the gap belongs to the pair rather than
+     to the heading. */
+  margin-block: 0 var(--space-1);
   font-size: var(--text-page-title);
   font-weight: var(--weight-bold);
+}
+
+/* "124 open tickets · updated 3 minutes ago" — how much work there is, and how
+   fresh the page is. Muted: it describes the screen rather than being it. */
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-6);
+  color: var(--text-muted);
+  font-size: var(--type-body-sm);
+}
+
+.subtitleDot {
+  color: var(--neutral-350);
 }
 
 /* ---- Cells ---------------------------------------------------------------- */
@@ -35,6 +52,13 @@
  * Colour and decoration are overridden; the FOCUS RING is not touched, because
  * that is the only thing telling a keyboard user where they are. */
 .subjectLine {
+  /* EXPLICITLY A BLOCK, and it was load-bearing the day the tooltip arrived.
+     As a direct flex item of `.subject` this anchor was blockified by the flex
+     container, so `overflow: hidden` clipped and the ellipsis drew. Wrapped in
+     `.subjectAnchor` for the tooltip, it silently became inline again — an
+     inline box ignores `overflow`, so every long subject ran under the customer
+     column. Seen on the live screen, not in a test: jsdom draws no boxes. */
+  display: block;
   overflow: hidden;
   color: var(--text-primary);
   text-decoration: none;
@@ -211,11 +235,60 @@
 
 /* ---- States --------------------------------------------------------------- */
 
+/* ============================================================================
+ * AN EMPTY SURFACE CARRIES THE MARK — product owner, 2026-08-31
+ * ============================================================================
+ * Same rule and the same four tokens as the customer profile's blank states, so
+ * there is one pattern asset in the product rather than one per screen.
+ *
+ * MASKED IN THE MIDDLE, like the customer profile — and this line said the
+ * opposite for about an hour. It reasoned the big card could tile edge to edge;
+ * the product owner's frame shows the tiles FADING OUT under the glyph, the
+ * copy and the button, so the words sit on clean ground. Reversed on the frame,
+ * not on an argument: the mask tokens were shared from the start, so the fix is
+ * two declarations.
+ * ========================================================================== */
 .empty,
 .error {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding-block: var(--space-12);
   padding-inline: var(--space-6);
   text-align: center;
+  overflow: hidden;
+}
+
+.empty::before,
+.error::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--wasl-pattern);
+  background-size: var(--wasl-pattern-size);
+  /* The shared radial mask: transparent over the copy, tiles at the edges. */
+  -webkit-mask-image: var(--wasl-pattern-mask);
+  mask-image: var(--wasl-pattern-mask);
+  opacity: var(--wasl-pattern-opacity);
+  pointer-events: none;
+}
+
+/* Everything sits above the tiles. Without this the pattern paints over the
+   heading, which reads as a rendering fault rather than as a background. */
+.empty > *,
+.error > * {
+  position: relative;
+}
+
+/* The mark, larger than the pattern's tiles and in the brand colour, so the eye
+   lands on it before it reads the tiles it sits among. */
+.emptyMark {
+  display: grid;
+  place-items: center;
+  margin-block-end: var(--space-4);
+  color: var(--brand);
+  opacity: 0.55;
 }
 
 .emptyTitle {
@@ -254,4 +327,253 @@
 
 .menuItem:hover {
   background-color: var(--surface-sunken) !important;
+}
+
+/* ============================================================================
+ * The created-date cell — a box of its own, and the reason is a wrong VALUE
+ * ============================================================================
+ * MEASURED TWICE, five days apart, and the first fix was a bigger number:
+ *
+ *   2026-08-30  width 96  → cell 64, content 73  → `30/08/2026` read `0/08/2026`
+ *   2026-08-31  width 116 → cell 75, content 83  → `29/08/2026` read `9/08/2026`
+ *
+ * Widening the column is not the fix, because the width that works at 1600px is
+ * short at 1280: `Table` reads a caller's px as a RATIO and normalises to
+ * percentages, so every column shrinks with the frame. The date will be squeezed
+ * again at some width.
+ *
+ * WHAT MAKES IT A DEFECT RATHER THAN A TRUNCATION is the direction. The cell is
+ * `rtl` and a date is an LTR run, so the overflow leaves at the cell's LEFT edge
+ * — the run's FIRST character. The cell's `overflow` is `visible`, so the digit
+ * did not even disappear: it spilled under the actions column, and the flyout
+ * trigger's hover background painted over it. That is the reported symptom
+ * exactly — *"when I hover the action button part of the date vanishes"*.
+ *
+ * Truncating prose loses nothing: an ellipsis says "there is more here". Cutting
+ * a leading digit off a date produces a DIFFERENT DATE that is still plausible,
+ * and nothing on screen says so.
+ *
+ * So: `direction: ltr` puts the overflow at the END, `overflow: hidden` keeps it
+ * inside the cell instead of under a neighbour, and `text-overflow: ellipsis`
+ * makes the loss visible — `29/08/20…` rather than `9/08/2026`. The width bump
+ * to 132 is what stops it being squeezed today; this is what stops it lying
+ * tomorrow.
+ * ========================================================================== */
+.dateCell {
+  display: block;
+  direction: ltr;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  /* The cell is RTL, so `start` here is the right edge and the date sits where
+     the heading above it sits. */
+  text-align: start;
+}
+
+/* ============================================================================
+ * The row action menu — and the hover states are the point
+ * ============================================================================
+ * `Table` positions the flyout and owns its surface; the ITEMS are the caller's,
+ * which is why they live here. The design supplies four rows, an icon each, a
+ * rule above the destructive one, and two distinct hovers: neutral for the three
+ * that navigate, danger-tinted for the one that closes a ticket.
+ *
+ * A menu whose items do not react to the pointer reads as a list of labels. That
+ * was the report — *"there should be a hover on the action and there isn't"* —
+ * and it is why every state below is declared rather than inherited.
+ * ========================================================================== */
+
+.rowMenu {
+  display: flex;
+  flex-direction: column;
+  /* Padding on the CONTAINER, radius on the items: that is what makes the hover
+     a rounded block inset from the surface rather than a full-bleed strip, which
+     is how the design draws it. */
+  padding: var(--space-1);
+  min-inline-size: 200px;
+}
+
+.rowMenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  /* The item is as tall as a list row and as wide as the menu — the whole strip
+     is the target, not the label. A menu that only responds on the text is a
+     menu people miss. */
+  inline-size: 100%;
+  /* 40, not the 48 of a list row: the design's menu is tighter than a table row,
+     and four items at 48 make a menu taller than the rows it acts on. */
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+
+  border: 0;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-primary);
+  font-size: var(--type-label-md);
+  /* `start`, so the label sits at the reading edge in both directions and the
+     icon leads it. */
+  text-align: start;
+  cursor: pointer;
+}
+
+.rowMenuItem:hover:not(:disabled) {
+  background-color: var(--surface-subtle);
+}
+
+.rowMenuItem:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* `016` is not built, so this one is drawn and inert. Muted rather than hidden:
+   the design fixes the menu's shape, and an item that disappears moves the three
+   around it. */
+.rowMenuItem:disabled {
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+}
+
+/* THE DESTRUCTIVE ROW READS AS ONE BEFORE IT IS PRESSED — colour on the label
+   and the glyph, and a danger-tinted hover rather than the neutral one. Closing
+   a ticket is terminal in BR-1: no reopen, no reassign, no comment. */
+.rowMenuItemDanger {
+  color: var(--state-danger-text);
+}
+
+.rowMenuItemDanger:hover:not(:disabled) {
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+}
+
+/* A hairline, inset from the menu's padding so it separates the group without
+   touching the surface edge. */
+.rowMenuRule {
+  display: block;
+  block-size: 1px;
+  margin-block: var(--space-1);
+  margin-inline: var(--space-3);
+  background-color: var(--border-divider);
+}
+
+/* ============================================================================
+ * The numbered pager — `‹ 1 2 … 16 ›` plus `1–8 of 124`
+ * ============================================================================
+ * It was Previous / `1 of 16` / Next. The design numbers the pages, and the
+ * difference is not decoration: on sixteen pages, two arrows make page 9 eight
+ * clicks away and there is no way to see how far the data goes.
+ * ========================================================================== */
+
+.range {
+  color: var(--text-muted);
+  font-size: var(--type-body-sm);
+  /* Digits and an en dash are directionally neutral, so the run would reorder
+     inside an RTL line and read `124 من 8–1`. */
+  unicode-bidi: isolate;
+}
+
+.pageBtn,
+.pageArrow {
+  display: grid;
+  place-items: center;
+  min-inline-size: 34px;
+  block-size: 34px;
+  padding-inline: var(--space-1);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: var(--type-label-md);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pageBtn:hover:not(:disabled),
+.pageArrow:hover:not(:disabled) {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+.pageBtn:focus-visible,
+.pageArrow:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* THE CURRENT PAGE IS FILLED, as the design draws it — and it carries
+   `aria-current="page"` in the markup, because a fill is not announced. */
+.pageBtnActive {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+  font-weight: var(--weight-medium);
+}
+
+.pageBtnActive:hover {
+  background-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.pageArrow:disabled {
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+}
+
+.pageGap {
+  display: grid;
+  place-items: center;
+  min-inline-size: 24px;
+  block-size: 34px;
+  color: var(--text-placeholder);
+}
+
+/* ONE ASSET, ROTATED, and the rotation is the direction. `IconChevronDown`
+   points down; a quarter turn each way gives both arrows, and under RTL the
+   page reverses them because the transform follows the writing mode through
+   `--ld-dir` — the same variable `029` introduced for its loaders. */
+.arrowPrev {
+  transform: rotate(calc(90deg * var(--ld-dir, 1)));
+}
+
+.arrowNext {
+  transform: rotate(calc(-90deg * var(--ld-dir, 1)));
+}
+
+
+/* ============================================================================
+ * The subject tooltip — the whole sentence, shown only when the cell cut it
+ * ============================================================================
+ * A navy pill floating above the row, as the frame draws it. It exists because
+ * the subject column truncates by design, and a truncated sentence with no way
+ * to read the rest makes the reader open the ticket to find out whether they
+ * care. Shown by SubjectLink only when scrollWidth > clientWidth AT HOVER TIME —
+ * see its note for why the check is not stored.
+ * ========================================================================== */
+
+.subjectAnchor {
+  position: relative;
+  display: block;
+  min-inline-size: 0;
+}
+
+.subjectTip {
+  position: absolute;
+  inset-block-end: calc(100% + var(--space-2));
+  inset-inline-start: 0;
+  z-index: var(--z-flyout, 30);
+  max-inline-size: 46ch;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-inverse);
+  color: var(--text-on-inverse);
+  font-size: var(--type-body-sm);
+  line-height: var(--leading-ar-normal);
+  box-shadow: var(--shadow-md);
+  /* Multi-line on purpose — a tooltip that truncates the text it exists to
+     un-truncate would be the joke version of itself. */
+  white-space: normal;
+  text-wrap: pretty;
+  pointer-events: none;
 }

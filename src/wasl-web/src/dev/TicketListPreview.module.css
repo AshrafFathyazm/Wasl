@@ -41,31 +41,25 @@
 }
 
 /* ----------------------------------------------------------------------------
- * base.css rule 17 paints EVERY <button> with the primary navy, using
- * !important on background-color, color and -webkit-text-fill-color, so that a
- * dark-mode host stylesheet cannot repaint a native control. That file also
- * states the contract for overriding it: a component repeats the same three
- * properties with !important, because a class (0,1,0) beats an element (0,0,1)
- * and among !important declarations the normal cascade still applies.
+ * THE DEFENSIVE BLOCK THAT USED TO SIT HERE IS GONE — 2026-08-31.
  *
- * THIS MODULE DID NOT DO THAT, and the result was every tab, every filter chip,
- * every pager cell and the kebab rendering as a solid navy pill - twenty-five
- * classes, one cause. It reads as "the palette is wrong" rather than "one rule
- * is missing", which is exactly what rule 17 own comment warns about.
+ * It was `.page :where(button)` forcing `background-color: transparent`,
+ * `color: inherit` and `-webkit-text-fill-color: currentcolor`, all !important,
+ * because `base.css` rule 17 painted EVERY `<button>` primary-navy with
+ * !important and the only documented escape was to shout back. Its own comment
+ * recorded the damage that rule caused here: *"every tab, every filter chip,
+ * every pager cell and the kebab rendering as a solid navy pill — twenty-five
+ * classes, one cause."*
  *
- * :where(button) contributes NO specificity, so this rule weighs exactly
- * .page - (0,1,0). That is enough to beat the element selector in base.css,
- * and it TIES every component class below, which therefore wins on order.
- * It must stay FIRST for that reason: moved lower, it repaints every button.
+ * base.css now scopes rule 17 to `:not([class])`, so a classed control is not
+ * painted at all and there is nothing left to defend against.
+ *
+ * REMOVING IT WAS NOT COSMETIC. `color: inherit !important` beat every class in
+ * this file that set a colour — measured on the ticket list's row menu, where the
+ * destructive item computed `rgb(13, 38, 38)` while its own rule said
+ * `var(--state-danger-text)`. A defence against one !important had become the
+ * loudest declaration in the module.
  * -------------------------------------------------------------------------- */
-.page :where(button) {
-  background-color: transparent !important;
-  color: inherit !important;
-
-  /* -webkit-text-fill-color beats a descendant color, so it is pinned to
-   * currentcolor once here rather than repeated on each class below. */
-  -webkit-text-fill-color: currentcolor !important;
-}
 
 .dense {
   --row-pad: var(--space-2);

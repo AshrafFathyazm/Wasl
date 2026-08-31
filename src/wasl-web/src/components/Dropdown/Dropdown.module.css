@@ -232,6 +232,26 @@
   flex-direction: column;
   max-block-size: var(--dropdown-menu-max-height);
   overflow: hidden;
+
+  /* THE TRIGGER'S WIDTH IS A FLOOR, NOT A CEILING.
+   *
+   * `Dropdown` sets `width: <trigger width>` inline so one left edge aligns the
+   * menu in both directions, and that is right for a full-width field. On a
+   * NARROW trigger it is the defect: the rows-per-page control is 57px, so after
+   * 24px of padding, an 8px gap and a 16px tick slot every option label got 9px
+   * for a 20px string. MEASURED: `labelClient 9, labelScroll 20` on all four
+   * options — the panel was squeezing its own content.
+   *
+   * The panel is RTL and the labels are LTR numbers, so the overflow left at the
+   * row's start: `20` rendered as `0` and `100` as `00`. A number missing its
+   * leading digit is still a number, which is why this was reported as a wrong
+   * value rather than as a layout fault.
+   *
+   * `max-content` cannot go below what the options need; the inline `width`
+   * still holds wherever the trigger is the wider of the two. The clamp keeps a
+   * long option list from running off a narrow viewport. */
+  min-inline-size: max-content;
+  max-inline-size: calc(100vw - 2 * var(--space-4));
   background-color: var(--surface-card);
   border: var(--field-border);
   border-radius: var(--dropdown-menu-radius);
@@ -452,4 +472,22 @@
 .optionSkeleton {
   align-items: center;
   cursor: default;
+}
+
+/* The single-select tick, and the slot is reserved on EVERY option row — see the
+ * note at its JSX. A panel that measures its width from the labels alone cannot
+ * then fit a tick beside one of them, and the label is what gives way. */
+.optionTick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  color: var(--brand);
+}
+
+/* `visibility`, not `display`, so the box keeps its 16px on unselected rows.
+ * `display: none` would take the width back and bring the defect with it. */
+.optionTickIdle {
+  visibility: hidden;
 }

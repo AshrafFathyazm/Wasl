@@ -139,30 +139,52 @@ describe('every button class repeats the base.css rule-17 override', () => {
       .map((l) => l.trim())
       .filter((l) => l.startsWith('color:') || l.startsWith('background-color:'));
 
-  it.each(BUTTON_CLASSES)('.%s marks every colour declaration !important', (cls) => {
+  /* !important IS NO LONGER REQUIRED, so it is no longer asserted. What still
+   * matters is that a class put on a button DECLARES a colour: an unpainted
+   * button class is how a control ends up with whatever the cascade happens to
+   * give it, which is the state this whole block was written about. */
+  it.each(BUTTON_CLASSES)('.%s declares a colour of its own', (cls) => {
     const body = ruleBody(cls);
     expect(body, `.${cls} is not declared`).not.toBeNull();
     const decls = colourDecls(body!);
     expect(decls.length, `.${cls} sets no colour at all`).toBeGreaterThan(0);
-    for (const d of decls) expect(d, `.${cls}`).toContain('!important');
   });
 
-  it('declares the low-specificity reset BEFORE any button class', () => {
-    const reset = css.indexOf('.page :where(button)');
-    expect(reset).toBeGreaterThan(-1);
-    /* :where() contributes no specificity, so the reset ties every class below
-     * and loses to them on order. Below the first one, it would win instead and
-     * repaint every button transparent. */
-    const first = Math.min(
-      ...BUTTON_CLASSES.map((c) => css.indexOf(NL + '.' + c + ' {')).filter(
-        (i) => i > -1,
-      ),
-    );
-    expect(reset).toBeLessThan(first);
+  /* ==========================================================================
+   * THE DEFENSIVE RESET IS GONE, AND THIS GUARDS THE REASON IT COULD GO
+   * ==========================================================================
+   * Two tests used to live here: one requiring `.page :where(button)` to be
+   * declared before every button class, one requiring an !important
+   * `-webkit-text-fill-color`. Both defended against `base.css` rule 17
+   * painting every `<button>` primary-navy with !important.
+   *
+   * base.css now scopes rule 17 to `:not([class])`, so a classed control is not
+   * painted and there is nothing to defend against. The reset was removed —
+   * and removing it was not cosmetic: its `color: inherit !important` was
+   * beating every colour in the module it was supposed to protect.
+   *
+   * ONE OF THE OLD TESTS WENT GREEN ON A COMMENT. `css.indexOf('.page :where(button)')`
+   * matched the prose explaining the removal, so it kept passing against a
+   * stylesheet that no longer had the rule. That is why the assertions below look
+   * for a RULE — a selector followed by `{` — and never for a phrase.
+   * ======================================================================== */
+  it('no longer carries the low-specificity reset', () => {
+    expect(css).not.toContain('.page :where(button) {');
   });
 
-  it('pins -webkit-text-fill-color, which beats a descendant color', () => {
-    expect(css).toContain('-webkit-text-fill-color: currentcolor !important');
+  it('is backed by base.css scoping rule 17 to unclassed controls', () => {
+    const base = readFileSync(resolve(process.cwd(), 'src/styles/base.css'), 'utf8');
+
+    /* The scoped form must exist … */
+    expect(base).toContain('button:not([class])');
+
+    /* … and the unscoped one must not paint. A bare `button {` block is allowed
+     * — it still carries `cursor` and `font-weight` — but it must declare no
+     * background or colour, which is the half that overrode every component. */
+    const bareBlock = base.slice(base.indexOf(NL + 'button {') + 1);
+    const body = bareBlock.slice(0, bareBlock.indexOf('}'));
+    expect(body).not.toContain('background-color');
+    expect(body).not.toContain('color:');
   });
 });
 

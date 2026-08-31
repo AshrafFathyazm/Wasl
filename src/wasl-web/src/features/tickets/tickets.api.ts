@@ -137,6 +137,12 @@ export interface ListParams {
 
   /** Ticket number, subject, or customer name. Debounced by the caller. */
   search?: string;
+
+  /** ISO days, inclusive on both ends, read as UTC days by the server —
+   *  `GetTicketsQuery` owns that definition. Added 2026-08-31 with the panel's
+   *  date range; the contract change is recorded in 015's plan. */
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 /**
@@ -172,9 +178,37 @@ export function listTickets(
       ...(params.assignee ? { assignee: params.assignee } : {}),
       ...(params.escalated !== undefined ? { escalated: params.escalated } : {}),
       ...(params.search ? { search: params.search } : {}),
+      ...(params.createdFrom ? { createdFrom: params.createdFrom } : {}),
+      ...(params.createdTo ? { createdTo: params.createdTo } : {}),
     },
     ...(signal ? { signal } : {}),
   });
+}
+
+/**
+ * HOW MANY, and nothing else.
+ *
+ * A separate fetcher rather than `listTickets` with `pageSize: 1` at the call
+ * site, for two reasons that both turned out to matter:
+ *
+ *   - INTENT AT THE CALL SITE. Five `listTickets` calls that throw their rows
+ *     away read as five list loads to anyone reading the component, and to
+ *     anyone reading a network panel.
+ *   - MEASURABILITY. The chip counts are five extra requests, and the tests that
+ *     assert "this screen issues ONE list request for one intent" counted them
+ *     as list requests the moment the counts were added. Seven failures, none of
+ *     them about list behaviour. A distinct function keeps both claims testable.
+ *
+ * It still asks the same endpoint with the same filters — only the envelope's
+ * `totalCount` is read, and `page`/`pageSize` are fixed here so a caller cannot
+ * accidentally pay for a page of rows it discards.
+ */
+export async function countTickets(
+  params: Omit<ListParams, 'page' | 'pageSize'>,
+  signal?: AbortSignal,
+): Promise<number> {
+  const result = await listTickets({ ...params, page: 1, pageSize: 1 }, signal);
+  return result.totalCount;
 }
 
 /**
@@ -185,6 +219,12 @@ export function listTickets(
  */
 export const ticketKeys = {
   list: (params: ListParams) => ['tickets', 'list', params] as const,
+
+  /** The chip counts. A DIFFERENT key space from `list`: a count and a page of
+   *  rows are different questions about the same filters, and sharing a key
+   *  would make one of them serve the other's cached answer. */
+  count: (params: Omit<ListParams, 'page' | 'pageSize'>) =>
+    ['tickets', 'count', params] as const,
   detail: (id: string) => ['tickets', 'detail', id] as const,
 
   /** `GET /api/support-users`. NOT under `['tickets', …]`: the picker's list is

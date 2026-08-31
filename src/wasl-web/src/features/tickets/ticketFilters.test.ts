@@ -147,6 +147,8 @@ describe('writing filters back to the URL', () => {
       assignee: 'me',
       escalated: true,
       search: 'gulf',
+      createdFrom: '',
+      createdTo: '',
     };
 
     expect(readFilters(withFilters(new URLSearchParams(), filters))).toEqual(filters);

@@ -248,3 +248,58 @@ POST {"phone":"0501234567"}           400  errors/validation
 | Country-aware phone normalisation | Refused by ruling (Q-B), not deferred by omission. A local number is a `400` |
 | More than two simultaneous requests | AC-13 races two. The index makes the count irrelevant, but only two were run |
 | `POST` under a `_CS_AS` server collation | `008` fixed the column collations and AC-16 there asserts them; nothing runs the suite against a case-sensitive server |
+
+---
+
+## `FE-007-00` — the preview (2026-08-30)
+
+`/_preview/create-customer`. Six states, both directions, side by side. Nothing calls
+`POST /api/customers`: a preview that fetches cannot render its own duplicate-conflict state
+on demand, and that is the state this screen exists to get right.
+
+### A finding I reported and then withdrew
+
+I claimed `Input` could not meet the design's *"email and phone stay LTR in the Arabic form"*
+— that `dir="auto"` on an **empty** field falls back to the paragraph direction, so the caret
+would start at the wrong end. I wrote a wrapper forcing `direction: ltr` and put the claim on
+the page as a finding.
+
+**It was wrong.** `dir="auto"` with no strong directionality character resolves to **ltr**
+per the HTML specification, not to the parent's direction. Measured in the Arabic frame:
+
+| Field | Computed |
+|---|---|
+| (empty) | `ltr` |
+| `نورة السالم` | **`rtl`** — `dir="auto"` is live, not ignored |
+| `noura@example.com` | `ltr` |
+| `+966501234567` | `ltr` — no strong character at all |
+
+Then the control: **with the wrapper neutralised, email and phone were still `ltr`.** The
+rule was doing nothing. The primitive already satisfies the design.
+
+The wrapper is gone and the correction is on the page where the wrong version was, because a
+reviewer who read the finding deserves to meet its retraction in the same place.
+
+**The lesson is the one this repository already has a table for**, arriving from the other
+side: I asserted a defect from a mental model of `dir="auto"` and did not check it. The
+control took one minute.
+
+### The submit loader
+
+`Button` already carries it — `loading` swaps in **"Converge"** (`design/brand.md` §2), the
+three dots travelling into a node that replaces the spinner product-wide. One prop, not a new
+component: the loader appears far more often than the logo does, which is why it is the
+brand asset it is.
+
+Measured on the busy button: `aria-busy="true"`, disabled, 3 dots and 1 node inside, and the
+accessible name still **`إنشاء`**.
+
+**The `Creating…` string was removed rather than used.** `Button` deliberately keeps its
+accessible name while busy, so swapping the label renames the control mid-action and a screen
+reader announces a different button from the one that was pressed. The loader carries the
+state; the name does not move.
+
+### Not verified
+
+The design's `409` behaviour — *"names `email` first and stops"* when both fields duplicate —
+is rendered as a state here but not exercised against the server. It needs `FE-007-02`.

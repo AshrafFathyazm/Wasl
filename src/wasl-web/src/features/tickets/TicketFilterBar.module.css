@@ -18,23 +18,45 @@
 
 /* ── the tabs ─────────────────────────────────────────────────────────────── */
 
+/* ============================================================================
+ * THE CARVE — a padded pill track with a raised white pill inside it
+ * ============================================================================
+ * The frames (2026-08-31) draw a segmented control, not a bordered strip: the
+ * track is a grey pill with its own padding, the chips float inside it with a
+ * hair of space, and the ACTIVE one is a white pill with a border and a 1px
+ * shadow — carved out of the track rather than a full-height cell of it. The
+ * source design document builds its own tab bar the same way (3px padded track,
+ * 999px radius, white raised pill), so this is the house shape, not a one-off.
+ *
+ * What left: the full-height cells, the square corners, and the divider rule —
+ * chips separated by space need no lines, and a divider beside a raised pill
+ * reads as a seam in it.
+ * ========================================================================== */
 .tabs {
   display: flex;
+  align-items: center;
+  /* The source draws 2–3px; --space-1 (4px) is the nearest step on the scale,
+     and the difference is invisible at the radius this curves at. */
+  gap: var(--space-1);
+  padding: var(--space-1);
   width: fit-content;
   max-width: 100%;
   overflow-x: auto;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
+  border: 1px solid var(--border-divider);
+  border-radius: var(--radius-pill);
+  background: var(--surface-chip);
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  block-size: 40px;
+  /* 32 inside a padded track, not 40 filling a bordered one — the carve needs
+     ground around the pill. */
+  block-size: 32px;
   padding-inline: 14px;
-  border: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
@@ -44,15 +66,13 @@
   cursor: pointer;
 }
 
-/* The divider between tabs, not around them — so the strip has no double line
-   at either end. `:not(:first-child)` rather than `:not(:last-child)` because a
-   leading border is what mirrors correctly with `border-inline-start`. */
-.tab:not(:first-child) {
-  border-inline-start: 1px solid var(--border-subtle);
-}
-
-.tab:hover {
-  background: var(--surface-content);
+/* THE HOVER THE FRAMES ASK FOR: a whisper of white under the pointer, and the
+   label steps up to full ink. `:not(.tabActive)` so the raised pill does not
+   flicker between two whites when the pointer crosses it.
+   --surface-row-hover is the exact value the source document paints (#FAFCFC). */
+.tab:hover:not(.tabActive) {
+  background: var(--surface-row-hover);
+  color: var(--text-primary);
 }
 
 /* Focus is visible on the tab itself, not on the strip. A focus ring drawn on
@@ -62,10 +82,15 @@
   outline-offset: -2px;
 }
 
+/* The raised pill. White on the grey track, its own border, and the 1px shadow
+   the source document gives its own tab bar — the three together are the carve;
+   any one alone reads as a highlight rather than a raised control. */
 .tabActive {
   color: var(--text-primary);
   font-weight: 600;
-  background: var(--surface-content);
+  background: var(--surface-card);
+  border-color: var(--border-subtle);
+  box-shadow: 0 1px 2px rgb(13 38 38 / 6%);
 }
 
 .count {
@@ -73,8 +98,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* MUTED EVEN WHEN ACTIVE — the frame sets the label bold and leaves the number
+   lighter, so the pair reads name-then-detail rather than as one bold lump. */
 .tabActive .count {
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .dot {
@@ -86,8 +113,18 @@
 
 /* One class per status, from the same state tokens the Badge uses — so a tab and
    the badge in its rows cannot disagree about what colour Open is. */
+.dotNew {
+  background: var(--state-info-text);
+}
+
+/* No tab carries it since the 2026-08-31 tab set, kept because the map above
+   promises one class per status and the colour is settled. */
 .dotOpen {
   background: var(--state-info-text);
+}
+
+.dotPendingCustomer {
+  background: var(--state-neutral-text);
 }
 
 .dotInProgress {
@@ -189,4 +226,218 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
+}
+
+/* ============================================================================
+ * The applied-filter chips
+ * ============================================================================
+ * One per applied VALUE, beside the tab strip, each with its own remove control
+ * — the design's second frame. Before this, a filter set from the panel was
+ * invisible unless the panel was reopened, and undoing one value meant finding
+ * it inside a multi-select.
+ * ========================================================================== */
+
+.applied {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-end: var(--space-3);
+}
+
+.appliedChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 28px;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--brand-border);
+  border-radius: var(--radius-pill);
+  /* Lavender, as the frame draws it — the brand-subtle family, so an applied
+     filter reads as the product holding something for you, not as data. */
+  background-color: var(--brand-subtle);
+  color: var(--brand);
+  font-size: var(--type-body-sm);
+}
+
+.appliedRemove {
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.appliedRemove:hover {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+.appliedRemove:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* The active-filter count, as the design draws it: a filled circle at the
+ * control's inline-end rather than a parenthesis inside its label. */
+.filterBadge {
+  display: grid;
+  place-items: center;
+  min-inline-size: 20px;
+  block-size: 20px;
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-pill);
+  background-color: var(--brand);
+  color: var(--on-brand);
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+  /* Digits are directionally neutral, so a two-digit count would reorder inside
+     an RTL line. Pinned. */
+  direction: ltr;
+}
+
+
+/* ============================================================================
+ * The frame layout, 2026-08-31 — heading and toolbar on ONE row, chips beside
+ * the track, the panel anchored under the toolbar's end.
+ * ========================================================================== */
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.heading {
+  min-inline-size: 0;
+}
+
+/* The toolbar is the panel's anchor, so the panel opens under the تصفية button
+   it belongs to instead of at some ancestor's edge. */
+.toolbar {
+  position: relative;
+}
+
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-block-start: var(--space-4);
+}
+
+/* Beside the track now — the row above owns the spacing. */
+.applied {
+  margin-block-end: 0;
+}
+
+/* ---- the panel, as the frames draw it ------------------------------------- */
+
+.panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  z-index: var(--z-flyout, 30);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  inline-size: min(420px, calc(100vw - 2 * var(--space-4)));
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-md);
+}
+
+.facet {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.facetLabel {
+  padding: 0;
+  margin-block-end: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+}
+
+.facetChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.facetChip {
+  display: inline-flex;
+  align-items: center;
+  block-size: 34px;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  cursor: pointer;
+}
+
+.facetChip:hover {
+  border-color: var(--brand-border);
+  color: var(--text-primary);
+}
+
+.facetChip:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* Selected = the navy fill the frame paints on واتساب. aria-pressed carries the
+   state for ears; this carries it for eyes. */
+.facetChipOn {
+  background-color: var(--brand);
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.facetChipOn:hover {
+  border-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.panelFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.clearAll {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }

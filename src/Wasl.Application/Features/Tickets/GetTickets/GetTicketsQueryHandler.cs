@@ -188,6 +188,24 @@ internal sealed class GetTicketsQueryHandler(IApplicationDbContext context, ICur
             tickets = tickets.Where(ticket => ticket.IsEscalated == escalated);
         }
 
+        // The range is DAYS and the column is datetime2, so both bounds convert once, here,
+        // rather than truncating CreatedAtUtc per row — a per-row conversion is a scan, because
+        // no index covers CAST(CreatedAtUtc AS date).
+        if (request.EffectiveCreatedFrom is { } createdFrom)
+        {
+            var fromUtc = createdFrom.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            tickets = tickets.Where(ticket => ticket.CreatedAtUtc >= fromUtc);
+        }
+
+        if (request.EffectiveCreatedTo is { } createdTo)
+        {
+            // Inclusive "to 31/08" = exclusive "< 01/09". Comparing <= 31/08T00:00 instead would
+            // return only tickets created at exactly midnight, which reads as a broken filter on
+            // every real dataset.
+            var beforeUtc = createdTo.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            tickets = tickets.Where(ticket => ticket.CreatedAtUtc < beforeUtc);
+        }
+
         if (request.EffectiveSearch is { } search)
         {
             // BR-7.5. Number, subject, and customer name — the three things people quote to each

@@ -440,4 +440,247 @@ public sealed class TicketFilterTests(WaslApiFactory factory)
             + "one filter — and the row still comes back, which proves the clamp did not turn "
             + "into no filter at all");
     }
+
+    /* ---- The created-date range, added 2026-08-31 -----------------------------
+     * The panel's date fields were drawn and inert until the endpoint grew
+     * createdFrom/createdTo; these are the tests that let them be wired.
+     *
+     * THE BACKDATE IS PARAMETERIZED SQL ON A ROW THE REAL PATH CREATED. Every
+     * ticket here is born through POST /api/tickets — the entity is exercised end
+     * to end — and only its timestamp is then moved, because a date-range test
+     * needs tickets on THREE different days and the real path can only mint
+     * "now". Interpolated, never concatenated: EF1002, and the habit formed in a
+     * test is the habit 015 warned about.
+     * -------------------------------------------------------------------------- */
+
+    private async Task BackdateAsync(Guid id, DateTime createdAtUtc)
+    {
+        using var scope = factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
+
+        (await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE dbo.Tickets SET CreatedAtUtc = {createdAtUtc} WHERE Id = {id}"))
+            .Should().Be(1, "the backdate must have touched exactly the ticket it named");
+    }
+
+    /// <summary>Both bounds are inclusive DAYS, and the end bound covers its whole day.</summary>
+    [Fact]
+    public async Task The_created_range_is_inclusive_on_both_ends()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+
+        var early = await CreateAsync(customerId, "early");
+        var middle = await CreateAsync(customerId, "middle");
+        var late = await CreateAsync(customerId, "late");
+
+        await BackdateAsync(early, new DateTime(2026, 8, 10, 9, 0, 0, DateTimeKind.Utc));
+        /* 23:30 ON THE LAST DAY OF THE RANGE is the case that catches a lazy
+         * bound: comparing <= 2026-08-20T00:00 would drop it, and the filter
+         * would read as "to 20/08, exclusive, sometimes" — the worst kind of
+         * sometimes, because it depends on the time of day the ticket arrived. */
+        await BackdateAsync(middle, new DateTime(2026, 8, 20, 23, 30, 0, DateTimeKind.Utc));
+
+        var scope = $"customerId={customerId}&pageSize=100";
+
+        (await IdsOfAsync($"{scope}&createdFrom=2026-08-15"))
+            .Should().BeEquivalentTo([middle, late], "the 10th is before the range");
+
+        (await IdsOfAsync($"{scope}&createdTo=2026-08-15"))
+            .Should().BeEquivalentTo([early], "only the 10th is on or before the 15th");
+
+        (await IdsOfAsync($"{scope}&createdFrom=2026-08-10&createdTo=2026-08-20"))
+            .Should().BeEquivalentTo([early, middle],
+                "the 10th at 09:00 and the 20th at 23:30 are both inside an inclusive day range");
+    }
+
+    /// <summary>The bounds AND with every other filter, like every other key (BR-7.3).</summary>
+    [Fact]
+    public async Task The_created_range_composes_with_other_filters()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+
+        var oldHigh = await CreateAsync(customerId, "old high", priority: "High");
+        var oldLow = await CreateAsync(customerId, "old low", priority: "Low");
+        await CreateAsync(customerId, "new high", priority: "High");
+
+        var oldDay = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc);
+        await BackdateAsync(oldHigh, oldDay);
+        await BackdateAsync(oldLow, oldDay);
+
+        (await IdsOfAsync($"customerId={customerId}&pageSize=100&priority=High&createdTo=2026-07-01"))
+            .Should().BeEquivalentTo([oldHigh],
+                "the range must intersect the priority filter, not replace it");
+    }
+
+    /// <summary>An unparseable date is a <c>400</c>, and the MESSAGE comes from the catalogue.</summary>
+    /// <remarks>
+    /// <b>This test asserted only the status until 2026-08-31, and the status was never the
+    /// question.</b> The bounds bound as <c>DateOnly?</c> then, so the refusal came from the model
+    /// binder — before <c>ValidationBehaviour</c> runs — and the measured reply was
+    /// <c>"The value '2026-13-45' is not valid."</c>: the framework's English sentence, in an
+    /// Arabic client's face, with no catalogue key behind it and nothing in
+    /// <c>ResourceKeyLeakTests</c> or <c>MessageKeyCoverageTests</c> able to see it. Reading the
+    /// string is what makes the difference visible.
+    /// </remarks>
+    [Fact]
+    public async Task A_malformed_created_bound_is_a_400_with_a_localized_message()
+    {
+        var response = await factory.CreateManagerClient()
+            .GetAsync("/api/tickets?createdFrom=2026-13-45");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "clamping a broken date would hide a client bug");
+
+        var message = (await BodyOf(response)).GetProperty("errors").GetProperty("createdFrom")
+            .EnumerateArray().Single().GetString();
+
+        message.Should().NotStartWith("Validation.");
+        message.Should().Contain("yyyy-MM-dd",
+            "the message has to say what a readable date looks like — the framework's sentence "
+            + "repeated the bad value back and said nothing about the format");
+    }
+
+    /* ---- Hijri, added 2026-08-31 ----------------------------------------------
+     * The Gregorian half shipped working. The Hijri half shipped SILENTLY WRONG,
+     * and that is what these tests are about: ?createdFrom=1448-03-05 answered
+     * 200 with totalCount 186 against a 186-row table, because 1448-03-05 is a
+     * perfectly good Gregorian date in the year 1448 and every ticket is after
+     * it. Nothing errored and the filter looked like it had run.
+     *
+     * The expected conversions below are NOT computed with UmAlQuraCalendar —
+     * that would assert the implementation against itself. They come from ICU
+     * (Intl.DateTimeFormat, calendar islamic-umalqura), a second source, so a
+     * disagreement between .NET's table and ICU's shows up here as a red test
+     * rather than as an off-by-one day at a month boundary in production.
+     * -------------------------------------------------------------------------- */
+
+    /// <summary>A Hijri bound selects exactly what its Gregorian equal selects.</summary>
+    [Fact]
+    public async Task A_hijri_bound_means_the_same_day_as_its_gregorian_equal()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+
+        var early = await CreateAsync(customerId, "early");
+        var middle = await CreateAsync(customerId, "middle");
+        var late = await CreateAsync(customerId, "late");
+
+        await BackdateAsync(early, new DateTime(2026, 8, 10, 9, 0, 0, DateTimeKind.Utc));
+        await BackdateAsync(middle, new DateTime(2026, 8, 20, 23, 30, 0, DateTimeKind.Utc));
+
+        var scope = $"customerId={customerId}&pageSize=100";
+
+        // 1448-03-02 AH is 2026-08-15 (ICU). Same request, two calendars, one answer.
+        (await IdsOfAsync($"{scope}&createdFrom=1448-03-02&calendar=hijri"))
+            .Should().BeEquivalentTo([middle, late],
+                "1448-03-02 AH is 2026-08-15, so the 10th is before the range in either calendar");
+
+        // 1448-02-27 AH is 2026-08-10 and 1448-03-07 AH is 2026-08-20 — the inclusive-day rule
+        // has to survive the conversion, including the ticket at 23:30 on the last day.
+        (await IdsOfAsync($"{scope}&createdFrom=1448-02-27&createdTo=1448-03-07&calendar=hijri"))
+            .Should().BeEquivalentTo([early, middle],
+                "both ends stay inclusive after conversion — the upper bound is still resolved to "
+                + "the exclusive start of the NEXT day, not to midnight of its own");
+
+        (await IdsOfAsync($"{scope}&createdFrom=2026-08-15&calendar=gregorian"))
+            .Should().BeEquivalentTo([middle, late],
+                "gregorian is accepted explicitly, so a client can be unambiguous rather than "
+                + "relying on the default");
+    }
+
+    /// <summary>
+    /// **The defect.** An undeclared Hijri date is refused, not read as the year 1448.
+    /// </summary>
+    /// <remarks>
+    /// The negative control for this one is the whole reason it exists: delete the
+    /// <c>LooksHijriButUndeclared</c> rule and the request answers <c>200</c> with every ticket
+    /// the caller can see. A test that asserted a status could not tell those apart.
+    /// </remarks>
+    [Fact]
+    public async Task An_undeclared_hijri_date_is_refused_rather_than_read_as_the_year_1448()
+    {
+        var response = await factory.CreateManagerClient()
+            .GetAsync("/api/tickets?createdFrom=1448-03-05");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "before this rule the request answered 200 with the whole table, because 1448-03-05 "
+            + "is a valid Gregorian date and every ticket was created after it");
+
+        var message = (await BodyOf(response)).GetProperty("errors").GetProperty("createdFrom")
+            .EnumerateArray().Single().GetString();
+
+        message.Should().NotStartWith("Validation.");
+        message.Should().Contain("calendar=hijri",
+            "the message has to name the parameter that makes the request mean what the caller "
+            + "intended — refusing without it is a dead end");
+    }
+
+    /// <summary>A Hijri date outside Um al-Qura's table is unreadable, not a crash.</summary>
+    [Fact]
+    public async Task A_hijri_date_outside_the_table_is_a_400()
+    {
+        var response = await factory.CreateManagerClient()
+            .GetAsync("/api/tickets?createdFrom=1200-01-01&calendar=hijri");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "UmAlQuraCalendar throws below about 1318 AH, and an ArgumentException reaching the "
+            + "pipeline would be a 500 for a bad query string");
+
+        (await BodyOf(response)).GetProperty("errors").TryGetProperty("createdFrom", out _)
+            .Should().BeTrue("the refusal names the bound that could not be read");
+    }
+
+    /// <summary>An unknown <c>?calendar=</c> is a <c>400</c> naming what it accepts.</summary>
+    [Fact]
+    public async Task An_unknown_calendar_is_a_400()
+    {
+        var response = await factory.CreateManagerClient()
+            .GetAsync("/api/tickets?createdFrom=2026-08-15&calendar=julian");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var message = (await BodyOf(response)).GetProperty("errors").GetProperty("calendar")
+            .EnumerateArray().Single().GetString();
+
+        message.Should().NotStartWith("Validation.");
+        message.Should().Contain("hijri").And.Contain("gregorian");
+    }
+
+    /// <summary>An inverted range is refused, not answered with an empty page.</summary>
+    /// <remarks>
+    /// Measured before the rule existed: <c>200</c>, <c>totalCount 0</c>, against 186 tickets.
+    /// **A correct query over an impossible range returns nothing, and a <c>200</c> then makes a
+    /// claim about the DATA — "no work in that period" — in answer to a broken claim about the
+    /// REQUEST.** The two are indistinguishable to the caller, and only one of them is true.
+    /// </remarks>
+    [Fact]
+    public async Task An_inverted_created_range_is_a_400_and_not_an_empty_page()
+    {
+        var response = await factory.CreateManagerClient()
+            .GetAsync("/api/tickets?createdFrom=2026-09-01&createdTo=2026-08-01");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+            "zero rows from a correct query reads as an answer about the data");
+
+        var message = (await BodyOf(response)).GetProperty("errors").GetProperty("createdTo")
+            .EnumerateArray().Single().GetString();
+
+        message.Should().NotStartWith("Validation.");
+    }
+
+    /// <summary>An empty bound is no filter, exactly as an empty <c>?status=</c> is.</summary>
+    /// <remarks>
+    /// The case a filter panel produces every time someone CLEARS a date field. <c>015</c> already
+    /// found it on <c>?status=</c> — the browser sends the key with an empty value — and a bound
+    /// that answered <c>400</c> there would break the same interaction on the same panel.
+    /// </remarks>
+    [Fact]
+    public async Task An_empty_created_bound_is_no_filter()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+        var id = await CreateAsync(customerId, "cleared");
+
+        (await IdsOfAsync($"customerId={customerId}&pageSize=100&createdFrom=&createdTo=&calendar="))
+            .Should().BeEquivalentTo([id],
+                "clearing the date fields must not turn into a range that matches nothing");
+    }
 }

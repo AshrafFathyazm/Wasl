@@ -1189,7 +1189,41 @@ is a design-system decision, not a feature one.
 **Raised, not patched.** It belongs to whichever feature owns the token layer, and the
 measurement above is what it needs: real ratios, at the real sizes, on the real background.
 
-### 1j.5 — Not verified
+### 1j.5 — Not verified, and one claim here was wrong
+
+**CORRECTED 2026-08-30, and the correction is the finding.** This section said *"no seeded
+row is escalated or assigned."* The assigned half was **false**, and it was false because it
+was read off the API — the same API that is dropping the value.
+
+Measured after the backend lane reported it: **3 of 5 tickets carry an `assigneeId`**, and
+`assigneeName` is `null` on every one of them. They are assigned. The list renders
+`غير مُعيَّنة` over three assigned tickets, which is a visible lie to a user, and the avatar
+branch is unverifiable on the real screen for that reason — **not** because the data lacks
+assignees.
+
+This is the repository's own rule, met from the wrong side: *verify a measurement with
+something below it.* The API was treated as ground truth about the database, and it is not —
+it is the thing under test. Nothing here was checked against the row.
+
+It is also a **contract violation**, not merely a missing join. `tickets-list-api.md` states
+`assigneeId` and `assigneeName` are *"both null when unassigned"* — together. One set and one
+null is a shape the contract does not describe, and `002c`'s OpenAPI comparison cannot catch
+it: that compares **shapes**, and this shape is legal. Only a value can show it.
+
+**FIXED THE SAME DAY, `62af3cc`.** Verified independently after the fix: 3 of 3 assigned rows
+carry the name, the 2 unassigned rows are still returned with both fields `null` — an inner
+join would have dropped them — and the detail carries the nested object, with the key present
+rather than absent.
+
+**Nothing was built around it while it was open** — no fallback, no lookup, no "unknown"
+placeholder. That was the right call for a reason stronger than patience: `026` §5 forbids
+rendering a ticket from a write response, and the write response was the only place the name
+existed. A workaround would have had to break that rule, and it would have survived the fix.
+
+**The cause was sharper than the report.** Not a join missing twice: `Map` takes `assignee`
+as a parameter defaulting to `null` — correct for creation, since `009` AC-2 says a ticket is
+never assigned at creation. The write call passed it, the two reads did not. One mapper,
+three call sites, one right.
 
 The **escalation marker** has no seeded row, so its ring, its contrast and its position were
 not measured on the real screen. Its conditional rendering is covered by fixture tests

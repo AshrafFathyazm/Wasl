@@ -632,9 +632,33 @@ export const Dropdown = forwardRef<HTMLDivElement, DropdownProps>(function Dropd
                         )}
                       </span>
 
-                      {!multiple && isSelected ? (
-                        <IconCheck size={16} aria-hidden="true" />
-                      ) : null}
+                      {/* THE TICK SLOT IS ALWAYS THERE, and hidden rather than
+                          absent when the option is not selected.
+
+                          It used to render only on the selected row, with no
+                          class and no reserved width. The panel is content-sized,
+                          so it measured the widest LABEL and never the tick — and
+                          then the selected row had to fit a label plus 16px of
+                          tick into a box sized for the label alone. MEASURED on
+                          the rows-per-page control: every unselected label 33px,
+                          the selected one 9px. The panel is RTL and the label is
+                          an LTR number, so the overflow left at the row's start
+                          and the tick painted over the first digit: `20` rendered
+                          as `0`, and `100` would render as `00`.
+
+                          A number that loses its leading digit is still a number.
+                          That is what makes this worse than a clipped word. */}
+                      {multiple ? null : (
+                        <span
+                          className={cx(
+                            styles.optionTick,
+                            !isSelected && styles.optionTickIdle,
+                          )}
+                          aria-hidden="true"
+                        >
+                          <IconCheck size={16} />
+                        </span>
+                      )}
                     </li>
                   );
                 })}
