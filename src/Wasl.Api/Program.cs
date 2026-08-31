@@ -2,6 +2,7 @@ using Wasl.Api;
 using Wasl.Api.Common;
 using Wasl.Api.Common.Errors;
 using Wasl.Api.Health;
+using Wasl.Application.Common.Abstractions;
 using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application;
 using Wasl.Infrastructure;
@@ -31,6 +32,26 @@ builder.Services
 // So this call is the documented exception to "each layer registers itself", and the exception
 // is the whole reason the order is trustworthy.
 builder.Services.AddWaslPipeline();
+
+// ── The identity a SEED run acts as ──────────────────────────────────────────────
+// Registered ONLY when a seeding switch is present, and after AddPresentation so it
+// replaces HttpCurrentUser. Every seeding branch returns before app.Run(), so a
+// serving host never composes it and no request can be attributed to it.
+//
+// A comment needs an actor: TicketComment.AuthorUserId is non-nullable with a foreign
+// key and Ticket.AddComment stamps it from ICurrentUser. Without one the seeder writes
+// Guid.Empty and meets Error Number:547 — the same failure 009's fabricated assignee
+// id produced once 004 gave the column its FK.
+//
+// It adopts the SEEDED MANAGER, which is not what ADR-005 rejects. ADR-005 forbids
+// INVENTING an identity — a system user, a constant claim. This is a support user that
+// SupportUserSeeder really created and that a person really signs in as, so the seeded
+// rows are attributed to somebody who exists.
+if (args.Contains(BulkTicketSeeder.Switch) || args.Contains(BulkTicketSeeder.CustomersSwitch))
+{
+    builder.Services.AddSingleton<SeedActor>();
+    builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<SeedActor>());
+}
 
 var app = builder.Build();
 
@@ -98,6 +119,18 @@ if (args.Contains(DemoSeeder.Switch))
 //
 // It refuses when there are no customers instead of inventing them — a second
 // definition of a demo customer in a second file is how the two drift.
+if (args.Contains(BulkTicketSeeder.CustomersSwitch))
+{
+    var at = Array.IndexOf(args, BulkTicketSeeder.CustomersSwitch);
+    var howMany = at >= 0 && at + 1 < args.Length
+        && int.TryParse(args[at + 1], out var asked) && asked > 0
+        ? asked
+        : BulkTicketSeeder.DefaultCustomerCount;
+
+    await BulkTicketSeeder.SeedCustomersAsync(app.Services, howMany);
+    return;
+}
+
 if (args.Contains(BulkTicketSeeder.Switch))
 {
     var index = Array.IndexOf(args, BulkTicketSeeder.Switch);
