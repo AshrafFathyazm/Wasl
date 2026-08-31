@@ -1,8 +1,13 @@
 import { apiFetch, apiFetchDetailed } from '../../lib/api';
 import type {
+  AddTicketCommentRequest,
+  ChangeTicketAssigneeRequest,
+  ChangeTicketStatusRequest,
   CreateTicketRequest,
   CustomerListItem,
   PagedResult,
+  SupportUser,
+  TicketCommentResponse,
   TicketListItem,
   TicketResponse,
 } from '../../lib/api-types.provisional';
@@ -176,4 +181,128 @@ export function listTickets(
 export const ticketKeys = {
   list: (params: ListParams) => ['tickets', 'list', params] as const,
   detail: (id: string) => ['tickets', 'detail', id] as const,
+
+  /** `GET /api/support-users`. NOT under `['tickets', …]`: the picker's list is
+   *  not a ticket, and nesting it there means invalidating a ticket refetches a
+   *  bounded, seeded set that did not change. */
+  supportUsers: () => ['support-users'] as const,
+
+  /* `timeline` IS ABSENT, and that is FE-027-08's block rather than an
+   * oversight. The key's parameters are exactly the thing in dispute — the
+   * frozen contract says `{ page, pageSize }` and the server reads
+   * `{ before, limit }` — so writing either one now bakes the wrong answer into
+   * every cache entry and every invalidation. See the block at the foot of
+   * `lib/api-types.provisional.ts`. */
 };
+
+/* ---- `027`, the detail screen ---------------------------------------------
+ * `getTicket` is above — `009` owns it and `024` already needed it.
+ *
+ * Four contracts, and each fetcher names the one it was transcribed from. A
+ * fetcher that reads one contract and assumes the rest is how a field goes
+ * missing.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * `GET /api/support-users` — `011`.
+ *
+ * **The body is a bare array.** `apiFetch` is given `SupportUser[]`, not a
+ * `PagedResult<SupportUser>`, and that is asserted rather than assumed: an
+ * object body here would otherwise flow on as `undefined.length` at the render
+ * site, three frames away from the cause.
+ *
+ * NOT SORTED HERE. The server orders by `FullName` under the database
+ * collation, and the render site sorts with `Intl.Collator` for the display
+ * language — sorting in the fetcher would fix the order at fetch time and go
+ * stale the moment the language changes without a refetch.
+ */
+export async function getSupportUsers(signal?: AbortSignal): Promise<SupportUser[]> {
+  const users = await apiFetch<SupportUser[]>(
+    '/api/support-users',
+    signal ? { signal } : {},
+  );
+
+  /* A shape guard, not a type assertion. `011` froze a bare array and recorded
+   * that paging it later is a BREAKING change — so the day that happens this
+   * throws with a sentence naming the contract, instead of the picker quietly
+   * rendering empty. */
+  if (!Array.isArray(users)) {
+    throw new TypeError(
+      'GET /api/support-users returned a non-array body. The frozen contract ' +
+        '(011) specifies a bare JSON array; paging it is a breaking change.',
+    );
+  }
+
+  return users;
+}
+
+/**
+ * `POST /api/tickets/{id}/comments` — `013`.
+ *
+ * **No `expectedVersion`**, unlike the other two mutations, and that is the
+ * contract's own point: adding a comment does not modify the `Tickets` row, so
+ * there is nothing to conflict over.
+ */
+export function addTicketComment(
+  ticketId: string,
+  body: AddTicketCommentRequest,
+  signal?: AbortSignal,
+): Promise<TicketCommentResponse> {
+  return apiFetch<TicketCommentResponse>(`/api/tickets/${ticketId}/comments`, {
+    method: 'POST',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * `PUT /api/tickets/{id}/status` — `012`. Returns the updated ticket.
+ *
+ * The response carries a NEW `version`. The caller takes it from here and the
+ * old one is a `409` from this moment — which is why this returns the body
+ * rather than `void`, and why nothing renders from it: `026` §5 forbids
+ * painting a ticket from a write response, so the caller reads `version` and
+ * invalidates.
+ */
+export function changeTicketStatus(
+  ticketId: string,
+  body: ChangeTicketStatusRequest,
+  signal?: AbortSignal,
+): Promise<TicketResponse> {
+  return apiFetch<TicketResponse>(`/api/tickets/${ticketId}/status`, {
+    method: 'PUT',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * `PUT /api/tickets/{id}/assignee` — `011`. Returns the updated ticket.
+ *
+ * `assigneeId: null` is an UNASSIGN, and it is always sent explicitly. The
+ * server treats an omitted property as `null` too, so leaving it off would work
+ * — and would make the difference between "unassign" and "I forgot a field"
+ * invisible at the call site.
+ */
+export function changeTicketAssignee(
+  ticketId: string,
+  body: ChangeTicketAssigneeRequest,
+  signal?: AbortSignal,
+): Promise<TicketResponse> {
+  return apiFetch<TicketResponse>(`/api/tickets/${ticketId}/assignee`, {
+    method: 'PUT',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/* `getTimeline` IS NOT HERE. FE-027-08 is blocked on the contract disagreement
+ * recorded at the foot of `lib/api-types.provisional.ts`: the frozen contract
+ * and its FRONTEND-API-GUIDE specify `?page=&pageSize=` over the BR-7 envelope,
+ * and the server reads `?before=&limit=` and returns a cursor page.
+ *
+ * A fetcher written to the contract would send two parameters the server
+ * ignores, get the newest page back every time, and produce a feed that refuses
+ * to scroll back with no error anywhere. Writing one to the implementation
+ * instead would ratify an unrecorded contract change from this side. Neither is
+ * this lane's call to make. */

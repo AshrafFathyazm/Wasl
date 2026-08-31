@@ -1,0 +1,138 @@
+/* FE-007-00 — preview chrome plus the form.
+ * Geometry from docs/sdd/design/screens/08-create-customer.md. */
+
+.page {
+  padding: var(--space-8);
+  background-color: var(--surface-page);
+  min-block-size: 100vh;
+}
+
+.pageTitle {
+  margin-block: 0 var(--space-2);
+  font-size: var(--text-page-title);
+  font-weight: var(--weight-bold);
+}
+
+.pageNote {
+  margin-block: 0 var(--space-3);
+  max-inline-size: 78ch;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.finding {
+  padding: var(--space-3);
+  border-inline-start: 3px solid var(--state-warning-text);
+  background-color: var(--state-warning-bg);
+  color: var(--text-primary);
+  margin-block-end: var(--space-8);
+}
+
+.block {
+  margin-block-end: var(--space-8);
+}
+
+.blockTitle {
+  margin-block: 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--type-caption);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+}
+
+/* Side by side, not behind a toggle. The defects this screen can have are
+ * comparative — a label that did not move to the inline-start, an email field
+ * whose caret starts at the wrong end — and a toggle makes them a memory test. */
+.pair {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+.frame {
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  overflow: hidden;
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.back {
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+}
+
+.crumbTitle {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.toastSlot {
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+/* Single column, max 640 — the design's own number. A two-column form makes the
+ * reader choose a path through it, and this one has a cross-field rule that only
+ * reads correctly top to bottom. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  max-inline-size: 640px;
+}
+
+/* A HINT, NOT AN ERROR. An empty form has not failed anything, so this must not
+ * borrow the danger colour — it is the rule, stated before the fields it governs. */
+.hint {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+  font-size: var(--type-caption);
+}
+
+/* THE LTR PAIR NEEDS NO RULE, AND THIS RECORDS WHY THERE ISN'T ONE.
+ *
+ * I claimed `Input` could not meet the design's "email and phone stay LTR"
+ * requirement — that `dir="auto"` on an EMPTY field falls back to the paragraph
+ * direction, so the caret would start at the wrong end under RTL. I wrote a
+ * wrapper forcing `direction: ltr` and put the claim on the page as a finding.
+ *
+ * IT WAS WRONG. `dir="auto"` with no strong directionality character resolves to
+ * **ltr**, per the HTML specification — not to the parent's direction. Measured
+ * in the Arabic frame:
+ *
+ *   (empty)            -> ltr
+ *   نورة السالم         -> rtl     <- dir="auto" is live, not ignored
+ *   noura@example.com  -> ltr
+ *   +966501234567      -> ltr      <- no strong character at all
+ *
+ * Then the control: with the wrapper neutralised, email and phone were still
+ * `ltr`. The rule was doing nothing. The primitive already satisfies the design.
+ *
+ * Kept as a comment rather than deleted, because the wrong version was on the
+ * page as a finding and a reader who saw it deserves the correction next to it. */
+.findExisting {
+  margin: 0;
+  font-size: var(--text-helper);
+}
+
+.findExisting a {
+  color: var(--text-link);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
