@@ -5,6 +5,7 @@ using Wasl.Api.Contracts.Tickets;
 using Wasl.Application.Features.Tickets.AddComment;
 using Wasl.Application.Features.Tickets.AssignTicket;
 using Wasl.Application.Features.Tickets.GetTimeline;
+using Wasl.Application.Features.Tickets.Tags;
 using Wasl.Application.Features.Tickets.ChangeStatus;
 using Wasl.Application.Features.Tickets.CreateTicket;
 using Wasl.Application.Common;
@@ -84,8 +85,10 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     public async Task<IActionResult> GetPage(
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
+        [FromQuery] Guid? customerId,
         CancellationToken cancellationToken) =>
-        Ok(await sender.Send(new GetTicketsQuery(page, pageSize), cancellationToken));
+        Ok(await sender.Send(
+            new GetTicketsQuery(page, pageSize, customerId), cancellationToken));
 
     /// <summary>
     /// Reads one ticket. Moved here from `010` because the contract promises the `201`'s
@@ -194,7 +197,8 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         CancellationToken cancellationToken)
     {
         var comment = await sender.Send(
-            new AddTicketCommentCommand(id, request.Body, request.IsInternal, request.Channel),
+            new AddTicketCommentCommand(
+                id, request.Body, request.IsInternal, request.Channel, request.AuthorCustomerId),
             cancellationToken);
 
         // Location points at the timeline rather than at the comment: BR-5.3 makes a comment
@@ -218,6 +222,45 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         Guid id,
         [FromQuery] string? before,
         [FromQuery] int limit = GetTicketTimelineQuery.DefaultLimit,
+        [FromQuery] TimelineFilter? type = null,
         CancellationToken cancellationToken = default) =>
-        Ok(await sender.Send(new GetTicketTimelineQuery(id, before, limit), cancellationToken));
+        Ok(await sender.Send(
+            new GetTicketTimelineQuery(id, before, limit, type), cancellationToken));
+
+    /// <summary>Attaches a tag. `034` AC-13.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A sub-resource PUT/DELETE pair, not a PATCH of a tags array on the ticket.</b> Sending
+    /// the whole array would make the last writer win silently: two agents each adding one tag
+    /// would produce a ticket with one of them. Attaching and detaching are distinct actions with
+    /// their own audit rows, which is the same reasoning `012` and `011` used for status and
+    /// assignee.
+    /// </para>
+    /// <para>
+    /// <b>No `expectedVersion`.</b> Tags are not part of the ticket's rowversion — attaching one
+    /// does not touch dbo.Tickets — so there is nothing to be stale against. The unique index is
+    /// what makes a double-click safe.
+    /// </para>
+    /// </remarks>
+    [HttpPut("{id:guid}/tags/{tagId:guid}")]
+    [ProducesResponseType(typeof(TicketTagsResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AttachTag(
+        Guid id,
+        Guid tagId,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(new AttachTicketTagCommand(id, tagId), cancellationToken));
+
+    /// <summary>Detaches a tag. `034` AC-13.</summary>
+    [HttpDelete("{id:guid}/tags/{tagId:guid}")]
+    [ProducesResponseType(typeof(TicketTagsResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DetachTag(
+        Guid id,
+        Guid tagId,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(new DetachTicketTagCommand(id, tagId), cancellationToken));
 }

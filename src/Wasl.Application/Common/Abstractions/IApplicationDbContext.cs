@@ -49,6 +49,15 @@ public interface IApplicationDbContext
     /// <summary>Added by `004`, which creates the table. Read at sign-in.</summary>
     IQueryable<SupportUser> SupportUsers { get; }
 
+    /// <summary>Added by `034`. The managed tag set — read to build a picker.</summary>
+    IQueryable<Tag> Tags { get; }
+
+    /// <summary>Added by `034`. Which tags a ticket carries.</summary>
+    IQueryable<TicketTag> TicketTags { get; }
+
+    /// <summary>Added by `034`. Read-only in this feature; `--seed` writes them.</summary>
+    IQueryable<CannedReply> CannedReplies { get; }
+
     /// <summary>
     /// <c>TicketHistory</c> is deliberately <b>not</b> exposed.
     /// </summary>

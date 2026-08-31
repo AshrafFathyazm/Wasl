@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wasl.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Wasl.Infrastructure.Persistence;
 namespace Wasl.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WaslDbContext))]
-    partial class WaslDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260831095838_AddCustomerAuthoredComments")]
+    partial class AddCustomerAuthoredComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -154,64 +157,6 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Customers_Contact", "[Email] IS NOT NULL OR [PhoneE164] IS NOT NULL");
                         });
-                });
-
-            modelBuilder.Entity("Wasl.Domain.Tickets.CannedReply", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(120)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Category", "IsActive")
-                        .HasDatabaseName("IX_CannedReplies_Category");
-
-                    b.ToTable("CannedReplies", (string)null);
-                });
-
-            modelBuilder.Entity("Wasl.Domain.Tickets.Tag", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(60)")
-                        .UseCollation("SQL_Latin1_General_CP1_CI_AS");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Tags_Name");
-
-                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("Wasl.Domain.Tickets.Ticket", b =>
@@ -395,37 +340,6 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                     b.ToTable("TicketHistory", (string)null);
                 });
 
-            modelBuilder.Entity("Wasl.Domain.Tickets.TicketTag", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AttachedAtUtc")
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<Guid>("AttachedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TagId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TicketId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AttachedByUserId");
-
-                    b.HasIndex("TagId");
-
-                    b.HasIndex("TicketId", "TagId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_TicketTags_Ticket_Tag");
-
-                    b.ToTable("TicketTags", (string)null);
-                });
-
             modelBuilder.Entity("Wasl.Domain.Users.SupportUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -533,30 +447,6 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_TicketHistory_Tickets");
-                });
-
-            modelBuilder.Entity("Wasl.Domain.Tickets.TicketTag", b =>
-                {
-                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
-                        .WithMany()
-                        .HasForeignKey("AttachedByUserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_TicketTags_AttachedBy");
-
-                    b.HasOne("Wasl.Domain.Tickets.Tag", null)
-                        .WithMany()
-                        .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired()
-                        .HasConstraintName("FK_TicketTags_Tag");
-
-                    b.HasOne("Wasl.Domain.Tickets.Ticket", null)
-                        .WithMany()
-                        .HasForeignKey("TicketId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_TicketTags_Ticket");
                 });
 #pragma warning restore 612, 618
         }

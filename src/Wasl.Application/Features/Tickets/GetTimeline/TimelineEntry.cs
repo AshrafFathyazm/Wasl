@@ -1,5 +1,6 @@
 using Wasl.Application.Features.Tickets.AddComment;
 using Wasl.Domain.Communications;
+using Wasl.Domain.Tickets;
 
 namespace Wasl.Application.Features.Tickets.GetTimeline;
 
@@ -64,7 +65,26 @@ public sealed record TimelineEntry(
     string? NewValue = null,
 
     /// <summary>History only. The note supplied with a status change, when one was.</summary>
-    string? Note = null);
+    string? Note = null,
+
+    /// <summary>
+    /// On a comment entry: who it is FROM. Null on a history entry. `034`.
+    /// </summary>
+    /// <remarks>
+    /// Explicit, so the client never infers "customer or agent" from whether
+    /// <c>Actor.Role</c> happens to be null. The badge it drives is the difference between the
+    /// customer's words and ours, and an inferred one is a refactor away from being wrong.
+    /// </remarks>
+    CommentAuthorKind? AuthorKind = null,
+
+    /// <summary>
+    /// The support user who recorded a customer's reply. Null everywhere else.
+    /// </summary>
+    /// <remarks>
+    /// The customer never signs in, so someone typed it. <c>Actor</c> is who it is from and this
+    /// is who put it there — both are real people and the row records both.
+    /// </remarks>
+    TimelineActor? RecordedBy = null);
 
 /// <summary>
 /// One page of the timeline. `013` AC-12.
@@ -78,10 +98,18 @@ public sealed record TimelineEntry(
 /// asks for "the next fifty older" and gets a set that shifted underneath them.
 /// </para>
 /// <para>
-/// <b>No total count either.</b> Counting a union of two tables costs a second pass over both to
-/// render a number nothing acts on: there is no page picker to populate, because there are no
-/// pages. <see cref="HasMore"/> is what the "load older" control needs, and it is one row of
-/// lookahead rather than a full count.
+/// <b>`013` said "no total count either", and `034` reversed it — the paragraph is corrected here
+/// rather than deleted, because the reasoning was right and the premise changed.</b> `013`'s
+/// argument was that a count renders a number nothing acts on, since there is no page picker to
+/// populate. True while the feed was one tab. The v3 detail design puts two tabs side by side,
+/// each labelled with its own total, so the number is now the label on the control the reader is
+/// about to press — something acts on it.
+/// </para>
+/// <para>
+/// <b>What survives from that paragraph is the cost objection, and it is answered rather than
+/// ignored:</b> the counts are two constant <c>COUNT</c> queries, never a second pass that grows
+/// with the page. <see cref="HasMore"/> is still what the "load older" control uses, still one
+/// row of lookahead.
 /// </para>
 /// </remarks>
 public sealed record TimelinePage(
@@ -91,4 +119,27 @@ public sealed record TimelinePage(
     /// <summary>
     /// Send this back as <c>before</c> to load the previous page. Null when there is no more.
     /// </summary>
-    string? NextCursor);
+    string? NextCursor,
+
+    /// <summary>
+    /// Every comment on this ticket — not the number on this page. `034`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The counts are the part of the split with a trap in it.</b> A cursor reports
+    /// <see cref="HasMore"/> and never a total, so the two tab counters the v3 design draws
+    /// cannot come out of paging. They are two <c>COUNT</c> queries, and what makes them
+    /// acceptable is that their cost is constant: two round trips whether the page holds five
+    /// entries or a hundred, asserted with <c>CountQueries()</c> rather than argued from the
+    /// LINQ.
+    /// </para>
+    /// <para>
+    /// <b>Both totals are reported whichever filter was asked for.</b> The reader looking at the
+    /// comments tab still sees how many history rows exist — that number is what the other tab
+    /// is labelled with, and fetching it would otherwise cost a second request.
+    /// </para>
+    /// </remarks>
+    int CommentCount,
+
+    /// <summary>Every history row on this ticket.</summary>
+    int HistoryCount);

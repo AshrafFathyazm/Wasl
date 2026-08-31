@@ -22,5 +22,25 @@ namespace Wasl.Application.Features.Tickets.GetTickets;
 /// <see cref="Paging"/> then applies BR-7.2's clamping, which is why they are not defaulted here.
 /// </para>
 /// </remarks>
-public sealed record GetTicketsQuery(int? Page = null, int? PageSize = null)
+/// <param name="CustomerId">
+/// Return only this customer's tickets. `034`.
+/// </param>
+/// <remarks>
+/// <para>
+/// <b>A parameter on the existing list, not a sub-resource.</b> The v3 ticket-detail design
+/// shows the customer's other tickets in the rail, and <c>/api/customers/{id}/tickets</c> was the
+/// obvious shape — it would also be a second list endpoint with its own paging, its own clamping,
+/// and its own copy of the projection, which `015` would then have to reconcile when it adds the
+/// rest of the filters to the first one.
+/// </para>
+/// <para>
+/// <b>`015` owns filters</b>, and this is one of them arriving early because one screen needs it.
+/// It clamps through the same <c>Paging</c> helpers as everything else, so BR-7.2 holds without a
+/// second implementation.
+/// </para>
+/// </remarks>
+public sealed record GetTicketsQuery(
+    int? Page = null,
+    int? PageSize = null,
+    Guid? CustomerId = null)
     : IRequest<PagedResult<TicketListItem>>;

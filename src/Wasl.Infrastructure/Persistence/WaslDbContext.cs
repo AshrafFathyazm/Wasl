@@ -201,6 +201,27 @@ public sealed class WaslDbContext(
             }
         }
 
+        // ── TicketTag, `034` ─────────────────────────────────────────────────────────
+        //
+        // A FOURTH LOOP, because this stamping matches by TYPE and not by a shared interface.
+        // `034` added TicketTag with a comment on the entity saying its actor is stamped "the
+        // same path TicketComment.AuthorUserId takes" — and that sentence was true of the
+        // intent and false of the code until this block existed. Every attach returned `500`:
+        // AttachedByUserId stayed Guid.Empty and FK_TicketTags_AttachedBy refused it.
+        //
+        // Loud, which is the behaviour the comment above the comment loop calls desirable, and
+        // it is the second time this shape has bitten — `Customer` went six features unstamped
+        // because the loop below it matches by interface and Customer does not implement it.
+        // The pattern to notice: A NEW ENTITY WITH AN ACTOR COLUMN NEEDS A LINE HERE, and
+        // nothing tells you so except a failing write.
+        foreach (var entry in ChangeTracker.Entries<TicketTag>())
+        {
+            if (entry.State is EntityState.Added)
+            {
+                entry.CurrentValues[nameof(TicketTag.AttachedByUserId)] = actor;
+            }
+        }
+
         // ── Customer, stamped separately — and it had NEVER been stamped ─────────────
         //
         // `Customer` predates IAuditableEntity: `001` created it, `009` introduced the interface,
@@ -291,6 +312,18 @@ public sealed class WaslDbContext(
     IQueryable<Ticket> IApplicationDbContext.Tickets => Tickets;
 
     IQueryable<SupportUser> IApplicationDbContext.SupportUsers => SupportUsers;
+
+    public DbSet<Tag> Tags => Set<Tag>();
+
+    public DbSet<TicketTag> TicketTags => Set<TicketTag>();
+
+    public DbSet<CannedReply> CannedReplies => Set<CannedReply>();
+
+    IQueryable<Tag> IApplicationDbContext.Tags => Tags;
+
+    IQueryable<TicketTag> IApplicationDbContext.TicketTags => TicketTags;
+
+    IQueryable<CannedReply> IApplicationDbContext.CannedReplies => CannedReplies;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
 

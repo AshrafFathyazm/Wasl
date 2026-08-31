@@ -28,7 +28,46 @@ internal sealed class TicketCommentConfiguration : IEntityTypeConfiguration<Tick
         builder.HasKey(comment => comment.Id);
 
         builder.Property(comment => comment.TicketId).IsRequired();
+
+        // STILL REQUIRED, and `034` is the change that most wanted to relax it.
+        //
+        // Letting a customer author a comment looks like it needs a nullable support user. It
+        // does not: the customer never signs in, so a support user recorded every one of these
+        // rows and the audit trail must name them. Making this nullable is how the NULL actor
+        // `011` found on TicketHistory.PerformedByUserId comes back — every row written, none of
+        // them attributable, and nothing throwing.
         builder.Property(comment => comment.AuthorUserId).IsRequired();
+
+        // `034`. A string, like every other enum in this schema — an int would let a reordering
+        // rewrite the meaning of every existing row.
+        builder.Property(comment => comment.AuthorKind)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(comment => comment.AuthorCustomerId);
+
+        // NO foreign key to dbo.Customers, and that is deliberate rather than an omission.
+        //
+        // The FK would be correct today and wrong the first time a customer is merged or
+        // anonymised: the comment is a historical record of who said something, and it must
+        // survive the customer row changing. TicketComment.AuthorUserId keeps its FK because a
+        // support user is never hard-deleted (IsActive handles departures) — the two columns
+        // have different lifetimes, so they get different guarantees.
+        //
+        // The invariant that matters is enforced where it can be: Ticket.AcceptComment refuses a
+        // customer that is not the ticket's own.
+
+        // THE PAIRING IS ENFORCED IN THE DATABASE TOO, not only in the factory.
+        //
+        // TicketComment.Create sets AuthorKind from AuthorCustomerId so the two cannot drift —
+        // but the factory is not the only writer a schema has to survive, and a check constraint
+        // is what makes "Customer implies a customer id, Agent implies none" true for a script,
+        // an importer, or a migration as well.
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_TicketComments_AuthorKind",
+            "(AuthorKind = 'Customer' AND AuthorCustomerId IS NOT NULL) OR "
+            + "(AuthorKind = 'Agent' AND AuthorCustomerId IS NULL)"));
 
         // nvarchar, never varchar. Arabic in a varchar column under a non-Arabic collation stores
         // ????, which presents as a font problem rather than a schema one — ADR-013 names it the

@@ -126,6 +126,9 @@ internal static class ProblemTypes
         [DomainErrorCodes.AssigneeUnchanged] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.AssigneeUnchanged.Title"),
 
+        [DomainErrorCodes.TagUnchanged] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.TagUnchanged.Title"),
+
         [DomainErrorCodes.AssigneeNotFound] = new(
             StatusCodes.Status404NotFound, CarriesErrors: false, TitleKey: "Error.AssigneeNotFound.Title"),
     };

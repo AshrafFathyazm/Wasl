@@ -65,14 +65,14 @@ internal sealed class ChangeTicketStatusCommandHandler(
             context.Customers
                 .Where(candidate => candidate.Id == ticket.CustomerId)
                 .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email)),
+                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
             cancellationToken);
 
         // AC-23. The same mapping the create and the read use, so allowedTransitions comes back
         // recomputed for the NEW status — the client never derives its next actions from the set
         // it just used.
         return CreateTicketCommandHandler.Map(
-            ticket, customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null));
+            ticket, customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null, null));
     }
 
     /// <summary>

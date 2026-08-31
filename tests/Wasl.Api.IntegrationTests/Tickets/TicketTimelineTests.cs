@@ -561,8 +561,29 @@ public sealed class TicketTimelineTests(WaslApiFactory factory)
             + $"entries cost {withFifteenEntries} round trips and one costs {withOneEntry}. A "
             + "difference means something resolves per entry");
 
-        withOneEntry.Should().BeLessThanOrEqualTo(3,
-            "the existence check, the union, and at most one more");
+        /* THE BOUND MOVED FROM 3 TO 4 IN `034`, AND THE MOVE IS THE POINT OF THIS COMMENT.
+         *
+         * Nothing regressed. The assertion above — fifteen entries cost exactly what one costs —
+         * still passes, and that is the one that proves nothing resolves per row. What changed is
+         * the absolute number: the split feed reports two totals, so the request now issues
+         *
+         *     1. the existence check
+         *     2. the union (or one branch of it, when ?type= is given)
+         *     3. COUNT over TicketComments
+         *     4. COUNT over TicketHistory
+         *
+         * CLAUDE.md warns about exactly this line: "assert the count over a small result set
+         * EQUALS the count over a larger one, never that it is under a threshold — a threshold
+         * drifts with every unrelated change to the request." It drifted, on the first change
+         * after it was written.
+         *
+         * It is kept rather than deleted because it still catches something the equality cannot:
+         * a per-REQUEST query added by accident, which would move both numbers together and pass
+         * the comparison above. Kept, and each of the four named, so the next person to move it
+         * has to say which one they added. */
+        withOneEntry.Should().BeLessThanOrEqualTo(4,
+            "the existence check, the union, and one COUNT per tab — enumerated in the comment "
+            + "above, so a fifth has to be justified rather than absorbed");
     }
 
     /// <summary>AC-13 — there is no route to edit or delete a comment.</summary>

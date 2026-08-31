@@ -31,7 +31,9 @@ src/
     Customers/                       Customer, ContactNormalisation
     Tickets/                         Ticket, TicketComment, TicketHistoryEntry,
                                      TicketStatus, TicketStatusTransitions
-    Communications/                  Interaction, CommunicationChannel
+    Communications/                  CommunicationChannel. NO Interaction — this line named one
+                                     until 034 went looking for a home for a customer's message
+                                     and found the folder holds one file. It was never built
     Audit/                           AuditEntry
   Wasl.Application/                  depends only on Wasl.Domain
     Features/                        one folder per USE CASE, not per technical type

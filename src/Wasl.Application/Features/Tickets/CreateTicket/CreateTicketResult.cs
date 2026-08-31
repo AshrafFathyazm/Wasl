@@ -63,6 +63,17 @@ public sealed record CreateTicketResult(
     Guid? CreatedByUserId,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,
+
+    /// <summary>
+    /// When the ticket was closed, or null while it is open. `034`.
+    /// </summary>
+    /// <remarks>
+    /// <b>The key is always present and the value is null on an open ticket</b>, never omitted.
+    /// An absent key deserialises to undefined, which renders as empty and passes every shape
+    /// assertion — the same failure mode `027` recorded for a missing assignee, where the field
+    /// looked fine and meant nothing.
+    /// </remarks>
+    DateTime? ClosedAtUtc,
     IReadOnlyList<TicketStatus> AllowedTransitions,
     string Version);
 
@@ -70,7 +81,27 @@ public sealed record CreateTicketResult(
 /// A summary, not the whole customer. The profile is `008`; embedding it here would be a second
 /// read shape to keep in step.
 /// </summary>
-public sealed record TicketCustomerSummary(Guid Id, string FullName, string? Email);
+/// <param name="CompanyName">
+/// The organisation the customer belongs to, when they belong to one. `034`.
+/// </param>
+/// <remarks>
+/// The column has existed on <c>Customer</c> since `007`; the v3 detail design is the first
+/// screen that renders it, under the customer's name in the rail.
+/// </remarks>
+/// <remarks>
+/// <b>CompanyName has NO default, deliberately.</b> It was added with one, and the code compiled
+/// and shipped a column that was null on every response — because four projections still passed
+/// three arguments and the default filled the fourth silently.
+///
+/// That is the defect `027` recorded as "one mapper, three call sites, one of them right", where
+/// the assignee name went missing on both read paths for the same reason. Removing the default
+/// turns the next occurrence into a compiler error instead of an empty field on a screen.
+/// </remarks>
+public sealed record TicketCustomerSummary(
+    Guid Id,
+    string FullName,
+    string? Email,
+    string? CompanyName);
 
 /// <summary>
 /// A ticket's assignee, as the client needs to render it. `011`.

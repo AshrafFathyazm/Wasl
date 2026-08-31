@@ -53,6 +53,30 @@ public sealed class TicketComment
     /// </remarks>
     public Guid AuthorUserId { get; private set; }
 
+    /// <summary>Who this comment is <b>from</b>. `034`.</summary>
+    public CommentAuthorKind AuthorKind { get; private set; }
+
+    /// <summary>
+    /// The customer it is from, when <see cref="AuthorKind"/> is
+    /// <see cref="CommentAuthorKind.Customer"/>. Null otherwise.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><see cref="AuthorUserId"/> stays non-nullable, and that is the load-bearing half of
+    /// this design.</b> The obvious way to let a customer author a comment is to make the support
+    /// user optional. It is also how a NULL actor gets back into <c>dbo.AuditLog</c> — the defect
+    /// `011` found on <c>TicketHistory.PerformedByUserId</c>, where every row ever written had no
+    /// actor and the timeline would have said "someone" for every event.
+    /// </para>
+    /// <para>
+    /// The customer never signs in, so a support user always caused this write. Both people are
+    /// real and both are recorded: this column is who it is <i>from</i>,
+    /// <see cref="AuthorUserId"/> is who <i>recorded</i> it. ADR-005 rejects filling the gap with
+    /// a seeded "system" user, and nothing here does.
+    /// </para>
+    /// </remarks>
+    public Guid? AuthorCustomerId { get; private set; }
+
     public string Body { get; private set; } = null!;
 
     /// <summary>
@@ -93,14 +117,47 @@ public sealed class TicketComment
     /// <c>CK_TicketComments_Body</c> as the guarantee of last resort for a caller that is not the
     /// API — with the cost stated: reaching it is a `DbUpdateException`, and therefore a `500`.
     /// </remarks>
+    /// <param name="authorCustomerId">
+    /// Set only when the comment is being recorded on the customer's behalf (`034`). Passing it
+    /// is what makes <see cref="AuthorKind"/> <see cref="CommentAuthorKind.Customer"/> — the two
+    /// are set together here so no row can carry one without the other.
+    /// </param>
     public static TicketComment Create(
         Guid ticketId,
         string body,
         DateTime createdAtUtc,
         bool isInternal = false,
-        CommunicationChannel? channel = null)
+        CommunicationChannel? channel = null,
+        Guid? authorCustomerId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(body);
+
+        /* THE TWO CUSTOMER INVARIANTS LIVE HERE, NOT IN THE VALIDATOR.
+         *
+         * A validator is the API boundary's rule, and the API is not the only writer: `--seed`,
+         * a future channel ingester, and every test that builds a comment directly all bypass
+         * it. These two pairings have to be impossible to CONSTRUCT — the same argument that
+         * gives `Customer` one factory and private setters.
+         *
+         * The third customer rule — that the customer is THIS ticket's customer — is not here,
+         * because a comment does not know its ticket's customer. It lives in
+         * `Ticket.AcceptComment`, which does. */
+        if (authorCustomerId is not null)
+        {
+            // BR-5.4: internal means hidden FROM the customer. A comment the customer wrote,
+            // hidden from the customer, describes nothing that can happen.
+            if (isInternal)
+            {
+                throw new CustomerCommentCannotBeInternalException();
+            }
+
+            // They reached us somehow. A null channel on an agent's note is a fact; a null
+            // channel here is a missing fact wearing the same shape.
+            if (channel is null)
+            {
+                throw new CustomerCommentRequiresChannelException();
+            }
+        }
 
         return new TicketComment
         {
@@ -110,6 +167,10 @@ public sealed class TicketComment
             IsInternal = isInternal,
             Channel = channel,
             CreatedAtUtc = createdAtUtc,
+            AuthorCustomerId = authorCustomerId,
+            AuthorKind = authorCustomerId is null
+                ? CommentAuthorKind.Agent
+                : CommentAuthorKind.Customer,
 
             // AuthorUserId is deliberately NOT set here. WaslDbContext.SaveChangesAsync stamps it
             // from ICurrentUser, the same way it stamps a history row's actor — so a comment

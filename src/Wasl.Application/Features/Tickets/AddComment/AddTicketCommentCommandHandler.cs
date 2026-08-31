@@ -47,12 +47,31 @@ internal sealed class AddTicketCommentCommandHandler(
         // way `010`'s was.
         var now = timestamp.UtcNow.UtcDateTime;
 
+        /* THE ORDER OF THE TWO CALLS BELOW DECIDES WHICH ERROR A BAD REQUEST GETS.
+         *
+         * `Create` raises the two shape rules — a customer reply cannot be internal, and it
+         * needs a channel. `AcceptComment` then raises the closed rule and the wrong-customer
+         * rule, in that order, because its status check is its first line.
+         *
+         * So a request that is BOTH on a closed ticket AND names the wrong customer answers
+         * "closed". That is the honest one: it tells the caller no retry can succeed, where
+         * "wrong customer" invites one. `011` measured the same class of thing on assignment —
+         * a stale version answered before a denial — and it was only provable because the
+         * ordering was written down rather than left to the reading order. */
         var comment = TicketComment.Create(
-            request.TicketId, request.Body, now, request.IsInternal, request.Channel);
+            request.TicketId,
+            request.Body,
+            now,
+            request.IsInternal,
+            request.Channel,
+            request.AuthorCustomerId);
 
         // BR-5.2 lives in the entity, so a seeder or an importer cannot comment on closed work
         // either. It throws before anything is added, so nothing is left half-written.
-        var history = ticket.AcceptComment(comment.Id, now);
+        //
+        // `034`: the customer id goes in here too, because the ticket is the only thing that
+        // knows whose ticket it is.
+        var history = ticket.AcceptComment(comment.Id, now, request.AuthorCustomerId);
 
         context.Add(comment);
         context.Add(history);
@@ -70,12 +89,35 @@ internal sealed class AddTicketCommentCommandHandler(
         // One extra query on a write, and it buys a 201 the client can render without a second
         // call. The alternative — returning a bare authorUserId — makes every caller fetch the
         // name it already had to have to display the form.
-        var author = await context.FirstOrDefaultAsync(
+        var recorder = await context.FirstOrDefaultAsync(
             context.SupportUsers
                 .Where(user => user.Id == comment.AuthorUserId)
                 .Select(user => new TimelineActor(user.Id, user.FullName, user.Role.ToString())),
             cancellationToken)
             ?? new TimelineActor(comment.AuthorUserId, string.Empty, null);
+
+        /* WHO THE COMMENT IS FROM, WHICH IS NOT ALWAYS WHO WROTE THE ROW.
+         *
+         * For an agent's note the two are one person and `RecordedBy` stays null — repeating
+         * them would say nothing. For a customer's reply the author is the customer and the
+         * recorder is the support user, and BOTH go on the wire, because the screen shows the
+         * customer's name and the audit trail has to be answerable about who typed it.
+         *
+         * `Role` is left NULL for a customer rather than filled with "Customer". Role carries
+         * SupportUserRole values — Agent, Manager — and putting a third, differently-sourced
+         * value in the same field is how a client ends up switching on a string that means two
+         * things. `AuthorKind` is the field that answers this, explicitly. */
+        var author = recorder;
+
+        if (comment.AuthorCustomerId is { } customerId)
+        {
+            author = await context.FirstOrDefaultAsync(
+                context.Customers
+                    .Where(customer => customer.Id == customerId)
+                    .Select(customer => new TimelineActor(customer.Id, customer.FullName, null)),
+                cancellationToken)
+                ?? new TimelineActor(customerId, string.Empty, null);
+        }
 
         return new TicketCommentResult(
             Id: comment.Id,
@@ -84,8 +126,9 @@ internal sealed class AddTicketCommentCommandHandler(
             Body: comment.Body,
             IsInternal: comment.IsInternal,
             Channel: comment.Channel,
-
             Author: author,
+            AuthorKind: comment.AuthorKind,
+            RecordedBy: comment.AuthorKind is CommentAuthorKind.Customer ? recorder : null,
             CreatedAtUtc: comment.CreatedAtUtc);
     }
 }

@@ -95,15 +95,33 @@ internal sealed class TicketTimelineQuery(WaslDbContext context)
             where comment.TicketId == request.TicketId
             join user in context.SupportUsers on comment.AuthorUserId equals user.Id into authors
             from author in authors.DefaultIfEmpty()
+            // `034`. LEFT JOIN, because AuthorCustomerId is null on every agent comment — an
+            // inner join here would silently drop every note an agent ever wrote. The same
+            // shape of defect the ticket list had when assigneeName went missing.
+            join c in context.Customers on comment.AuthorCustomerId equals c.Id into fromCustomers
+            from fromCustomer in fromCustomers.DefaultIfEmpty()
             select new TimelineRow
             {
                 Kind = CommentRank,
                 Id = comment.Id,
                 IdText = comment.Id.ToString(),
                 OccurredAtUtc = comment.CreatedAtUtc,
-                ActorId = comment.AuthorUserId,
-                ActorName = author == null ? null : author.FullName,
-                ActorRole = author == null ? null : author.Role.ToString(),
+
+                // THE ACTOR IS WHO IT IS FROM, WHICH IS NOT ALWAYS WHO WROTE THE ROW.
+                // On a customer's reply the screen shows the customer's name; the support user
+                // who recorded it goes to RecordedBy, and neither is lost.
+                ActorId = fromCustomer == null ? comment.AuthorUserId : fromCustomer.Id,
+                ActorName = fromCustomer == null
+                    ? (author == null ? null : author.FullName)
+                    : fromCustomer.FullName,
+                // Null for a customer rather than the string "Customer": Role carries
+                // SupportUserRole values, and a third differently-sourced value in the same
+                // field is how a client ends up switching on a string that means two things.
+                ActorRole = fromCustomer == null ? (author == null ? null : author.Role.ToString()) : null,
+                AuthorKind = comment.AuthorKind.ToString(),
+                RecorderId = comment.AuthorUserId,
+                RecorderName = author == null ? null : author.FullName,
+                RecorderRole = author == null ? null : author.Role.ToString(),
                 Body = comment.Body,
                 IsInternal = comment.IsInternal,
                 Channel = comment.Channel.ToString(),
@@ -130,13 +148,31 @@ internal sealed class TicketTimelineQuery(WaslDbContext context)
                 Body = null,
                 IsInternal = null,
                 Channel = null,
+                AuthorKind = null,
+                RecorderId = null,
+                RecorderName = null,
+                RecorderRole = null,
                 EventType = entry.EventType.ToString(),
                 OldValue = entry.OldValue,
                 NewValue = entry.NewValue,
                 Note = entry.Note,
             };
 
-        var union = comments.Concat(history);
+        /* THE FILTER, AND WHY IT IS A Concat AND NOT A FLAG ON THE QUERY.
+         *
+         * Asking for one tab means querying one table, so the union simply is not built. The
+         * alternative — building the union and filtering on Kind — would make SQL Server read
+         * both tables to return one of them, on every request, for a screen whose default tab
+         * is the smaller one.
+         *
+         * Omitting the filter returns the union exactly as `013` built it. That is the
+         * assertion `013`'s existing tests make, and they were left untouched on purpose. */
+        var union = request.Type switch
+        {
+            TimelineFilter.Comments => comments,
+            TimelineFilter.History => history,
+            _ => comments.Concat(history),
+        };
 
         // ── The cursor ──────────────────────────────────────────────────────────────
         //
@@ -193,10 +229,26 @@ internal sealed class TicketTimelineQuery(WaslDbContext context)
 
         rows.Reverse();
 
+        /* TWO COUNTS, AND THEIR COST IS CONSTANT.
+         *
+         * Not derived from the page — a cursor never knows a total. Not one count over the
+         * union either: the two tabs are labelled separately, so collapsing them would need a
+         * second query to split the number again.
+         *
+         * Two round trips whether the page holds five rows or a hundred, which is what
+         * `010` AC-12's query counter asserts: the count over a small result set EQUALS the
+         * count over a larger one. A threshold would drift with every unrelated change. */
+        var commentCount = await context.TicketComments
+            .CountAsync(comment => comment.TicketId == request.TicketId, cancellationToken);
+        var historyCount = await context.TicketHistory
+            .CountAsync(entry => entry.TicketId == request.TicketId, cancellationToken);
+
         return new TimelinePage(
             rows.Select(Map).ToList(),
             hasMore,
-            nextCursor);
+            nextCursor,
+            commentCount,
+            historyCount);
     }
 
     private static TimelineEntry Map(TimelineRow row)
@@ -220,7 +272,15 @@ internal sealed class TicketTimelineQuery(WaslDbContext context)
             Channel: row.Channel is null ? null : Enum.Parse<CommunicationChannel>(row.Channel),
             OldValue: row.OldValue,
             NewValue: row.NewValue,
-            Note: row.Note);
+            Note: row.Note,
+            AuthorKind: row.AuthorKind is null
+                ? null
+                : Enum.Parse<CommentAuthorKind>(row.AuthorKind),
+            // Only on a customer's reply. On an agent's note the actor and the recorder are the
+            // same person, and saying so twice says nothing.
+            RecordedBy: row.AuthorKind == nameof(CommentAuthorKind.Customer)
+                ? new TimelineActor(row.RecorderId, row.RecorderName ?? SystemActor, row.RecorderRole)
+                : null);
     }
 
     /// <summary>
@@ -247,6 +307,10 @@ internal sealed class TicketTimelineQuery(WaslDbContext context)
         public Guid? ActorId { get; set; }
         public string? ActorName { get; set; }
         public string? ActorRole { get; set; }
+        public string? AuthorKind { get; set; }
+        public Guid? RecorderId { get; set; }
+        public string? RecorderName { get; set; }
+        public string? RecorderRole { get; set; }
         public string? Body { get; set; }
         public bool? IsInternal { get; set; }
         // Both enum-valued columns are carried as STRINGS through the union, and parsed in Map.

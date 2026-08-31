@@ -67,6 +67,12 @@ public static class DemoSeeder
         // its users if a signing-key change or a manual delete left it without them.
         await SupportUserSeeder.SeedAsync(services);
 
+        // Tags and reply templates, and OUTSIDE the early return below for the same reason the
+        // users are: they are the managed set the product reads, not demo content. `034` Q-3
+        // keeps both without an admin screen, so this is the only thing that creates them — a
+        // database that already has tickets still needs them.
+        await ReferenceDataSeeder.SeedAsync(context);
+
         if (await context.Tickets.AnyAsync())
         {
             Console.WriteLine("Seed skipped: tickets already exist.");

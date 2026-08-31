@@ -346,7 +346,14 @@ public sealed class Ticket : IAuditableEntity
     /// <param name="commentId">The comment's id, which exists before <c>SaveChanges</c> because
     /// the entity generates it — so both rows can be written in one unit of work.</param>
     /// <param name="occurredAtUtc">The same instant the comment carries. AC-10 depends on it.</param>
-    public TicketHistoryEntry AcceptComment(Guid commentId, DateTime occurredAtUtc)
+    /// <param name="authorCustomerId">
+    /// Set when the comment is recorded on the customer's behalf (`034`). Checked against
+    /// <see cref="CustomerId"/> here because <b>this is the only type that knows it</b>.
+    /// </param>
+    public TicketHistoryEntry AcceptComment(
+        Guid commentId,
+        DateTime occurredAtUtc,
+        Guid? authorCustomerId = null)
     {
         // BR-5.2. Terminal, like every other write on a closed ticket — reported as
         // ticket-closed rather than a generic conflict, so the client can say why instead of
@@ -354,6 +361,22 @@ public sealed class Ticket : IAuditableEntity
         if (Status is TicketStatus.Closed)
         {
             throw new TicketClosedException();
+        }
+
+        /* A reply can only be recorded from the customer this ticket belongs to.
+         *
+         * Checked in the ENTITY, and the split from the assignment rules is deliberate rather
+         * than inconsistent: "is this support user active" is a row in another table, so
+         * `Assign` takes a bare Guid? and the handler looks it up. "Is this the ticket's
+         * customer" is a field on this object. The aggregate owns the fact, so the aggregate
+         * enforces it — and a second write path cannot forget to.
+         *
+         * The exception names NEITHER customer. Echoing the real one back would turn a wrong
+         * request into a lookup: any ticket id plus any customer id tells you who the customer
+         * is. BR-4.4 forbids that shape for customers, and the reason travels. */
+        if (authorCustomerId is not null && authorCustomerId != CustomerId)
+        {
+            throw new CommentCustomerMismatchException();
         }
 
         return TicketHistoryEntry.CommentAdded(Id, commentId, occurredAtUtc);

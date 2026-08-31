@@ -91,7 +91,7 @@ internal sealed class AssignTicketCommandHandler(
             context.Customers
                 .Where(candidate => candidate.Id == ticket.CustomerId)
                 .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email)),
+                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
             cancellationToken);
 
         // AC-16. The same mapping every ticket endpoint uses, so allowedTransitions comes back
@@ -99,7 +99,7 @@ internal sealed class AssignTicketCommandHandler(
         // InProgress conditional on having an assignee.
         return CreateTicketCommandHandler.Map(
             ticket,
-            customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null),
+            customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null, null),
             assignee);
     }
 

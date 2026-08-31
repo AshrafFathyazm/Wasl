@@ -232,6 +232,24 @@
   <data name="Error.Ticket.AssigneeNotFound" xml:space="preserve">
     <value>No support user was found with that id.</value>
   </data>
+  <data name="Validation.Ticket.CustomerCommentInternal" xml:space="preserve">
+    <value>A reply from the customer cannot be marked internal.</value>
+  </data>
+  <data name="Validation.Ticket.CustomerCommentChannel" xml:space="preserve">
+    <value>Say which channel the customer replied through.</value>
+  </data>
+  <data name="Validation.Ticket.CommentCustomerMismatch" xml:space="preserve">
+    <value>That customer is not the customer on this ticket.</value>
+  </data>
+  <data name="Validation.Ticket.TagNotAvailable" xml:space="preserve">
+    <value>That tag is not available. Refresh the list and try again.</value>
+  </data>
+  <data name="Error.Ticket.TagUnchanged" xml:space="preserve">
+    <value>The tag list on this ticket has already changed.</value>
+  </data>
+  <data name="Error.TagUnchanged.Title" xml:space="preserve">
+    <value>Tag unchanged</value>
+  </data>
   <data name="Validation.Ticket.AssigneeInactive" xml:space="preserve">
     <value>This user is not active and cannot be assigned tickets.</value>
   </data>

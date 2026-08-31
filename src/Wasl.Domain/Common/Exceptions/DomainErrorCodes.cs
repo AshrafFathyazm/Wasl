@@ -95,6 +95,17 @@ public static class DomainErrorCodes
 /// <summary>The ticket is already escalated. BR-3.4.</summary>
     public const string AlreadyEscalated = "already-escalated";
 
+    /// <summary>
+    /// The ticket already carries this tag, or does not carry the one being detached. `034`.
+    /// </summary>
+    /// <remarks>
+    /// A `409` and never a no-op `200`, following <c>AssigneeUnchanged</c> exactly: a `200` tells
+    /// the client its request was applied when nothing happened, so two clients disagree about
+    /// what the last write was. Its own code, because the client's correct reaction is to refetch
+    /// quietly — this is what a double-click on the tag picker produces.
+    /// </remarks>
+    public const string TagUnchanged = "tag-unchanged";
+
     /// <summary><c>expectedVersion</c> is stale. ADR-006.</summary>
     public const string ConcurrencyConflict = "concurrency-conflict";
 

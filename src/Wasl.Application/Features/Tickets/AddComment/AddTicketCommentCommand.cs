@@ -1,6 +1,7 @@
 using Wasl.Application.Common.Messaging;
 using Wasl.Domain.Audit;
 using Wasl.Domain.Communications;
+using Wasl.Domain.Tickets;
 
 namespace Wasl.Application.Features.Tickets.AddComment;
 
@@ -22,11 +23,25 @@ namespace Wasl.Application.Features.Tickets.AddComment;
 /// rather than something a test has to contrive.
 /// </para>
 /// </remarks>
+/// <param name="AuthorCustomerId">
+/// Set to record a reply that came <b>from the customer</b> through a channel (`034`).
+/// <para>
+/// The customer never signs in — there is no customer authentication and it is out of scope — so
+/// a support user records their message. This is who it is <i>from</i>; the support user the
+/// token names is who recorded it, and both end up on the row.
+/// </para>
+/// <para>
+/// It is a request field rather than something derived from the ticket, because "record the
+/// customer's reply" and "add my own note" are two different actions on one endpoint and the
+/// server must not guess which one was meant.
+/// </para>
+/// </param>
 public sealed record AddTicketCommentCommand(
     Guid TicketId,
     string Body,
     bool IsInternal = false,
-    CommunicationChannel? Channel = null) : IAuditableCommand<TicketCommentResult>
+    CommunicationChannel? Channel = null,
+    Guid? AuthorCustomerId = null) : IAuditableCommand<TicketCommentResult>
 {
     /// <summary>
     /// <c>Ticket.CommentAdded</c> — from the naming table in `docs/sdd/04-business-rules.md`.
@@ -61,6 +76,20 @@ public sealed record AddTicketCommentCommand(
 /// the audit row without a second query, and so the client can show a confirmation naming the
 /// ticket. It is the only field here that is not the comment's own.
 /// </remarks>
+/// <param name="Author">
+/// Who the comment is <b>from</b> — the support user who wrote it, or the customer it was
+/// recorded from.
+/// </param>
+/// <param name="AuthorKind">
+/// <b>Explicit, so the client never infers it.</b> A reader deciding "customer or agent" from
+/// whether <see cref="TimelineActor.Role"/> happens to be null is one refactor away from being
+/// wrong, and the badge it drives is the difference between the customer's words and ours.
+/// </param>
+/// <param name="RecordedBy">
+/// The support user who recorded a customer's reply. <b>Null when the author is the agent</b>,
+/// because there the author and the recorder are the same person and repeating them says
+/// nothing.
+/// </param>
 public sealed record TicketCommentResult(
     Guid Id,
     Guid TicketId,
@@ -69,6 +98,8 @@ public sealed record TicketCommentResult(
     bool IsInternal,
     CommunicationChannel? Channel,
     TimelineActor Author,
+    CommentAuthorKind AuthorKind,
+    TimelineActor? RecordedBy,
     DateTime CreatedAtUtc);
 
 /// <summary>

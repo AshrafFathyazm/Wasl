@@ -17,13 +17,23 @@ internal sealed class GetTicketsQueryHandler(IApplicationDbContext context)
         var page = Paging.ClampPage(request.Page);
         var pageSize = Paging.ClampPageSize(request.PageSize);
 
+        /* ONE FILTERED SOURCE, READ BY BOTH THE COUNT AND THE PAGE (`034`).
+         *
+         * Filtering the page while counting the whole table is the defect this shape prevents:
+         * the envelope would report every ticket in the product as the total for one customer's
+         * list, and the pager would offer pages that come back empty. Both reads below use
+         * `tickets`, so they cannot disagree about what is being counted. */
+        var tickets = request.CustomerId is { } customerId
+            ? context.Tickets.Where(ticket => ticket.CustomerId == customerId)
+            : context.Tickets;
+
         // Counted on the UNPAGED query. Counting after Skip/Take would return at most the page
         // size and make totalPages permanently 1 — a defect that looks like a working pager
         // until someone reaches page 2.
-        var totalCount = await context.CountAsync(context.Tickets, cancellationToken);
+        var totalCount = await context.CountAsync(tickets, cancellationToken);
 
         var rows = await context.ToListAsync(
-            context.Tickets
+            tickets
                 // BR-7.1. Newest first — AND then by Id, which is AC-22 and not decoration.
                 //
                 // CreatedAtUtc is datetime2(3), so two tickets created in the same millisecond

@@ -28,14 +28,14 @@ internal sealed class GetTicketByIdQueryHandler(IApplicationDbContext context)
             context.Customers
                 .Where(candidate => candidate.Id == ticket.CustomerId)
                 .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email)),
+                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
             cancellationToken);
 
         // A ticket whose customer is gone. There is no delete in this release and the foreign
         // key is NO ACTION, so it should be unreachable — but returning 404 for the ticket
         // would be wrong (the ticket exists) and dereferencing null would be a 500. The
         // customer's own id is the honest minimum.
-        customer ??= new TicketCustomerSummary(ticket.CustomerId, string.Empty, null);
+        customer ??= new TicketCustomerSummary(ticket.CustomerId, string.Empty, null, null);
 
         // A third read, and it is the one this handler was missing.
         //

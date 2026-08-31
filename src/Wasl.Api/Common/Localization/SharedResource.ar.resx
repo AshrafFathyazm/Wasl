@@ -232,6 +232,24 @@
   <data name="Error.Ticket.AssigneeNotFound" xml:space="preserve">
     <value>لا يوجد مستخدم دعم بهذا المعرّف.</value>
   </data>
+  <data name="Validation.Ticket.CustomerCommentInternal" xml:space="preserve">
+    <value>لا يمكن وسم ردّ العميل بأنه تعليق داخلي.</value>
+  </data>
+  <data name="Validation.Ticket.CustomerCommentChannel" xml:space="preserve">
+    <value>حدّد القناة التي ردّ العميل عبرها.</value>
+  </data>
+  <data name="Validation.Ticket.CommentCustomerMismatch" xml:space="preserve">
+    <value>هذا العميل ليس عميل هذه التذكرة.</value>
+  </data>
+  <data name="Validation.Ticket.TagNotAvailable" xml:space="preserve">
+    <value>هذا الوسم غير متاح. حدّث القائمة وأعد المحاولة.</value>
+  </data>
+  <data name="Error.Ticket.TagUnchanged" xml:space="preserve">
+    <value>قائمة وسوم هذه التذكرة تغيّرت بالفعل.</value>
+  </data>
+  <data name="Error.TagUnchanged.Title" xml:space="preserve">
+    <value>لم يتغيّر الوسم</value>
+  </data>
   <data name="Validation.Ticket.AssigneeInactive" xml:space="preserve">
     <value>هذا المستخدم غير نشط ولا يمكن إسناد التذاكر إليه.</value>
   </data>

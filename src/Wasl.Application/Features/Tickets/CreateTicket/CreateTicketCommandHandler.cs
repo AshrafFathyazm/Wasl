@@ -45,7 +45,7 @@ internal sealed class CreateTicketCommandHandler(
             context.Customers
                 .Where(candidate => candidate.Id == request.CustomerId)
                 .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email)),
+                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
             cancellationToken);
 
         if (customer is null)
@@ -131,6 +131,7 @@ internal sealed class CreateTicketCommandHandler(
             CreatedByUserId: ticket.CreatedByUserId,
             CreatedAtUtc: ticket.CreatedAtUtc,
             UpdatedAtUtc: ticket.UpdatedAtUtc,
+            ClosedAtUtc: ticket.ClosedAtUtc,
 
             // Computed from the BR-1 map and its conditions, never stored (ADR-004).
             AllowedTransitions: ticket.AllowedTransitions,

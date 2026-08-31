@@ -32,7 +32,21 @@ namespace Wasl.Api.Contracts.Tickets;
 /// FR-3.3, and genuinely optional: a comment typed into the application arrived through no channel
 /// at all, so a default here would invent a fact about where it came from.
 /// </param>
+/// <param name="AuthorCustomerId">
+/// Set to record a reply that came FROM the customer through a channel (`034`).
+/// <para>
+/// Omit it for the agent's own note, which is the common case. When present it must be this
+/// ticket's customer, it forces <c>Channel</c>, and it forbids <c>IsInternal</c> — all three
+/// refused by the domain, not by this record.
+/// </para>
+/// <para>
+/// A client cannot use this to attribute a comment to a support user it chose: the SUPPORT USER
+/// on the row is still stamped from the token and there is no field here for it (AC-15). This
+/// names a customer, and the only customer it will accept is the one already on the ticket.
+/// </para>
+/// </param>
 public sealed record AddTicketCommentRequest(
     string Body,
     bool IsInternal = false,
-    CommunicationChannel? Channel = null);
+    CommunicationChannel? Channel = null,
+    Guid? AuthorCustomerId = null);

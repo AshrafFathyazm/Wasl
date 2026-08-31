@@ -89,6 +89,18 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         // test-only insert would prove a test-only insert works.
         await SupportUserSeeder.SeedAsync(Services);
 
+        // The tag set and the reply templates, from THE REAL SEEDER for the same reason as the
+        // users above: `034` Q-3 keeps both managed with no admin screen, so this is the only
+        // thing in the product that creates them. A test-only insert would prove a test-only
+        // insert works — and it would leave ReferenceDataSeeder itself run by nothing, which is
+        // CLAUDE.md's "an entity written only from outside the real path is unverified".
+        using (var referenceScope = Services.CreateScope())
+        {
+            await ReferenceDataSeeder.SeedAsync(
+                referenceScope.ServiceProvider
+                    .GetRequiredService<Wasl.Infrastructure.Persistence.WaslDbContext>());
+        }
+
         ManagerToken = await SignInAsync(SupportUserSeeder.ManagerEmail, ManagerPassword);
         AgentToken = await SignInAsync(SupportUserSeeder.AgentEmail, AgentPassword);
         AgentTwoToken = await SignInAsync(SupportUserSeeder.AgentTwoEmail, AgentTwoPassword);
