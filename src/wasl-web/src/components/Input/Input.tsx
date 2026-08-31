@@ -2,6 +2,9 @@ import { forwardRef, useId, useState, type KeyboardEvent } from 'react';
 
 import { IconEye, IconEyeOff } from '../../icons/icons-added';
 import { cx } from '../../lib/cx';
+import { useDeferredBusy } from '../../lib/useDeferredBusy';
+import { Loader } from '../Loader/Loader';
+import { Skeleton } from '../Loader/Skeleton';
 import styles from './Input.module.css';
 
 export type InputSize = 'sm' | 'md' | 'lg';
@@ -120,6 +123,37 @@ export interface InputProps {
   /** The native attribute only. Not a validator. */
   maxLength?: number | undefined;
 
+  /* ---- Waiting, added by 029 -------------------------------------------------
+   * A CONTRACT CHANGE on a frozen primitive, recorded in 029/plan.md.
+   * design/loaders.md §7 is the source, and its three rules are the reason this
+   * is a prop rather than something each form draws for itself.
+   * -------------------------------------------------------------------------- */
+
+  /** The field is waiting on the server for something ABOUT THIS FIELD — an
+   *  async uniqueness check, a computed value, a debounced lookup.
+   *
+   *  **It does not disable the control.** design/loaders.md §7: disabling
+   *  clears focus and stops typing, so a field that goes busy mid-entry throws
+   *  away what the user was in the middle of saying. `disabled` still exists and
+   *  still does that, deliberately, for a field that genuinely cannot be edited.
+   *
+   *  Renders an Orbit in the affix slot, at the affix's own 16px, so nothing
+   *  shifts when it appears or leaves. */
+  busy?: boolean | undefined;
+
+  /** Where the busy indicator sits. `end` is the affix — an async check, a
+   *  computed value. `start` is the search-icon footprint, and it renders Bars
+   *  rather than Orbit because §7 gives debounced search that shape.
+   *
+   *  Two placements rather than two props: a field with a loader at both ends
+   *  is the "one loader per field" rule broken by construction. */
+  busyPlacement?: 'start' | 'end' | undefined;
+
+  /** Replaces the whole control with a skeleton of the same height while the
+   *  field's OWN first value loads. Distinct from `busy`: `busy` is a field
+   *  that exists and is waiting, this is a field that is not there yet. */
+  loadingValue?: boolean | undefined;
+
   /** Show a `length / maxLength` counter once the value reaches this length.
    *  Omit for no counter. Requires `maxLength`.
    *
@@ -166,6 +200,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     revealLabel,
     hideLabel,
     maxLength,
+    busy = false,
+    busyPlacement = 'end',
+    loadingValue = false,
     counterFrom,
   },
   ref,
@@ -184,6 +221,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
    * still resolves from it — a revealed password must not start following
    * `dir="auto"` and jump ends the moment it becomes visible. */
   const renderedType = canReveal && revealed ? 'text' : type;
+
+  /* GATED, not raw. A uniqueness check that answers in 80ms paints nothing —
+   * design/loaders.md §3, and on a field the flash is worse than elsewhere
+   * because it lands next to the caret the user is watching. */
+  const { visible: showBusy } = useDeferredBusy(busy);
+  const busyAtStart = showBusy && busyPlacement === 'start';
+  const busyAtEnd = showBusy && busyPlacement === 'end';
 
   const hasMessage = error !== undefined && error !== '';
   /* Either a message or a bare invalid state paints the control as invalid. */
@@ -210,6 +254,26 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
    * catalogue would invite someone to translate the slash. */
   const counterText = `${length} / ${maxLength ?? ''}`;
 
+  /* The field's own first load: it is not there yet, so there is nothing to
+   * make busy. A skeleton AT THE CONTROL'S OWN HEIGHT, and the label as a
+   * skeleton too — a real label above an absent control reads as a broken form
+   * rather than as a loading one.
+   *
+   * Returned early rather than branched inside the tree: everything below —
+   * aria-describedby, the counter, the reveal toggle, the error message — is
+   * about a control that exists, and threading `loadingValue` through all of it
+   * would give each of them a second meaning. */
+  if (loadingValue) {
+    return (
+      <div className={styles.field} aria-busy="true">
+        <span className={styles.labelSkeleton}>
+          <Skeleton width="96px" height="8px" />
+        </span>
+        <Skeleton shape="block" height={`var(--field-height-${size})`} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.field}>
       {/* htmlFor / id, never a placeholder as the label. */}
@@ -221,7 +285,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         {label}
       </label>
 
-      <span className={cx(styles.anchor, canReveal && styles.hasAffix)}>
+      <span
+        className={cx(
+          styles.anchor,
+          (canReveal || busyAtEnd) && styles.hasAffix,
+          busyAtStart && styles.hasLead,
+        )}
+      >
       <input
         ref={ref}
         id={controlId}
@@ -253,6 +323,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         onKeyUp={onKeyUp}
         maxLength={maxLength}
         aria-invalid={hasError || undefined}
+        /* The FIELD is busy, not the document. A screen reader hearing
+         * aria-busy on the control it is sitting in knows the value it just
+         * read may change; the same attribute on a wrapper says nothing about
+         * which control to re-read. */
+        aria-busy={showBusy || undefined}
         /* Points at whichever of helper or error is currently rendered, so a test
          * can query the control by its accessible description rather than by a
          * class name. No aria-live region: the error appears on blur, when the
@@ -266,6 +341,26 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
       />
+
+      {/* Both slots, and only ever one of them occupied — `busyPlacement` is a
+          choice, not two independent flags. "One loader per field"
+          (design/loaders.md §7) is a rule this shape cannot break.
+
+          BARS at the start, ORBIT at the end, and the two are not
+          interchangeable: bars occupy the search icon's exact footprint so a
+          search field does not reflow when the icon is replaced, and orbit is
+          the affix shape. */}
+      {busyAtStart ? (
+        <span className={styles.lead}>
+          <Loader variant="bars" size="sm" />
+        </span>
+      ) : null}
+
+      {busyAtEnd ? (
+        <span className={styles.busyAffix}>
+          <Loader variant="orbit" size="sm" />
+        </span>
+      ) : null}
 
       {canReveal ? (
         <button

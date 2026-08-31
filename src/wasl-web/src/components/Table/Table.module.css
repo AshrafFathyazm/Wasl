@@ -236,47 +236,14 @@
 /* The skeleton row is the SAME height as a real row, because the row height
  * comes from --row-h on the <td> either way. A skeleton at a different height
  * makes the table jump when data lands, and it reads as jank rather than as a
- * wrong constant. */
-.skeleton {
-  display: block;
-  border-radius: var(--radius-sm);
-  background-color: var(--surface-sunken);
-  animation: table-pulse 1.4s ease-in-out infinite;
-}
-
-.text {
-  inline-size: 72%;
-  block-size: 12px;
-}
-
-.pill {
-  inline-size: 84px;
-  block-size: 24px;
-  border-radius: var(--radius-pill);
-}
-
-.avatar {
-  inline-size: var(--table-avatar-size);
-  block-size: var(--table-avatar-size);
-  border-radius: var(--radius-pill);
-}
-
-.icon {
-  inline-size: 18px;
-  block-size: 18px;
-  margin-inline: auto;
-}
-
-@keyframes table-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.45;
-  }
-}
+ * wrong constant.
+ *
+ * THE SHAPES THEMSELVES LEFT THIS FILE IN 029. Table had a private skeleton —
+ * .skeleton/.text/.pill/.avatar/.icon plus its own @keyframes table-pulse — and
+ * it had ALREADY DIVERGED from the one the design document specifies: 1.4s
+ * against 1.5s, opacity .45 against .4. Neither was wrong, which is exactly the
+ * problem, and it is why the shape is now components/Loader/Skeleton and this
+ * file keeps only the geometry that is genuinely the table's. */
 
 /* ---- Utility -------------------------------------------------------------- */
 
@@ -289,4 +256,23 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* The refetch bar sits under the card's top edge and ABOVE the scroller, so it
+ * does not scroll away with the rows it is describing. `position: absolute` so
+ * its 3px never enters the layout — a bar that appears and pushes sixty rows
+ * down by three pixels is a worse answer than no bar. */
+.refreshBar {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 1;
+  overflow: hidden;
+
+  /* The card is rounded and this sits on its edge. Without the clip the 3px
+   * track squares off both top corners while it runs, which reads as the card
+   * changing shape rather than as something loading. */
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+  color: var(--brand);
 }

@@ -9,6 +9,8 @@ import {
 
 import { IconChevronDown, IconMore } from '../../icons/icons';
 import { cx } from '../../lib/cx';
+import { Loader } from '../Loader/Loader';
+import { Skeleton } from '../Loader/Skeleton';
 import styles from './Table.module.css';
 
 /**
@@ -452,6 +454,24 @@ export function Table<TRow>({
       className={cx(styles.card, styles[density], refreshing && styles.refreshing)}
       aria-busy={refreshing || undefined}
     >
+      {/* BAR, on a refetch only (design/loaders.md §2: background loading that
+          does not block interaction).
+
+          The rows stay, dimmed — that rule is older than this feature and it
+          stands: throwing away what the reader is looking at, to say something
+          they did not ask about, is worse than saying it quietly. What the dim
+          could never say is WHY the rows went quiet, and on a fast connection it
+          reads as a flicker rather than as a state. The bar is the sentence the
+          dim was missing.
+
+          Not on the first load: that is what the skeleton rows below are, and
+          two loaders on one surface is the rule broken by construction. */}
+      {refreshing ? (
+        <div className={styles.refreshBar}>
+          <Loader variant="bar" />
+        </div>
+      ) : null}
+
       <div
         className={cx(styles.scroller, capped && styles.capped)}
         style={bodyStyle}
@@ -473,17 +493,12 @@ export function Table<TRow>({
                           )}
                           style={{ inlineSize: percents[ci] }}
                         >
-                          <span
-                            className={cx(
-                              styles.skeleton,
-                              styles[col.skeleton ?? 'text'],
-                            )}
-                          />
+                          <Skeleton shape={col.skeleton ?? 'text'} />
                         </td>
                       ))}
                       {rowFlyout ? (
                         <td className={cx(styles.td, styles.center)}>
-                          <span className={cx(styles.skeleton, styles.icon)} />
+                          <Skeleton shape="icon" />
                         </td>
                       ) : null}
                     </tr>

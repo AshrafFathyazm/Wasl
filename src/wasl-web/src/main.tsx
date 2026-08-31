@@ -25,6 +25,7 @@ import './styles/locale.css';
 import './lib/i18n';
 import { AuthProvider } from './features/auth/AuthContext';
 import { routes } from './routes';
+import { RouteFallback } from './shell/RouteFallback';
 
 const container = document.getElementById('root');
 if (!container) {
@@ -55,8 +56,14 @@ createRoot(container).render(
           settled answer on its very first render (`025`). */}
       <AuthProvider>
         {/* Route-level code splitting only (ADR-011 §7). Anything finer is
-            optimisation without a measurement. */}
-        <Suspense fallback={null}>
+            optimisation without a measurement.
+
+            The fallback was `null` until `029`, and that was the right answer
+            without a timing gate: a chunk that resolves in 40ms and paints a
+            spinner is a flash, and nothing beats a flash. `RouteFallback` keeps
+            that behaviour for the first 150ms and shows the mark after — the
+            rule, rather than the judgement that stood in for it. */}
+        <Suspense fallback={<RouteFallback />}>
           <RouterProvider router={router} />
         </Suspense>
       </AuthProvider>

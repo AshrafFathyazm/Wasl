@@ -140,8 +140,8 @@ budget belongs to the words.
 
 ### 2 · Loader
 
-Three dots travelling to a node, 1.45s, `cubic-bezier(.4,0,.5,1)`, with the node pulsing
-as each arrives.
+Three dots travelling to a node, **1.4s**, `cubic-bezier(.45,0,.35,1)`, with the node
+pulsing as each arrives and a ring marking the absorption.
 
 This replaces the spinner everywhere. **The loader appears far more often than the logo
 does** — it is the most-seen brand asset in any product, and shipping a default spinner
@@ -149,14 +149,25 @@ wastes it.
 
 ```css
 @keyframes converge {
-  0%        { transform: translateX(0);    opacity: 0 }
-  12%       { opacity: .85 }
-  78%       { transform: translateX(31px); opacity: .85 }
-  92%, 100% { transform: translateX(34px); opacity: 0 }
+  0%        { transform: translateX(0)                             scale(.7); opacity: 0 }
+  16%       { transform: translateX(calc( 5px * var(--ld-dir, 1))) scale(1);  opacity: 1 }
+  70%       { transform: translateX(calc(30px * var(--ld-dir, 1))) scale(1);  opacity: 1 }
+  86%, 100% { transform: translateX(calc(36px * var(--ld-dir, 1))) scale(.3); opacity: 0 }
 }
 ```
 
 Under `prefers-reduced-motion`, the three dots and the node render statically.
+
+**This is Converge Pro, and it replaced the original in `029`.** The original faded the
+dots out at 12 / 78 / 92 over 1.45s; this one absorbs them by scale at 16 / 70 / 86 over
+1.4s, pulses the node 1.22× rather than 1.32×, and adds the absorption ring. The reason
+for each of the five changes is in `design/loaders.md` §1 — and so are the **eight other
+shapes** built from this same geometry, with the rule for which one goes where.
+
+`Loader.module.css` copies these percentages verbatim, and `keyframeParity.test.ts`
+asserts that it still does. The two drifting apart is otherwise silent: the file says
+VERBATIM in capitals, and a reader who trusts that comment would "restore" whichever one
+they met second.
 
 ### 3 · Empty-state vocabulary
 
@@ -188,6 +199,11 @@ a palette drifts.**
 > Teal marks presence — the thing is alive. Green marks outcome — the thing succeeded.
 > Confusing them is how "resolved" and "online" end up looking the same, and once they
 > do, neither means anything.
+
+**In a loader this has exactly one consequence.** Every loader is `currentcolor` over the
+brand navy. Teal appears in **one** shape — Satellites, the one that means *waiting on an
+external party* — where it says the connection is alive, not that anything succeeded.
+Green never appears in a loader at all: a wait has no outcome yet. `design/loaders.md` §6.
 
 ### 5 · Product language
 

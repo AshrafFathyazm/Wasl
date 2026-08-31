@@ -56,6 +56,31 @@ Easing:
 Arriving is slower than leaving. Something the user dismissed should go immediately;
 something appearing needs a moment to be tracked.
 
+### Loaders are outside the scale, and here is the boundary
+
+The table above governs a transition — something with a start, an end, and a known
+duration. A loader has no end: it runs until an answer arrives. Its duration is a **cycle
+length**, not a wait the user is paying for, so the 300ms ceiling does not apply and
+never did.
+
+Nine cycle lengths, 900ms to 1.6s, in `design/loaders.md` §2. They are the only durations
+in the product above 300ms outside login.
+
+**What the scale still governs is when a loader is allowed to appear.** Four gates, and
+the third of them deliberately makes the product slower:
+
+| Wait | Behaviour |
+|---|---|
+| **< 200ms** | No loader at all |
+| **200ms – 1s** | Appear after a **150ms** delay, so it cannot flash |
+| Once visible | Stay **at least 400ms** before content replaces it |
+| **> 10s** | A line of text naming the current step. **Not a bigger loader** |
+
+A 400ms floor adds latency to a response that arrived in 160ms. That is the trade: a
+flash reads as a glitch and costs more attention than the wait it saved. It is a
+deliberate slow-down, and it lives in `lib/useDeferredBusy.ts` so it is one decision
+rather than one per call site.
+
 ## What animates, and what must not
 
 | Animates | Never animates |

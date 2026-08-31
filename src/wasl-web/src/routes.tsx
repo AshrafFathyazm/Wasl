@@ -53,6 +53,9 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const TicketListPreview = lazy(() => import('./dev/TicketListPreview'));
       const TablePreview = lazy(() => import('./dev/TablePreview'));
       const LocalizationPreview = lazy(() => import('./dev/LocalizationPreview'));
+      const CreateCustomerPreview = lazy(() => import('./dev/CreateCustomerPreview'));
+      const TicketDetailPreview = lazy(() => import('./dev/TicketDetailPreview'));
+      const LoadersPreview = lazy(() => import('./dev/LoadersPreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
@@ -69,6 +72,17 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
         /* FE-014-00. The Phase 3b gate: /settings/localization is previewed and
          * reviewed before anything is wired to PUT /api/me/language. */
         { path: '/_preview/localization', element: <LocalizationPreview /> },
+        /* FE-007-00. The Phase 3b gate for /customers/new — 007 backend is
+         * delivered and this is previewed before anything is wired to it. */
+        { path: '/_preview/create-customer', element: <CreateCustomerPreview /> },
+        /* FE-027-00. The Phase 3b gate for `/tickets/:id`. It gates every other
+         * 027 task: nothing is wired until the layout is approved in Arabic, at
+         * 100 timeline entries and a 200-character subject. */
+        { path: '/_preview/ticket-detail', element: <TicketDetailPreview /> },
+        /* FE-029-00. The Phase 3b gate for the loader system, and it gates every
+         * rewired consumer: nothing moves onto a new shape until the ten are
+         * reviewed in Arabic, in both directions, with reduced motion on. */
+        { path: '/_preview/loaders', element: <LoadersPreview /> },
       ];
     })()
   : [];

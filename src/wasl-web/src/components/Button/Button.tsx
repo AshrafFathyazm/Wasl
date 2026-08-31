@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { cx } from '../../lib/cx';
+import { useDeferredBusy } from '../../lib/useDeferredBusy';
 import { Loader } from '../Loader/Loader';
 import styles from './Button.module.css';
 
@@ -69,7 +70,18 @@ export function Button({
     );
   }
 
+  /* THE GUARD IS IMMEDIATE. THE LOADER IS GATED. They are not the same thing
+   * and running them off one flag is the mistake this split exists to avoid:
+   * `loading` disables the button on the very first render, so a double-click
+   * sends one action, while the indicator waits out the 150ms appear delay.
+   *
+   * Gating the disable too would leave the button live for 150ms after a
+   * submit — a race, introduced by a visual rule. */
   const isDisabled = disabled || loading;
+
+  /* `visible`, not `loading`. A mutation that answers in 90ms now paints
+   * nothing at all instead of a three-frame blink (design/loaders.md §3). */
+  const { visible: showIndicator } = useDeferredBusy(loading);
 
   return (
     <button
@@ -85,7 +97,7 @@ export function Button({
       aria-label={ariaLabel}
       onClick={onClick}
     >
-      <span className={cx(styles.content, loading && styles.contentHidden)}>
+      <span className={cx(styles.content, showIndicator && styles.contentHidden)}>
         {iconStart ? <span className={styles.icon}>{iconStart}</span> : null}
         {/* No dir="auto": a button label is interface copy from the catalogue, not
             user content. dir="auto" on interface copy is how a mixed-script label
@@ -94,12 +106,18 @@ export function Button({
         {iconEnd ? <span className={styles.icon}>{iconEnd}</span> : null}
       </span>
 
-      {loading ? (
+      {showIndicator ? (
         <span className={styles.indicator}>
-          {/* No label: the button keeps its own accessible name while busy, and
+          {/* ORBIT, not converge (`029`). design/loaders.md §2 gives converge to
+              a wait WITH TEXT BESIDE IT, 0.5–5s, and orbit to a button. The
+              reason is the footprint: converge is 52px of travel, and inside a
+              hug-width button whose label is "Save" it is wider than the label
+              it replaced. Orbit is 28px square and sits where an icon sits.
+
+              No label: the button keeps its own accessible name while busy, and
               aria-busy on the button is what announces the state. A "Loading…"
               string here would be a string inside a primitive. */}
-          <Loader size="sm" />
+          <Loader variant="orbit" size="sm" />
         </span>
       ) : null}
     </button>

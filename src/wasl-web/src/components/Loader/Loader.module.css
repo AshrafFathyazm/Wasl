@@ -1,99 +1,114 @@
 /* ============================================================================
- * Loader — "Converge"
+ * Loader — the waiting vocabulary
  * ============================================================================
  *
- * Three dots travel 31px and are absorbed into a node; the node pulses as they
- * arrive. THIS REPLACES THE SPINNER EVERYWHERE (design/brand.md §2): the loader
- * appears far more often than the logo does, so it is the most-seen brand asset
- * in the product, and shipping a default spinner wastes it.
+ * Nine shapes from one geometry: three threads arriving at one node.
+ * `design/loaders.md` is the design; `design/brand.md` §2 is the authority for
+ * the converge keyframes specifically.
  *
- * THE SLANT COMES FROM THE DELAY, NOT FROM DIFFERENT START POSITIONS.
- * All three dots start at `inset-inline-start: 0` — same x, different y (22% /
- * 50% / 78% of a 16px container, deliberately close together). The staggered
- * delay — 0 / .13s / .26s — puts the first ahead and the third behind, so they
- * describe a diagonal WHILE MOVING. Do not "fix" the positions to make the slant;
- * that would freeze it into a static comma.
+ * THE CONVERGE @keyframes ARE COPIED VERBATIM FROM brand.md §2, and
+ * `keyframeParity.test.ts` asserts that they still are. Do not tidy the
+ * percentages — 16 / 70 / 86 are the arrival shape, 30 lands on the node and 36
+ * is the overshoot into it. If you change them here, change §2 in the same
+ * commit or the test goes red, which is the entire point of it: the previous
+ * loader carried the same VERBATIM claim with no test behind it, and nothing
+ * would have noticed the two diverging.
  *
- * THE CONTAINER MUST FIT THE FULL TRAVEL: 46 × 16, for 31px of travel plus the
- * 9px node. Narrower and the dots start a few pixels from the node, the 31px has
- * nowhere to happen, and it reads as a static comma rather than as motion.
+ * ---------------------------------------------------------------------------
+ * DIRECTION — read this before touching any transform
+ * ---------------------------------------------------------------------------
+ * CSS has no logical `transform`. Layout flips on its own; travel does not.
  *
- * The @keyframes are COPIED VERBATIM from design/brand.md §2. Do not tidy the
- * percentages — 12 / 78 / 92 are the arrival shape, and 31 lands on the node
- * while 34 is the overshoot into it.
+ *   layout  → inset-inline-start / inset-inline-end. Flips by itself
+ *   travel  → calc(30px * var(--ld-dir)). Explicit sign, tokens.css
+ *   growth  → transform-origin: var(--ld-origin)
+ *   svg     → transform: scaleX(var(--ld-dir)) — SVG has no logical properties
  *
- * TODO — tokens.css has no motion token and no loader geometry token (note 11).
- * The durations, the travel, and the dot and node sizes are literals. DESIGN-BRIEF
- * rule 3 forbids inventing a token, so the debt is visible rather than hidden.
- * Spec Q-8.
+ * `006` solved this by pinning the frame to `direction: ltr` and mirroring the
+ * whole assembly with `scaleX(-1)`. That was correct for ONE shape. It does not
+ * survive nine: several of these position logically AND travel physically in the
+ * same element, and the container flip mirrors the node with them — two mirrors
+ * that cancel, dots running AWAY from the node. That failure was measured in
+ * `006` and is measured again in `029/tests.md` against this mechanism, because
+ * it is silent: it still animates, it just animates backwards.
+ *
+ * THE MARK NEVER MIRRORS. `.mark` and `.brand` carry no --ld-dir at all. The
+ * mark is directional by construction and keeps its orientation in Arabic
+ * (brand.md). --ld-dir is for abstract shapes and travel only.
+ *
+ * ---------------------------------------------------------------------------
+ * REDUCED MOTION — every shape has an EXPLICIT static frame
+ * ---------------------------------------------------------------------------
+ * Gating the animation behind `no-preference` is not enough, and it is the
+ * easiest mistake in this file to make. The dots declare `opacity: 0` and the
+ * chain fills declare `opacity: 0`; without the `reduce` block they would simply
+ * be ABSENT — the shape silently missing, for exactly the people who cannot ask
+ * for the motion back. brand.md §2: the three dots AND the node render
+ * statically. For some people motion is nausea, not taste.
  * ============================================================================ */
 
 .loader {
   position: relative;
   display: inline-block;
-  inline-size: 46px;
-  block-size: 16px;
+
+  /* currentcolor throughout, so one loader works on white and on navy without a
+   * second copy. The container sets the colour; no shape names one. */
   color: inherit;
-
-  /* THE INTERNAL FRAME IS PINNED TO LTR, AND THAT IS WHAT MAKES THE MIRROR WORK.
-   *
-   * The keyframes are PHYSICAL — `translateX(31px)` — because they are copied
-   * verbatim from design/brand.md §2 and CSS has no logical transform. Mixing a
-   * physical animation with logical positioning inside the same assembly gives
-   * two mirrors that cancel: `inset-inline-end` moved the node to the left under
-   * rtl, then `scaleX(-1)` moved it back to the right, while the dots' physical
-   * travel was flipped only once. Measured: in rtl the node stayed on the RIGHT
-   * and the dots ran right→left, AWAY from it.
-   *
-   * With the frame pinned, everything inside is authored in one direction and the
-   * single scaleX below mirrors the whole assembly at once. brand.md: "the
-   * threads arrive from the inline-start, which in Arabic is the right." */
-  direction: ltr;
+  vertical-align: middle;
 }
 
-/* The travel is written in the physical direction the copied keyframes use.
- * Mirroring the whole container is one line and leaves them untouched —
- * `transform` has no logical form. */
-[dir='rtl'] .loader {
-  transform: scaleX(-1);
+/* EVERY variant declares its own size, including the default one. Putting the
+ * converge geometry on `.loader` and letting the others override it makes the
+ * default invisible in the file, and the next shape inherits a size nobody
+ * chose for it. */
+.converge {
+  inline-size: var(--loader-inline-size);
+  block-size: var(--loader-block-size);
 }
 
-/* Reduced travel for a 40px control: the same three dots, the same 1.45s, the
- * same easing, a shorter distance. Scaling the container keeps ONE set of
- * keyframes rather than a second, divergent copy (spec Q-F). */
+/* One scale for every geometric shape, so there is ONE set of keyframes rather
+ * than a second divergent copy at a second size. `.orbit` and `.barsBar` opt out
+ * below — a scaled ring gets a sub-pixel border, and a 100%-wide track has
+ * nothing to scale. */
 .sm {
   transform: scale(0.62);
   transform-origin: center;
 }
 
-[dir='rtl'] .sm {
-  transform: scaleX(-1) scale(0.62);
+.svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
 }
+
+/* ==== 1 · Converge — the default ========================================== */
 
 .dot {
   position: absolute;
   inset-inline-start: 0; /* ← all three. Same x, different y */
-  inline-size: 5px;
-  block-size: 5px;
-  margin-block-start: -2.5px;
+  inline-size: var(--loader-dot-size);
+  block-size: var(--loader-dot-size);
+  margin-block-start: calc(var(--loader-dot-size) / -2);
   border-radius: 50%;
   background-color: currentcolor;
   opacity: 0;
 }
 
+/* 24 / 50 / 76% — tighter than the original 22 / 50 / 78, so the three read as
+ * one line and the slant comes from the delay rather than from the spread. */
 .dot:nth-child(1) {
-  inset-block-start: 22%;
+  inset-block-start: 24%;
   animation-delay: 0s;
 }
 
 .dot:nth-child(2) {
   inset-block-start: 50%;
-  animation-delay: 0.13s;
+  animation-delay: 0.11s;
 }
 
 .dot:nth-child(3) {
-  inset-block-start: 78%;
-  animation-delay: 0.26s;
+  inset-block-start: 76%;
+  animation-delay: 0.22s;
 }
 
 /* Nearly double the dot — it is the destination, not a fourth dot. */
@@ -101,80 +116,649 @@
   position: absolute;
   inset-inline-end: 0;
   inset-block-start: 50%;
-  inline-size: 9px;
-  block-size: 9px;
-  margin-block-start: -4.5px;
+  inline-size: var(--loader-node-size);
+  block-size: var(--loader-node-size);
+  margin-block-start: calc(var(--loader-node-size) / -2);
   border-radius: 50%;
   background-color: currentcolor;
+  transform: translateY(-50%);
 }
 
-/* VERBATIM from design/brand.md §2. */
+/* The absorption ring. It explains what happened without noise — and it is the
+ * one addition to the original converge that is not a tuning. */
+.ring {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 50%;
+  inline-size: var(--loader-ring-size);
+  block-size: var(--loader-ring-size);
+  margin-inline-end: -5.5px;
+  border: 1.5px solid currentcolor;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+/* VERBATIM from design/brand.md §2. See the header. */
 @keyframes converge {
   0% {
-    transform: translateX(0);
+    transform: translateX(0) scale(0.7);
     opacity: 0;
   }
 
-  12% {
-    opacity: 0.85;
+  16% {
+    transform: translateX(calc(var(--loader-travel-in) * var(--ld-dir, 1))) scale(1);
+    opacity: 1;
   }
 
-  78% {
-    transform: translateX(31px);
-    opacity: 0.85;
+  70% {
+    transform: translateX(calc(var(--loader-travel) * var(--ld-dir, 1))) scale(1);
+    opacity: 1;
   }
 
-  92%,
+  86%,
   100% {
-    transform: translateX(34px);
+    transform: translateX(calc(var(--loader-travel-over) * var(--ld-dir, 1))) scale(0.3);
     opacity: 0;
   }
 }
 
-/* Peaks as the first dot lands. Same 1.45s as the dots, so the pulse stays in
- * sync with the arrival instead of drifting against it. */
+/* 1.22×, not 1.32×. The node RECEIVES; it does not demand attention. Peaks at
+ * 66% so the pulse stays in sync with the arrival rather than drifting. */
 @keyframes node-pulse {
   0%,
-  58%,
+  52%,
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+
+  66% {
+    transform: translateY(-50%) scale(1.22);
+  }
+}
+
+@keyframes absorb-ring {
+  0%,
+  56% {
+    transform: translateY(-50%) scale(0.6);
+    opacity: 0;
+  }
+
+  68% {
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: translateY(-50%) scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* ==== 2 · Mark — the mark draws itself =================================== */
+
+.mark {
+  inline-size: 70px;
+  block-size: 44px;
+}
+
+.markThread {
+  stroke-dashoffset: 46;
+}
+
+.markThread:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.markThread:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.markNode {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes mark-draw {
+  0% {
+    stroke-dashoffset: 46;
+  }
+
+  42%,
+  66% {
+    stroke-dashoffset: 0;
+  }
+
+  88%,
+  100% {
+    stroke-dashoffset: -46;
+  }
+}
+
+@keyframes mark-node {
+  0%,
+  50%,
   100% {
     transform: scale(1);
   }
 
-  70% {
-    transform: scale(1.32);
+  64% {
+    transform: scale(1.18);
   }
 }
+
+/* ==== 3 · Brand — the mark whole, pulsing ================================ */
+
+.brand {
+  inline-size: 64px;
+  block-size: 40px;
+}
+
+@keyframes brand-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==== 4 · Path — a line drawing itself to the node ======================= */
+
+.path {
+  inline-size: 64px;
+  block-size: 24px;
+}
+
+/* SVG has NO logical properties, so the whole drawing is mirrored with an
+ * explicit sign. This is the only place scaleX survives in this file. */
+.path .svg {
+  transform: scaleX(var(--ld-dir, 1));
+}
+
+.pathTrack {
+  stroke: var(--border-subtle);
+}
+
+.pathLine {
+  stroke-dasharray: 20 58;
+  stroke-dashoffset: 78;
+}
+
+@keyframes path-dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ==== 5 · Chain — nodes lighting one after another ======================= */
+
+.chain {
+  display: inline-flex;
+  align-items: center;
+  inline-size: 86px;
+  block-size: 12px;
+}
+
+.chainDot {
+  position: relative;
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background-color: var(--border-subtle);
+}
+
+/* The last node is larger. It is the destination, the same way the converge
+ * node is — the shape says where the sequence is going. */
+.chainEnd {
+  inline-size: 12px;
+  block-size: 12px;
+}
+
+.chainFill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: currentcolor;
+  opacity: 0;
+}
+
+.chainLink {
+  position: relative;
+  flex: none;
+  inline-size: 14px;
+  block-size: 2px;
+  background-color: var(--border-subtle);
+}
+
+.chainGrow {
+  position: absolute;
+  inset: 0;
+  background-color: currentcolor;
+
+  /* --ld-origin, not `left`. Each link must grow AWAY from the dot that just
+   * lit, and in Arabic that is the other end. */
+  transform-origin: var(--ld-origin, left);
+  transform: scaleX(0);
+}
+
+/* 60ms per element, so the sequence reads as steps rather than as a shimmer. */
+.chainDot:nth-child(1) .chainFill {
+  animation-delay: 0s;
+}
+
+.chainLink:nth-child(2) .chainGrow {
+  animation-delay: calc(var(--motion-loader-stagger) * 1);
+}
+
+.chainDot:nth-child(3) .chainFill {
+  animation-delay: calc(var(--motion-loader-stagger) * 2);
+}
+
+.chainLink:nth-child(4) .chainGrow {
+  animation-delay: calc(var(--motion-loader-stagger) * 3);
+}
+
+.chainDot:nth-child(5) .chainFill {
+  animation-delay: calc(var(--motion-loader-stagger) * 4);
+}
+
+.chainLink:nth-child(6) .chainGrow {
+  animation-delay: calc(var(--motion-loader-stagger) * 5);
+}
+
+.chainDot:nth-child(7) .chainFill {
+  animation-delay: calc(var(--motion-loader-stagger) * 6);
+}
+
+@keyframes chain-fill {
+  0%,
+  8% {
+    opacity: 0;
+  }
+
+  24%,
+  68% {
+    opacity: 1;
+  }
+
+  84%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes chain-grow {
+  0%,
+  8% {
+    transform: scaleX(0);
+  }
+
+  30%,
+  68% {
+    transform: scaleX(1);
+  }
+
+  84%,
+  100% {
+    transform: scaleX(0);
+  }
+}
+
+/* ==== 6 · Orbit — a dot orbiting a fixed node ============================ */
+
+.orbit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+/* Opts out of the container scale: a scaled 2px ring lands on a sub-pixel
+ * border and renders as a grey smear at 62%. Sized directly instead. */
+.orbit.sm {
+  inline-size: var(--loader-size-sm);
+  block-size: var(--loader-size-sm);
+  transform: none;
+}
+
+.orbitRing {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--surface-sunken);
+  border-block-start-color: currentcolor;
+  border-radius: 50%;
+}
+
+.orbit.sm .orbitRing {
+  border-width: 1.5px;
+}
+
+.orbitCore {
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: 50%;
+  background-color: currentcolor;
+}
+
+.orbit.sm .orbitCore {
+  inline-size: 5px;
+  block-size: 5px;
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==== 7 · Bars — the smallest in the system ============================== */
+
+.bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  inline-size: 27px;
+  block-size: 18px;
+}
+
+.barsBar {
+  flex: none;
+  inline-size: 3px;
+  block-size: 18px;
+  border-radius: 2px;
+  background-color: currentcolor;
+  opacity: 0.45;
+  transform: scaleY(0.3);
+}
+
+.barsBar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.barsBar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.barsBar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bars-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+    opacity: 0.45;
+  }
+
+  42% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* ==== 8 · Bar — background loading, non-blocking ========================= */
+
+/* The only shape with no intrinsic width. It is a track across whatever holds
+ * it — the top of a page, the underside of a table header — so `size` has
+ * nothing to act on and `.sm` is neutralised rather than silently shrinking a
+ * full-width bar to 62% of its container. */
+.bar {
+  display: block;
+  inline-size: 100%;
+  block-size: 3px;
+  overflow: hidden;
+  background-color: var(--surface-sunken);
+}
+
+.bar.sm {
+  transform: none;
+}
+
+.sweep {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 28%;
+  background-color: currentcolor;
+}
+
+@keyframes bar-sweep {
+  0% {
+    transform: translateX(calc(-110% * var(--ld-dir, 1)));
+  }
+
+  100% {
+    transform: translateX(calc(420% * var(--ld-dir, 1)));
+  }
+}
+
+/* ==== 9 · Satellites — waiting on an external channel ==================== */
+
+.satellites {
+  inline-size: 32px;
+  block-size: 32px;
+}
+
+.satCore {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 9px;
+  block-size: 9px;
+  margin-block-start: -4.5px;
+  margin-inline-start: -4.5px;
+  border-radius: 50%;
+  background-color: currentcolor;
+}
+
+.satOrbitOuter {
+  position: absolute;
+  inset: 0;
+}
+
+.satOrbitInner {
+  position: absolute;
+  inset: 5px;
+
+  /* -500ms, so the two never align. Two dots in phase read as one dot. */
+  animation-delay: -0.5s;
+}
+
+.satDotOuter,
+.satDotInner {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  border-radius: 50%;
+}
+
+/* THE ONE TEAL IN THE SYSTEM. brand.md §4 — presence, never outcome: this shape
+ * means the channel is alive, not that anything succeeded. Green appears in no
+ * loader at all, because a wait has no outcome yet. */
+.satDotOuter {
+  inline-size: 5px;
+  block-size: 5px;
+  margin-inline-start: -2.5px;
+  background-color: var(--accent-presence);
+}
+
+.satDotInner {
+  inline-size: 4px;
+  block-size: 4px;
+  margin-inline-start: -2px;
+  background-color: currentcolor;
+  opacity: 0.4;
+}
+
+@keyframes sat-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==== Motion ============================================================= */
 
 @media (prefers-reduced-motion: no-preference) {
   .dot {
-    animation: converge 1.45s cubic-bezier(0.4, 0, 0.5, 1) infinite;
+    animation: converge var(--motion-loader-converge) var(--motion-loader-ease) infinite;
   }
 
   .node {
-    animation: node-pulse 1.45s cubic-bezier(0.4, 0, 0.5, 1) infinite;
+    animation: node-pulse var(--motion-loader-converge) var(--motion-loader-ease) infinite;
+  }
+
+  .ring {
+    animation: absorb-ring var(--motion-loader-converge) var(--motion-loader-ease-ring)
+      infinite;
+  }
+
+  .markThread {
+    animation: mark-draw var(--motion-loader-mark) var(--motion-loader-ease) infinite;
+  }
+
+  .markNode {
+    animation: mark-node var(--motion-loader-mark) var(--motion-loader-ease) infinite;
+  }
+
+  .brand .svg {
+    animation: brand-pulse var(--motion-loader-brand) ease-in-out infinite;
+  }
+
+  .pathLine {
+    animation: path-dash var(--motion-loader-path) linear infinite;
+  }
+
+  .chainFill {
+    animation: chain-fill var(--motion-loader-chain) ease-out infinite;
+  }
+
+  .chainGrow {
+    animation: chain-grow var(--motion-loader-chain) ease-out infinite;
+  }
+
+  .orbitRing {
+    animation: orbit-spin var(--motion-loader-orbit) var(--motion-loader-ease-orbit)
+      infinite;
+  }
+
+  .barsBar {
+    animation: bars-pulse var(--motion-loader-bars) ease-in-out infinite;
+  }
+
+  .sweep {
+    animation: bar-sweep var(--motion-loader-bar) var(--motion-loader-ease-sweep) infinite;
+  }
+
+  .satOrbitOuter,
+  .satOrbitInner {
+    animation: sat-orbit var(--motion-loader-satellites) cubic-bezier(0.4, 0, 0.6, 1)
+      infinite;
   }
 }
 
-/* brand.md §2: "Under prefers-reduced-motion, the three dots AND the node render
- * statically." Gating the animations behind `no-preference` alone would leave the
- * dots at their declared `opacity: 0`, stacked at x=0 — so the loader would show a
- * lone node and two thirds of the mark would silently disappear for exactly the
- * people who cannot ask for the motion back. This block is what makes them
- * static rather than absent. For some people motion is nausea, not taste. */
+/* ==== The static frame — one per shape, and none of them optional ========
+ *
+ * READ THE HEADER BEFORE EDITING. Every declaration below exists because the
+ * animated form starts from a state that is invisible: opacity 0, scaleX(0),
+ * scaleY(.3), a dash offset that hides the whole stroke. Gate the animation
+ * without these and the shape does not stop moving — it disappears.
+ *
+ * Each is the shape at REST, mid-journey, so it still reads as three threads
+ * arriving at a node rather than as three dots stacked at the start line. */
 @media (prefers-reduced-motion: reduce) {
   .dot {
     opacity: 0.85;
   }
 
   .dot:nth-child(1) {
-    transform: translateX(22px);
+    transform: translateX(calc(21px * var(--ld-dir, 1)));
   }
 
   .dot:nth-child(2) {
-    transform: translateX(15px);
+    transform: translateX(calc(14px * var(--ld-dir, 1)));
   }
 
   .dot:nth-child(3) {
-    transform: translateX(8px);
+    transform: translateX(calc(7px * var(--ld-dir, 1)));
+  }
+
+  /* The ring is the ONE thing that stays hidden: it is a moment, not a state,
+   * and a permanent ring around the node reads as a different mark. */
+  .ring {
+    opacity: 0;
+  }
+
+  .markThread {
+    stroke-dashoffset: 0;
+  }
+
+  .brand .svg {
+    opacity: 1;
+  }
+
+  .pathLine {
+    stroke-dashoffset: 39; /* half the run — drawn, and evidently partial */
+  }
+
+  .chainFill {
+    opacity: 1;
+  }
+
+  .chainDot:nth-child(5) .chainFill,
+  .chainDot:nth-child(7) .chainFill {
+    opacity: 0;
+  }
+
+  .chainGrow {
+    transform: scaleX(1);
+  }
+
+  .chainLink:nth-child(6) .chainGrow {
+    transform: scaleX(0);
+  }
+
+  .barsBar {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+
+  .barsBar:nth-child(1) {
+    transform: scaleY(0.4);
+  }
+
+  .barsBar:nth-child(2) {
+    transform: scaleY(0.7);
+  }
+
+  .barsBar:nth-child(4) {
+    transform: scaleY(0.55);
+  }
+
+  /* A sweep frozen at 0% sits entirely off the track. Parked mid-run instead. */
+  .sweep {
+    transform: translateX(calc(120% * var(--ld-dir, 1)));
+  }
+
+  /* The orbit ring's one coloured edge is meaningless without rotation — it
+   * reads as a rendering fault. Closed into a full ring at rest. */
+  .orbitRing {
+    border-color: currentcolor;
+    opacity: 0.35;
+  }
+
+  .satDotOuter {
+    inset-block-start: 2px;
+    inset-inline-start: 84%;
+  }
+
+  .satDotInner {
+    inset-block-start: 78%;
+    inset-inline-start: 12%;
   }
 }

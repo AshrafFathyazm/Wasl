@@ -1,0 +1,262 @@
+/* A development preview. Stripped from the production bundle by
+ * `import.meta.env.DEV` in routes.tsx.
+ *
+ * IT DECLARES NO @keyframes, deliberately, and `loaderSystem.test.ts` would not
+ * catch it if it did — that guard scopes to the shipped surface. A preview of
+ * the loader system that drew its own animation would be the one file in the
+ * repository most likely to be copied from. */
+
+.page {
+  min-block-size: 100dvh;
+  padding: var(--space-12) var(--space-8) 96px;
+  background-color: var(--surface-content);
+  color: var(--text-primary);
+}
+
+.head,
+.section {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block-end: var(--space-6);
+  border-block-end: 1px solid var(--border-subtle);
+}
+
+.headTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  block-size: 22px;
+  padding-inline: var(--space-2);
+  border-radius: 2px;
+  background-color: var(--brand);
+  color: var(--text-on-inverse);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.04em;
+}
+
+.crumb,
+.use {
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+  line-height: var(--leading-normal);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-h2);
+  font-weight: var(--weight-bold);
+}
+
+.lede {
+  max-inline-size: 820px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  line-height: var(--leading-normal);
+}
+
+.note {
+  max-inline-size: 820px;
+  margin: 0;
+  padding: var(--space-3);
+  border-inline-start: 3px solid var(--brand);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-card);
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  line-height: var(--leading-normal);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-2);
+}
+
+.toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* base.css rule 17 paints every <button> with the primary fill and !important,
+ * so a preview control has to say otherwise at the same weight. Same reason
+ * Input's reveal toggle does. */
+.toggle button {
+  padding: var(--space-2) var(--space-3);
+  border: 0 !important;
+  background: var(--surface-card) !important;
+  color: var(--text-secondary) !important;
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+.toggle .on {
+  background: var(--brand) !important;
+  color: var(--text-on-inverse) !important;
+}
+
+.pill,
+.pillOn {
+  display: inline-flex;
+  align-items: center;
+  block-size: 26px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-card);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: var(--text-helper);
+}
+
+.pillOn {
+  border-color: var(--brand);
+  background-color: var(--brand-subtle);
+  color: var(--brand);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-12);
+}
+
+.h2 {
+  margin: 0;
+  font-size: var(--type-title-1);
+  font-weight: var(--weight-bold);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+/* A FIXED-HEIGHT STAGE. Every shape is a different size, and without this the
+ * cards form a ragged grid in which a taller shape reads as more important. */
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  block-size: 72px;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-subtle);
+  color: var(--brand);
+}
+
+.skelStack {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  inline-size: 100%;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.name {
+  font-size: var(--text-ui);
+  font-weight: 600;
+}
+
+.mono {
+  color: var(--text-placeholder);
+  font-family: monospace;
+  font-size: 11px;
+  unicode-bidi: isolate;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.pairCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.cellHead {
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  color: var(--brand);
+}
+
+.dark {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-inverse);
+  color: var(--text-on-inverse);
+}
+
+.gates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}

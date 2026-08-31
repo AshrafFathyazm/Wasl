@@ -1,0 +1,79 @@
+/* ============================================================================
+ * Skeleton — the tenth shape
+ * ============================================================================
+ *
+ * An OPACITY PULSE. No shimmer gradient, and the source forbids it by name.
+ *
+ * A shimmer is a highlight travelling across a surface, which means it has a
+ * direction — so it needs mirroring, and it reads as a sweep of light over
+ * content that does not exist yet. The pulse says the same thing with one
+ * property, composited, in both directions, at no cost.
+ * ============================================================================ */
+
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-sunken);
+}
+
+.text {
+  inline-size: 72%;
+  block-size: 12px;
+}
+
+.pill {
+  inline-size: 84px;
+  block-size: 24px;
+  border-radius: var(--radius-pill);
+}
+
+.avatar {
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+}
+
+.icon {
+  inline-size: 18px;
+  block-size: 18px;
+  margin-inline: auto;
+}
+
+/* No intrinsic height. It stands in for a whole control or a whole card, so the
+ * caller supplies the size of the thing it is replacing — `--field-height-md`
+ * for a field, the row height for a row. A default here would be a size nobody
+ * chose, applied to a shape whose entire job is not to move the layout. */
+.block {
+  inline-size: 100%;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: skeleton-pulse var(--motion-loader-skeleton) ease-in-out infinite;
+  }
+}
+
+/* The static frame. Unlike every other shape in this system the skeleton is
+ * fully visible at rest — its animation modulates opacity from 1, so gating it
+ * leaves the block on screen and nothing disappears.
+ *
+ * It is written down anyway, and it is not redundant: the next person to add a
+ * shape here will copy this file, and a skeleton whose rest state is `opacity:
+ * 0` is one keyframe edit away. Making the resting value explicit is what stops
+ * that edit being silent. */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    opacity: 1;
+  }
+}

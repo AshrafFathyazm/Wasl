@@ -219,3 +219,47 @@
   outline: var(--focus-ring-width) solid transparent;
   box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
 }
+
+/* ---- Waiting (029) -------------------------------------------------------- */
+
+/* The two affix slots. Only one is ever occupied — `busyPlacement` is a choice,
+ * not two flags — but both are declared here because the padding rules that
+ * keep the text off them have to exist whichever one is used.
+ *
+ * NOTHING SHIFTS WHEN THESE APPEAR. design/loaders.md §7: the loader takes the
+ * size of what it replaces, and the padding is reserved by `.hasAffix` /
+ * `.hasLead` on the anchor rather than by the loader's own box. A field whose
+ * text jumps 24px when a search starts is worse than no indicator at all. */
+.busyAffix,
+.lead {
+  position: absolute;
+  inset-block-start: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--loader-size-sm);
+  block-size: var(--loader-size-sm);
+  color: var(--text-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.busyAffix {
+  inset-inline-end: var(--space-3);
+}
+
+.lead {
+  inset-inline-start: var(--space-3);
+}
+
+.hasLead .control {
+  padding-inline-start: var(--space-8);
+}
+
+/* The label's own skeleton, so the row keeps the label's height and the control
+ * below it does not move up by one line while the field loads. */
+.labelSkeleton {
+  display: block;
+  block-size: calc(var(--text-label) * var(--leading-normal));
+  padding-block-start: 4px;
+}

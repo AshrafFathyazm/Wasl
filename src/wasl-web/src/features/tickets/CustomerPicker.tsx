@@ -7,6 +7,7 @@ import { Loader } from '../../components/Loader/Loader';
 import { IconAdd, IconCustomer, IconSearch } from '../../icons/icons';
 import type { CustomerListItem } from '../../lib/api-types.provisional';
 import { cx } from '../../lib/cx';
+import { useDeferredBusy } from '../../lib/useDeferredBusy';
 import styles from './CreateTicket.module.css';
 
 /* ============================================================================
@@ -51,6 +52,8 @@ export function CustomerPicker({
 }: CustomerPickerProps) {
   const { t } = useTranslation();
   const listId = useId();
+  /* The 150ms appear delay and the 400ms floor, from one place. */
+  const { visible: showSearching } = useDeferredBusy(isSearching);
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (selected) {
@@ -138,9 +141,20 @@ export function CustomerPicker({
             className={styles.searchSpinner}
             /* Inside the field, not over the page: the rest of the form stays
                readable while a search runs. */
-            aria-hidden={!isSearching}
+            aria-hidden={!showSearching}
           >
-            {isSearching ? <Loader size="sm" /> : <IconSearch size={16} />}
+            {/* BARS, not converge (029). design/loaders.md §7 gives debounced
+                search this shape for one reason: three 2px bars occupy the
+                search icon's own footprint, so the field does not reflow when
+                the icon is replaced. Converge is 52px of travel and would push
+                the input's text as it appeared and again as it left.
+
+                Gated, so a search answering in 90ms paints nothing at all. */}
+            {showSearching ? (
+              <Loader variant="bars" size="sm" />
+            ) : (
+              <IconSearch size={16} />
+            )}
           </span>
         </div>
 

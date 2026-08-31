@@ -1,0 +1,11 @@
+/* The whole viewport, because this stands in for a whole route. `--surface-page`
+ * and not the content surface: the shell has not painted either, so this is the
+ * page itself rather than a hole inside one. */
+.screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 100dvh;
+  color: var(--brand);
+  background-color: var(--surface-page);
+}
