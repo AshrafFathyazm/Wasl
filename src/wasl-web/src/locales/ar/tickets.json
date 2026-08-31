@@ -141,5 +141,12 @@
   "list.assignedToMe": "المُسندة إليّ",
   "list.escalatedFilter": "التصعيد",
   "list.escalatedOnly": "المصعّدة فقط",
-  "list.notEscalated": "غير المصعّدة"
+  "list.notEscalated": "غير المصعّدة",
+  "detail.tags": "الوسوم",
+  "detail.addTag": "إضافة وسم",
+  "detail.noTags": "لا وسوم",
+  "detail.removeTag": "إزالة {{name}}",
+  "detail.cannedReplies": "قوالب الردود",
+  "detail.useTemplate": "إدراج قالب",
+  "detail.templateGeneral": "كل التصنيفات"
 }

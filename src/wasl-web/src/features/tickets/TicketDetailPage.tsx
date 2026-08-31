@@ -8,6 +8,7 @@ import { Button } from '../../components/Button/Button';
 import { Checkbox } from '../../components/Checkbox/Checkbox';
 import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Textarea } from '../../components/Textarea/Textarea';
+import { IconClose } from '../../icons/icons';
 import { ApiError } from '../../lib/api';
 import type {
   TicketResponse,
@@ -20,6 +21,10 @@ import { formatDateTime, type Lang } from '../../lib/formatters';
 import styles from './TicketDetail.module.css';
 import {
   addTicketComment,
+  attachTicketTag,
+  detachTicketTag,
+  getCannedReplies,
+  getTags,
   changeTicketAssignee,
   changeTicketStatus,
   getSupportUsers,
@@ -274,6 +279,45 @@ export default function TicketDetailPage() {
     onError: onWriteError,
   });
 
+  /* `034`. The vocabulary and the templates, both bounded seeded sets — so they are
+   * fetched once and cached under their own keys rather than under the ticket's:
+   * invalidating a ticket must not refetch a set that did not change.
+   *
+   * THIS IS THE READ HALF `034` SHIPPED WITHOUT. It built the two tag writes and
+   * nothing that returns the set to attach FROM, nor `tags` on the ticket, so a UI
+   * could change tags it could neither list nor display. The backend lane added
+   * both on 2026-08-31. */
+  const tagVocabulary = useQuery({
+    queryKey: ticketKeys.tags(),
+    queryFn: ({ signal }) => getTags(signal),
+  });
+
+  /* Keyed by the ticket's category, because `?category=` returns a DIFFERENT list —
+   * and it WIDENS rather than narrows. Measured: asking for `Billing` returned the
+   * two Billing templates PLUS the two with no category, and not the Technical one.
+   * A template with no category applies to every ticket, so filtering them out
+   * would hide the general replies exactly when a category is known, which is
+   * always. */
+  const cannedReplies = useQuery({
+    queryKey: ticketKeys.cannedReplies(ticketQuery.data?.category),
+    queryFn: ({ signal }) => getCannedReplies(ticketQuery.data?.category, signal),
+    enabled: ticketQuery.data !== undefined,
+  });
+
+  const tagWrite = useMutation({
+    mutationFn: ({ tagId, attach }: { tagId: string; attach: boolean }) =>
+      attach ? attachTicketTag(id, tagId) : detachTicketTag(id, tagId),
+    onSuccess: afterWrite,
+
+    /* NO expectedVersion on either write, and that is the server's shape rather
+     * than an omission here: attaching is not a state transition, and two people
+     * attaching different tags do not conflict. So this is the one write on the
+     * screen that cannot answer a 409 — and `onWriteError` still routes anything
+     * else, which `034` Q-4 makes reachable: detaching is open to the assignee and
+     * any Manager, so an Agent who is neither gets a 403. */
+    onError: onWriteError,
+  });
+
   if (ticketQuery.isPending) {
     return (
       <main className={styles.page}>
@@ -507,6 +551,54 @@ export default function TicketDetailPage() {
       </section>
 
       {/* ── the timeline ─────────────────────────────────────────────────── */}
+      {/* ── `034`'s tags ─────────────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <div className={styles.sectionHead}>
+          <h3>{t('detail.tags')}</h3>
+        </div>
+        <div className={styles.sectionBody}>
+          <div className={styles.controls}>
+            {ticket.tags.length === 0 ? (
+              <span className={styles.stripMuted}>{t('detail.noTags')}</span>
+            ) : (
+              ticket.tags.map((tag) => (
+                /* The name is Arabic user content, so dir="auto" — a Latin tag
+                   beside an Arabic one must not drag the row's direction. */
+                <span key={tag.id} className={styles.internalMark} dir="auto">
+                  {tag.name}
+                  <button
+                    type="button"
+                    className={styles.searchClear}
+                    aria-label={t('detail.removeTag', { name: tag.name })}
+                    disabled={tagWrite.isPending}
+                    onClick={() => tagWrite.mutate({ tagId: tag.id, attach: false })}
+                  >
+                    <IconClose size={12} />
+                  </button>
+                </span>
+              ))
+            )}
+
+            {/* Only the tags NOT already attached. Offering an attached one is
+                offering a write whose outcome the server has already applied. */}
+            <Dropdown
+              label={t('detail.addTag')}
+              options={(tagVocabulary.data ?? [])
+                .filter((tag) => !ticket.tags.some((attached) => attached.id === tag.id))
+                .map((tag) => ({ value: tag.id, label: tag.name }))}
+              value={null}
+              onChange={(tagId) => {
+                if (tagId) tagWrite.mutate({ tagId, attach: true });
+              }}
+              placeholder={t('detail.addTag')}
+              loading={tagVocabulary.isPending}
+              disabled={tagWrite.isPending}
+              size="md"
+            />
+          </div>
+        </div>
+      </section>
+
       <section className={styles.section} id="timeline">
         <div className={styles.sectionHead}>
           <h3>{t('detail.timeline')}</h3>
@@ -555,6 +647,29 @@ export default function TicketDetailPage() {
               hunt for what would enable it. */}
           {transitions.length === 0 ? null : (
             <div className={styles.composer}>
+              {/* `034`'s reply templates. THEY INSERT INTO THE DRAFT rather than
+                  sending: a template is a starting point, and a picker that sent
+                  it would post an unedited form letter with one click. */}
+              {(cannedReplies.data ?? []).length > 0 ? (
+                <Dropdown
+                  label={t('detail.useTemplate')}
+                  options={(cannedReplies.data ?? []).map((reply) => ({
+                    value: reply.id,
+                    label: reply.title,
+                    description: reply.category
+                      ? t(`category.${reply.category}`)
+                      : t('detail.templateGeneral'),
+                  }))}
+                  value={null}
+                  onChange={(replyId) => {
+                    const reply = (cannedReplies.data ?? []).find((r) => r.id === replyId);
+                    if (reply) setDraft(reply.body);
+                  }}
+                  placeholder={t('detail.useTemplate')}
+                  size="md"
+                />
+              ) : null}
+
               <Textarea
                 label={t('detail.comment')}
                 placeholder={t('detail.commentPlaceholder')}

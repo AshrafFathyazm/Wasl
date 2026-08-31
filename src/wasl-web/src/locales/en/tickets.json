@@ -141,5 +141,12 @@
   "list.assignedToMe": "Assigned to me",
   "list.escalatedFilter": "Escalation",
   "list.escalatedOnly": "Escalated only",
-  "list.notEscalated": "Not escalated"
+  "list.notEscalated": "Not escalated",
+  "detail.tags": "Tags",
+  "detail.addTag": "Add a tag",
+  "detail.noTags": "No tags",
+  "detail.removeTag": "Remove {{name}}",
+  "detail.cannedReplies": "Reply templates",
+  "detail.useTemplate": "Insert a template",
+  "detail.templateGeneral": "Every category"
 }

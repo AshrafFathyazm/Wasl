@@ -547,6 +547,16 @@ const CUSTOMER = {
 
 const BASE_TICKET: TicketResponse = {
   id: '8f1c2d34-5678-4abc-9def-0123456789ab',
+
+  /* `034`'s read half, added 2026-08-31 — and `tsc` is what asked for it here.
+   * The design tints three tags, and this preview had drawn none because the
+   * field did not exist on the response until the backend lane added it. Three
+   * Arabic names from the seeded set, so the preview measures the real width. */
+  tags: [
+    { id: 't-1', name: 'خصم مزدوج' },
+    { id: 't-2', name: 'استرداد' },
+    { id: 't-3', name: 'متابعة مالية' },
+  ],
   ticketNumber: 'TCK-2026-000042',
   subject: SUBJECT_AR,
   description: DESCRIPTION_AR,

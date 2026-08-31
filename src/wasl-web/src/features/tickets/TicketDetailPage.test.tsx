@@ -7,7 +7,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../lib/api';
 import type {
+  CannedReplySummary,
   SupportUser,
+  TagSummary,
   TicketResponse,
   TimelineEntry,
   TimelinePage,
@@ -27,6 +29,10 @@ vi.mock('./tickets.api', async () => {
     addTicketComment: vi.fn(),
     changeTicketStatus: vi.fn(),
     changeTicketAssignee: vi.fn(),
+    getTags: vi.fn(),
+    getCannedReplies: vi.fn(),
+    attachTicketTag: vi.fn(),
+    detachTicketTag: vi.fn(),
   };
 });
 
@@ -37,6 +43,10 @@ const {
   addTicketComment,
   changeTicketStatus,
   changeTicketAssignee,
+  getTags,
+  getCannedReplies,
+  attachTicketTag,
+  detachTicketTag,
 } = await import('./tickets.api');
 const { default: TicketDetailPage } = await import('./TicketDetailPage');
 
@@ -63,6 +73,7 @@ const ticket = (over: Partial<TicketResponse> = {}): TicketResponse =>
     updatedAtUtc: '2026-08-23T12:00:00Z',
     version: 'AAAAAAAAB+4=',
     allowedTransitions: ['InProgress', 'Closed'],
+    tags: [],
     ...over,
   }) as TicketResponse;
 
@@ -95,6 +106,19 @@ const timeline = (over: Partial<TimelinePage> = {}): TimelinePage => ({
 const USERS: SupportUser[] = [
   { id: 'u-1', fullName: 'منى العتيبي', role: 'Manager' },
   { id: 'u-2', fullName: 'Omar Khalid', role: 'Agent' },
+];
+
+const TAGS: TagSummary[] = [
+  { id: 't-1', name: 'استرداد' },
+  { id: 't-2', name: 'خصم مزدوج' },
+];
+
+/* One with a category and one without, because `?category=` WIDENS: the server
+ * returns the matching templates PLUS the general ones, measured. A fixture with
+ * only categorised templates cannot show that. */
+const REPLIES: CannedReplySummary[] = [
+  { id: 'r-1', title: 'طلب كشف حساب', body: 'نحتاج صورة من كشف الحساب.', category: 'Billing' },
+  { id: 'r-2', title: 'تأكيد استلام الشكوى', body: 'وصلتنا شكواك.', category: null },
 ];
 
 const mounted = () => {
@@ -135,6 +159,10 @@ beforeEach(() => {
   vi.mocked(addTicketComment).mockReset().mockResolvedValue({} as never);
   vi.mocked(changeTicketStatus).mockReset().mockResolvedValue({} as never);
   vi.mocked(changeTicketAssignee).mockReset().mockResolvedValue({} as never);
+  vi.mocked(getTags).mockReset().mockResolvedValue(TAGS);
+  vi.mocked(getCannedReplies).mockReset().mockResolvedValue(REPLIES);
+  vi.mocked(attachTicketTag).mockReset().mockResolvedValue({} as never);
+  vi.mocked(detachTicketTag).mockReset().mockResolvedValue({} as never);
 });
 
 describe('AC-1 — the page reads the ticket and nothing renders one from a write', () => {
@@ -437,5 +465,152 @@ describe('the states a reader can actually reach', () => {
       expect(screen.getByText(i18n.t('tickets:detail.errorTitle'))).toBeInTheDocument(),
     );
     expect(screen.getByText(i18n.t('tickets:detail.retry'))).toBeInTheDocument();
+  });
+});
+
+describe("`034`'s tags — the read half it shipped without", () => {
+  const rendered = async () =>
+    waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
+
+  it('says so when a ticket has none, rather than showing an empty row', async () => {
+    mounted();
+    await rendered();
+
+    expect(screen.getByText(i18n.t('tickets:detail.noTags'))).toBeInTheDocument();
+  });
+
+  it('renders the tags the READ returned', async () => {
+    vi.mocked(getTicket).mockResolvedValue(ticket({ tags: TAGS }));
+
+    mounted();
+    await rendered();
+
+    expect(screen.getByText('استرداد')).toBeInTheDocument();
+    expect(screen.getByText('خصم مزدوج')).toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('tickets:detail.noTags'))).not.toBeInTheDocument();
+  });
+
+  /* Offering a tag the ticket already carries is offering a write whose outcome the
+   * server has already applied. The decoy is the attached one. */
+  it('offers only the tags not already attached', async () => {
+    vi.mocked(getTicket).mockResolvedValue(ticket({ tags: [TAGS[0]!] }));
+
+    mounted();
+    await rendered();
+
+    await userEvent.click(screen.getByRole('combobox', { name: i18n.t('tickets:detail.addTag') }));
+
+    expect(screen.getByRole('option', { name: 'خصم مزدوج' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'استرداد' })).not.toBeInTheDocument();
+  });
+
+  it('attaches, then refetches rather than seeding the cache', async () => {
+    mounted();
+    await rendered();
+    expect(getTicket).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('combobox', { name: i18n.t('tickets:detail.addTag') }));
+    await userEvent.click(screen.getByRole('option', { name: 'استرداد' }));
+
+    await waitFor(() => expect(attachTicketTag).toHaveBeenCalledWith(ID, 't-1'));
+    await waitFor(() => expect(getTicket).toHaveBeenCalledTimes(2));
+  });
+
+  /* Both directions. An attach that worked proves nothing about a detach, and the
+   * remove control is a different element with a different name. */
+  it('detaches through a control named after the tag it removes', async () => {
+    vi.mocked(getTicket).mockResolvedValue(ticket({ tags: [TAGS[0]!] }));
+
+    mounted();
+    await rendered();
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('tickets:detail.removeTag', { name: 'استرداد' }),
+      }),
+    );
+
+    await waitFor(() => expect(detachTicketTag).toHaveBeenCalledWith(ID, 't-1'));
+  });
+
+  /* The vocabulary is not a ticket. Invalidating a ticket must not refetch a
+   * seeded, bounded set that did not change. */
+  it('does not refetch the vocabulary when the ticket is invalidated', async () => {
+    mounted();
+    await rendered();
+    expect(getTags).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(screen.getByRole('button', { name: moveTo('InProgress') }));
+    await waitFor(() => expect(getTicket).toHaveBeenCalledTimes(2));
+
+    expect(getTags).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("`034`'s reply templates", () => {
+  const rendered = async () =>
+    waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
+
+  it('asks for the templates that apply to this ticket', async () => {
+    mounted();
+    await rendered();
+
+    await waitFor(() => expect(getCannedReplies).toHaveBeenCalled());
+    expect(vi.mocked(getCannedReplies).mock.calls[0]?.[0]).toBe('Technical');
+  });
+
+  /* INSERTS, does not send. A template is a starting point, and a picker that sent
+   * it would post an unedited form letter with one click. */
+  it('inserts the body into the draft and sends nothing', async () => {
+    mounted();
+    await rendered();
+
+    /* findByRole, not getByRole. The picker renders only once the templates have
+     * arrived, so waiting for the TICKET is not waiting for this control — the
+     * same slip that failed four tests earlier in this file. */
+    await userEvent.click(
+      await screen.findByRole('combobox', { name: i18n.t('tickets:detail.useTemplate') }),
+    );
+    await userEvent.click(screen.getByRole('option', { name: /طلب كشف حساب/ }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText(i18n.t('tickets:detail.comment'))).toHaveValue(
+        'نحتاج صورة من كشف الحساب.',
+      ),
+    );
+
+    expect(addTicketComment).not.toHaveBeenCalled();
+  });
+
+  /* A template with no category applies to every ticket, and the server returns
+   * those alongside the matching ones. The picker must label the difference — an
+   * unlabelled general template reads as one that was miscategorised. */
+  it('labels a template with no category as applying to every category', async () => {
+    mounted();
+    await rendered();
+
+    /* findByRole, not getByRole. The picker renders only once the templates have
+     * arrived, so waiting for the TICKET is not waiting for this control — the
+     * same slip that failed four tests earlier in this file. */
+    await userEvent.click(
+      await screen.findByRole('combobox', { name: i18n.t('tickets:detail.useTemplate') }),
+    );
+
+    expect(
+      screen.getByRole('option', { name: new RegExp(i18n.t('tickets:detail.templateGeneral')) }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders no picker at all when the server offers nothing', async () => {
+    vi.mocked(getCannedReplies).mockResolvedValue([]);
+
+    mounted();
+    await rendered();
+
+    await waitFor(() => expect(getCannedReplies).toHaveBeenCalled());
+
+    expect(
+      screen.queryByRole('combobox', { name: i18n.t('tickets:detail.useTemplate') }),
+    ).not.toBeInTheDocument();
   });
 });

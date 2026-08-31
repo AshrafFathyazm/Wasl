@@ -208,6 +208,12 @@ export interface TicketResponse {
    *  — then wrong in exactly one place. */
   allowedTransitions: TicketStatus[];
 
+  /** `034`'s read half, added 2026-08-31. **Always an array, never null** — a
+   *  ticket with no tags carries `[]`, so nothing writes `tags ?? []`. Ordered by
+   *  name in the query, so a client renders a stable order without sorting by the
+   *  database collation's idea of Arabic. */
+  tags: TagSummary[];
+
   /** Base64 `rowversion`. Unused by create; `011` and `012` send it back as
    *  `expectedVersion`. Kept because dropping it means refetching to get it. */
   version: string;
@@ -581,6 +587,43 @@ export interface TimelinePage {
  * the natural guess and it is a `400`. Measured.
  */
 export type TimelineFilter = 'Comments' | 'History';
+
+/* ============================================================================
+ * `034` — TAGS AND CANNED REPLIES. Transcribed 2026-08-31 from a MEASUREMENT.
+ * ============================================================================
+ * `034` shipped the two writes and neither read. The backend lane added
+ * `GET /api/tags` and `tags` on the ticket the same day, recorded as a Contract
+ * change at the foot of `034/contracts/ticket-detail-api.md`.
+ *
+ * These shapes are read off a running instance rather than off the contract,
+ * because the contract's amendment and the code landed together and a
+ * measurement is the thing that cannot be aspirational:
+ *
+ *   GET /api/tags            -> [ { id, name } ]              5 rows, Arabic
+ *   GET /api/canned-replies  -> [ { id, title, body, category } ]
+ *   ?category=Billing        -> 4 of the 5
+ * ========================================================================== */
+
+/** A tag, by id and name. The name is Arabic user content — never localized. */
+export interface TagSummary {
+  id: string;
+  name: string;
+}
+
+/**
+ * A reply template. `034` Q-3's managed set, seeded, with no admin UI.
+ *
+ * `category` is nullable: a template with no category applies to every ticket,
+ * and `?category=` returns those PLUS the matching ones — measured, 4 of 5 for
+ * `Billing`, so the general ones are included rather than filtered out.
+ */
+export interface CannedReplySummary {
+  id: string;
+  title: string;
+  body: string;
+  category: TicketCategory | null;
+}
+
 /* ==========================================================================
  * `032` — the customer profile and the customer create
  * ==========================================================================

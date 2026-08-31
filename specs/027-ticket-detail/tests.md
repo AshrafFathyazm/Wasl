@@ -170,6 +170,98 @@ expected outcome trains people to type nothing useful, and both halves are asser
 | **AC-11** — the preview reviewed before wiring | The preview existed and was approved before this; it was not re-reviewed after the `Skeleton` rebuild |
 | **AC-8** — `dir` isolation asserted | `dir="auto"` is on the subject, the description and every comment body, and no test reads the attribute. Written, not verified |
 | **AC-9** — dates through `lib/formatters` | `formatDateTime` is used; no test asserts Latin digits on this screen |
-| Tags and canned replies | `034` built both endpoints the same day and neither is in `027`'s criteria. `GET /api/canned-replies` also returns an empty array until `--seed` runs the new `ReferenceDataSeeder` |
+| ~~Tags and canned replies~~ | **BUILT 2026-08-31**, after the backend lane added the two reads `034` shipped without. 451 tests. See the section below |
 | Escalation | `016`, and `027` §5 puts it out of scope. `isEscalated` is on the response and is not rendered here |
 | The rail, the anchors, the sticky action bar | In the preview and in `04-ticket-detail.md`; this page is the flat layout. Named rather than quietly dropped |
+
+---
+
+# Tags and reply templates, added 2026-08-31
+
+```text
+npx tsc -b --force   clean       npm run lint       clean
+npm run lint:types   clean       npm run test       27 files, 451 tests
+npm run build        ✓ built
+```
+
+Before: 441. **10 added** — six for tags, four for templates.
+
+## The backend had to move first, and that was the finding
+
+`034` built `PUT` and `DELETE /api/tickets/{id}/tags/{tagId}` and **neither read a client
+needs**: nothing returned the vocabulary to attach FROM, and the ticket response carried no
+`tags`. **A UI could write tags it could neither list nor display.** Found by building this
+screen and measuring the response — `tags` came back `undefined`.
+
+The backend lane added `GET /api/tags` and `tags` on the ticket, recorded as a Contract
+change at the foot of `034/contracts/ticket-detail-api.md`. `652595e`.
+
+## `?category=` WIDENS, and the fixture has to show it
+
+Measured before the picker was written:
+
+```text
+GET /api/canned-replies              5   Technical · Billing · Billing · null · null
+GET /api/canned-replies?category=Billing
+                                     4   Billing · Billing · null · null
+```
+
+**The two general templates come back too, and the Technical one does not.** A template with
+no category applies to every ticket, so filtering the nulls out would hide the general replies
+exactly when a category is known — which is always. The test fixture therefore carries one
+categorised template and one general one; a fixture with only categorised templates cannot
+show the behaviour at all.
+
+The picker labels the difference (`detail.templateGeneral`), because an unlabelled general
+template reads as one that was miscategorised.
+
+## Criteria → tests
+
+| What | Test | Result |
+|---|---|---|
+| The read is what renders | `renders the tags the READ returned` | pass |
+| The empty case is stated, not blank | `says so when a ticket has none, rather than showing an empty row` | pass |
+| No write whose outcome is already applied | `offers only the tags not already attached` | pass — **control below** |
+| Attach then refetch, never `setQueryData` | `attaches, then refetches rather than seeding the cache` | pass |
+| Detach, by a control named after its tag | `detaches through a control named after the tag it removes` | pass |
+| The vocabulary is not a ticket | `does not refetch the vocabulary when the ticket is invalidated` | pass |
+| The templates are asked for by category | `asks for the templates that apply to this ticket` | pass |
+| A template INSERTS, never sends | `inserts the body into the draft and sends nothing` | pass |
+| A general template is labelled | `labels a template with no category as applying to every category` | pass |
+| No templates, no control | `renders no picker at all when the server offers nothing` | pass |
+
+**A template inserts rather than sends**, and the test asserts `addTicketComment` was *not*
+called. A picker that sent would post an unedited form letter with one click.
+
+## Negative control
+
+The filter that hides an already-attached tag was removed:
+
+```text
+× `034`'s tags … > offers only the tags not already attached
+    → expect(element).not.toBeInTheDocument()
+```
+
+Restored, 451/451.
+
+## Two tests were red first, and it was the same slip twice
+
+```text
+Unable to find an accessible element with the role "combobox" and name "Insert a template"
+```
+
+The picker renders only once the templates have arrived, and the tests were waiting for the
+**ticket**. A resolved query is not a painted screen — the identical mistake failed four tests
+earlier in this file. `findByRole` waits; `getByRole` does not.
+
+## Still not claimed
+
+- **Nothing visual.** No browser was driven; the tag chips' wrap behaviour at a real width and
+  the picker's overlap are unverified. `dir="auto"` is on every tag name and no test reads it.
+- **`034`'s `authorKind` and `recordedBy`** are on the timeline entry and are not rendered — a
+  customer-authored comment looks like any other. `034` built them the same day and `027`'s
+  criteria are silent on both.
+- **No `expectedVersion` on either tag write**, which is the server's shape rather than an
+  omission here: attaching is not a state transition and two people attaching different tags do
+  not conflict. So this is the one write on the screen that cannot answer `409`, and nothing
+  tests a conflict here because the server cannot produce one.

@@ -8,7 +8,9 @@ import type {
   PagedResult,
   SupportUser,
   TicketCommentResponse,
+  TagSummary,
   TicketListItem,
+  CannedReplySummary,
   TicketResponse,
   TimelineFilter,
   TimelinePage,
@@ -190,6 +192,14 @@ export const ticketKeys = {
    *  bounded, seeded set that did not change. */
   supportUsers: () => ['support-users'] as const,
 
+  /** `034`. NOT under `['tickets', …]`, for the reason `supportUsers` is not: the
+   *  vocabulary is not a ticket, and nesting it there means invalidating a ticket
+   *  refetches a seeded set that did not change. */
+  tags: () => ['tags'] as const,
+
+  /** `034`. Keyed by category, because `?category=` returns a different list. */
+  cannedReplies: (category?: string) => ['canned-replies', category ?? 'all'] as const,
+
   /* `timeline` WAS ABSENT — FE-027-08's block, not an oversight: the key's
    * parameters were the thing in dispute, the frozen contract saying
    * `{ page, pageSize }` and the server reading `{ before, limit }`, so writing
@@ -347,6 +357,76 @@ export function getTicketTimeline(
       ...(params.limit ? { limit: params.limit } : {}),
       ...(params.type ? { type: params.type } : {}),
     },
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/* ---- `034`, the tag vocabulary and the reply templates --------------------
+ * Both are READS `034` shipped without: it built PUT and DELETE on a ticket's
+ * tags and nothing that returns the set a client attaches FROM, nor `tags` on
+ * the ticket. The backend lane added both on 2026-08-31 — Contract change at
+ * the foot of `034/contracts/ticket-detail-api.md`.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * `GET /api/tags` — the vocabulary a client attaches from. `034` Q-3's managed
+ * set: seeded, no admin UI, adding one is a database action.
+ *
+ * A bare array, like `GET /api/support-users` and for the same reason. Ordered by
+ * name under the DATABASE collation, which does not follow `Accept-Language` —
+ * so a mixed Arabic and English set looks ordered in one language and arbitrary
+ * in the other, and a client needing locale-correct order sorts with
+ * `Intl.Collator` rather than asking the server to.
+ */
+export function getTags(signal?: AbortSignal): Promise<TagSummary[]> {
+  return apiFetch<TagSummary[]>('/api/tags', signal ? { signal } : {});
+}
+
+/**
+ * `PUT /api/tickets/{id}/tags/{tagId}` — attach. `034`.
+ *
+ * No body and no `expectedVersion`. Attaching is not a state transition and two
+ * people attaching different tags do not conflict — which is why this write is
+ * the one on the screen that cannot answer `409 concurrency-conflict`.
+ */
+export function attachTicketTag(
+  ticketId: string,
+  tagId: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return apiFetch<unknown>(`/api/tickets/${ticketId}/tags/${tagId}`, {
+    method: 'PUT',
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/** `DELETE /api/tickets/{id}/tags/{tagId}` — detach. `034` Q-4: the assignee, or any Manager. */
+export function detachTicketTag(
+  ticketId: string,
+  tagId: string,
+  signal?: AbortSignal,
+): Promise<unknown> {
+  return apiFetch<unknown>(`/api/tickets/${ticketId}/tags/${tagId}`, {
+    method: 'DELETE',
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * `GET /api/canned-replies?category=` — reply templates. `034`.
+ *
+ * **`?category=` WIDENS rather than narrows, and that was measured:** asking for
+ * `Billing` returned the two Billing templates PLUS the two with no category, and
+ * not the Technical one. A template with no category applies to every ticket, so
+ * filtering them out would hide the general replies exactly when a category is
+ * known — which is most of the time.
+ */
+export function getCannedReplies(
+  category?: string,
+  signal?: AbortSignal,
+): Promise<CannedReplySummary[]> {
+  return apiFetch<CannedReplySummary[]>('/api/canned-replies', {
+    query: { ...(category ? { category } : {}) },
     ...(signal ? { signal } : {}),
   });
 }
