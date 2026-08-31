@@ -19,6 +19,17 @@
   "cancel": "Cancel",
   "back": "Back",
   "dismiss": "Dismiss",
+  "dropdown": {
+    "placeholder": "Select an option",
+    "search": "Search",
+    "noOptions": "No matching results",
+    "loading": "Loading",
+    "clear": "Clear selection",
+    "remove": "Remove {{label}}",
+    "more": "+{{count}}",
+    "moreSelected": "{{count}} more selected",
+    "open": "Open the list"
+  },
   "errors.maxLength": "Must be {{max}} characters or fewer",
   "lang": {
     "english": "English",
@@ -26,5 +37,7 @@
     "switchTo": "Switch language to {{language}}",
     "codeEn": "EN",
     "codeAr": "AR"
-  }
+  },
+  "loading": "Loading",
+  "loadingLong": "Still working — this is taking longer than usual."
 }

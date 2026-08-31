@@ -41,8 +41,8 @@ Two things worth copying rather than reinventing:
 | Primitive | States required | Used by |
 |---|---|---|
 | **Button** | Default, hover, active, focus-visible, disabled, loading; types Primary / Secondary-Outline / danger | Every form and every action |
-| **Input** | Default, focus, disabled, error, with helper text, with error text | Customer form, ticket form, comment composer |
-| **Select** | Default, open, focus, disabled, error, empty option, multi-select | Category, priority, channel, assignee, filters |
+| **Input** | Default, focus, disabled, error, with helper text, with error text, **busy** (`029`) | Customer form, ticket form, comment composer |
+| **Dropdown** | Default, hover, focus, open, filled, error, disabled, read-only, multi-empty, multi-filled, empty menu, **busy** (`029`) | Category, priority, channel, assignee, filters, rows-per-page |
 | **Checkbox** | Default, checked, indeterminate, focus, disabled | Internal-comment toggle, filters |
 | **Badge** | The six ticket statuses, four priorities, escalated, internal | Ticket list, ticket detail, timeline |
 | **Table** | Header, row, hover, empty state, loading skeleton, pagination footer | Customer list, ticket list |
@@ -100,11 +100,36 @@ team needs to notice first. Two rules:
 - Never encode meaning by colour alone. Every badge carries a label, because colour
   alone fails for colour-blind users and in a monochrome print of a report.
 
+## The loader is one primitive with nine variants — and `Skeleton` is its second export
+
+`029` built the waiting vocabulary: nine shapes, one geometry (`design/loaders.md`).
+
+**Nine shapes are not nine primitives.** They are variants of one component the way
+`Badge` has a tone and `Button` has a type — one file, one accessibility contract, one
+direction mechanism, one reduced-motion path. The cap of eight is untouched, and the row
+below in *Not built* is what this executes.
+
+`Skeleton` is a **second export of the loader module**, not a ninth primitive, and this
+is the written reason:
+
+- It is a shape from the same vocabulary, sharing the same reduced-motion and direction
+  contract. Splitting it out would mean maintaining that contract twice.
+- **It takes no input.** The cap counts controls — things with a keyboard model, a focus
+  ring, a value, and a disabled state. A skeleton has none of those and cannot acquire
+  them.
+- It already had three callers before it existed: `Table` implemented one privately,
+  `Dropdown` needs one over its trigger, and `Input` needs one for its own first load.
+  Three private copies of one shape is the drift a system exists to prevent.
+
+`Table` renders the system skeleton now. It kept its own for one release, and the two
+had already diverged — 1.4s against 1.5s, `opacity .45` against `.4`. Neither was wrong;
+that is exactly the problem.
+
 ## Not built
 
 | Not built | Instead |
 |---|---|
-| A generic spinner | The converge loader — three threads to a node. See `design/brand.md` |
+| A generic spinner | The converge loader — three threads to a node. See `design/brand.md` §2 and `design/loaders.md` |
 | Stock empty-state illustrations | The node-and-thread vocabulary. See `design/brand.md` |
 | A bespoke icon set | An open-source stroke set at 1.5px, plus three domain icons and the product mark. See `design/icons.md` |
 | Date picker | Native `<input type="date">`; locale formatting comes from `formatters.ts` |

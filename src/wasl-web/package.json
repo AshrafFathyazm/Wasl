@@ -14,7 +14,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint:types": "node scripts/check-no-domain-types.mjs"
+    "lint:types": "node scripts/check-no-domain-types.mjs",
+    "lint:tokens": "node scripts/check-semantic-tokens.mjs",
+    "lint:select": "node scripts/check-no-native-select.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

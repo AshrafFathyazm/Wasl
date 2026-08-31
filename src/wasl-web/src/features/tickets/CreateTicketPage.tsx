@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
-import { Select } from '../../components/Select/Select';
+import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Textarea } from '../../components/Textarea/Textarea';
 import { ApiError } from '../../lib/api';
 import {
@@ -330,12 +330,12 @@ export default function CreateTicketPage() {
                   control={form.control}
                   name="category"
                   render={({ field }) => (
-                    <Select
+                    <Dropdown
                       ref={field.ref}
                       label={t('tickets:field.category')}
                       required
-                      value={field.value}
-                      onChange={field.onChange}
+                      value={field.value || null}
+                      onChange={(value) => field.onChange(value ?? '')}
                       onBlur={field.onBlur}
                       /* Built from the constants, never hand-typed. A literal
                          list here is how a value added on the server goes
@@ -350,15 +350,19 @@ export default function CreateTicketPage() {
                   control={form.control}
                   name="priority"
                   render={({ field }) => (
-                    <Select
+                    <Dropdown
                       ref={field.ref}
                       label={t('tickets:field.priority')}
                       /* `priority` is the one optional field, so RHF hands back
-                         `string | undefined`. The control's value is always a
-                         string — `''` IS "untouched", which is exactly the state
-                         the empty option represents. */
-                      value={field.value ?? ''}
-                      onChange={field.onChange}
+                         `string | undefined`, and the schema's own empty value
+                         is `''`. `Dropdown` represents "nothing chosen" as
+                         `null` — there is no empty option to hold `''` any more,
+                         which is the one contract change `031` made to this
+                         screen. Both empties collapse to `null` on the way in
+                         and back to `''` on the way out, so the schema and every
+                         test written against it are untouched (AC-12). */
+                      value={field.value || null}
+                      onChange={(value) => field.onChange(value ?? '')}
                       onBlur={field.onBlur}
                       options={options(TICKET_PRIORITIES, 'priority')}
                       /* The VALUE is left empty on purpose — the server defaults
@@ -384,12 +388,12 @@ export default function CreateTicketPage() {
                   control={form.control}
                   name="channel"
                   render={({ field }) => (
-                    <Select
+                    <Dropdown
                       ref={field.ref}
                       label={t('tickets:field.channel')}
                       required
-                      value={field.value}
-                      onChange={field.onChange}
+                      value={field.value || null}
+                      onChange={(value) => field.onChange(value ?? '')}
                       onBlur={field.onBlur}
                       options={options(COMMUNICATION_CHANNELS, 'channel')}
                       placeholder={t('tickets:new.choose')}

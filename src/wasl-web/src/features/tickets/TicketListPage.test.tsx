@@ -108,8 +108,10 @@ describe('AC-026-04 — the control shows what the SERVER returned', () => {
     vi.mocked(listTickets).mockResolvedValue(page({ pageSize: 100, page: 1 }));
     mounted('/tickets?pageSize=500');
     await screen.findByText('TCK-2026-000042');
-    const select = screen.getByRole('combobox');
-    expect((select as HTMLSelectElement).value).toBe('100');
+    /* `031`: the cast to `HTMLSelectElement` went with the native element. The
+     * claim is unchanged and is now read off what the reader actually sees —
+     * the trigger's own text — rather than off a DOM property. */
+    expect(screen.getByRole('combobox')).toHaveTextContent('100');
   });
 });
 
@@ -179,7 +181,11 @@ describe('changing the page size returns to page 1', () => {
     await screen.findByText('TCK-2026-000042');
     vi.mocked(listTickets).mockClear();
 
-    await u.selectOptions(screen.getByRole('combobox'), '100');
+    /* `031`: `user.selectOptions` reaches for an `HTMLOptionElement` and throws
+     * on anything else, so the rows-per-page control is now driven by opening it
+     * and clicking a row. The assertion below is untouched. */
+    await u.click(screen.getByRole('combobox'));
+    await u.click(within(await screen.findByRole('listbox')).getByRole('option', { name: '100' }));
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
     expect(vi.mocked(listTickets).mock.calls[0]![0]).toEqual({ page: 1, pageSize: 100 });
   });

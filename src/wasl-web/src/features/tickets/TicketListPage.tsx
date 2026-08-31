@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
+import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Table, type TableColumn } from '../../components/Table/Table';
 import {
   IconEmail,
@@ -96,21 +97,31 @@ function Footer({
   const { t } = useTranslation('tickets');
   return (
     <div className={styles.footer}>
-      <label className={styles.perPage}>
+      {/* `031` replaced the raw `<select>` that used to sit here. The visible
+          text stays a `<span>` and the control's own label is hidden, because
+          `Dropdown` stacks its label above its trigger and this footer is one
+          line. The string is passed twice on purpose — once to be seen, once to
+          name the control for assistive technology, which a `<label>` cannot do
+          for a `div role="combobox"`. */}
+      <span className={styles.perPage}>
         {t('list.rowsPerPage')}
-        <select
-          className={styles.select}
-          value={pageSize}
-          onChange={(e) => onPageSize(Number(e.target.value))}
-        >
-          {PAGE_SIZES.map((n) => (
-            <option key={n} value={n}>
-              {/* BR-8.13 — a page size is a count, not an identifier. */}
-              {formatNumber(n, lang)}
-            </option>
-          ))}
-        </select>
-      </label>
+        <span className={styles.perPageField}>
+          <Dropdown
+            size="sm"
+            label={t('list.rowsPerPage')}
+            labelHidden
+            value={String(pageSize)}
+            onChange={(value) => {
+              if (value !== null) onPageSize(Number(value));
+            }}
+            options={PAGE_SIZES.map((n) => ({
+              value: String(n),
+              /* BR-8.13 — a page size is a count, not an identifier. */
+              label: formatNumber(n, lang),
+            }))}
+          />
+        </span>
+      </span>
 
       <div className={styles.pager}>
         <button

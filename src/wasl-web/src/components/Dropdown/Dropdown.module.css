@@ -1,0 +1,455 @@
+/* ============================================================================
+ * Dropdown — `031`
+ * ============================================================================
+ * A sibling of Input, and it shares Input's geometry deliberately: a Dropdown
+ * and a text field side by side on one row have to align on their box and on
+ * their text, or the row reads as two rows. That is the whole reason the trigger
+ * is 39/47/51 and not the design document's 32/40/48 — see tokens.css, the
+ * DROPDOWN block.
+ *
+ * NO `left` / `right` ANYWHERE, and stylelint enforces it: `.stylelintrc.json`
+ * puts both on `property-disallowed-list`. The menu's physical offsets are set
+ * as inline styles from `getBoundingClientRect`, which is a different thing and
+ * is explained in `useMenuSurface`.
+ *
+ * `[data-preview-state]` for the states a pointer cannot force — the same
+ * mechanism Button and the old Select use. See base.css, "HOW A COMPONENT
+ * OVERRIDES THESE".
+ * ============================================================================ */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.label {
+  font-size: var(--text-label);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.label[data-required='true']::after {
+  content: '*';
+  margin-inline-start: var(--space-1);
+  color: var(--state-danger-text);
+}
+
+.anchor {
+  position: relative;
+  display: flex;
+}
+
+/* ---- Trigger ------------------------------------------------------------- */
+
+.trigger {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-inline-size: 0;
+  padding-inline: var(--space-3);
+  font-size: var(--text-ui);
+  letter-spacing: var(--tracking);
+  color: var(--text-primary);
+  cursor: pointer;
+  background-color: var(--field-fill);
+  border: var(--field-border);
+  border-radius: var(--field-radius);
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    border-color var(--duration-instant) var(--ease-out),
+    box-shadow var(--duration-instant) var(--ease-out);
+}
+
+/* `block-size` on the single-value sizes, `min-block-size` once chips can wrap.
+ * A fixed height with two rows of chips clips the second row. */
+.sm {
+  block-size: var(--field-height-sm);
+}
+
+.md {
+  block-size: var(--field-height-md);
+}
+
+.lg {
+  block-size: var(--field-height-lg);
+}
+
+.trigger:has(.chips) {
+  block-size: auto;
+  min-block-size: var(--field-height-md);
+  padding-block: var(--space-1);
+}
+
+.trigger:hover,
+[data-preview-state='hover'] .trigger {
+  border-color: var(--border-default);
+}
+
+.trigger:focus-visible,
+[data-preview-state='focus'] .trigger {
+  background-color: var(--surface-card);
+  border-color: var(--brand);
+  outline: var(--focus-ring-width) solid transparent;
+  outline-offset: 0;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+/* Open is its own state and it is NOT focus. The document draws a brand border
+ * with no ring, so the ring does not sit under an open menu doubling its edge. */
+.triggerOpen,
+[data-preview-state='open'] .trigger {
+  background-color: var(--surface-card);
+  border-color: var(--brand);
+}
+
+.triggerDisabled {
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+  background-color: var(--surface-sunken);
+  border-color: var(--border-subtle);
+}
+
+/* Read-only is not disabled: the value stays legible, and only the affordances
+ * go. Border drops to the faintest one we have — the box is context, not a
+ * control. */
+.triggerReadOnly {
+  color: var(--text-secondary);
+  cursor: default;
+  background-color: var(--surface-card);
+  border-color: var(--surface-sunken);
+}
+
+/* ---- Trigger contents ---------------------------------------------------- */
+
+.value {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholder {
+  overflow: hidden;
+  color: var(--text-placeholder);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  min-inline-size: 0;
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  block-size: var(--dropdown-chip-height);
+  padding-inline: var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--text-primary);
+  background-color: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+}
+
+.chipRemove {
+  display: inline-flex;
+  padding: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.chipRemove:hover {
+  color: var(--state-danger-text);
+}
+
+/* The counter is the one filled element on the trigger. It reads as a count
+ * rather than as another chip, which is the point — the document draws it in the
+ * brand colour for exactly that reason. */
+.chipMore {
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--dropdown-chip-height);
+  padding-inline: var(--space-2);
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+  color: var(--action-primary-text);
+  background-color: var(--action-primary-bg);
+  border-radius: var(--radius-sm);
+}
+
+.adornments {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.clear {
+  display: inline-flex;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.clear:hover {
+  color: var(--text-primary);
+}
+
+.caret {
+  display: inline-flex;
+  color: var(--text-secondary);
+  transition: transform var(--duration-instant) var(--ease-out);
+}
+
+/* Mirrors correctly without help: a 180° rotation is direction-agnostic, which
+ * is why the caret is a chevron-down and never a chevron-end. */
+.caretOpen {
+  color: var(--brand);
+  transform: rotate(180deg);
+}
+
+/* ---- Menu ---------------------------------------------------------------- */
+
+.menu {
+  position: fixed;
+  z-index: var(--z-flyout);
+  display: flex;
+  flex-direction: column;
+  max-block-size: var(--dropdown-menu-max-height);
+  overflow: hidden;
+  background-color: var(--surface-card);
+  border: var(--field-border);
+  border-radius: var(--dropdown-menu-radius);
+  box-shadow: var(--shadow-md);
+  animation: menu-in var(--duration-enter) var(--ease-out);
+  transform-origin: top center;
+}
+
+.menuFlipped {
+  transform-origin: bottom center;
+  animation-name: menu-in-flipped;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes menu-in-flipped {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* motion.md: the reduced-motion contract is that nothing MOVES, not that
+ * nothing appears. The fade stays; the travel goes. */
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation-name: menu-fade;
+  }
+
+  .menuFlipped {
+    animation-name: menu-fade;
+  }
+
+  .caret {
+    transition: none;
+  }
+}
+
+@keyframes menu-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.search {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+  align-items: center;
+  block-size: var(--dropdown-search-height);
+  padding-inline: var(--space-2);
+  color: var(--text-placeholder);
+  border-block-end: var(--field-border);
+}
+
+.searchInput {
+  flex: 1;
+  min-inline-size: 0;
+  font-family: inherit;
+  font-size: var(--text-ui);
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.list {
+  flex: 1;
+  padding: var(--dropdown-menu-padding);
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.menuState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--space-6);
+  font-size: var(--text-helper);
+  color: var(--text-placeholder);
+}
+
+/* ---- Option -------------------------------------------------------------- */
+
+.option {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  padding-inline: var(--space-3);
+  font-size: var(--text-ui);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.listSm .option {
+  block-size: var(--dropdown-option-height-sm);
+}
+
+.listMd .option {
+  block-size: var(--dropdown-option-height-md);
+}
+
+.listLg .option {
+  block-size: var(--dropdown-option-height-lg);
+}
+
+/* The option carrying a description is taller than its size's row, and that is
+ * the document's own rule (§05, «ارتفاع الخيار 52px») rather than a drift. */
+.option:has(.optionDescription) {
+  block-size: auto;
+  padding-block: var(--space-2);
+}
+
+.optionBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionDescription {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* Hover and keyboard highlight are ONE state, deliberately. Two visible
+ * highlights at once — one under the pointer, one under the arrow keys — is the
+ * defect this collapses. */
+.optionActive {
+  background-color: var(--surface-subtle);
+}
+
+.optionSelected {
+  font-weight: var(--weight-medium);
+  color: var(--brand);
+  background-color: var(--surface-sunken);
+}
+
+.optionDisabled {
+  color: var(--text-placeholder);
+  cursor: not-allowed;
+  background-color: transparent;
+}
+
+.box {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 16px;
+  block-size: 16px;
+  color: var(--action-primary-text);
+  border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.boxChecked {
+  background-color: var(--action-primary-bg);
+  border-color: var(--action-primary-bg);
+}
+
+/* ---- Error and message --------------------------------------------------- */
+
+.invalid,
+.invalid:hover {
+  border-color: var(--state-danger-text);
+}
+
+/* Error plus focus keeps the red border and tints the ring red. A brand ring
+ * around a red border is two competing signals. */
+.invalid:focus-visible,
+[data-preview-state='focus'] .invalid {
+  background-color: var(--surface-card);
+  border-color: var(--state-danger-text);
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--state-danger-bg);
+}
+
+.message {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.messageError {
+  color: var(--state-danger-text);
+}
+
+/* A skeleton row occupies an option's slot exactly (029, design/loaders.md §8).
+ * It reuses `.option` for its height and padding rather than declaring its own,
+ * because the whole point of the shape is that the menu is already the size it
+ * will be when the options land. A second height here would defeat it. */
+.optionSkeleton {
+  align-items: center;
+  cursor: default;
+}

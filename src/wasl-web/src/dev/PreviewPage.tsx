@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 
 import { Badge, type BadgeTone } from '../components/Badge/Badge';
 import { Button } from '../components/Button/Button';
+import { Dropdown, type DropdownOption } from '../components/Dropdown/Dropdown';
 import { Input } from '../components/Input/Input';
 import { Loader } from '../components/Loader/Loader';
 import { IconAdd, IconChevronDown } from '../icons/icons';
@@ -24,10 +25,20 @@ import styles from './PreviewPage.module.css';
  * visible; it adds no prop to any component's frozen contract.
  */
 
-type ForcedState = 'default' | 'hover' | 'active' | 'focus';
+type ForcedState = 'default' | 'hover' | 'active' | 'focus' | 'open';
 
 const FORCED_STATES: ForcedState[] = ['default', 'hover', 'active', 'focus'];
 const TONES: BadgeTone[] = ['neutral', 'info', 'success', 'warning', 'danger'];
+
+/* Four options with one DISABLED and one carrying a description — the two rows
+ * that reveal whether the menu is finished. A list of four plain strings looks
+ * right in every state and proves neither. */
+const PREVIEW_OPTIONS: DropdownOption[] = [
+  { value: 'Billing', label: 'Billing', description: 'Invoices, refunds, payment methods' },
+  { value: 'Technical', label: 'Technical' },
+  { value: 'Account', label: 'Account', disabled: true },
+  { value: 'General', label: 'General' },
+];
 
 const SEMANTIC_TOKENS = [
   '--surface-page',
@@ -112,6 +123,8 @@ export default function PreviewPage() {
   const [lang, setLang] = useState<'en' | 'ar'>('en');
   const [grey, setGrey] = useState(false);
   const [text, setText] = useState('');
+  const [choice, setChoice] = useState<string | null>('Billing');
+  const [, setChoices] = useState<readonly string[]>(['Billing']);
 
   /* The real product sets these before first paint, in index.html. Here they are
    * toggles, because the point is to compare. */
@@ -311,6 +324,173 @@ export default function PreviewPage() {
           </Cell>
           <Cell label="Latin value">
             <Input label="Subject" value={LATIN_LONG} onChange={setText} />
+          </Cell>
+        </div>
+      </section>
+
+      {/* ---- Dropdown --------------------------------------------------- */}
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Dropdown</h2>
+
+        {/* Twelve tiles, `031` §6. Two of them cannot be produced by a pointer
+            and use the `[data-preview-state]` wrapper; `open` is one of those,
+            because a real open menu is portalled to document.body and would
+            float over the whole preview page rather than sit in its cell. */}
+        <h3 className={styles.subTitle}>States</h3>
+        <div className={styles.grid}>
+          <Cell label="default">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value={null}
+              onChange={setChoice}
+              helperText="Pick the closest match"
+            />
+          </Cell>
+          <Cell label="hover">
+            <Forced state="hover">
+              <Dropdown
+                label="Category"
+                options={PREVIEW_OPTIONS}
+                value={null}
+                onChange={setChoice}
+              />
+            </Forced>
+          </Cell>
+          <Cell label="focus">
+            <Forced state="focus">
+              <Dropdown
+                label="Category"
+                options={PREVIEW_OPTIONS}
+                value={null}
+                onChange={setChoice}
+              />
+            </Forced>
+          </Cell>
+          <Cell label="open (forced — the real menu is portalled)">
+            <Forced state="open">
+              <Dropdown
+                label="Category"
+                options={PREVIEW_OPTIONS}
+                value="Billing"
+                onChange={setChoice}
+              />
+            </Forced>
+          </Cell>
+          <Cell label="filled + clearable">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value={choice}
+              onChange={setChoice}
+              clearable
+            />
+          </Cell>
+          <Cell label="error (replaces helper)">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value={null}
+              onChange={setChoice}
+              helperText="This helper must NOT be visible"
+              error="Choose a category"
+              required
+            />
+          </Cell>
+          <Cell label="disabled">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value="Billing"
+              onChange={setChoice}
+              disabled
+            />
+          </Cell>
+          <Cell label="read only — value stays, caret goes">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value="Billing"
+              onChange={setChoice}
+              readOnly
+            />
+          </Cell>
+          <Cell label="loading">
+            <Dropdown
+              label="Category"
+              options={PREVIEW_OPTIONS}
+              value={null}
+              onChange={setChoice}
+              loading
+            />
+          </Cell>
+          <Cell label="multi — empty">
+            <Dropdown
+              label="Modules"
+              multiple
+              options={PREVIEW_OPTIONS}
+              value={[]}
+              onChange={setChoices}
+            />
+          </Cell>
+          <Cell label="multi — filled, +N past two">
+            <Dropdown
+              label="Modules"
+              multiple
+              options={PREVIEW_OPTIONS}
+              value={['Billing', 'Technical', 'General']}
+              onChange={setChoices}
+            />
+          </Cell>
+          <Cell label="empty menu — nothing to choose">
+            <Dropdown
+              label="Assignee"
+              options={[]}
+              value={null}
+              onChange={setChoice}
+              helperText="Open it: the menu says so rather than showing a blank box"
+            />
+          </Cell>
+        </div>
+
+        <h3 className={styles.subTitle}>Sizes — 39 / 47 / 51, the FIELD heights</h3>
+        <div className={styles.grid}>
+          {(['sm', 'md', 'lg'] as const).map((size) => (
+            <Cell key={size} label={size}>
+              {/* Beside an Input of the same size on purpose. The Abyan document
+                  draws 32/40/48 and this is the tile where a reader who
+                  "corrects" it back sees the two boxes stop agreeing. */}
+              <Dropdown
+                label="Category"
+                size={size}
+                options={PREVIEW_OPTIONS}
+                value="Billing"
+                onChange={setChoice}
+              />
+              <Input label="Beside it" value={text} onChange={setText} size={size} />
+            </Cell>
+          ))}
+        </div>
+
+        <h3 className={styles.subTitle}>Direction</h3>
+        <div className={styles.grid}>
+          <Cell label="Arabic value in an English interface">
+            <Dropdown
+              label="Category"
+              options={[{ value: 'ar', label: ARABIC_SAMPLE }]}
+              value="ar"
+              onChange={setChoice}
+            />
+          </Cell>
+          <Cell label="searchable — the field sits inside the menu">
+            <Dropdown
+              label="Assignee"
+              searchable
+              options={PREVIEW_OPTIONS}
+              value={null}
+              onChange={setChoice}
+              helperText="Open it — focus moves into the search field"
+            />
           </Cell>
         </div>
       </section>

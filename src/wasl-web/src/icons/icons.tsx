@@ -117,3 +117,12 @@ export const IconCalendar = ({ size = 18, ...p }: IconProps) => (
 export const IconEye = ({ size = 18, ...p }: IconProps) => (
   <svg {...base(size)} {...p}><path d="M4 12s3.2-5.5 8-5.5 8 5.5 8 5.5-3.2 5.5-8 5.5S4 12 4 12Z"/><circle cx="12" cy="12" r="2.4"/></svg>
 );
+
+/* Added by 031 for the Dropdown's selected mark. 24 box, 16-unit keyline, the
+ * same stroke as everything above — the Abyan document draws it in a 16 box at
+ * `M3.5 8.5l3 3 6-6`, scaled here rather than pasted, because a second box size
+ * is a second icon set (icons.md). */
+
+export const IconCheck = ({ size = 18, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}><path d="M5.5 12.5l4.5 4.5 9-9"/></svg>
+);

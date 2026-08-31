@@ -169,9 +169,11 @@
   font-size: var(--text-helper);
 }
 
-.select {
-  inline-size: auto;
-  min-inline-size: 72px;
+.perPageField {
+  /* The trigger sizes to its content — a page-size menu holding "10" does not
+   * need a field-width box. `031`: was `.select`, on a native element. */
+  display: inline-flex;
+  inline-size: 88px;
 }
 
 .pager {

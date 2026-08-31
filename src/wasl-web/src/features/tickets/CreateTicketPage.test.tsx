@@ -131,13 +131,26 @@ async function selectCustomer(user: UserEvent) {
   await waitFor(() => expect(screen.getByLabelText('Subject')).toBeEnabled());
 }
 
+/* `031` replaced the three native `<select>` elements with `Dropdown`, and
+ * `user.selectOptions` addresses a native `<select>` BY DEFINITION — it reaches
+ * for `HTMLOptionElement` and throws on anything else. So the way the fields are
+ * DRIVEN changed and every assertion below did not: same three values, same
+ * request body, same preservation claim. That distinction is the whole of
+ * `031` AC-12, and it is the reason this helper exists rather than each test
+ * learning the new control. */
+async function pickOption(user: UserEvent, field: string, option: string) {
+  await user.click(screen.getByLabelText(field));
+  const listbox = await screen.findByRole('listbox', { name: field });
+  await user.click(within(listbox).getByRole('option', { name: option }));
+}
+
 /** Fill everything except the customer. Used to prove what a `404` preserves. */
 async function fillTicketFields(user: UserEvent) {
   await user.type(screen.getByLabelText('Subject'), 'Card declined at checkout');
   await user.type(screen.getByLabelText('Description'), 'Payment page returns an error.');
-  await user.selectOptions(screen.getByLabelText('Category'), 'Billing');
-  await user.selectOptions(screen.getByLabelText('Priority'), 'High');
-  await user.selectOptions(screen.getByLabelText('Channel'), 'Email');
+  await pickOption(user, 'Category', 'Billing');
+  await pickOption(user, 'Priority', 'High');
+  await pickOption(user, 'Channel', 'Email');
 }
 
 beforeEach(async () => {
@@ -239,9 +252,12 @@ describe('TEST-024-05 — a 404 clears the picker and keeps everything else (AC-
     expect(screen.getByLabelText('Description')).toHaveValue(
       'Payment page returns an error.',
     );
-    expect(screen.getByLabelText('Category')).toHaveValue('Billing');
-    expect(screen.getByLabelText('Priority')).toHaveValue('High');
-    expect(screen.getByLabelText('Channel')).toHaveValue('Email');
+    /* `toHaveValue` reads `HTMLSelectElement.value`; a `div role="combobox"` has
+     * no value property, so the CLAIM is unchanged and the reading of it is:
+     * the chosen label is still on the trigger. */
+    expect(screen.getByLabelText('Category')).toHaveTextContent('Billing');
+    expect(screen.getByLabelText('Priority')).toHaveTextContent('High');
+    expect(screen.getByLabelText('Channel')).toHaveTextContent('Email');
 
     /* And the reason is on screen, in words, not only as a cleared field.
      *

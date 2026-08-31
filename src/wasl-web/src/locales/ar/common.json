@@ -19,6 +19,17 @@
   "cancel": "إلغاء",
   "back": "رجوع",
   "dismiss": "إغلاق",
+  "dropdown": {
+    "placeholder": "اختر خياراً",
+    "search": "ابحث",
+    "noOptions": "لا توجد نتائج مطابقة",
+    "loading": "جارٍ التحميل",
+    "clear": "مسح الاختيار",
+    "remove": "إزالة {{label}}",
+    "more": "+{{count}}",
+    "moreSelected": "و{{count}} أخرى محددة",
+    "open": "فتح القائمة"
+  },
   "errors.maxLength": "يجب ألا يزيد عن {{max}} حرفاً",
   "lang": {
     "english": "English",
@@ -26,5 +37,7 @@
     "switchTo": "تغيير اللغة إلى {{language}}",
     "codeEn": "EN",
     "codeAr": "AR"
-  }
+  },
+  "loading": "جارٍ التحميل",
+  "loadingLong": "ما زال العمل جارياً — الأمر يستغرق وقتاً أطول من المعتاد."
 }

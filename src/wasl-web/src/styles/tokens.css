@@ -172,6 +172,18 @@
   --state-neutral-bg: var(--neutral-75);
   --state-neutral-text: var(--Neutral-800);
 
+  /* PRESENCE, NOT OUTCOME — brand.md §4. The teal means a channel is alive; it
+   * never means anything succeeded, which is why green appears in no loader.
+   *
+   * THIS TOKEN EXISTS BECAUSE A GATE FOUND ITS ABSENCE. `031` wrote
+   * `scripts/check-semantic-tokens.mjs` — the script `023`'s risk table
+   * described as existing and which did not — and its first run over the whole
+   * tree returned exactly one hit: `Loader.module.css` reaching for
+   * `--teal-600` directly. The reason was not carelessness, it was that the
+   * semantic layer had no name for "presence". The finding was the missing
+   * name, so the fix is the name and not an exemption. */
+  --accent-presence: var(--teal-600); /* (D) */
+
   /* ==== TYPOGRAPHY (C) ==================================================== */
 
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
@@ -281,6 +293,91 @@
   --list-row-height: 48px; /* the most common row height across exports */
   --table-row-height: 61px;
 
+  /* ==== MOTION — loaders (E) ==============================================
+   * A FIFTH PROVENANCE, and it is why these exist at all. See note 11.
+   *
+   *   (E) design/loaders.md — the canvas design document supplied 2026-08-30,
+   *       translated into the repository language and reviewed as the design.
+   *
+   * Note 11 records that no motion token existed because DESIGN-BRIEF rule 3
+   * forbids INVENTING one — an invented token is indistinguishable from a real
+   * one. These are not invented. Every value below is read off a design
+   * document, the same standing the vector exports have, so the objection the
+   * note raises does not apply to them. The note is updated to say so.
+   *
+   * A loader duration is a CYCLE LENGTH, not a wait. motion.md's 300ms ceiling
+   * governs transitions — something with a start and an end — and never applied
+   * here. That boundary is now written into motion.md rather than assumed.
+   *
+   * Still absent: shadow tokens, and durations for the two app-shell
+   * transitions. Both stay literals with their TODOs. This feature extracted
+   * loaders and only loaders; sweeping the rest in on the same commit is how a
+   * token layer acquires values nobody sourced. */
+  --motion-loader-converge: 1.4s;
+  --motion-loader-mark: 1.6s;
+  --motion-loader-brand: 1.4s;
+  --motion-loader-path: 1.6s;
+  --motion-loader-chain: 1.6s;
+  --motion-loader-orbit: 0.9s;
+  --motion-loader-bars: 1.1s;
+  --motion-loader-bar: 1.3s;
+  --motion-loader-skeleton: 1.5s;
+  --motion-loader-satellites: 1.5s;
+
+  /* 60ms per element. Chain reads as a sequence at this value and as a shimmer
+   * below it. */
+  --motion-loader-stagger: 60ms;
+
+  /* Not `--ease-out`. A loader's easing describes travel between two points in a
+   * loop, not something arriving and stopping, and the two are different curves.
+   * `-ring` is slower out of the gate so the ring trails the arrival it marks. */
+  --motion-loader-ease: cubic-bezier(0.45, 0, 0.35, 1);
+  --motion-loader-ease-ring: cubic-bezier(0.2, 0.6, 0.3, 1);
+  --motion-loader-ease-orbit: cubic-bezier(0.5, 0.1, 0.4, 0.9); /* not linear — a heartbeat */
+  --motion-loader-ease-sweep: cubic-bezier(0.55, 0, 0.45, 1);
+
+  /* ==== LOADER GEOMETRY (E) ===============================================
+   * The standing TODO in Loader.module.css: the travel, the dot, and the node
+   * were literals because nothing had extracted them. loaders.md §1 does.
+   *
+   * The travel is the ONE value that cannot move on its own: 30px is where the
+   * dot meets the node and 36px is the overshoot into it, both measured against
+   * a 52px container with a 9px node at its end. Change one and all four move. */
+  --loader-inline-size: 52px;
+  --loader-block-size: 18px;
+  --loader-dot-size: 5px;
+  --loader-node-size: 9px;
+  --loader-ring-size: 20px;
+  --loader-travel: 30px;
+  --loader-travel-over: 36px;
+  --loader-travel-in: 5px;
+
+  /* The affix slot inside a field, and the smallest the loader is allowed to be
+   * anywhere. Below this the three dots merge into a block — the same failure
+   * the mark has at 16px (brand.md). */
+  --loader-size-sm: 16px;
+
+  /* ==== DIRECTION FOR MOTION (E) ==========================================
+   * CSS HAS NO LOGICAL `transform`, and that is the whole reason these exist.
+   *
+   * `inset-inline-start` flips on its own under rtl. `translateX(30px)` does
+   * not — it is physical, in every direction, forever. A loader that positions
+   * logically and travels physically therefore gets ONE mirror instead of two,
+   * and the dots run AWAY from the node. It still animates, so it is silent.
+   *
+   * `--ld-dir` is the explicit sign, used inside `calc()` in a keyframe.
+   * `--ld-origin` is the same problem for `transform-origin`, which is also
+   * physical: a Chain link must grow away from the dot that just lit.
+   *
+   * These live at the token layer rather than in the loader, because Skeleton,
+   * Table, Input and Select all mirror motion too, and a second definition is a
+   * second answer.
+   *
+   * NOT a replacement for logical properties. Layout stays logical; only
+   * `transform` and `transform-origin` read these. See design/loaders.md §4. */
+  --ld-dir: 1;
+  --ld-origin: left;
+
   /* (C) — `screens/03-tickets-list.md` Elements table gives the table header row
    * h40 and the assignee avatar 24px. Both were specified there and had no token,
    * which `026` found when it built the first table. They are NOT new values:
@@ -292,6 +389,63 @@
    * name. Two sizes, two places, two tokens. */
   --table-header-height: 40px;
   --table-avatar-size: 24px;
+
+  /* ==== ELEVATION (F) =====================================================
+   * A SIXTH PROVENANCE:
+   *
+   *   (F) `Dropdown Spec.dc.html` — Abyan Design System v1.0, the canvas design
+   *       document supplied 2026-08-30. Ten of its colours are byte-exact
+   *       matches for tokens already here, which is what establishes it as the
+   *       same system rather than a lookalike.
+   *
+   * THE FIRST SHADOW THE SYSTEM HAS EVER HAD. Note 11 kept it out on rule 3 —
+   * an invented token is indistinguishable from a real one — and `029` left it
+   * out for exactly that reason four hours before this. The rule stops applying
+   * the moment a document names the value, which is the same standing (E) has.
+   *
+   * One elevation, deliberately. DESIGN-BRIEF rule 21 asks for a shadow between
+   * two DISTANT planes, and there is one such pair in this product: a menu
+   * floating over the page. A second shadow token would be a second answer to a
+   * question asked once. */
+  --shadow-md: 0 4px 12px rgb(13 38 38 / 8%); /* (F) */
+
+  /* ==== MOTION — transitions (C) ==========================================
+   * Distinct from `--motion-loader-*` above, and the distinction is the one
+   * motion.md now writes down: a loader's duration is a CYCLE LENGTH, these are
+   * TRANSITIONS — a start, an end, and a user paying for the wait.
+   *
+   * Provenance (C) and not (F): the values are motion.md's own table and its own
+   * easing block, which name the curves exactly and name `dropdown` on the 200ms
+   * row. The Abyan document says 150ms in / 100ms out; that is a near-match to
+   * our own published scale, and the rule the tickets-table canvas established
+   * applies unchanged — A NEAR-MATCH IS A SECOND SCALE, NOT A REFINEMENT. Ours
+   * wins. 100ms is our "below perception" band and belongs to hover and colour.
+   *
+   * Enter is SLOWER than exit, per motion.md: something the user dismissed
+   * should go immediately; something arriving needs a moment to be tracked. */
+  --ease-out: cubic-bezier(0.22, 0.8, 0.3, 1); /* things arriving (C) */
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45); /* things leaving (C) */
+  --duration-instant: 100ms; /* hover, focus ring, colour — below perception */
+  --duration-enter: 200ms; /* accordion, dropdown, tooltip */
+  --duration-exit: 150ms; /* the default for anything disappearing */
+
+  /* ==== DROPDOWN (F) ======================================================
+   * The trigger is NOT here: it is a field, and it uses `--field-height-*` and
+   * `--field-border` like every other one. The Abyan document draws its trigger
+   * at 32/40/48 and ours is 39/47/51 — same conflict, same resolution, and the
+   * reason is concrete rather than doctrinal: a Dropdown and an Input side by
+   * side on one row have to share a box or the row reads as two rows.
+   *
+   * What IS here is everything the document supplies that we had no name for. */
+  --dropdown-option-height-sm: 32px; /* (F) */
+  --dropdown-option-height-md: 36px; /* (F) */
+  --dropdown-option-height-lg: 44px; /* (F) */
+  --dropdown-menu-max-height: 320px; /* (F) — doc §06 */
+  --dropdown-menu-offset: var(--space-1); /* (F) — 4, trigger to menu */
+  --dropdown-menu-radius: var(--radius-md); /* 8, NOT the document's 6 — near-match */
+  --dropdown-menu-padding: var(--space-1); /* (F) */
+  --dropdown-chip-height: 24px; /* (F) */
+  --dropdown-search-height: 36px; /* (F) — doc §02, sticky at the menu head */
 
   /* ==== APP SHELL (C) — exact, arithmetic closes ========================== */
 
@@ -323,6 +477,16 @@
   --z-flyout: 200; /* (D) — collapsed-sidebar flyout, user popover */
   --z-modal: 300; /* (D) */
   --z-tooltip: 400; /* (D) */
+}
+
+/* The rtl half of --ld-dir. It sits outside :root because it is a per-document
+ * override, and it is the only rule in this file that is not a :root token.
+ *
+ * Attribute selector, not [lang='ar']: direction is set by dir on <html> and a
+ * document can legitimately be Arabic and ltr, or English inside an rtl page. */
+[dir='rtl'] {
+  --ld-dir: -1;
+  --ld-origin: right;
 }
 
 /* ============================================================================
@@ -376,10 +540,35 @@
  *    32 off the layer for the sidebar user block, and note 1's rule applies —
  *    never sample geometry off a picture. One size, and it is 32.
  *
- * 11. NO SHADOW TOKENS AND NO MOTION TOKENS EXIST YET.
+ * 11. SHADOW AND MOTION TOKENS NOW EXIST. THE RULE THAT KEPT THEM OUT DID NOT
+ *     CHANGE — TWO DESIGN DOCUMENTS ARRIVED.
  *    DESIGN-BRIEF rule 21 asks for a shadow between two distant planes and rule 18
- *    caps motion at 300ms, but neither has an extracted value. Until they do, the
- *    two durations the app shell needs — 220ms collapse, 140ms flyout close — are
- *    literals in the component that owns them, each marked TODO. Deliberate: an
- *    invented token is indistinguishable from a real one (rule 3).
+ *    caps motion at 300ms, and neither had an extracted value. The rule that kept
+ *    both out was rule 3: an invented token is indistinguishable from a real one.
+ *
+ *    `029` supplied a design document for loaders, so those values are EXTRACTED
+ *    and the rule stops applying to them — see the MOTION block above, provenance
+ *    (E). Nothing else moved with them. The shadow is still absent, and the two
+ *    app-shell durations — 220ms collapse, 140ms flyout close — are still literals
+ *    in the component that owns them, still marked TODO, because no document names
+ *    them. THE SIZE OF THIS EXCEPTION IS THE POINT: a feature that extracts one
+ *    thing must not quietly regularise four.
+ *
+ *    `031` then supplied the second document — the Abyan Dropdown, provenance
+ *    (F) — and it names the two things `029` left absent by name: the shadow,
+ *    and a transition duration and curve. Both are now extracted, and the
+ *    paragraph above is why that is allowed rather than a slide: the test was
+ *    never "how long has this been missing", it was "does a document say it".
+ *
+ *    The two app-shell durations — 220ms collapse, 140ms flyout close — are
+ *    STILL literals with their TODOs. No document names them, and `031` held
+ *    the same line `029` did rather than sweeping them in on the grounds that
+ *    `--duration-enter` now existed and 220 was close to it. THAT is the
+ *    temptation the paragraph above was written against, and it was live.
+ *
+ *    Where the two documents disagreed with a value we had already published,
+ *    OURS WON — see the MOTION — transitions block. The Abyan document draws
+ *    150ms/100ms and a 6px menu radius against our 200/150 and 8px, and a
+ *    near-match is a second scale, not a refinement (the rule the tickets-table
+ *    canvas established). Three conflicts, three times the token won.
  * ============================================================================ */
