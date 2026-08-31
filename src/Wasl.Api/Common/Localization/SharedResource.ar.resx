@@ -148,6 +148,21 @@
   <data name="Validation.Ticket.DescriptionTooLong" xml:space="preserve">
     <value>الوصف طويل جدًا.</value>
   </data>
+  <data name="Validation.TicketFilter.StatusInvalid" xml:space="preserve">
+    <value>حالة غير مقبولة. القيم المقبولة: New, Open, InProgress, PendingCustomer, Resolved, Closed.</value>
+  </data>
+  <data name="Validation.TicketFilter.PriorityInvalid" xml:space="preserve">
+    <value>أولوية غير مقبولة. القيم المقبولة: Low, Normal, High, Critical.</value>
+  </data>
+  <data name="Validation.TicketFilter.CategoryInvalid" xml:space="preserve">
+    <value>تصنيف غير مقبول. القيم المقبولة: Billing, Technical, Account, General.</value>
+  </data>
+  <data name="Validation.TicketFilter.ChannelInvalid" xml:space="preserve">
+    <value>قناة غير مقبولة. القيم المقبولة: Email, WhatsApp, LiveChat, Sms, WebForm.</value>
+  </data>
+  <data name="Validation.TicketFilter.AssigneeInvalid" xml:space="preserve">
+    <value>مُسنَد غير مقبول. استخدم me أو unassigned أو معرّف مستخدم.</value>
+  </data>
   <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
     <value>اختر تصنيفًا صحيحًا.</value>
   </data>

@@ -75,20 +75,41 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// than left computing pages from a number the server ignored.
     /// </para>
     /// <para>
-    /// No filter or search parameters, and that is `015`'s scope. Accepting them here and
-    /// ignoring them would be worse than not accepting them: a client would filter, get
-    /// everything back, and believe the filter matched.
+    /// <b>Filters and search arrived with `015`.</b> This comment said they were out of scope and
+    /// that accepting them while ignoring them would be worse than refusing them — which was
+    /// right, and is why they are bound here only now that the handler applies them.
+    /// </para>
+    /// <para>
+    /// <b>The four enum filters bind as <c>string[]</c>, not as enum arrays, and that is AC-10's
+    /// whole mechanism.</b> Binding <c>TicketStatus[]</c> would be shorter and would make the
+    /// criterion unreachable: `002c` measured that the model binder refuses a malformed value
+    /// BEFORE the MediatR pipeline runs, so <c>ValidationBehaviour</c> never executes and the
+    /// message is the framework's English sentence with no list of accepted values. The parse
+    /// therefore happens where FluentValidation can see it —
+    /// <c>GetTicketsQueryValidator</c> and <c>TicketFilters</c>.
     /// </para>
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<TicketListItem>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetPage(
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         [FromQuery] Guid? customerId,
+        [FromQuery] string[]? status,
+        [FromQuery] string[]? priority,
+        [FromQuery] string[]? category,
+        [FromQuery] string[]? channel,
+        [FromQuery] string? assignee,
+        [FromQuery] bool? escalated,
+        [FromQuery] string? search,
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(
-            new GetTicketsQuery(page, pageSize, customerId), cancellationToken));
+            new GetTicketsQuery(
+                page, pageSize, customerId,
+                status, priority, category, channel,
+                assignee, escalated, search),
+            cancellationToken));
 
     /// <summary>
     /// Reads one ticket. Moved here from `010` because the contract promises the `201`'s

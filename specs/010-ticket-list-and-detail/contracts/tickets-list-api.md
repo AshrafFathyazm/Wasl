@@ -256,3 +256,72 @@ can tell that its request for `fr` produced English (BR-8.3).
 | Arabic subject and customer name byte-identical through both endpoints | `TEST-010-12` |
 | Malformed `page` stays inside the error contract | `BE-010-11` |
 | This contract matches what was built | `REV-010-03` — generated OpenAPI compared field by field before the feature closes |
+
+---
+
+# Contract changes
+
+**The frozen text above is NOT edited.** This section is appended, which is the rule
+`error-contract.md` set when `429` arrived on `POST /api/auth/token` after freezing: a contract a
+lane has already built against is a record of what was agreed, and rewriting it in place destroys
+the only evidence of what changed.
+
+## 2026-08-31 — `034-ticket-detail-backend` added `?customerId=`
+
+| Parameter | Type | Default | Rules |
+|---|---|---|---|
+| `customerId` | `Guid` | absent | Return only this customer's tickets. Clamped and paged through the same helpers as everything else |
+
+A parameter on this list rather than a new `/api/customers/{id}/tickets`, because the second would
+be a list endpoint with its own paging, its own clamping and its own copy of the projection.
+
+## 2026-08-31 — `015-ticket-filters-and-search` added six filters and a search
+
+Eight parameters in total on this endpoint now. `?page=` and `?pageSize=` are unchanged.
+
+| Parameter | Type | Default | Rules |
+|---|---|---|---|
+| `status` | repeated string | absent | `New` \| `Open` \| `InProgress` \| `PendingCustomer` \| `Resolved` \| `Closed`. **OR** within the key |
+| `priority` | repeated string | absent | `Low` \| `Normal` \| `High` \| `Critical` |
+| `category` | repeated string | absent | `Billing` \| `Technical` \| `Account` \| `General` |
+| `channel` | repeated string | absent | `Email` \| `WhatsApp` \| `LiveChat` \| `Sms` \| `WebForm` |
+| `assignee` | string | absent | `me` \| `unassigned` \| a user `Guid` |
+| `escalated` | bool | absent | **Absent means "any". `false` means "not escalated"** |
+| `search` | string | absent | Case-insensitive substring over `ticketNumber`, `subject`, and the **customer's** `fullName` |
+
+**Filters AND across keys and OR within one key** — BR-7.3 and BR-7.4.
+
+### The rules that are not obvious from the table
+
+| Case | Answer | Why |
+|---|---|---|
+| `?status=` present and empty | **No filter** | Not `WHERE Status IN ()`, which returns nothing to a user who filtered nothing. `spec.md` Q-4. **This was a defect in the first implementation:** the parameter binds as an array holding one empty string, not as an empty array, and it answered `400`. A filter bar that clears its select sends exactly this |
+| `?status=Open&status=Open` | Same as `?status=Open` | A duplicate value is a set, not a multiplier. Duplicates collapse before the clamp |
+| `?status=open` | **Accepted** | Enum parsing is case-insensitive by ruling. Rejecting a case variant of a correct value is a worse failure than normalising it |
+| `?status=Open&status=Bogus` | **`400`**, naming `status` and listing all six accepted values | One bad value invalidates the parameter. Silently dropping it answers a different question from the one asked, and the client cannot tell |
+| `?status=3` | **`400`** | `Enum.TryParse<TicketStatus>("3")` returns `true` and yields `PendingCustomer`; `"99"` returns `true` for a value no member has. Enums travel as strings on this API, so a number is a client that guessed — and the alternative is `009`'s shape, where the request succeeds and means something the caller never asked for |
+| More than **20** values in one repeated filter | **Clamped, not refused** | BR-7.2's clamp-never-reject. An unbounded repeated parameter is a denial of service from one URL and an `IN` list SQL Server has to plan. Same ruling `033` took for `?company=` on the same day |
+| `?assignee=me` | Resolved from the **token**, server-side | A client cannot reach another user's queue by editing a URL |
+| `?assignee=nobody` | **`400`** naming `assignee`, and the message names `me` and `unassigned` | Not a dropped filter, for the same reason as `status` |
+| `?search=%` or `_` or `[` | The **character**, literally | EF Core 10 on SQL Server builds the pattern and escapes the term, emitting `LIKE @p ESCAPE N'\'`. **There is deliberately no hand-written escaper** — `008` measured that one would double-escape and make any subject containing a backslash unfindable |
+| `?search=` whitespace only | **No filter** | A cleared search box is not a request for the tickets whose subject is a space |
+| No rows match | `200` with `items: []` and the real `totalCount` | BR-7.6, unchanged from the frozen text |
+
+### The `400` body
+
+`errors/validation`, with the parameter as the key — `status`, `priority`, `category`, `channel`,
+`assignee` — and a message that **lists every accepted value**. The list lives in the message
+catalogue in `en` and `ar`, and `TicketFilterMessageTests` asserts each message names every member
+of its enum, so an enum that gains a member cannot leave the message naming one fewer.
+
+**The member names are Latin in the Arabic message.** BR-8 never localizes an enum value, and a
+translated list would be unusable in a URL.
+
+### What did NOT change
+
+- The envelope, the row, the default order, the clamps, `401`, and `404`.
+- **No `?sort=` or `?dir=`.** The order stays BR-7.1's `CreatedAtUtc DESC, Id DESC`. `033` adds
+  sorting to **customers**; nothing has asked for it here.
+- `GET /api/tickets/{id}` is untouched.
+
+Evidence: [`015/tests.md`](../../015-ticket-filters-and-search/tests.md).
