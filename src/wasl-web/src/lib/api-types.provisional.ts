@@ -481,50 +481,106 @@ export interface TicketCommentResponse {
 }
 
 /* ============================================================================
- * `013` TIMELINE — NOT TRANSCRIBED. BLOCKED 2026-08-31.
+ * `013` + `034` TIMELINE — TRANSCRIBED 2026-08-31, once the disagreement was ruled
  * ============================================================================
- * `GET /api/tickets/{id}/timeline` is the one shape `027` needs that is NOT in
- * this file, and the omission is deliberate.
+ * This block said NOT TRANSCRIBED. BLOCKED, and the refusal was right: the frozen
+ * contract described `?page=&pageSize=` with the BR-7 envelope, the server has
+ * always answered a cursor, and neither shape could be written here. The
+ * contract's shape ships a timeline that silently refuses to scroll back — both
+ * parameters ignored, the newest page returned every time, nothing red. The
+ * implementation's shape would have ratified an unrecorded contract change from
+ * the client side, which `CLAUDE.md` forbids by name.
  *
- * The frozen contract and the running server disagree, and the disagreement was
- * never recorded:
+ * THE BACKEND LANE RULED ON 2026-08-31: the implementation is the truth and the
+ * frozen file was stale. `CLAUDE.md`'s API section already named the cursor for
+ * this exact endpoint, and `013`'s own `summary.md` records it as a chosen design
+ * at its `spec.md` Q-B — the decision was taken, written in two places, and never
+ * carried back. **The defect was the omission, not the code.** Recorded as a
+ * Contract change at the foot of `013/contracts/ticket-timeline-api.md`, and the
+ * superseded paging recipe in its `FRONTEND-API-GUIDE.md` now carries a warning at
+ * the top of the file.
  *
- *   contract + FRONTEND-API-GUIDE   `?page=&pageSize=`, the BR-7 envelope
- *                                   (`items/page/pageSize/totalCount/totalPages`),
- *                                   ordered ASCENDING, entries shaped
- *                                   `{ entryType: 'Comment'|'History',
- *                                      actorUserId, actorName,
- *                                      comment: {…}|null, history: {…}|null }`
- *
- *   implementation                  `?before=<cursor>&limit=`, a CURSOR page
- *                                   (`items/hasMore/nextCursor`, no total),
- *                                   ordered DESCENDING, entries shaped
- *                                   `{ type: <seven values>, actor: {…}, cursor,
- *                                      body, isInternal, channel, oldValue,
- *                                      newValue, note }`
- *
- * `013` `summary.md` records the cursor as a chosen design (`spec.md` Q-B) and
- * `plan.md`'s **Contract changes** section says nothing moved. Both the frozen
- * contract and the guide written FOR this lane still describe the envelope, and
- * the guide gives a paging recipe — `page=N-1`, "at page 1 stop" — plus a cache
- * key of `['ticket', id, 'timeline', { page, pageSize }]`.
- *
- * Writing either shape here would be wrong. The CONTRACT shape produces a client
- * that sends `?page=2`, has both parameters ignored, receives the newest page
- * every time, and renders a timeline that silently refuses to scroll back — no
- * error, nothing red, the exact failure class this repository keeps writing
- * rules about. The IMPLEMENTATION shape ratifies an unrecorded contract change
- * from the client side, which `CLAUDE.md` forbids by name: a difference is a
- * defect in one of the two, never fixed silently.
- *
- * `002c`'s `OpenApiContractTests` cannot see it — that gate compares **paths,
- * methods and statuses only**, ruled at its Q-C, with request and response
- * bodies and query parameters explicitly out of scope.
- *
- * `FE-027-08` is blocked until the backend lane says which document is the
- * truth. Nothing else in `027` is.
+ * The shapes below are transcribed from a MEASUREMENT of a running instance, not
+ * from either document — the whole point of the block that used to be here.
  * ========================================================================== */
 
+/**
+ * One entry. **Flat, with a `type` discriminator and the inapplicable fields
+ * null**, which is what the server sends.
+ *
+ * The frozen contract gave every entry two nullable sub-objects —
+ * `comment: {…} | null` and `history: {…} | null` — exactly one of which is ever
+ * populated, so every consumer would write
+ * `entry.comment?.body ?? entry.history?.newValue` and the type system could not
+ * tell it which to expect.
+ */
+export interface TimelineEntry {
+  /** Seven values. `Comment` is SINGULAR here — see `TimelineFilter`. */
+  type:
+    | 'Created'
+    | 'StatusChanged'
+    | 'Assigned'
+    | 'Unassigned'
+    | 'Escalated'
+    | 'CommentAdded'
+    | 'Comment';
+  id: string;
+  occurredAtUtc: string;
+
+  /**
+   * **NEVER null.** The server's DTO is `TimelineActor Actor` — non-nullable —
+   * while `RecordedBy` beside it is `TimelineActor?`. The first version of this
+   * type had `| null` here out of caution rather than measurement, and the
+   * preview's own `Entry` component went red on eight `actor is possibly null`
+   * errors for a state the wire cannot produce.
+   *
+   * The ACTOR'S OWN `id` is nullable, though — `TimelineActor(Guid? Id, string
+   * FullName, string? Role)`. `011` fixed `PerformedByUserId` being NULL on every
+   * history row ever written, and a row from before that fix still has no id
+   * while still having a name.
+   */
+  actor: { id: string | null; fullName: string; role: string | null };
+
+  /** Opaque. Pass the PAGE's `nextCursor` to `?before=`, never this one parsed. */
+  cursor: string;
+
+  /* Null on the rows they do not apply to. */
+  body: string | null;
+  isInternal: boolean | null;
+  /** The enum, not a bare string — the server sends `CommunicationChannel?`. */
+  channel: CommunicationChannel | null;
+  oldValue: string | null;
+  newValue: string | null;
+  note: string | null;
+
+  /** `034`. Null on a history row and on an agent's own comment. */
+  authorKind: string | null;
+  /** `034`. The support user who recorded a customer's message. */
+  recordedBy: { id: string | null; fullName: string; role: string | null } | null;
+}
+
+/**
+ * A cursor page. **There is no `totalCount` and no `totalPages`**, so there is no
+ * last page to count back from and no page number to put in a cache key.
+ */
+export interface TimelinePage {
+  /** Newest first. */
+  items: TimelineEntry[];
+  hasMore: boolean;
+  /** Feed to `?before=` for the next (older) page. Null when `hasMore` is false. */
+  nextCursor: string | null;
+  /** `034` AC-7 — the two tab counts, disjoint, both reported. */
+  commentCount: number;
+  historyCount: number;
+}
+
+/**
+ * `?type=` — **PLURAL, and this is the trap.**
+ *
+ * The entries' own `type` field says `Comment` singular, so `?type=Comment` is
+ * the natural guess and it is a `400`. Measured.
+ */
+export type TimelineFilter = 'Comments' | 'History';
 /* ==========================================================================
  * `032` — the customer profile and the customer create
  * ==========================================================================

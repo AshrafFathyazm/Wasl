@@ -8,6 +8,7 @@ import {
 } from 'react';
 
 import { Badge } from '../components/Badge/Badge';
+import { Skeleton } from '../components/Loader/Skeleton';
 import { Button } from '../components/Button/Button';
 import { Checkbox } from '../components/Checkbox/Checkbox';
 import { Input } from '../components/Input/Input';
@@ -33,9 +34,15 @@ import type {
   TicketPriority,
   TicketResponse,
   TicketStatus,
+  TimelineEntry,
 } from '../lib/api-types.provisional';
 import { formatDateTime, formatNumber, type Lang } from '../lib/formatters';
-import styles from './TicketDetailPreview.module.css';
+/* The design lives WITH THE FEATURE now, not in dev/. The real page imports the
+ * same file, so there is one source of truth for this screen's geometry — a
+ * preview with its own copy is a preview that drifts from the thing it was
+ * approved as. `027` Q-5 ruled the preview IS the design; that makes this file
+ * the design document, and it belongs beside the page. */
+import styles from '../features/tickets/TicketDetail.module.css';
 
 /*
  * FE-027-00 — the ticket detail screen, PREVIEWED BEFORE ANY WIRING.
@@ -134,30 +141,18 @@ import styles from './TicketDetailPreview.module.css';
  * `FE-027-08` is where that stops being true, and it is blocked.
  */
 
-type TimelineEntryType =
-  | 'Created'
-  | 'StatusChanged'
-  | 'Assigned'
-  | 'Unassigned'
-  | 'Escalated'
-  | 'CommentAdded'
-  | 'Comment';
-
-interface TimelineEntry {
-  type: TimelineEntryType;
-  id: string;
-  occurredAtUtc: string;
-  actor: { id: string | null; fullName: string; role: string | null };
-  /** Opaque. Never parsed, compared, or ordered by the client. */
-  cursor: string;
-  body?: string | null;
-  isInternal?: boolean | null;
-  channel?: CommunicationChannel | null;
-  oldValue?: string | null;
-  newValue?: string | null;
-  note?: string | null;
-}
-
+/* THE LOCAL COPY IS DELETED 2026-08-31, because the reason for it is gone.
+ *
+ * The paragraph above said `TimelineEntry` STAYS LOCAL and was right to: the
+ * frozen contract and the server disagreed about the shape, and a preview cannot
+ * ratify a contract change because it sends nothing. FE-027-08 was blocked on it.
+ *
+ * The backend lane ruled on 2026-08-31 — the cursor is the truth, the frozen file
+ * was stale, and `CLAUDE.md` had already said so. The shape is now in
+ * `api-types.provisional.ts`, transcribed from a MEASUREMENT of a running
+ * instance. So the local copy would be the second shape this same comment warns
+ * about, and it is imported instead.
+ */
 /* ---------------------------------------------------------------------------
  * Copy. Real, destined for the `en` and `ar` catalogues. A preview written
  * with placeholder text measures placeholder text.
@@ -459,16 +454,37 @@ const STEP_MS = 37 * 60 * 1000;
  * cursor compares exactly the keys the `ORDER BY` sorts by, and a client that
  * re-sorts has quietly taken over an ordering it cannot see.
  */
+/* The server sends EVERY key on every entry, with nulls where they do not apply —
+ * measured on a running instance. So the shared type has them required-and-
+ * nullable, and this fixture fills the blanks rather than declaring them
+ * optional: a preview whose shape is LOOSER than the wire is a preview that
+ * renders states the wire cannot produce, which is the opposite of its job.
+ */
+const entry = (
+  e: Partial<TimelineEntry> &
+    Pick<TimelineEntry, 'type' | 'id' | 'occurredAtUtc' | 'cursor' | 'actor'>,
+): TimelineEntry => ({
+  body: null,
+  isInternal: null,
+  channel: null,
+  oldValue: null,
+  newValue: null,
+  note: null,
+  authorKind: null,
+  recordedBy: null,
+  ...e,
+});
+
 const WIRE: TimelineEntry[] = (() => {
   const ascending: TimelineEntry[] = [];
 
-  ascending.push({
+  ascending.push(entry({
     type: 'Created',
     id: 'e-000',
     occurredAtUtc: new Date(BASE_MS).toISOString(),
     actor: { id: 'u-04', fullName: 'سارة المطيري', role: 'Agent' },
     cursor: 'c-000',
-  });
+  }));
 
   for (let i = 1; i < 100; i += 1) {
     const actor = ACTORS[i % ACTORS.length]!;
@@ -483,7 +499,7 @@ const WIRE: TimelineEntry[] = (() => {
       const step = Math.floor(i / 3) % STATUS_WALK.length;
       const from = STATUS_WALK[(step + STATUS_WALK.length - 1) % STATUS_WALK.length]!;
       const to = STATUS_WALK[step]!;
-      ascending.push({
+      ascending.push(entry({
         type: 'StatusChanged',
         id,
         occurredAtUtc: at,
@@ -492,9 +508,9 @@ const WIRE: TimelineEntry[] = (() => {
         oldValue: from,
         newValue: to,
         note: NOTES[i % NOTES.length] ?? null,
-      });
+      }));
     } else if (i % 17 === 0) {
-      ascending.push({
+      ascending.push(entry({
         type: 'Assigned',
         id,
         occurredAtUtc: at,
@@ -502,10 +518,10 @@ const WIRE: TimelineEntry[] = (() => {
         cursor,
         oldValue: null,
         newValue: 'عمر خالد',
-      });
+      }));
     } else {
       const body = COMMENT_BODIES[i % COMMENT_BODIES.length]!;
-      ascending.push({
+      ascending.push(entry({
         type: 'Comment',
         id,
         occurredAtUtc: at,
@@ -514,7 +530,7 @@ const WIRE: TimelineEntry[] = (() => {
         body,
         isInternal: i % 10 === 4,
         channel: i % 7 === 0 ? 'Email' : null,
-      });
+      }));
     }
   }
 
@@ -892,20 +908,26 @@ function ticketFor(variant: Variant, lang: Lang): TicketResponse {
   }
 }
 
-function Skeleton() {
+/* Rebuilt on `029`'s shared `Skeleton` 2026-08-31.
+ *
+ * This drew its own shimmer from `.skeleton` in the module CSS. The class is gone:
+ * moving that CSS beside the page it styles made it a SHIPPED component, and
+ * `029` AC-12's guard — which scans by location rather than by a list somebody
+ * maintains — went red on the same run. `029` established one waiting vocabulary,
+ * and a second animation is not a duplicate of the first but a second answer to
+ * "is this still loading": different duration, different easing, two skeletons on
+ * one screen pulsing out of step. */
+function LoadingPreview() {
   return (
     <>
-      <div className={cx(styles.skeleton, styles.skelLine)} style={{ inlineSize: '60%' }} />
-      <div className={cx(styles.skeleton, styles.skelLine)} style={{ inlineSize: '85%' }} />
+      <Skeleton shape="text" width="60%" />
+      <Skeleton shape="text" width="85%" />
       {[0, 1, 2, 3].map((i) => (
         <div className={styles.skelRow} key={i}>
-          <div className={cx(styles.skeleton, styles.skelAvatar)} />
+          <Skeleton shape="avatar" />
           <div style={{ flex: 1 }}>
-            <div
-              className={cx(styles.skeleton, styles.skelLine)}
-              style={{ inlineSize: '30%' }}
-            />
-            <div className={cx(styles.skeleton, styles.skelLine)} />
+            <Skeleton shape="text" width="30%" />
+            <Skeleton shape="text" />
           </div>
         </div>
       ))}
@@ -1280,7 +1302,7 @@ function Screen({
             onToggle={() => setDescOpen((o) => !o)}
           >
             {variant === 'loading' ? (
-              <Skeleton />
+              <LoadingPreview />
             ) : (
               /* `dir="auto"` and the line breaks preserved. */
               <p className={styles.description} dir="auto">
@@ -1300,7 +1322,7 @@ function Screen({
             open={timelineOpen}
             onToggle={() => setTimelineOpen((o) => !o)}
           >
-            {variant === 'loading' ? <Skeleton /> : null}
+            {variant === 'loading' ? <LoadingPreview /> : null}
 
             {variant === 'empty' ? (
               <div className={styles.empty}>

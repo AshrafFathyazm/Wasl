@@ -253,3 +253,73 @@ names the locale that was actually applied.
 | Arabic `type`, `errors` keys, and enum values byte-identical to English | Covered by `005-localization-core`, re-asserted here by `BE-013-12` |
 | No edit or delete surface exists | `BE-013-09` — `PUT`/`PATCH`/`DELETE` return `405` |
 | This contract matches what was built | `REV-013-03` — generated OpenAPI compared before the feature closes |
+
+---
+
+# Contract changes
+
+**The frozen text above is NOT edited.** Appended, per the rule `error-contract.md` set when
+`429` arrived after freezing.
+
+## 2026-08-31 — `GET /api/tickets/{id}/timeline` is a CURSOR, and this document described an envelope
+
+**Raised by the frontend lane, ruled by the backend lane, and the frontend was right to
+refuse to guess.** `FE-027-08` was blocked on it: the lane would not transcribe either shape,
+because the contract's shape produces a client that sends `?page=2`, has both parameters
+ignored, receives the newest page every time, and renders a timeline that silently refuses to
+scroll back — while the implementation's shape would have ratified an unrecorded contract
+change from the client side, which `CLAUDE.md` forbids by name.
+
+**The implementation is the truth and this document was stale.** Not a judgement call:
+`CLAUDE.md`'s API section already names the cursor for this exact endpoint —
+
+> A **cursor** — `?before=<cursor>&limit=` — for feeds that grow at the point the reader is
+> looking: `GET /api/tickets/{id}/timeline` (`013`).
+
+— and `013`'s own `summary.md` records the cursor as a chosen design at its `spec.md` Q-B.
+So the decision was taken, written in two places, and never carried back into the frozen
+file. **The defect was the omission, not the code.**
+
+### What the server actually answers, measured 2026-08-31 on a running instance
+
+```http
+GET /api/tickets/{id}/timeline?before=<cursor>&limit=50&type=Comments|History
+```
+
+```text
+envelope : items, hasMore, nextCursor, commentCount, historyCount
+entry    : type, id, occurredAtUtc, actor, cursor, body, isInternal, channel,
+           oldValue, newValue, note, authorKind, recordedBy
+```
+
+| Part | Rules |
+|---|---|
+| `before` | The previous page's `nextCursor`. **Opaque** — base64 over the three keys the `ORDER BY` sorts by. Absent asks for the newest page |
+| `limit` | Default 50 |
+| `type` | `Comments` \| `History`. **Plural.** `?type=Comment` is a `400` — measured, and it is the mistake a reader of the entry's own `type` field will make, because the entries say `Comment` singular |
+| `items` | Newest first |
+| `hasMore` / `nextCursor` | There is **no** `totalCount` and no `totalPages`. Fetching `limit + 1` is how `hasMore` is answered without counting the union |
+| `commentCount` / `historyCount` | The two tab counts (`034` AC-7). Disjoint, and both reported |
+| `authorKind` / `recordedBy` | `034`. Null on a history row and on an agent's own comment |
+
+Measured on two consecutive pages of three: **no id appears twice.** That assertion is the
+one `013` recorded as the thing that catches a cursor comparing fewer keys than the sort
+uses.
+
+### Why the entry is flat rather than `{ comment: {…} | null, history: {…} | null }`
+
+The frozen shape gave every entry two nullable sub-objects, exactly one of which is ever
+populated — so every consumer writes `entry.comment?.body ?? entry.history?.newValue`, and
+the type system cannot tell it which one to expect. The flat shape puts `type` first and
+leaves the fields that do not apply null, which is what a discriminated union looks like
+before TypeScript is involved.
+
+### What a client must NOT do with this
+
+- **Do not derive a page number.** There is no total, so there is no last page to count back
+  from. The only way back is the cursor you were given.
+- **Do not parse the cursor.** It encodes an instant, a type rank and an id as text, in the
+  same sequence the `ORDER BY` uses. `013` broke a feed by comparing the id lexically when
+  SQL Server orders `uniqueidentifier` by a byte order of its own.
+- **Do not build a cache key from `{ page, pageSize }`.** The `FRONTEND-API-GUIDE.md` beside
+  this file gave that recipe and it is superseded here.

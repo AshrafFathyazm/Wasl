@@ -15,15 +15,19 @@ import i18n from '../../lib/i18n';
  *
  * WHAT IS MOCKED, AND WHY IT IS THE MODULE AND NOT `fetch`.
  *
- * `tickets.api` currently answers customer search from a STUB — `009` has not
- * landed, so `STUBBED_CUSTOMER_SEARCH` is `true` and no `fetch` happens for a
- * search at all. A test that counted `fetch` calls would therefore count zero
- * and pass no matter what the debounce did.
+ * `tickets.api` used to answer customer search from a STUB, behind
+ * `STUBBED_CUSTOMER_SEARCH`, so no `fetch` happened for a search at all and a
+ * test counting `fetch` calls would have counted zero and passed no matter what
+ * the debounce did.
  *
  * So the seam is the module: `searchCustomers` and `createTicket` are the two
  * functions this screen uses to reach the server, and counting THEM measures
- * the same thing the task means by "requests" — one call out per intent. When
- * the stub is deleted the assertions do not change, which is the point.
+ * the same thing the task means by "requests" — one call out per intent.
+ *
+ * **The stub was deleted on 2026-08-31 and not one assertion below changed,
+ * which is what this paragraph predicted.** The flag is gone from the mock too:
+ * a factory that keeps declaring a property the real module no longer exports is
+ * how a test goes on passing against a shape that no longer exists.
  *
  * `vi.mock` is hoisted above the imports, so the factory may not close over
  * anything declared below it. The mocks are therefore declared inside it and
@@ -31,7 +35,6 @@ import i18n from '../../lib/i18n';
  * ============================================================================ */
 
 vi.mock('./tickets.api', () => ({
-  STUBBED_CUSTOMER_SEARCH: true,
   searchCustomers: vi.fn(),
   createTicket: vi.fn(),
   getTicket: vi.fn(),

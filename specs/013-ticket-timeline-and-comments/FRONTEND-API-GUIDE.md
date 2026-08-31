@@ -1,5 +1,37 @@
 # Frontend API Guide — Ticket timeline and comments (US-010)
 
+> ## ⚠ THE PAGING HALF OF THIS GUIDE IS SUPERSEDED — 2026-08-31
+>
+> **Everything below about `?page=` and `?pageSize=` is wrong, and the server has never
+> behaved that way.** `GET /api/tickets/{id}/timeline` is a **cursor**:
+>
+> ```http
+> GET …/timeline?before=<the previous page's nextCursor>&limit=50&type=Comments|History
+> ```
+> ```text
+> envelope : items, hasMore, nextCursor, commentCount, historyCount   ← no totalCount
+> ```
+>
+> **The recipe at *load older → `?page=N-1`* would produce a timeline that silently refuses
+> to scroll back:** both parameters are ignored, so every request returns the newest page.
+> Nothing errors and nothing turns red. **And the cache key this guide gives —
+> `['ticket', id, 'timeline', { page, pageSize }]` — must not be built**, because there is no
+> page number to put in it.
+>
+> The full measured shape, the `type=Comments` plural trap, and what a client must not do with
+> the cursor are in **Contract changes** at the foot of
+> [`contracts/ticket-timeline-api.md`](contracts/ticket-timeline-api.md).
+>
+> **The frontend lane found this and refused to transcribe either shape**, which was the right
+> call: writing the contract's shape ships the silent failure above, and writing the
+> implementation's would have ratified an unrecorded contract change from the client side.
+> `FE-027-08` was blocked on it. The backend lane ruled on 2026-08-31 — the implementation is
+> the truth, `CLAUDE.md` and `013`'s own `summary.md` had already said so, and the frozen file
+> was simply never updated. **The defect was the omission, not the code.**
+>
+> Everything else in this guide — the comment composer, the `403`, the redaction, the `Closed`
+> rule — still holds.
+
 Everything the frontend lane needs to build the timeline drawer and the comment composer
 on `/tickets/:id` **without waiting for the backend**. Derived from
 [`contracts/ticket-timeline-api.md`](contracts/ticket-timeline-api.md), which is frozen.

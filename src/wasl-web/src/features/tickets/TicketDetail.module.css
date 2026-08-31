@@ -782,34 +782,20 @@
   margin-block-start: var(--space-4);
 }
 
-.skeleton {
-  border-radius: var(--radius-sm);
-  background: linear-gradient(
-    90deg,
-    var(--neutral-75) 25%,
-    var(--neutral-100) 37%,
-    var(--neutral-75) 63%
-  );
-  background-size: 400% 100%;
-  animation: shimmer 1.4s ease infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0 50%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skeleton {
-    animation: none;
-  }
-}
-
+/* THE LOCAL SHIMMER IS DELETED — `029` AC-12, and its guard is what caught it.
+ *
+ * This file declared its own `@keyframes shimmer` and a `.skeleton` painting a
+ * moving gradient. That was legal while the file lived under `dev/`, because the
+ * guard scans SHIPPED components; moving it beside the page it styles made it
+ * shipped, and `loaderSystem.test.ts` went red on the same run — the whole point
+ * of a guard that scans by location rather than by a list somebody maintains.
+ *
+ * `029` established one waiting vocabulary. A second animation is not a
+ * duplicate of the first, it is a second answer to the question "is this still
+ * loading" — different duration, different easing, and two skeletons on one
+ * screen that pulse out of step. Use `components/Loader/Skeleton`, which also
+ * carries the `prefers-reduced-motion` branch this block had to repeat.
+ */
 .skelLine {
   block-size: 12px;
   margin-block-end: var(--space-2);

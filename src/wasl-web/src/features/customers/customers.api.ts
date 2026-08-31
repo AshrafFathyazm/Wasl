@@ -12,13 +12,16 @@ import type {
  * the body. No error handling, no toast, no navigation — `lib/api.ts` throws a
  * typed `ApiError` and the ROUTE decides what a `404` means on this screen.
  *
- * NO STUB IN THIS FILE, and that is worth stating because the sibling has one.
- * `tickets.api.ts` still answers customer SEARCH from `STUB_CUSTOMERS` behind
- * `STUBBED_CUSTOMER_SEARCH`; both endpoints below are delivered and reachable,
- * so there is nothing to stand in for. (The stub flag is `026`/`024`'s to
- * retire — `GET /api/customers` shipped with `008`, and the flag is still
- * `true`. Noted in `032`'s `summary.md`, not touched here: a lane that deletes
- * another lane's stub in passing is how a picker regresses on a Friday.)
+ * NO STUB ANYWHERE ANY MORE, as of 2026-08-31. This paragraph used to say the
+ * sibling answered customer SEARCH from `STUB_CUSTOMERS` behind
+ * `STUBBED_CUSTOMER_SEARCH`, and that the flag was still `true` three days after
+ * `008` shipped `GET /api/customers`. It was, and it is not: the flag and the
+ * array are deleted and `tickets.api.ts` calls the endpoint.
+ *
+ * The old note also said a lane deleting another lane's stub in passing is how a
+ * picker regresses on a Friday — which was the right caution and is why the
+ * switch was measured against the running API first, and why the deletion came
+ * with the whole suite green rather than with a flipped boolean.
  * ============================================================================ */
 
 /**

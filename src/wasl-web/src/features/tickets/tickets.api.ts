@@ -10,6 +10,8 @@ import type {
   TicketCommentResponse,
   TicketListItem,
   TicketResponse,
+  TimelineFilter,
+  TimelinePage,
 } from '../../lib/api-types.provisional';
 
 /* ============================================================================
@@ -43,94 +45,57 @@ export function getTicket(id: string, signal?: AbortSignal): Promise<TicketRespo
 }
 
 /* ---- The customer search --------------------------------------------------
- * `GET /api/customers` IS NOT BUILT (spec Q-1). Its contract is frozen, so the
- * shape below is real; only the transport is stubbed.
+ * `GET /api/customers` IS BUILT, and this now calls it. `008` delivered it on
+ * 2026-08-28 and the picker answered from a hard-coded array for three days
+ * behind `STUBBED_CUSTOMER_SEARCH`.
  *
- * The stub and the real call live side by side ON PURPOSE. Swapping is deleting
- * the stub and the branch — not editing a hook until it works — so there is
- * nothing to hunt for, and `STUBBED_CUSTOMER_SEARCH` is greppable.
+ * THE FLAG AND THE ARRAY ARE DELETED, not set to false. The comment they
+ * carried offered both — "flip to false, or delete the branch" — and a dead
+ * stub behind a boolean is the thing that comes back: it survives a merge, it
+ * keeps compiling, and the next person to see a picker returning six familiar
+ * names has no reason to suspect the transport.
+ *
+ * Measured against the running API before the switch, rather than trusted:
+ *
+ *   search=علي   -> ["علي الأحمد"]   total 1
+ *   search=ali    -> ["علي الأحمد"]   total 1   ← matched the EMAIL, ali@example.com
+ *   search=zzz    -> []               total 0
+ *   row shape     -> id, fullName, email, phone, companyName, createdAtUtc
+ *
+ * The row is exactly `CustomerListItem`, so nothing here had to change shape.
+ *
+ * ONE BEHAVIOUR WORTH KNOWING, and it is the server's rather than a defect
+ * here: the phone is stored E.164, so a local-format number does not match.
+ *
+ *   search=0501234567  -> 0
+ *   search=501234567   -> 1
+ *   search=+966501234567 -> 1
+ *
+ * An agent typing the number the way a customer says it finds nothing. This
+ * client deliberately does NOT strip the leading zero: normalising a search
+ * term here would be the frontend inventing a rule the contract does not
+ * describe, and the two copies would then disagree the first time the server's
+ * own rule changed. Raised for `008`/`033` instead.
  * -------------------------------------------------------------------------- */
 
-/** Flip to `false` — or delete the branch — the moment `008` is reachable. */
-export const STUBBED_CUSTOMER_SEARCH = true;
-
-/* Arabic and Latin names together, deliberately: a picker tested only on Latin
- * data never shows that a result row needs `dir="auto"`. */
-const STUB_CUSTOMERS: CustomerListItem[] = [
-  {
-    id: '8f1c2d34-5678-4abc-9def-0123456789ab',
-    fullName: 'شركة الرياض القابضة',
-    email: 'ali@example.com',
-    phone: '+966501234567',
-    companyName: 'شركة الرياض القابضة',
-    createdAtUtc: '2026-08-01T09:00:00Z',
-  },
-  {
-    id: '2c7e9b10-1111-4bbb-8ccc-2223334445ff',
-    fullName: 'مؤسسة الخليج للتقنية',
-    email: 'noura@example.com',
-    phone: '+966555512345',
-    companyName: 'مؤسسة الخليج للتقنية',
-    createdAtUtc: '2026-08-03T11:30:00Z',
-  },
-  {
-    id: '5d0e7a11-3c2b-4a8f-8e10-9f4b6c2a7d31',
-    fullName: 'عبدالله بن محمد العتيبي',
-    email: 'abdullah@example.com',
-    phone: null,
-    companyName: null,
-    createdAtUtc: '2026-08-10T14:05:00Z',
-  },
-  {
-    id: '9a1b2c3d-4e5f-4071-8899-aabbccddeeff',
-    fullName: 'Gulf Logistics Co.',
-    email: 'ops@gulflogistics.example',
-    phone: '+966533000111',
-    companyName: 'Gulf Logistics Co.',
-    createdAtUtc: '2026-08-12T08:20:00Z',
-  },
-];
-
 /**
- * `GET /api/customers?search=…&pageSize=…`
+ * `GET /api/customers?search=…&pageSize=…` — `008`.
  *
- * The real call is written and unreachable. The stub matches the frozen
- * contract's own filter rule — case-insensitive substring over `fullName`,
- * `email`, and `phone` — so the picker is exercised against the behaviour it
- * will get, not against something easier.
+ * Ten rows, which is the picker's whole appetite: it is a find-as-you-type
+ * control, not a directory. `033` builds the directory.
+ *
+ * The term is passed through untrimmed on purpose — the server trims it and
+ * treats whitespace-only as absent, and doing it here as well would mean two
+ * places to keep in step for no behaviour the user can see.
  */
 export async function searchCustomers(
   search: string,
   signal?: AbortSignal,
 ): Promise<PagedResult<CustomerListItem>> {
-  if (!STUBBED_CUSTOMER_SEARCH) {
-    return apiFetch<PagedResult<CustomerListItem>>('/api/customers', {
-      query: { search, pageSize: 10 },
-      ...(signal ? { signal } : {}),
-    });
-  }
-
-  /* One frame of latency, so the searching state is reachable in a real run
-   * rather than only in a preview. */
-  await new Promise((resolve) => setTimeout(resolve, 120));
-
-  const needle = search.trim().toLocaleLowerCase();
-  const items =
-    needle === ''
-      ? []
-      : STUB_CUSTOMERS.filter((c) =>
-          [c.fullName, c.email, c.phone]
-            .filter((v): v is string => v !== null)
-            .some((v) => v.toLocaleLowerCase().includes(needle)),
-        );
-
-  return {
-    items,
-    page: 1,
-    pageSize: 10,
-    totalCount: items.length,
-    totalPages: items.length === 0 ? 0 : 1,
-  };
+  return apiFetch<PagedResult<CustomerListItem>>('/api/customers', {
+    query: { search, pageSize: 10 },
+    ...(signal ? { signal } : {}),
+  });
 }
 
 /* ---- `010`, the list -------------------------------------------------------
@@ -225,12 +190,23 @@ export const ticketKeys = {
    *  bounded, seeded set that did not change. */
   supportUsers: () => ['support-users'] as const,
 
-  /* `timeline` IS ABSENT, and that is FE-027-08's block rather than an
-   * oversight. The key's parameters are exactly the thing in dispute — the
-   * frozen contract says `{ page, pageSize }` and the server reads
-   * `{ before, limit }` — so writing either one now bakes the wrong answer into
-   * every cache entry and every invalidation. See the block at the foot of
-   * `lib/api-types.provisional.ts`. */
+  /* `timeline` WAS ABSENT — FE-027-08's block, not an oversight: the key's
+   * parameters were the thing in dispute, the frozen contract saying
+   * `{ page, pageSize }` and the server reading `{ before, limit }`, so writing
+   * either would have baked the wrong answer into every cache entry and every
+   * invalidation.
+   *
+   * RULED 2026-08-31: the cursor is the truth, recorded as a Contract change at
+   * the foot of `013/contracts/ticket-timeline-api.md`.
+   *
+   * SO THE KEY CARRIES THE FILTER AND NOT THE CURSOR. A cursor is a position
+   * inside one logical list; putting it in the key makes every scroll-back a new
+   * cache entry that nothing ever invalidates, and `hasMore`/`nextCursor` then
+   * belong to whichever page was fetched last. The pages are accumulated by
+   * `useInfiniteQuery` under this one key instead. The FILTER does belong here —
+   * `Comments` and `History` are different lists, and the counts differ. */
+  timeline: (id: string, filter?: TimelineFilter) =>
+    ['tickets', 'timeline', id, filter ?? 'all'] as const,
 };
 
 /* ---- `027`, the detail screen ---------------------------------------------
@@ -344,3 +320,33 @@ export function changeTicketAssignee(
  * to scroll back with no error anywhere. Writing one to the implementation
  * instead would ratify an unrecorded contract change from this side. Neither is
  * this lane's call to make. */
+
+/**
+ * `GET /api/tickets/{id}/timeline?before=&limit=&type=` — `013`, extended by `034`.
+ *
+ * A CURSOR, not pages. `before` is the previous page's `nextCursor` and is opaque:
+ * it encodes an instant, a type rank and an id as text, in the same sequence the
+ * server's `ORDER BY` uses. **Do not parse it and do not build one** — `013` broke
+ * a feed by comparing the id lexically, and SQL Server orders `uniqueidentifier`
+ * by a byte order of its own.
+ *
+ * There is no `totalCount`, so there is no last page to count back from. The only
+ * way to older entries is the cursor you were handed.
+ *
+ * `type` is **plural** — `Comments` | `History`. The entries' own `type` field says
+ * `Comment` singular, so the natural guess is a `400`. Measured, not assumed.
+ */
+export function getTicketTimeline(
+  id: string,
+  params: { before?: string | undefined; limit?: number | undefined; type?: TimelineFilter | undefined } = {},
+  signal?: AbortSignal,
+): Promise<TimelinePage> {
+  return apiFetch<TimelinePage>(`/api/tickets/${id}/timeline`, {
+    query: {
+      ...(params.before ? { before: params.before } : {}),
+      ...(params.limit ? { limit: params.limit } : {}),
+      ...(params.type ? { type: params.type } : {}),
+    },
+    ...(signal ? { signal } : {}),
+  });
+}

@@ -21,7 +21,7 @@ import {
   readFilters,
   toListParams,
   withFilters,
-  type TicketFilters,
+  type FilterState,
 } from './ticketFilters';
 import { listTickets, ticketKeys } from './tickets.api';
 import { TicketPriorityText, TicketStatusBadge } from './TicketBadges';
@@ -248,7 +248,7 @@ export default function TicketListPage() {
    * 5 of a filtered one, and keeping it turns "filter to Open" into an empty
    * table with a pager reading 5 of 2. `pageSize` survives, because it is a
    * preference about the viewport rather than a position in a result set. */
-  const setFilters = (next: TicketFilters) => setParams(withFilters(params, next));
+  const setFilters = (next: FilterState) => setParams(withFilters(params, next));
 
   const columns: TableColumn<TicketListItem>[] = [
     {

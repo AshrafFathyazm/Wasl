@@ -1,3 +1,8 @@
+import {
+  COMMUNICATION_CHANNELS,
+  TICKET_CATEGORIES,
+  TICKET_PRIORITIES,
+} from '../../lib/api-types.provisional';
 import type { ListParams } from './tickets.api';
 
 /* ---------------------------------------------------------------------------
@@ -14,8 +19,19 @@ import type { ListParams } from './tickets.api';
  * touches a parameter name, so renaming one is one edit rather than a search.
  * ------------------------------------------------------------------------- */
 
-/** The wire values, never a translated label — an enum value is an identifier. */
-export const TICKET_STATUSES = [
+/**
+ * The six statuses, in BR-1's order.
+ *
+ * **This is the one list not imported from `api-types.provisional.ts`**, because
+ * that file exports `TicketStatus` as a type and no runtime array for it — the
+ * three it does export (`TICKET_PRIORITIES`, `TICKET_CATEGORIES`,
+ * `COMMUNICATION_CHANNELS`) are imported above rather than repeated here, which
+ * is what `lint:types` R1 is for and what it caught.
+ *
+ * Values, never translated labels: an enum value is an identifier, and a control
+ * that submits its label submits something the server has never heard of.
+ */
+export const STATUS_VALUES = [
   'New',
   'Open',
   'InProgress',
@@ -23,12 +39,6 @@ export const TICKET_STATUSES = [
   'Resolved',
   'Closed',
 ] as const;
-
-export const TICKET_PRIORITIES = ['Low', 'Normal', 'High', 'Critical'] as const;
-
-export const TICKET_CATEGORIES = ['Billing', 'Technical', 'Account', 'General'] as const;
-
-export const TICKET_CHANNELS = ['Email', 'WhatsApp', 'LiveChat', 'Sms', 'WebForm'] as const;
 
 /**
  * The tabs across the top of the list, in the order the design draws them.
@@ -45,7 +55,7 @@ export const TAB_STATUSES = ['Open', 'InProgress', 'Resolved'] as const;
 /** How many values one repeated filter may carry before the server clamps. */
 export const MAX_FILTER_VALUES = 20;
 
-export interface TicketFilters {
+export interface FilterState {
   status: readonly string[];
   priority: readonly string[];
   category: readonly string[];
@@ -57,7 +67,7 @@ export interface TicketFilters {
   search: string;
 }
 
-export const NO_FILTERS: TicketFilters = {
+export const NO_FILTERS: FilterState = {
   status: [],
   priority: [],
   category: [],
@@ -112,12 +122,12 @@ function knownEscalated(raw: string | null): boolean | undefined {
   return undefined;
 }
 
-export function readFilters(params: URLSearchParams): TicketFilters {
+export function readFilters(params: URLSearchParams): FilterState {
   return {
-    status: known(params.getAll('status'), TICKET_STATUSES),
+    status: known(params.getAll('status'), STATUS_VALUES),
     priority: known(params.getAll('priority'), TICKET_PRIORITIES),
     category: known(params.getAll('category'), TICKET_CATEGORIES),
-    channel: known(params.getAll('channel'), TICKET_CHANNELS),
+    channel: known(params.getAll('channel'), COMMUNICATION_CHANNELS),
     assignee: knownAssignee(params.get('assignee')),
     escalated: knownEscalated(params.get('escalated')),
     search: (params.get('search') ?? '').trim(),
@@ -137,7 +147,7 @@ export function readFilters(params: URLSearchParams): TicketFilters {
  */
 export function withFilters(
   params: URLSearchParams,
-  next: TicketFilters,
+  next: FilterState,
 ): URLSearchParams {
   const out = new URLSearchParams();
 
@@ -157,7 +167,7 @@ export function withFilters(
 }
 
 /** Whether anything is filtering — decides *no matches* against *no tickets*. */
-export function isFiltering(filters: TicketFilters): boolean {
+export function isFiltering(filters: FilterState): boolean {
   return (
     filters.status.length > 0 ||
     filters.priority.length > 0 ||
@@ -170,7 +180,7 @@ export function isFiltering(filters: TicketFilters): boolean {
 }
 
 /** How many filters are active, for the badge on the Filters button. */
-export function activeFilterCount(filters: TicketFilters): number {
+export function activeFilterCount(filters: FilterState): number {
   return (
     filters.status.length +
     filters.priority.length +
@@ -190,7 +200,7 @@ export function activeFilterCount(filters: TicketFilters): number {
  * nothing is unambiguous either way.
  */
 export function toListParams(
-  filters: TicketFilters,
+  filters: FilterState,
   page: number,
   pageSize: number,
 ): ListParams {

@@ -27,11 +27,19 @@ const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage
 const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
 const CustomerProfilePage = lazy(() => import('./features/customers/CustomerProfilePage'));
 
-/* A PLACEHOLDER for `010`'s detail screen, and the reason it exists at all: the
- * frozen contract promises `Location: /api/tickets/{id}` resolves. Without this
- * route a `201` would navigate to a 404 and AC-1's round trip would be
- * unprovable. `010` swaps the component; the path does not move. */
-const TicketCreatedPage = lazy(() => import('./features/tickets/TicketCreatedPage'));
+/* `027`. THE REAL DETAIL SCREEN, replacing the placeholder that stood here.
+ *
+ * The placeholder existed because the frozen contract promises
+ * `Location: /api/tickets/{id}` resolves — without a route a `201` would navigate
+ * to a 404 and `024` AC-1's round trip would be unprovable. It said "`010` swaps
+ * the component; the path does not move", and that is what happened: `027` swaps
+ * it, and the path did not move.
+ *
+ * `TicketCreatedPage` is kept in the tree and is no longer routed. It is the
+ * post-create confirmation, and whether the create flow still wants a distinct
+ * screen or should land straight on the detail is `024`'s decision rather than
+ * this one's — deleting it here would take that decision by removing the option. */
+const TicketDetailPage = lazy(() => import('./features/tickets/TicketDetailPage'));
 
 /*
  * /_preview is a DEVELOPMENT route and removes itself from the production bundle.
@@ -147,7 +155,7 @@ export const routes: RouteObject[] = [
           { path: '/tickets', element: <TicketListPage /> },
           { path: '/settings/localization', element: <LocalizationPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
-          { path: '/tickets/:id', element: <TicketCreatedPage /> },
+          { path: '/tickets/:id', element: <TicketDetailPage /> },
 
           /* `032`. `/customers` ITSELF IS NOT HERE and keeps `023`'s
            * placeholder: the list screen is a later feature, and the placeholder

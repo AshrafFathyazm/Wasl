@@ -5,16 +5,19 @@ import { Button } from '../../components/Button/Button';
 import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Input } from '../../components/Input/Input';
 import { IconClose, IconFilter, IconSearch } from '../../icons/icons';
+import {
+  COMMUNICATION_CHANNELS,
+  TICKET_CATEGORIES,
+  TICKET_PRIORITIES,
+} from '../../lib/api-types.provisional';
 import { cx } from '../../lib/cx';
 
 import styles from './TicketFilterBar.module.css';
 import {
   activeFilterCount,
+  STATUS_VALUES,
   TAB_STATUSES,
-  TICKET_CATEGORIES,
-  TICKET_CHANNELS,
-  TICKET_PRIORITIES,
-  type TicketFilters,
+  type FilterState,
 } from './ticketFilters';
 
 /* ---------------------------------------------------------------------------
@@ -23,7 +26,7 @@ import {
  * The design is `docs/sdd/design/screens/03-tickets-list.md`: a tab strip, a
  * search input with a 300ms debounce, and a Filters button. Nothing here holds
  * filter state — every control calls `onChange` with the whole next
- * `TicketFilters`, and the PAGE writes it to the URL (ADR-011 §2, AC-14). A
+ * `FilterState`, and the PAGE writes it to the URL (ADR-011 §2, AC-14). A
  * local copy would drift the moment somebody used the back button.
  *
  * The one exception is the search text, and it has to be: see `useDebounced`.
@@ -75,8 +78,8 @@ function useDebounced(
 }
 
 export interface TicketFilterBarProps {
-  filters: TicketFilters;
-  onChange: (next: TicketFilters) => void;
+  filters: FilterState;
+  onChange: (next: FilterState) => void;
 
   /** Rendered on the *All* tab. Absent while the first page is loading. */
   totalCount?: number | undefined;
@@ -215,10 +218,7 @@ export function TicketFilterBar({ filters, onChange, totalCount }: TicketFilterB
           <Dropdown
             multiple
             label={t('list.column.status')}
-            options={options(
-              ['New', 'Open', 'InProgress', 'PendingCustomer', 'Resolved', 'Closed'],
-              'status',
-            )}
+            options={options(STATUS_VALUES, 'status')}
             value={filters.status}
             onChange={(status) => onChange({ ...filters, status })}
             placeholder={t('list.anyValue')}
@@ -248,7 +248,7 @@ export function TicketFilterBar({ filters, onChange, totalCount }: TicketFilterB
           <Dropdown
             multiple
             label={t('list.column.channel')}
-            options={options(TICKET_CHANNELS, 'channel')}
+            options={options(COMMUNICATION_CHANNELS, 'channel')}
             value={filters.channel}
             onChange={(channel) => onChange({ ...filters, channel })}
             placeholder={t('list.anyValue')}
