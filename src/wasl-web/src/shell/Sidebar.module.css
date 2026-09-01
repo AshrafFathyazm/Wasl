@@ -20,7 +20,36 @@
   gap: var(--sidebar-gap);
 
   inline-size: var(--sidebar-width);
-  min-block-size: 100vh;
+
+  /* ONE VIEWPORT TALL, PINNED, AND IT SCROLLS INSIDE ITSELF.
+   *
+   * It was `min-block-size: 100vh` in a flex row, so on a long page the panel
+   * grew to the CONTENT's height — and `.nav { flex: 1 }` plus `.user
+   * { margin-block-start: auto }` then pushed the account block to the bottom of
+   * that, which on the ticket list is about two thousand pixels down. Reported
+   * 2026-09-01: reaching your own name took a long scroll, and the nav had
+   * scrolled out of sight by the time you got there.
+   *
+   * Three declarations do it, and each is needed:
+   *
+   *   position: sticky + inset-block-start   the panel stays put while the page
+   *                                          scrolls under it
+   *   align-self: flex-start                 without it the flex row STRETCHES
+   *                                          the item back to the row height and
+   *                                          the height below is ignored
+   *   block-size: 100dvh                     not `min-`: a minimum is what let it
+   *                                          grow. `dvh` rather than `vh` so a
+   *                                          mobile browser's collapsing chrome
+   *                                          does not hide the account block
+   *
+   * The nav is the part that scrolls when the item list outgrows the panel — see
+   * `.nav` below. The account block never moves. */
+  position: sticky;
+  inset-block-start: 0;
+  align-self: flex-start;
+  block-size: 100dvh;
+  overflow: hidden;
+
   padding-block: var(--sidebar-padding-block);
   padding-inline: var(--sidebar-padding-inline);
 
@@ -234,6 +263,14 @@
   flex-direction: column;
   gap: var(--space-1);
   flex: 1;
+
+  /* THE NAV IS THE SCROLLER, not the panel — so the account block stays on
+     screen however many groups the nav grows. `min-block-size: 0` is what makes
+     it possible: a flex item will not shrink below its content without it, and
+     `overflow-y` on an item that cannot shrink does nothing. */
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Uppercase, letterspaced, muted. Hidden when collapsed, with its height

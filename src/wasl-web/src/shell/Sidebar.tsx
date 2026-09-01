@@ -29,13 +29,22 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
 
   return (
     <aside
+      /* NO INLINE `position` HERE, and its removal is the fix for a real defect.
+         It read `position: mode === 'drawer' ? undefined : 'relative'` and inline
+         styles beat a stylesheet, so the panel could not be made sticky from CSS at
+         all: the declaration was there, computed style said `relative`, and the
+         account block sat two thousand pixels down a long page.
+
+         Both positions live in the module now — `.sidebar` is sticky, `.drawer` is
+         fixed and is declared after it, so the drawer still wins. Sticky is itself a
+         positioned box, so every absolutely positioned child inside still anchors
+         here. */
       className={cx(
         styles.sidebar,
         collapsed && styles.collapsed,
         mode === 'drawer' && styles.drawer,
         mode === 'drawer' && drawerOpen && styles.drawerOpen,
       )}
-      style={{ position: mode === 'drawer' ? undefined : 'relative' }}
     >
       {/* Tile + name (design/brand.md, Lockups). THE WORDMARK IS BILINGUAL AND
           FIXED: both scripts render in both locales, because a logo is a brand
