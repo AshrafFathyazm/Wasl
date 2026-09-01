@@ -265,3 +265,179 @@ earlier in this file. `findByRole` waits; `getByRole` does not.
   omission here: attaching is not a state transition and two people attaching different tags do
   not conflict. So this is the one write on the screen that cannot answer `409`, and nothing
   tests a conflict here because the server cannot produce one.
+
+---
+
+## 4 · 2026-09-01 — the v3 canvas, and the rule "if the backend hasn't got it, it isn't in the design"
+
+**Asked for** with `Wasl Ticket Details v3.dc.html` and eleven follow-up frames. The rule
+came with it, in the product owner's words: build the columns the backend has, and
+*"لو حاجه او اكشن او كولوم ملهوش موازي ليه في الباك اند اعتبره مش موجود في الديزاين"*.
+
+The screen this replaces was the one `9a64dd5` built from the approved v2 preview: a stack
+of accordion sections, a 240px anchor rail, a take-action menu and a sticky bottom bar. v3
+is a different screen, not a restyle of that one.
+
+### 4.1 · What the backend actually has — measured, not read off the C# records
+
+```text
+GET  /api/tickets/{id}                 19 keys, and TWO of them no client type declared
+GET  /api/tickets/{id}/timeline?type=  Comments | History, plus BOTH counts on either
+POST /api/tickets/{id}/comments        isInternal
+PUT  /api/tickets/{id}/status          expectedVersion · allowedTransitions
+PUT  /api/tickets/{id}/assignee        expectedVersion
+PUT/DELETE /api/tickets/{id}/tags/{id}
+GET  /api/tickets?customerId=          accepted since `010`; no screen had ever asked
+GET  /api/support-users · /api/tags · /api/canned-replies?category=
+```
+
+**Two fields were on the wire and in no client type**, which is the same class of gap `027`
+§3 recorded for `assignee` and costs the same thing — a field the server sends that nothing
+declares is a field no screen can show:
+
+```text
+keys(response) … "updatedAtUtc","closedAtUtc","allowedTransitions","version","tags"
+keys(customer) … "id","fullName","email","companyName"
+companyName  "Gulf Services Ltd."      closedAtUtc  null
+```
+
+Both are now declared, and both render: the company under the customer's name, the closing
+time as a rail row that appears only when there is one.
+
+### 4.2 · The five regions of the canvas that have no backend, and what happened to each
+
+| Canvas draws | Backend | Built as |
+|---|---|---|
+| SLA pill · rail SLA block · «خُرق زمن الحل» banner | nothing: no due date, no first-response, no SLA field, table or setting | **absent** |
+| «تمديد الاستحقاق» | no endpoint, and no SLA to extend | **inert menu row** |
+| «تصعيد» | `016`, unbuilt. `isEscalated` is read-only | **inert menu row** |
+| «دمج مع تذكرة أخرى» | no endpoint of any kind | **inert menu row** |
+| «@ مناداة زميل» | no field on a comment, no notification, nothing to resolve a name against | **absent** |
+| priority-change history row | no `PriorityChanged` in `TicketHistoryEventType` | **cannot arrive; nothing renders it** |
+| the assignee's department («وكيل · الفوترة») | `SupportUserOption` is `(id, fullName, role)` | **role only** |
+| per-tag colour | `TagSummary` is `(id, name)` | **derived from the name — see 4.4** |
+
+**The menu was left out entirely on the first pass and the owner overruled that**, which is
+the better answer and worth keeping the reason for: an ABSENT control says the product cannot
+do this; a DISABLED one with a stated reason says *not yet*, and the screen carries its own
+roadmap. What it must never be is enabled and silent. Every inert row names the cause —
+*«غير متاح بعد — لا يوجد في الخادم ما ينفّذ هذا الإجراء»* — rather than apologising.
+
+**«إغلاق التذكرة» is live, and it is the status machine's**, not a second path to `Closed`:
+it renders enabled only when `allowedTransitions` contains it, and it goes through the same
+BR-1.2 note gate. On an `InProgress` ticket it is inert with its own reason, because BR-1
+does not permit that transition — measured on screen, four rows, four states.
+
+### 4.3 · What the browser caught that 49 passing tests did not
+
+Chrome DevTools MCP left this session's tool registry mid-task, so the pass was driven over
+CDP directly (`puppeteer-core` from the npx cache the MCP itself had installed). Three
+findings, and the first is the one that matters:
+
+**1 · The feed was upside down.** The tab strip is labelled «الأحدث أولاً» and the history
+read oldest-first under it.
+
+```text
+GET …/timeline?limit=4&type=History
+08:51:33 CommentAdded · 08:52:27 CommentAdded · 08:52:38 Assigned · 08:53:10 StatusChanged
+```
+
+ASCENDING. The SQL orders `OccurredAtUtc DESC` and the handler hands the page back
+oldest-first — `013` Q-2's chat order, newest at the bottom. v3 reverses that ruling, so the
+client flips it, **per page and not over the flattened list**:
+
+```text
+page 0 asc [a b c]   page 1 asc [x y z]   (z older than a)
+flat then reverse  → [z y x c b a]   the second page sorts ahead of the first
+reverse each page  → [c b a][z y x]   strictly descending
+```
+
+My test had asserted *"the server's order, untouched"* — which was my assumption about the
+server, not a measurement of it. Two tests now: one on a single page, and one on two pages
+that is the only one able to fail on the flatten-then-reverse version. **Control run: it went
+red on exactly that test and on nothing else.**
+
+**2 · The assignee panel was trapped behind the composer.** `position: sticky` on the rail
+**establishes a stacking context** — unlike `relative`, and unlike what the code reads like —
+so the panel's `z-index: 200` ranked it *inside the rail*, and the rail was a positioned box
+at `z-index: auto`. The composer's own `position: relative` wrappers come later in the
+document and painted straight through it: the template button and the internal switch showed
+on top of an opaque panel. `z-index: 1` on the rail is enough to beat every `auto` sibling and
+stays far below the shell's `--z-flyout`.
+
+**3 · The panel opened in the wrong place**, because it hung off the 28px pencil rather than
+the rail group. One `position: relative` box, one panel, `inset-inline-start: 0` — which is
+right in both directions. It also collapsed two copies of the panel into one; they had been
+one per branch, agreeing about geometry, `currentId` and the busy flag by hand.
+
+**And two of my own measurements lied before they were fixed**, both worth recording because
+both produced well-formed reports about nothing:
+
+- `document.querySelector('[aria-haspopup="menu"]')` returned the **shell's account button**
+  and its three items were reported as the status menu's. Scoped to `main` now.
+- the first CDP run screenshotted the **login screen four times** and reported no errors: the
+  token lives in `sessionStorage` without "remember me", so a new browser process starts
+  unauthenticated even on the same profile directory.
+
+### 4.4 · Colour that is derived, and the two corrections it took
+
+The owner ruled that tags carry different colours, that a person's avatar differs from the
+next person's, and that the history's person glyph follows the actor. **None of that exists in
+the backend.** So the tint is derived from the identity — a sum of code units over the
+name — which is the whole difference between decoration and invented data:
+
+- the same tag is the same colour on every ticket and every reload
+- the same person is the same colour in the rail, in their comments and in the picker, which
+  is what makes it a scanning aid
+- nothing is *claimed* by it. It says "this is a different one", never "this one is urgent" —
+  a tag tint that MEANT something would need a field
+
+**Two corrections, both from the screen.** Three buckets over five tags collided by
+arithmetic — four amber chips and one grey. Six buckets then produced two washes nobody could
+tell apart, because the palette has five usable hues and red is danger, not decoration. The
+answer is five hues, mixed strongly enough to survive a 25px chip, **and a de-collision walk
+within the ticket**: the hash chooses, a collision takes the next free bucket. Both properties
+hold — stable per tag across tickets, distinct within one.
+
+### 4.5 · Run output
+
+```text
+frontend suite   27 files · 493 passed        (472 before this work)
+                 TicketDetailPage.test.tsx     58 passed  (29 before)
+tsc -b           exit 0
+eslint .         clean
+vite build       built in 1.86s
+```
+
+Two guards went red during the work and both were right:
+
+- **AC-12** (`loaderSystem.test.ts`) refused `@keyframes dtPulse` in this feature's
+  stylesheet. `029` owns the one waiting animation; the skeletons use `Skeleton` now. A guard
+  that has been *seen* to fail.
+- **BR-8.8** refused two JSX literals — a middot separator in the sibling row and one between
+  the template menu's two catalogue strings. Both are glyphs rather than words and moved into
+  the expression, named `DOT`.
+
+### 4.6 · Open, and recorded rather than smoothed over
+
+- **The preview now shows a superseded design.** `TicketDetailPreview.tsx` renders the v2
+  accordion screen and imports the same stylesheet, which is why every v3 class is a new name
+  (`sheet`, `headRow`, `composeBox`) and nothing above it was edited. `027` Q-5's ruling that
+  *the preview IS the design* no longer holds: v3 came from the owner directly, and
+  `docs/sdd/design/screens/04-ticket-detail.md` describes neither screen now. **The document
+  and the preview both need the v3 pass; neither was done here.**
+- **The dev database was being written to by something else throughout.** Comment counts on
+  the measured ticket went 0 → 2 → 12 and the status changed under the measurements, with junk
+  bodies («بصضصب») and assign/unassign churn. Not this lane. It is recorded because anybody
+  re-running the numbers above will get different ones.
+- **The visible-four window is a screen rule, not a page size.** `013`'s page stays fifty;
+  «تحميل الأقدم» reveals four and fetches only when the fetched rows run out. One control for
+  both, because to a reader they are one action.
+- **Two avatars can share a tint.** Four buckets, no de-collision for people — unlike tags,
+  where the owner asked for distinctness within the ticket. Two agents with colliding names
+  will match, and the fix if it matters is the same walk.
+- **The composer's amber Send reaches into a primitive** — one property, scoped to the
+  wrapper. The alternative was a sixth `buttonType` on `Button` for one caller and one mode.
+- **The «read only» notice fires on a 403 from a write**, which is BR-6's handler denial. A
+  policy `403` has an empty body and never reaches a handler, so it cannot reach this banner
+  either; on this screen no endpoint carries a policy, so that gap is theoretical here.

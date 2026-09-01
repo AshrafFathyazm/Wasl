@@ -138,6 +138,15 @@ export interface ListParams {
   /** Ticket number, subject, or customer name. Debounced by the caller. */
   search?: string;
 
+  /** One customer's tickets. `010` has accepted this parameter the whole time
+   *  and no screen had asked for it until `027`'s rail needed "their other
+   *  tickets" — which is a filter on the LIST rather than a field on the ticket,
+   *  so no new endpoint and no new contract.
+   *
+   *  NOT in `FilterState`: it is not a facet the reader picks, it has no chip and
+   *  no control, and putting it there would put an id in the filter bar. */
+  customerId?: string;
+
   /** ISO days, inclusive on both ends, read as UTC days by the server —
    *  `GetTicketsQuery` owns that definition. Added 2026-08-31 with the panel's
    *  date range; the contract change is recorded in 015's plan. */
@@ -171,6 +180,7 @@ export function listTickets(
     query: {
       page: params.page,
       pageSize: params.pageSize,
+      ...(params.customerId ? { customerId: params.customerId } : {}),
       ...(params.status ? { status: [...params.status] } : {}),
       ...(params.priority ? { priority: [...params.priority] } : {}),
       ...(params.category ? { category: [...params.category] } : {}),

@@ -137,17 +137,63 @@
 
 /* ── the toolbar ──────────────────────────────────────────────────────────── */
 
+/* THE SEARCH AND THE FILTER BUTTON ARE ONE UNIT AND DO NOT WRAP.
+ *
+ * Reported 2026-09-01: in English the button dropped below the search box and in
+ * Arabic it did not — which reads as a translation bug and is a flex bug. It was
+ * measured before it was fixed: the toolbar sat at 324px inside a 1320px row, so
+ * it had been shrunk to the input's own min-content and wrap did what it was
+ * told. English tipped it because the subtitle line is longer there.
+ *
+ * Two declarations, both load-bearing:
+ *
+ *   flex: 0 0 auto   the toolbar keeps its content width. Shrinking is what put
+ *                    it at 324px, and everything else followed from that
+ *   nowrap           and if the shell ever is too narrow for both, the HEAD row
+ *                    wraps them as a pair — it is still allowed to wrap */
 .toolbar {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
 }
 
 .searchField {
   position: relative;
   flex: 1 1 260px;
+
+  /* AND IT MUST BE ALLOWED TO SHRINK. Reported 2026-09-01: in ENGLISH the filter
+     button dropped below the search box, and in Arabic it did not.
+
+     The cause is neither the button nor the length of its label. A flex item
+     cannot shrink below its content's min-content width, and an <input> reports a
+     wide one — the default `size` attribute plus the padding this field adds for
+     its icon and its clear control. So `flex-shrink: 1` was doing nothing, the
+     toolbar overflowed its share of the head row, and `flex-wrap` did exactly
+     what it was told.
+
+     English tipped it and Arabic did not because the SUBTITLE is longer there:
+     "130 open tickets / updated just now" against the Arabic pair. That is why it
+     reads as a language bug and is a layout one. */
+  min-inline-size: 0;
   max-inline-size: 420px;
+}
+
+/* ONE WIDTH IN BOTH LANGUAGES, and that is the point of pinning the basis.
+   With the toolbar no longer shrinking, the field fell back to its content width
+   and came out 232px in English against 324px in Arabic — the same box, two sizes,
+   because the placeholder differs. The frame draws one box. */
+.searchField {
+  flex: 0 0 320px;
+}
+
+/* The narrow shell is the one case where it may give way: 320 + 12 + 80 does not
+   fit a phone, and the pair wrapping as a unit is better than a clipped field. */
+@media (max-width: 700px) {
+  .searchField {
+    flex: 1 1 200px;
+  }
 }
 
 /* The icon sits inside the field, and the field's own padding is what makes
@@ -251,12 +297,17 @@
   gap: var(--space-1);
   block-size: 28px;
   padding-inline: var(--space-3);
-  border: var(--border-width) solid var(--brand-border);
+  border: var(--border-width) solid var(--border-default);
   border-radius: var(--radius-pill);
-  /* Lavender, as the frame draws it — the brand-subtle family, so an applied
-     filter reads as the product holding something for you, not as data. */
-  background-color: var(--brand-subtle);
-  color: var(--brand);
+  /* NEUTRAL, not lavender — ruled 2026-09-01, and the reason is that colour on
+     this screen already means something: the status chips carry BR-1's tones and
+     the priority cell carries the danger tone. A lavender applied-filter chip
+     competes for that attention while saying nothing about the data.
+
+     An applied filter is a fact about the QUERY, not about a ticket — so it is
+     grey with dark ink: legible, dismissible, and not competing. */
+  background-color: var(--surface-sunken);
+  color: var(--text-primary);
   font-size: var(--type-body-sm);
 }
 
@@ -316,6 +367,10 @@
 }
 
 .heading {
+  /* NO flex-grow. Attempt one gave it "1 1 auto" to absorb the slack, and it
+     absorbed the toolbar instead — measured at 324px against a 1320px row, which
+     is exactly narrow enough to wrap an 80px button under a 404px field. The
+     heading takes what is left of a space-between row without being told to. */
   min-inline-size: 0;
 }
 

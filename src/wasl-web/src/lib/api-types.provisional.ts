@@ -122,6 +122,15 @@ export interface TicketCustomerSummary {
   id: string;
   fullName: string;
   email: string | null;
+
+  /** THE SERVER SENDS THIS AND THIS TYPE DID NOT DECLARE IT — measured on the
+   *  running server 2026-09-01, four keys in `customer` against three here.
+   *  `027`'s rail shows it under the customer's name, which is the v3 canvas's
+   *  own «مؤسسة الرياض للتجارة».
+   *
+   *  Nullable, not optional: a private individual has no company, and the key is
+   *  present with `null`. */
+  companyName: string | null;
 }
 
 // PROVISIONAL — hand-written against specs/009-create-ticket/
@@ -201,6 +210,14 @@ export interface TicketResponse {
   /** ISO 8601, UTC, `Z`. Formatting for display is the client's job. */
   createdAtUtc: string;
   updatedAtUtc: string;
+
+  /** When the ticket reached `Closed`, and `null` at every other status —
+   *  measured on the wire 2026-09-01, where this type declared eighteen keys
+   *  against the response's nineteen.
+   *
+   *  It is NOT derivable from `updatedAtUtc`: a closed ticket can still be
+   *  tagged, so the two drift apart the moment anything else touches the row. */
+  closedAtUtc: string | null;
 
   /** SERVER-COMPUTED. Rendered, never derived, never recomputed, never filtered
    *  client-side. The state machine lives in the domain, once (ADR-004), and a

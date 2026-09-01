@@ -541,8 +541,13 @@ const PAGE_LIMIT = 50; /* `013`'s default. Not a preview number. */
 
 const CUSTOMER = {
   id: 'cus-1',
-  fullName: 'مؤسسة الرياض للتجارة',
+  fullName: 'منيرة الدوسري',
   email: 'billing@riyadh-trade.example',
+
+  /* The v3 canvas puts the ORGANISATION under the person's name, so the fixture
+     had the two the wrong way round: the customer was the company and there was
+     no person. The server sends both — measured 2026-09-01. */
+  companyName: 'مؤسسة الرياض للتجارة',
 };
 
 const BASE_TICKET: TicketResponse = {
@@ -568,6 +573,10 @@ const BASE_TICKET: TicketResponse = {
   assignedToUserId: 'u-03',
   assignee: { id: 'u-03', fullName: 'عمر خالد', role: 'Agent' },
   isEscalated: false,
+
+  /* Added with the type 2026-09-01. Null at every status but Closed, and the
+     preview's ticket is InProgress. */
+  closedAtUtc: null,
   /** Nullable, not optional. `009` shipped before `004`, and the field stayed
    *  in the shape so that filling it in was not a breaking change. */
   createdByUserId: null,

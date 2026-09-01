@@ -522,9 +522,28 @@
   font-weight: var(--weight-medium);
 }
 
-.pageBtnActive:hover {
+/* THE FILL SURVIVES EVERY STATE, and the list below is deliberately exhaustive.
+ *
+ * Reported 2026-09-01: the current page number turned WHITE under the pointer —
+ * white ink on a lost ground. IT COULD NOT BE REPRODUCED HERE, at page 1 or page
+ * 2, in either language: the measured button stayed rgb(29,23,77) with white ink
+ * at rest, on hover, and with a sibling hovered.
+ *
+ * So the cause is unknown and the SYMPTOM is closed off instead. Every state that
+ * could drop the ground restates it, and -webkit-text-fill-color is restated with
+ * it because the base.css war showed those two can diverge.
+ *
+ * If it recurs, the thing to capture is which page is active and whether the
+ * button had been clicked first — that is the state this could not construct. */
+.pageBtnActive,
+.pageBtnActive:hover,
+.pageBtnActive:focus,
+.pageBtnActive:focus-visible,
+.pageBtnActive:active {
   background-color: var(--brand);
+  border-color: var(--brand);
   color: var(--on-brand);
+  -webkit-text-fill-color: var(--on-brand);
 }
 
 .pageArrow {

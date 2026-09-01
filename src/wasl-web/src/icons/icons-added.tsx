@@ -263,3 +263,37 @@ export const IconCircleX = ({ size = 16, ...p }: IconProps) => (
     <path d="M9 9l6 6M15 9l-6 6" />
   </svg>
 );
+
+/**
+ * (D) Arrow right — a transition, from one value to another.
+ *
+ * The v3 ticket-detail canvas leads every status-change row with it, and the
+ * inherited set has no plain arrow: `IconReassign` is two curved arrows (a
+ * swap), `IconSort` is a pair of chevrons, and `IconArrowUp` is this glyph's
+ * vertical sibling and means escalation.
+ *
+ * IT IS NOT MIRRORED IN RTL, deliberately. A reading-direction glyph (a back
+ * chevron, a "next" arrow) must flip; this one is a diagram of "from → to", and
+ * the canvas draws it pointing right in an Arabic screen. Flipping it would make
+ * an Arabic reader see «من جديدة ← إلى مفتوحة» pointing back at the value it
+ * came from.
+ */
+export const IconArrowRight = ({ size = 20, ...rest }: IconProps) => (
+  <svg {...base(size)} {...rest}>
+    <path d="M4 12h16M14 6l6 6-6 6" />
+  </svg>
+);
+
+/**
+ * (D) Edit — a pencil.
+ *
+ * The canvas's assignee row ends in one. The inherited set has `IconReassign`,
+ * which was standing in for it and says the wrong thing: two arrows mean "swap
+ * these two", and this control opens a picker.
+ */
+export const IconEdit = ({ size = 20, ...rest }: IconProps) => (
+  <svg {...base(size)} {...rest}>
+    <path d="M4 20h4l10-10-4-4L4 16v4z" />
+    <path d="M14 6l4 4" />
+  </svg>
+);
