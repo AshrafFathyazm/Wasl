@@ -1259,3 +1259,150 @@ checks above were not run against it.
 - The subject tooltip fires only when `scrollWidth > clientWidth`, measured by one
   `ResizeObserver` on the `<tbody>` — not one per row. It doubles as a live readout of A-3:
   if it starts firing on *short* subjects, the column has become too narrow.
+
+---
+
+## 1k — The two scoped queues, `/tickets/mine` and `/tickets/unassigned`
+
+**Asked for 2026-09-01**, in the product owner's words: *"فيه صفحتين تانين نفس صفحة كل
+التذاكر بالظبط بس الاختلاف انه فيه فلتر بيبتعت للباك اند واحده لليوزر الحالي وواحده للي
+مفيش يوزر معمول ليه اسناد للتذاكر ظبطهم."* Two nav destinations that had been `023`
+placeholders since the shell was built.
+
+### 1k.1 — One component, and the reason a second one was refused
+
+Both are `TicketListPage` with a `queue` prop. A second component was the obvious shape: the
+table, the five chip counts, the numbered pager, the row menu and an eight-report design pass
+would then exist twice, and the copy that drifts first is the one nobody is looking at.
+
+**The scope is not a filter, and every difference in the diff follows from that one
+sentence.** Written out because each one reads like an inconsistency until the reason is
+stated:
+
+| The scope… | …because |
+|---|---|
+| never reaches the URL | the path already says it; one fact stated twice drifts |
+| draws no applied chip | a chip has an `×`, and removing this one leaves the nav highlighting *My tickets* over everybody's |
+| survives `مسح الكل` | same reason |
+| is not in the `تصفية` badge count | the badge counts questions the reader asked, and this one has no control to find |
+| scopes the five chip counts | otherwise *My tickets* heads a four-row table with `31` beside **All** |
+| is not `isFiltering` | so an empty personal queue reads *"nothing assigned to you"*, not *"no matches"* under a Clear-filters button |
+
+`assignee=me` is resolved from the **token** server-side (`015`), so the client never sends
+the signed-in user's own id — verified on the wire in 1k.4, and the reason it matters is that
+a client which sent an id would put another agent's queue one URL edit away.
+
+### 1k.2 — The tests, and what each one would catch
+
+Twelve added to `TicketFilterBar.test.tsx` (it already mounts through the page with a URL
+probe) and four to `routes.test.tsx` — sixteen, which is the whole difference in the suite
+tally. Every one of them can fail on a build where the screen
+still looks correct, which is why they are tests and not comments.
+
+| Test | The defect it refuses |
+|---|---|
+| `/tickets/mine` asks for `assignee=me` | the whole team's queue under a personal heading — it renders perfectly |
+| `/tickets/unassigned` asks for `assignee=unassigned` | same |
+| `/tickets` sends **no** assignee | the control: the two above pass on a build that scopes everything |
+| the path outranks a stale `?assignee=` | a shared link showing a different queue from the one the nav highlights |
+| all five counts carry the scope | a header describing another queue — and it is *every* call, not the first, because a scope applied to some of five is a header that mixes two |
+| the scope stays out of the URL when a facet is applied | a query string that survives a click to another queue |
+| `تصفية` shows no count for the scope | a badge pointing at a filter with no control |
+| a facet the reader **did** apply still counts | the control for the row above |
+| no removable chip for the scope | — |
+| `/tickets?assignee=me` **does** draw one | the control: the row above passes if the chip was deleted outright |
+| `مسح الكل` keeps the queue | the nav highlighting one queue over another's rows |
+| an empty personal queue says so | *"nothing has arrived on any channel"* — false while the team's queue holds work |
+| routes pass `queue`, and `/tickets` does not | the placeholder, or the list with no scope |
+| `/tickets/mineral` still resolves to `:id` | a static segment matching as a prefix |
+
+### 1k.3 — Eight negative controls, all red on exactly the intended test
+
+The suite was green on the first run, which is the state this file distrusts. Baseline before
+each control: **33 passed** across the two files.
+
+| Control | Broken on purpose | Observed |
+|---|---|---|
+| C1 | the scope is not applied to the list's filters | **4 red** — both queue tests, the URL test, `مسح الكل` |
+| C2 | the chip counts left unscoped | **1 red** — the counts test |
+| C3 | the scope not stripped on the way into the URL | **1 red** — the URL test |
+| C4 | the bar not told the assignee is locked | **1 red** — the chip test only. *See 1k.6* |
+| C5 | the empty state counts the scope as the reader's filter | **1 red** — the empty-queue test |
+| C6 | `/tickets/mine` resolves to the list but passes no `queue` | **1 red** — the route test |
+| C7 | the two filter sources spread in the other order | **5 red** — including the stale-link test |
+| C8 | the badge counts the locked assignee again | **2 red** — the badge test *and* its control |
+
+C8 is the one worth reading twice: it turned **both** badge tests red, which is what
+distinguishes "the count is right" from "the count stopped counting".
+
+### 1k.4 — Measured in the browser, against the running API
+
+Manager session, seeded data, `localhost:5177` → `localhost:5272`.
+
+```text
+/tickets/unassigned   heading تذاكر غير مسندة · nav تذاكر غير مسندة · chips []
+                      counts  الكل 31 · جديدة 31 · قيد التنفيذ 0 · بانتظار العميل 0 · محلولة 0
+                      rows    20, المسؤول = «غير مُعيَّنة» on every one
+/tickets/mine         heading تذاكري · counts الكل 49 · 12 · 12 · 12 · 13
+                      rows    20, المسؤول = «منى العتيبي» on every one
+requests              /api/tickets?page=1&pageSize=20&assignee=me
+                      /api/tickets?page=1&pageSize=1&status=New&assignee=me   (+4 more)
+                      — twelve calls, `assignee=me` on all twelve, no user id anywhere
+click جديدة           URL /tickets/mine?status=New          ← no assignee in the query string
+                      GET  ?page=1&pageSize=20&status=New&assignee=me
+                      chips ["الحالة: جديدة"]               ← one chip, and it is not the scope
+مسح الكل              URL /tickets/mine · GET ?page=1&pageSize=20&assignee=me · 20 rows
+English (LTR)         "Unassigned tickets" · breadcrumb Tickets › Unassigned · Filter, no badge
+                      geometry identical to /tickets — h1 top 152, search 152, Filter 211 on
+                      both, so the longer title wraps nothing that was not already wrapping
+```
+
+### 1k.5 — The browser found the one thing fourteen tests missed
+
+`/tickets/unassigned` rendered **`تصفية 1`** — a badge counting the scope as an applied
+filter, over a panel that contains no assignee control. Fourteen scoped-queue tests existed
+at that point and not one of them looked at the badge: every assertion was about the
+request, the URL, the chips, or the empty state.
+
+**The lesson is the one this file keeps re-learning.** Tests written from the design decision
+covered the decision, not the screen — and the badge is a *derived* number, so it picked up
+the scope from the same `filters` object everything else was reading deliberately. Two tests
+cover it now, one of them the control.
+
+### 1k.6 — Open, and recorded rather than smoothed over
+
+- **`TicketFilterBar`'s `مسح الكل` guard is belt-and-braces today, and C4 measured it.**
+  With `lockedAssignee` false the request still comes back scoped, because the page strips
+  the assignee on the way to the URL and re-applies it from the path either way. The line
+  stays — it is the component's own half of the contract, and a caller that locks the
+  assignee without that strip needs it — but **the green suite is not evidence for it**, and
+  the comment beside it now says so.
+- **The scoped empty state was not seen in a browser.** No seeded queue is empty: the Manager
+  has 49 and 31 are unassigned. It is covered by test (and by C5), and the copy —
+  *«لا توجد تذاكر مسندة إليك»* / *«كل التذاكر مسندة»* — has been read, not rendered. The
+  first agent account with an empty queue is its first real look.
+- **The queue is not in `activeFilterCount`'s own contract**, only in the bar's call. A
+  second caller of `activeFilterCount` would have to remember the same thing. One caller
+  today; if a second appears, the exclusion belongs in `ticketFilters.ts` with the lock as a
+  parameter.
+- **`GET /api/tickets` is asked six times per queue view** — the list plus five counts, and
+  the counts are cached for 60s. Unchanged by this work and stated again here because scoping
+  them multiplied nothing: it is still six, now with one more query-string parameter. The
+  aggregate endpoint that collapses it is `020-dashboard`'s `DashboardAggregatesQuery`, still
+  unbuilt.
+
+### 1k.7 — Run output
+
+```text
+frontend suite   27 files · 472 passed        (456 before this work, +16)
+                 TicketFilterBar.test.tsx      28 passed
+                 routes.test.tsx                8 passed
+tsc -b           exit 0
+eslint .         clean
+vite build       built in 1.47s
+```
+
+**One tool lied and is recorded:** the first full-suite run was launched in the background
+and exited **code 0** having printed `Serialized Error: { code: 'ERR_IPC_CHANNEL_CLOSED' }`
+and no tally at all. A zero exit with no test count is not a pass. Re-run in the foreground
+for the numbers above.

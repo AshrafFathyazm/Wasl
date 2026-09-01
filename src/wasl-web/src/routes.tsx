@@ -105,7 +105,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
 
 /** Paths that now have a real screen. Listed once so the placeholder spread and
  *  the real routes cannot disagree about which is which. */
-const OWNED_PATHS = new Set(['/tickets']);
+const OWNED_PATHS = new Set(['/tickets', '/tickets/mine', '/tickets/unassigned']);
 
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 
@@ -153,6 +153,22 @@ export const routes: RouteObject[] = [
           })),
 
           { path: '/tickets', element: <TicketListPage /> },
+
+          /* THE SAME SCREEN, SCOPED BY THE PATH — `023`'s placeholder until
+           * now. The `queue` prop is the only difference between the three, and
+           * `TicketListPage`'s header note says why it is a route rather than a
+           * filter.
+           *
+           * Both are static segments, so `matchRoutes` ranks them above
+           * `/tickets/:id` whatever the order — `mine` is not read as a ticket
+           * id. Declared before it anyway, because relying on that ranking
+           * silently is how `/tickets` came to render a placeholder for a whole
+           * release. */
+          { path: '/tickets/mine', element: <TicketListPage queue="mine" /> },
+          {
+            path: '/tickets/unassigned',
+            element: <TicketListPage queue="unassigned" />,
+          },
           { path: '/settings/localization', element: <LocalizationPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
           { path: '/tickets/:id', element: <TicketDetailPage /> },

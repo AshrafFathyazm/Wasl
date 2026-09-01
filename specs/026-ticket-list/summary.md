@@ -93,3 +93,30 @@ the escape this module never used. Two more came out of the Arabic walk: a date 
 
 **A decision already made is not re-decided.** `026` shipped a row menu Q-7 had ruled out
 before any code existed, and nothing caught it, because no test asked what a row does.
+
+---
+
+## 6 · Added 2026-09-01 — the two scoped queues
+
+`/tickets/mine` and `/tickets/unassigned` were `023` placeholders in the nav. They are this
+same screen now, with `assignee` decided by the **path**: `TicketListPage` takes a
+`queue` prop, and `routes.tsx` supplies it. Nothing was duplicated — a second component would
+have copied the table, the counts, the pager, the row menu and the whole design pass.
+
+**The one idea worth carrying forward: a scope is not a filter.** It never reaches the URL, it
+draws no removable chip, `مسح الكل` does not clear it, it is absent from the `تصفية` badge
+count, and it does not make an empty result read as *"no matches"*. Each of those is a line of
+code and each has a negative control in `tests.md` §1k.3 — eight of them, all red on exactly
+the intended test.
+
+The chip counts are scoped too, which is what stops *تذاكري* heading a four-row table with
+`31` beside **All**.
+
+`assignee=me` is resolved from the token server-side, so the client sends no user id — checked
+on the wire, twelve requests, `assignee=me` on all twelve.
+
+Sixteen tests added (472 in the suite). Two of them exist because the **browser** caught what
+the other fourteen missed: the `تصفية` badge was counting the scope, pointing at a filter with
+no control to clear. Two open items, both in §1k.6: the bar's own `مسح الكل` guard is
+measurably belt-and-braces today, and the scoped empty state has been read but not rendered —
+no seeded queue is empty.

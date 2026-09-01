@@ -95,6 +95,11 @@ export interface TicketFilterBarProps {
    *  says something false about the queue. The page fetches these; this
    *  component never asks for anything (ADR-011 §4). */
   statusCounts?: Record<string, number | undefined> | undefined;
+
+  /** The assignee comes from the ROUTE on `/tickets/mine` and
+   *  `/tickets/unassigned`. It gets no removable chip and `Clear all` must not
+   *  touch it — the scope note in `TicketListPage` says why. */
+  lockedAssignee?: boolean | undefined;
 }
 
 export function TicketFilterBar({
@@ -103,6 +108,7 @@ export function TicketFilterBar({
   totalCount,
   statusCounts,
   heading,
+  lockedAssignee = false,
 }: TicketFilterBarProps) {
   const { t, i18n } = useTranslation('tickets');
   const { t: tc } = useTranslation('common');
@@ -115,7 +121,14 @@ export function TicketFilterBar({
     onChange({ ...filters, search }),
   );
 
-  const active = activeFilterCount(filters);
+  /* THE BADGE COUNTS WHAT THE READER APPLIED, so a locked assignee is not one
+   * of them. Found in the browser, not by a test: `/tickets/unassigned` rendered
+   * تصفية with a 1 beside it over a panel holding nothing — the count named a
+   * filter that has no control, cannot be cleared, and is already stated by the
+   * heading and the nav. */
+  const active = activeFilterCount(
+    lockedAssignee ? { ...filters, assignee: '' } : filters,
+  );
 
   /* THE PANEL EDITS A DRAFT, and تطبيق is what writes it. The old panel applied
    * every click immediately, which fired a request per chip and made "I meant
@@ -209,7 +222,7 @@ export function TicketFilterBar({
       ...filters,
       channel,
     })),
-    ...(filters.assignee === ''
+    ...(filters.assignee === '' || lockedAssignee
       ? []
       : [
           {
@@ -412,7 +425,17 @@ export function TicketFilterBar({
                       priority: [],
                       category: [],
                       channel: [],
-                      assignee: '',
+                      /* THE QUEUE SURVIVES مسح الكل — it is the page, not a
+                         facet. Clearing it would leave the nav highlighting
+                         "My tickets" over the whole team's.
+                         BELT AND BRACES, AND MEASURED AS SUCH: control C4 sets
+                         lockedAssignee false and turns only the CHIP test red,
+                         because the page strips the assignee on the way to the
+                         URL and re-applies it from the path either way. This is
+                         the component's own half of the contract — a caller that
+                         locks the assignee without that strip needs it — so it
+                         stays, with no claim that a green suite proves it. */
+                      assignee: lockedAssignee ? filters.assignee : '',
                       escalated: undefined,
                       search: filters.search,
                       /* Dates are facets and مسح الكل clears facets. */

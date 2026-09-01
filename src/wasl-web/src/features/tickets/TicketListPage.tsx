@@ -339,7 +339,39 @@ function minutesSince(timestamp: number): number {
   return Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
 }
 
-export default function TicketListPage() {
+/* =============================================================================
+ * THREE QUEUES, ONE SCREEN
+ * =============================================================================
+ * `/tickets`, `/tickets/mine` and `/tickets/unassigned` are this same table with
+ * one filter decided by the PATH instead of by the reader. `assignee=me` and
+ * `assignee=unassigned` already exist on `GET /api/tickets` (`015`), and `me` is
+ * resolved from the TOKEN server-side — so this client never sends the signed-in
+ * user's own id, and reading somebody else's queue is not one URL edit away.
+ *
+ * A SECOND COMPONENT WAS THE OBVIOUS SHAPE AND IS THE WRONG ONE: the table, the
+ * five chip counts, the pager, the row menu and an eight-report design pass
+ * would all exist twice, and the copy that drifts first is the one nobody is
+ * looking at.
+ *
+ * THE SCOPE IS NOT A FILTER, and every difference below follows from that one
+ * sentence:
+ *   - it is never written to the URL — the path already says it, and one fact
+ *     stated twice drifts
+ *   - it is not an applied chip, because a chip has an `×`, and removing this
+ *     one would leave the nav highlighting "My tickets" over everybody's
+ *   - `Clear all` does not clear it
+ *   - the chip counts are scoped to it, or "My tickets" heads a four-row table
+ *     with 131 beside `All`
+ *   - it does not count as filtering, so an empty personal queue reads "no
+ *     tickets" rather than "no matches" under a Clear-filters button
+ * ========================================================================== */
+export type TicketQueue = 'mine' | 'unassigned';
+
+export default function TicketListPage({
+  queue,
+}: {
+  queue?: TicketQueue | undefined;
+}) {
   const { t, i18n } = useTranslation('tickets');
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
   const navigate = useNavigate();
@@ -353,7 +385,14 @@ export default function TicketListPage() {
    * button, and being pasted to a colleague, and `readFilters` drops anything
    * the server would not accept so a stale link degrades to a wider list rather
    * than to a 400 (ADR-011 §2). */
-  const filters = readFilters(params);
+  /* The URL's filters, then the path's scope ON TOP — in that order, so a stale
+   * `?assignee=` in a pasted link cannot outrank the queue being viewed. */
+  const urlFilters = readFilters(params);
+  const scopeAssignee =
+    queue === 'mine' ? 'me' : queue === 'unassigned' ? 'unassigned' : '';
+  const filters: FilterState =
+    scopeAssignee === '' ? urlFilters : { ...urlFilters, assignee: scopeAssignee };
+
   const listParams = toListParams(filters, page, pageSize);
 
   const query = useQuery({
@@ -408,7 +447,15 @@ export default function TicketListPage() {
 
   const countQueries = useQueries({
     queries: countStatuses.map((status) => {
-      const countParams = toListParams({ ...NO_FILTERS, status: [status] }, 1, 1);
+      /* SCOPED TO THE QUEUE, and to nothing else the reader picked. The counts
+       * answer "how much work is in the list I am looking at" — on
+       * `/tickets/mine` that is my work, and an unscoped count puts the team's
+       * 131 above a table holding four rows. */
+      const countParams = toListParams(
+        { ...NO_FILTERS, assignee: scopeAssignee, status: [status] },
+        1,
+        1,
+      );
       return {
         queryKey: ticketKeys.count(countParams),
         queryFn: ({ signal }: { signal: AbortSignal }) =>
@@ -469,7 +516,14 @@ export default function TicketListPage() {
    * 5 of a filtered one, and keeping it turns "filter to Open" into an empty
    * table with a pager reading 5 of 2. `pageSize` survives, because it is a
    * preference about the viewport rather than a position in a result set. */
-  const setFilters = (next: FilterState) => setParams(withFilters(params, next));
+  /* THE SCOPE IS STRIPPED ON THE WAY OUT. `withFilters` writes whatever it is
+   * given, and writing the queue's own assignee would put it in the query string
+   * beside the path that already declares it — two places to keep in step, one
+   * of which survives a click to another queue. */
+  const setFilters = (next: FilterState) =>
+    setParams(
+      withFilters(params, scopeAssignee === '' ? next : { ...next, assignee: '' }),
+    );
 
   const columns: TableColumn<TicketListItem>[] = [
     {
@@ -600,9 +654,24 @@ export default function TicketListPage() {
    * The three states are ordered: past the end wins over no-matches, because a
    * filtered list CAN be paged past its end and the pager is the thing to fix
    * first. */
-  const noMatches = items.length === 0 && !pastEnd && isFiltering(filters);
+  /* `urlFilters`, NOT `filters`: on a scoped queue the assignee is the page
+   * rather than a choice, so an empty personal queue is "no tickets yet" and
+   * only a filter the READER set turns it into "no matches". */
+  const noMatches = items.length === 0 && !pastEnd && isFiltering(urlFilters);
 
-  const emptyKey = pastEnd ? 'pastEnd' : noMatches ? 'noMatch' : 'empty';
+  /* FIVE STATES, NOT THREE. `empty` says "nothing has arrived on any channel",
+   * which is TRUE on `/tickets` and FALSE on an empty `/tickets/mine` while the
+   * team's queue holds 131 — the reader would be told the product has no tickets
+   * because none are theirs. A scoped queue gets its own sentence. */
+  const emptyKey = pastEnd
+    ? 'pastEnd'
+    : noMatches
+      ? 'noMatch'
+      : queue === 'mine'
+        ? 'emptyMine'
+        : queue === 'unassigned'
+          ? 'emptyUnassigned'
+          : 'empty';
 
   const state = query.isPending ? 'loading' : items.length > 0 ? 'data' : 'empty';
 
@@ -613,11 +682,16 @@ export default function TicketListPage() {
         onChange={setFilters}
         totalCount={allCount}
         statusCounts={statusCounts}
+        /* So the bar draws no removable chip for the assignee and مسح الكل
+           leaves it alone — see the scope note at the top of this file. */
+        lockedAssignee={scopeAssignee !== ''}
         /* The heading rides INSIDE the bar so the search box shares its line —
            the frames' layout. The page still authors every word of it. */
         heading={
           <>
-            <h1 className={styles.title}>{t('list.title')}</h1>
+            <h1 className={styles.title}>
+              {queue === undefined ? t('list.title') : t(`list.title.${queue}`)}
+            </h1>
             {openCount === undefined ? null : (
               <p className={styles.subtitle}>
                 {t('list.openCount', {

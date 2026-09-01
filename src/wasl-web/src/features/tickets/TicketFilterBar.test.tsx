@@ -57,13 +57,15 @@ function LocationProbe() {
   return <span data-testid="search">{search}</span>;
 }
 
-const mounted = (url = '/tickets') => {
+/** `queue` is what `routes.tsx` passes on `/tickets/mine` and
+ *  `/tickets/unassigned`; `routes.test.tsx` proves those paths supply it. */
+const mounted = (url = '/tickets', queue?: 'mine' | 'unassigned') => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
         <MemoryRouter initialEntries={[url]}>
-          <TicketListPage />
+          <TicketListPage queue={queue} />
           <LocationProbe />
         </MemoryRouter>
       </QueryClientProvider>
@@ -354,5 +356,167 @@ describe('the panel', () => {
     const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
     await waitFor(() => expect(urlSearch()).toContain(`createdFrom=${iso}`));
     await waitFor(() => expect(lastParams()?.createdFrom).toBe(iso));
+  });
+});
+
+
+/*
+ * =============================================================================
+ * THE TWO SCOPED QUEUES — one filter that the reader cannot remove
+ * =============================================================================
+ * `/tickets/mine` and `/tickets/unassigned` are this screen with `assignee`
+ * decided by the path. Every assertion below is about the ONE way that differs
+ * from a facet, because a facet is removable and this is not: the whole point is
+ * that "My tickets" cannot quietly become everybody's.
+ *
+ * Each of these can fail while the screen still looks right, which is why they
+ * are tests and not comments:
+ *   - the request could carry no assignee at all — a full queue under a personal
+ *     heading, and it renders perfectly
+ *   - the counts could stay unscoped — 131 above four rows
+ *   - the scope could reach the URL, where the next facet click keeps it and a
+ *     nav click to another queue does not
+ *   - مسح الكل could clear it, leaving the nav highlighting one queue while the
+ *     table shows another
+ *   - an empty personal queue could claim the product has no tickets
+ */
+describe('the path decides the assignee, and nothing on screen can undo it', () => {
+  it.each([
+    ['/tickets/mine', 'mine', 'me'],
+    ['/tickets/unassigned', 'unassigned', 'unassigned'],
+  ] as const)('%s asks the server for assignee=%s', async (url, queue, wire) => {
+    mounted(url, queue);
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    expect(lastParams()?.assignee).toBe(wire);
+  });
+
+  it('sends no assignee at all on /tickets — the control for the two above', async () => {
+    mounted();
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    expect(lastParams()).not.toHaveProperty('assignee');
+  });
+
+  it('lets the path outrank a stale ?assignee= in a pasted link', async () => {
+    /* The comment on `filters` claims this ordering. Untested, the two could be
+     * combined the other way round and every assertion above would still pass —
+     * and the failure is the bad one: a link somebody shared silently showing a
+     * DIFFERENT queue from the one the nav is highlighting. */
+    mounted('/tickets/mine?assignee=unassigned', 'mine');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    expect(lastParams()?.assignee).toBe('me');
+  });
+
+  it('scopes all five chip counts, so the header describes this queue', async () => {
+    mounted('/tickets/mine', 'mine');
+    await waitFor(() => expect(countTickets).toHaveBeenCalledTimes(5));
+
+    /* EVERY call, not the first: the counts are five separate queries and a
+     * scope applied to some of them is a header that mixes two queues. */
+    for (const [params] of vi.mocked(countTickets).mock.calls) {
+      expect(params.assignee).toBe('me');
+    }
+  });
+
+  it('keeps the scope out of the URL when a facet is applied', async () => {
+    mounted('/tickets/mine', 'mine');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole('tab', { name: /new/i }));
+
+    await waitFor(() => expect(urlSearch()).toContain('status=New'));
+    /* The path already says it. Written here too, it would survive a click to
+     * another queue and contradict the nav. */
+    expect(urlSearch()).not.toContain('assignee=');
+    /* And the request still carries it — the scope is applied on the way OUT of
+     * the URL, so stripping it from the query string must not drop it. */
+    await waitFor(() => expect(lastParams()?.assignee).toBe('me'));
+  });
+
+  it('does not count the queue in the تصفية badge', async () => {
+    /* The badge is "how many questions have I asked", and the queue is not one:
+     * it has no control in the panel and no chip in the strip, so a 1 there
+     * points at nothing the reader can find or undo. This is the one thing the
+     * whole scoped-queue suite missed and a screenshot caught. */
+    mounted('/tickets/unassigned', 'unassigned');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    const button = screen.getByRole('button', {
+      name: new RegExp(i18n.t('tickets:list.filter')),
+    });
+    expect(within(button).queryByText('1')).not.toBeInTheDocument();
+  });
+
+  it('still counts a facet the reader DID apply on a scoped queue', async () => {
+    /* The control: without it, the assertion above passes on a build where the
+     * badge stopped counting anything at all. */
+    mounted('/tickets/unassigned?priority=High', 'unassigned');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    const button = screen.getByRole('button', {
+      name: new RegExp(i18n.t('tickets:list.filter')),
+    });
+    expect(within(button).getByText('1')).toBeInTheDocument();
+  });
+
+  it('draws no removable chip for the scope', async () => {
+    mounted('/tickets/mine', 'mine');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    const label = `${i18n.t('tickets:list.column.assignee')}: ${i18n.t(
+      'tickets:list.assignedToMe',
+    )}`;
+    expect(screen.queryByText(label)).not.toBeInTheDocument();
+  });
+
+  it('DOES draw one when the reader chose the same assignee on /tickets', async () => {
+    /* The control for the assertion above. Without it, that test would pass on a
+     * build where the assignee chip had been deleted outright. */
+    mounted('/tickets?assignee=me');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    const label = `${i18n.t('tickets:list.column.assignee')}: ${i18n.t(
+      'tickets:list.assignedToMe',
+    )}`;
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('مسح الكل clears the facets and keeps the queue', async () => {
+    mounted('/tickets/mine?status=Open', 'mine');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter')) }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.clearAll') }),
+    );
+
+    await waitFor(() => expect(urlSearch()).not.toContain('status='));
+    await waitFor(() => expect(lastParams()?.assignee).toBe('me'));
+  });
+
+  it('an empty personal queue says so, instead of claiming there are no tickets', async () => {
+    vi.mocked(listTickets).mockResolvedValue(
+      page({ items: [], totalCount: 0, totalPages: 0 }),
+    );
+    mounted('/tickets/mine', 'mine');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+
+    expect(
+      await screen.findByText(i18n.t('tickets:list.emptyMineTitle')),
+    ).toBeInTheDocument();
+    /* NOT the filtered-empty state: the reader ticked nothing, so offering to
+     * clear their filters names a cause that does not exist. */
+    expect(
+      screen.queryByRole('button', { name: i18n.t('tickets:list.noMatchCta') }),
+    ).not.toBeInTheDocument();
+    /* And not the "nothing has arrived on any channel" copy either, which is
+     * false while the team's queue holds work. */
+    expect(
+      screen.queryByText(i18n.t('tickets:list.emptyTitle')),
+    ).not.toBeInTheDocument();
   });
 });
