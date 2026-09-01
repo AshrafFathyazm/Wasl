@@ -126,6 +126,7 @@ against PostgreSQL and is **incomplete on SQL Server** — see AC-24.
 | Q-4 | Should an empty filter array — `?status=` — mean "no filter" or "match nothing"? | **No filter.** A trailing `&status=` from a form serialiser is common, and translating it to `WHERE Status IN ()` returns zero rows for a user who filtered nothing. See `research.md` R-9 — this is the highest-risk silent defect in the feature |
 | Q-5 | Should `search` also match the description? | **No.** BR-7.5 names three fields and description is 4,000 characters of free text; including it would make every search a scan of the largest column in the table and would surface tickets whose *subject* looks unrelated. Recorded because it is the obvious next request |
 | Q-6 | Is `customerId` or `customer` the parameter name? | **`customerId`.** The source spec says "customer" in prose and the source plan's contract table says `customerId`. The value is a `Guid`, so the name should say so — and `customer` would suggest a name search, which is what `search` is for |
+| Q-7 | An inverted date range: `400`, or `200` with an empty page? | **OPEN, and it is a disagreement between two lanes rather than a gap.** This spec built `400` (AC-33): zero rows from a correct query reads as an answer about the data. `033-customers-list` §5.4 rules the same shape an **empty page** on `GET /api/customers`: a `400` makes the client handle an error for a state the UI can render. Both arguments hold. **What does not hold is the same three parameters behaving differently on two endpoints of one API** — `CLAUDE.md`'s pagination paragraph exists because a difference that IS justified still reads as an inconsistency, and here there is no justification for one. Recorded for the product owner rather than settled by whichever lane shipped second |
 
 ## Acceptance Criteria
 
@@ -146,6 +147,49 @@ Numbers are preserved from the source story. Gaps in the sequence are criteria o
 | AC-25 | "No matches" is a **different** state from "no tickets": a different message, plus a `Clear filters` action. A filtered query returning nothing never renders the create-a-ticket empty state |
 | AC-26 | Filter values in the URL and on the wire are canonical enum values, identical in every locale. `?status=Open` is `Open` in Arabic (BR-8.7) |
 | AC-27 | The result count uses plural forms for all six Arabic CLDR categories and is never built by concatenation (BR-8.14) |
+
+### The created-date range — added 2026-09-01
+
+The product owner asked for a date filter on `GET /api/tickets`, then for it to accept Hijri
+dates as well as Gregorian. Measuring the endpoint first found that the Gregorian half had been
+built and that the Hijri half was not merely absent — it **answered**, wrongly and silently. So
+AC-28 to AC-33 are as much a defect record as a specification.
+
+| # | Criterion |
+|---|---|
+| AC-28 | `?createdFrom=` and `?createdTo=` filter on the created **day**, both bounds INCLUSIVE, and AND with every other filter (BR-7.3). A ticket created at `23:59:59.999` UTC on `createdTo` is included |
+| AC-29 | The bounds are **UTC days**, matching the `CreatedAtUtc` column and every timestamp the product renders — not Riyadh-local days |
+| AC-30 | `?calendar=hijri` reads BOTH bounds as Um al-Qura, and selects exactly what the equivalent Gregorian request selects. `?calendar=gregorian` is accepted explicitly; absent means Gregorian |
+| AC-31 | **A date whose year is not a plausible Gregorian one, sent WITHOUT `?calendar=`, is a `400` whose message names `calendar=hijri`** — never read as the Gregorian year 1448 |
+| AC-32 | An unreadable bound, a Hijri date outside Um al-Qura's table, and an unknown `?calendar=` are each a `400` from the **message catalogue**, in `en` and `ar` — not the model binder's English sentence |
+| AC-33 | An inverted range (`createdFrom` after `createdTo`) is a `400`, not a `200` with zero rows. **See Q-7 — `033` rules the same case the other way and one of the two is a defect** |
+
+### Why this is a defect record, not a feature request
+
+```
+Measured on a running instance, 186 tickets in the table:
+
+  ?createdFrom=1448-03-05                        200   totalCount 186   <- everything
+  ?createdFrom=2026-09-01&createdTo=2026-08-01   200   totalCount 0     <- a claim about the data
+  ?createdFrom=2026-13-45                        400   "The value '2026-13-45' is not valid."
+```
+
+The first line is the whole reason AC-31 exists. **A Hijri date is a perfectly valid Gregorian
+one**, so `1448-03-05` bound to the year 1448, every ticket was created after it, and the
+endpoint returned the entire table with a `200`. Nothing errored; the filter looked like it had
+run. A user filtering their queue to one Hijri week would have been shown everything and had no
+way to tell.
+
+The second is AC-33. **A correct query over an impossible range returns nothing**, so a `200`
+answers a broken claim about the REQUEST with a false claim about the DATA — "there is no work
+in that period".
+
+The third is AC-32, and it is `002c`'s rule arriving on a new parameter: the bounds were typed
+`DateOnly?`, so the **model binder** refused before `ValidationBehaviour` ran, and the reply was
+the framework's English sentence to an Arabic client — invisible to both
+`ResourceKeyLeakTests` and `MessageKeyCoverageTests`, because it never touches the catalogue at
+all. The bounds bind as `string` now, exactly as the four enum filters do and for the same
+measured reason.
 
 ## Edge Cases
 

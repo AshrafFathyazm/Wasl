@@ -8,9 +8,19 @@ immediately. Any change goes through **Contract changes** in [`plan.md`](../plan
 first — see `docs/sdd/openapi/README.md`.
 
 `015-ticket-filters-and-search` **extends** `GET /api/tickets` with query parameters. It
-adds no endpoint, removes no field, and changes no type. Its parameters are documented in
-[`../../015-ticket-filters-and-search/contracts/tickets-filter-api.md`](../../015-ticket-filters-and-search/contracts/tickets-filter-api.md)
-rather than here, so this file stays readable as the thing `010` was reviewed against.
+adds no endpoint, removes no field, and changes no type. Its parameters are recorded under
+**Contract changes** at the foot of this file, and the frozen text above that section is not
+edited — so this file stays readable as the thing `010` was reviewed against while still being
+the one place the endpoint is described.
+
+> **Corrected 2026-09-01.** These lines used to point at
+> `015/contracts/tickets-filter-api.md`. **That file was never written and was decided
+> against** — a second frozen document for one endpoint is two documents to keep in step, and
+> `002c`'s two-way OpenAPI comparison would then have to choose which one it compares against.
+> The reasoning is in [`015/contracts/README.md`](../../015-ticket-filters-and-search/contracts/README.md).
+> The pointer was written in `d3add43`, before `015` was built, and outlived the feature that
+> ruled the other way — **a link to a file that does not exist reads as "documented elsewhere"
+> and stops the reader looking.**
 
 ## Conventions
 
@@ -323,5 +333,90 @@ translated list would be unusable in a URL.
 - **No `?sort=` or `?dir=`.** The order stays BR-7.1's `CreatedAtUtc DESC, Id DESC`. `033` adds
   sorting to **customers**; nothing has asked for it here.
 - `GET /api/tickets/{id}` is untouched.
+
+Evidence: [`015/tests.md`](../../015-ticket-filters-and-search/tests.md).
+
+## 2026-09-01 — `015-ticket-filters-and-search` added a created-date range, in two calendars
+
+Three parameters, at the product owner's direction. The filter panel's date fields were drawn
+and inert; the Hijri half was asked for in the same breath, and measuring it found a defect
+rather than an absence.
+
+| Parameter | Type | Default | Accepted |
+|---|---|---|---|
+| `createdFrom` | string `yyyy-MM-dd` | absent | Inclusive lower bound on the created **day** |
+| `createdTo` | string `yyyy-MM-dd` | absent | Inclusive upper bound, **to the end of that day** |
+| `calendar` | string | `gregorian` | `gregorian` \| `hijri` — applies to **both** bounds |
+
+Both bounds AND with every other filter, like every other key (BR-7.3).
+
+### The bounds are UTC days, and `createdTo` is the one that fails quietly
+
+`CreatedAtUtc` is what the column stores, so *created on 31/08* means the UTC 31st. A
+Riyadh-local day (UTC+3) is a different slice, and choosing it silently would make the filter
+disagree with every timestamp the product renders.
+
+`<= createdTo` parsed as a date is `<= 00:00:00` on that day, which excludes every ticket
+created **during** it — the filter looks correct, returns rows, and drops exactly the newest
+day, which is the one a user filtering *to today* is asking about. The handler converts both
+bounds once, to `>= from` and `< to + 1 day`, so there is also no per-row `CAST` to defeat the
+index.
+
+### `?calendar=` is declared, never inferred — and this is the defect the feature exists for
+
+Measured on a running instance, 186 tickets in the table:
+
+```
+?createdFrom=1448-03-05     ->  200, totalCount 186     <- every ticket
+```
+
+**A Hijri date is a perfectly valid Gregorian one.** `1448-03-05` bound to the year 1448, every
+ticket was created after it, and the endpoint returned the whole table with a `200`. Nothing
+errored and the filter looked like it had run.
+
+A year-range heuristic — *1448 must be Hijri because it is not near 2026* — was rejected: it is
+right until it is not, it is invisible when it is wrong, and it puts a second undocumented rule
+about what a date means into a query string. So the calendar is a parameter, and an
+**undeclared** date whose year is below 1900 is refused with a message naming `calendar=hijri`
+rather than obeyed.
+
+**Um al-Qura, not the tabular `HijriCalendar`.** It is the civil calendar Saudi Arabia uses and
+the one `Intl.DateTimeFormat('ar-SA')` produces in the browser, so a date the picker displayed
+round-trips. The two differ by a day often enough to matter at a month boundary — which is
+exactly where a range filter is used. The tests carry conversions taken from **ICU**, a second
+source, so a disagreement between .NET's table and ICU's shows up red rather than as an
+off-by-one in production; swapping in `HijriCalendar` turns two of them red, measured.
+
+### The rules that are not obvious from the table
+
+| Case | Answer | Why |
+|---|---|---|
+| `?createdFrom=` present and empty | **No filter** | The case a panel produces every time someone CLEARS a date field, and the same defect `?status=` already had |
+| `?createdFrom=2026-13-45` | **`400`**, `errors.createdFrom`, from the **catalogue** | It was the binder's English sentence — `"The value '2026-13-45' is not valid."` — until the bounds bound as `string`. `002c`'s rule: the binder refuses before the pipeline runs, so a typed parameter puts the message out of `ValidationBehaviour`'s reach and out of both key guards' sight |
+| `?createdFrom=1448-03-05` with no `calendar` | **`400`** naming `calendar=hijri` | Above. `200` with the whole table before the rule existed |
+| `?createdFrom=1200-01-01&calendar=hijri` | **`400`** | `UmAlQuraCalendar` throws below ~1318 AH. An `ArgumentException` reaching the pipeline would be a `500` for a bad query string |
+| `?calendar=julian` | **`400`** naming `calendar`, listing both accepted values | Checked **before** the bounds, so a typo in the calendar cannot make a good Hijri date read as "unreadable" and name the wrong parameter |
+| `?createdFrom=2026-09-01&createdTo=2026-08-01` | **`400`**, keyed to `createdTo` | Measured as `200` with `totalCount 0` before the rule. **A correct query over an impossible range returns nothing, so a `200` makes a claim about the DATA — "no work in that period" — in answer to a broken claim about the REQUEST.** The two are indistinguishable to the caller and only one is true. **This contradicts `033` §5.4, which rules the same case an empty page on `GET /api/customers`. Unresolved — see the note below** |
+| A timestamp instead of a day | **`400`** | A client sending an instant for a day-range filter is asking a timezone question the contract does not answer |
+
+### Disagreement with `033`, recorded and not resolved
+
+`033-customers-list` §5.4 specifies the same three-parameter shape on `GET /api/customers` and
+rules an inverted range **an empty page, not a `400`**, on the grounds that a `400` makes the
+client handle an error for a state the UI can render. This contract rules it a `400`.
+
+Both arguments are reasonable and **the same parameter shape must not behave differently on two
+endpoints of the same API** — the pagination paragraph in `CLAUDE.md` exists because a
+difference that IS justified still reads as an inconsistency to the first person who meets
+both, and here there is no justification for the difference at all. One of the two is a defect.
+It is recorded rather than settled quietly, because the lanes agreed the ruling belongs to the
+product owner.
+
+### What did NOT change
+
+- The envelope, the row, the default order, the clamps, `401`, and `404`.
+- No filter already contracted. `createdFrom`/`createdTo` were previously typed `DateOnly?`
+  on the wire in an unreleased implementation; the wire format `yyyy-MM-dd` is unchanged, only
+  where the refusal is produced.
 
 Evidence: [`015/tests.md`](../../015-ticket-filters-and-search/tests.md).

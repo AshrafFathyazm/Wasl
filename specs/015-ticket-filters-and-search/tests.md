@@ -301,3 +301,126 @@ server and not swallowing the path.
 | The result count with Arabic plural forms | `spec.md` lists it in scope. The count is rendered on the *All* tab as a bare number, which needs no plural rule; a sentence like "12 tickets found" does, and it is not built |
 | `?sort=` / `?dir=` | Not in `015`'s scope on the ticket list |
 | A test that the 300ms debounce is exactly 300ms | The test proves no request fires during typing and one fires after the timer advances. Asserting the constant would be asserting the code against itself |
+
+
+---
+
+# The created-date range, in two calendars — run 2026-09-01
+
+Added after the feature closed, at the product owner's direction. Recorded here rather than in a
+new file because the criteria extend `015`'s parameter surface and are verified by `015`'s test
+class.
+
+```
+dotnet build --no-incremental   ->  0 Warning(s)  0 Error(s)
+dotnet test                     ->  Wasl.Domain.Tests            189 passed
+                                    Wasl.Application.Tests        26 passed
+                                    Wasl.Api.IntegrationTests    390 passed
+                                    605 total, 0 failed
+```
+
+Run twice: once with `DateRangeFilter` in `Features/Tickets/GetTickets/`, and again after moving
+it to `Application/Common/` beside `Paging`. Both 605.
+
+## What the endpoint answered BEFORE any of this
+
+Measured against a running instance with 186 tickets, not reasoned about:
+
+| Request | Answer | Reading |
+|---|---|---|
+| `?createdFrom=2026-08-31` | `200`, `totalCount 180` | Gregorian half worked |
+| `?createdTo=2026-08-31` | `200`, `totalCount 186` | Gregorian half worked |
+| `?createdFrom=1448-03-05` | **`200`, `totalCount 186`** | **Every ticket. Hijri read as the year 1448** |
+| `?createdFrom=2026-09-01&createdTo=2026-08-01` | **`200`, `totalCount 0`** | **A claim about the data** |
+| `?createdFrom=2026-13-45` | `400` `"The value '2026-13-45' is not valid."` | The binder's English, not the catalogue |
+
+**The first row is the finding.** The other two are what looking closely at one defect turns up.
+
+> The first attempt at this table printed `total=-` on every row because the JSON parse in the
+> probe failed, so it recorded the STATUS CODES and no counts — and every row would have read
+> "the filter answers `200`", which is true and says nothing. `?createdFrom=1448-03-05`
+> answering `200` is unremarkable; answering `200` **with all 186 rows** is the defect. Recorded
+> because it is the fifth tool in this project to produce a well-formed report about nothing.
+
+## Acceptance criteria → named tests
+
+| AC | Test | Result |
+|---|---|---|
+| AC-28 | `The_created_range_is_inclusive_on_both_ends` | pass |
+| AC-28 | `The_created_range_composes_with_other_filters` | pass |
+| AC-29 | `The_created_range_is_inclusive_on_both_ends` (23:30 UTC on the last day) | pass |
+| AC-30 | `A_hijri_bound_means_the_same_day_as_its_gregorian_equal` | pass |
+| AC-31 | `An_undeclared_hijri_date_is_refused_rather_than_read_as_the_year_1448` | pass |
+| AC-32 | `A_malformed_created_bound_is_a_400_with_a_localized_message` | pass |
+| AC-32 | `A_hijri_date_outside_the_table_is_a_400` | pass |
+| AC-32 | `An_unknown_calendar_is_a_400` | pass |
+| AC-33 | `An_inverted_created_range_is_a_400_and_not_an_empty_page` | pass |
+| — | `An_empty_created_bound_is_no_filter` | pass |
+
+The last one has no AC and is kept: it is the case a filter panel produces every time someone
+CLEARS a date field, and it is the exact defect `?status=` already had — the browser sends the
+key with an empty value.
+
+## The Hijri expectations come from ICU, not from `UmAlQuraCalendar`
+
+Asserting `UmAlQuraCalendar` against itself would prove the code agrees with the code. The three
+conversions in the tests were taken from `Intl.DateTimeFormat('en-u-ca-islamic-umalqura')` — a
+different implementation — before the test was written:
+
+```
+2026-08-10  ->  1448-02-27 AH
+2026-08-15  ->  1448-03-02 AH
+2026-08-20  ->  1448-03-07 AH
+```
+
+.NET's table agrees with ICU's on all three. That is a measurement, and it was not assumed: the
+test was written to fail if they disagreed by a day.
+
+## Two negative controls, and both were needed
+
+`--no-incremental` on every rebuild — `011` nearly recorded a wrong control against a stale
+binary, and the dev API had to be killed first because it holds a lock on the output DLLs.
+
+### 1 · Delete the two `LooksHijriButUndeclared` rules
+
+```
+Failed:  1, Passed: 24  -  TicketFilterTests
+
+An_undeclared_hijri_date_is_refused_rather_than_read_as_the_year_1448
+  Expected response.StatusCode to be BadRequest {value: 400}, but found OK {value: 200}.
+```
+
+**Exactly one test red, and it is the one the feature exists for.** The other twenty-four stay
+green, which is the second half of the control: the rule is load-bearing and nothing else leans
+on it.
+
+### 2 · Swap `UmAlQuraCalendar` for `HijriCalendar`
+
+```
+Failed:  2, Passed: 23  -  TicketFilterTests
+
+A_hijri_bound_means_the_same_day_as_its_gregorian_equal
+  Expected ... to contain exactly 2 items ... but it misses {01a059a2-…}
+A_hijri_date_outside_the_table_is_a_400
+  Expected BadRequest {value: 400}, but found OK {value: 200}.
+```
+
+**This is the control that matters**, because the calendar choice is the kind of thing that looks
+like a detail. The tabular `HijriCalendar` differs from Um al-Qura by a day near a month
+boundary — which is precisely where a range filter is used — and it accepts years Um al-Qura
+refuses, so a nonsense date stops being a `400`. The ICU-sourced expectations are what make the
+first failure visible; a test that computed its own expectation would have passed under both.
+
+## Not claimed
+
+- **AC-33 is built but not settled.** `033` §5.4 rules the same case the other way and the
+  disagreement is Q-7 in `spec.md`. The tickets endpoint answers `400` today; if the ruling goes
+  to `033`, one test and one validator rule come out. **Recorded rather than resolved by
+  whichever lane shipped second.**
+- **The product's own date picker never exercises `?calendar=hijri`.** `TicketDateField.tsx`
+  converts client-side — its Hijri toggle changes the DISPLAY only and it always sends Gregorian
+  `yyyy-MM-dd`. That is a defensible choice and it means the API's Hijri acceptance is verified by
+  integration tests and by hand, never by clicking through the product. **An unexercised path is
+  the shape of every defect in `CLAUDE.md`'s "written only from outside the real path" table**, so
+  it is named here rather than assumed harmless.
+- **No Arabic reader has reviewed the four new catalogue strings.** Q-8, unchanged.

@@ -1,12 +1,19 @@
 using System.Globalization;
 
-namespace Wasl.Application.Features.Tickets.GetTickets;
+namespace Wasl.Application.Common;
 
 /// <summary>
-/// Reads <c>?createdFrom=</c> and <c>?createdTo=</c> in either calendar. `015`, extended
+/// Reads <c>?createdFrom=</c> and <c>?createdTo=</c> in either calendar. Built for `015`,
 /// 2026-08-31.
 /// </summary>
 /// <remarks>
+/// <para>
+/// <b>In <c>Common/</c> beside <c>Paging</c>, not in <c>GetTickets/</c>, and the second consumer
+/// is already written down.</b> `033` §5.4 asks for the same range on <c>GET /api/customers</c>,
+/// Gregorian or Hijri — so this is a cross-feature query-parameter rule of exactly the kind
+/// <c>Paging</c> is, and leaving it in one use-case folder would mean the customers list either
+/// reaching across into it or growing a second copy of the Um al-Qura conversion.
+/// </para>
 /// <para>
 /// <b>The Gregorian half already worked. This exists because the Hijri half FAILED SILENTLY,
 /// and that was measured on a running instance:</b>

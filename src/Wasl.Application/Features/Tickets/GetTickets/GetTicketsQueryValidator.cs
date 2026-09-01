@@ -1,4 +1,5 @@
 using FluentValidation;
+using Wasl.Application.Common;
 using Wasl.Domain.Communications;
 using Wasl.Domain.Tickets;
 
