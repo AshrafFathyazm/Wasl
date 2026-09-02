@@ -59,7 +59,7 @@ const {
   detachTicketTag,
   listTickets,
 } = await import('./tickets.api');
-const { default: TicketDetailPage } = await import('./TicketDetailPage');
+const { default: TicketDetailPage, tint } = await import('./TicketDetailPage');
 
 const ID = '8f1c2d34-5678-4abc-9def-0123456789ab';
 
@@ -1119,5 +1119,67 @@ describe('the unbuilt facts and endpoints are absent from the code', () => {
       (key) => !key.startsWith('detail.action.') && /sla|dueAt|dueIn|mention|breach/i.test(key),
     );
     expect(offenders).toEqual([]);
+  });
+});
+
+/*
+ * THE TINT HASH, AND THE COLLISION THAT WAS MEASURED BEFORE IT WAS FIXED.
+ *
+ * Colour on this screen is DERIVED — `TagSummary` is `(id, name)` and
+ * `SupportUserOption` is `(id, fullName, role)`, so neither a tag nor a person
+ * carries one. The owner ruled that they must differ anyway, which makes the hash
+ * a load-bearing part of the design rather than a detail.
+ *
+ * It summed code units first, and that clusters on this alphabet: Arabic names
+ * are built from a small set of letters. Two of the three seeded support users
+ * landed in one bucket at four colours AND at five — measured against the running
+ * server, not reasoned about. FNV-1a separates them.
+ */
+describe('the tint is derived from the name, and one name always gives one colour', () => {
+  it('separates the two seeded agents that used to collide', () => {
+    /* THE EXACT PAIR from the measurement. If somebody swaps the hash back for
+       something simpler, this is the test that says what it costs. */
+    expect(tint('نورة السالم', 5)).not.toBe(tint('منى العتيبي', 5));
+  });
+
+  it('is stable: the same name gives the same bucket every call', () => {
+    /* The property the whole scheme rests on — a person is ONE colour in the rail,
+       on every comment they wrote, and in the picker. Distinctness is the tags'
+       rule; identity is this one, and they pull in opposite directions. */
+    const once = tint('منى العتيبي', 5);
+    expect(tint('منى العتيبي', 5)).toBe(once);
+    expect(tint('منى العتيبي', 5)).toBe(once);
+  });
+
+  it('stays inside the palette, for any name and any size', () => {
+    for (const name of ['', 'a', 'Omar Khalid', 'منيرة الدوسري', 'x'.repeat(400)]) {
+      for (const buckets of [3, 5, 6]) {
+        const value = tint(name, buckets);
+        expect(Number.isInteger(value)).toBe(true);
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThan(buckets);
+      }
+    }
+  });
+
+  it('uses every one of the five buckets over ten real names', () => {
+    /* Ten over five MUST collide — pigeonhole — so the claim is about the
+       DISTRIBUTION, which is the part a hash controls. The sum version used three
+       of five buckets and put four names in one of them; this asserts the shape
+       that replaced it, and it is the whole reason the hash changed. */
+    const names = [
+      'Omar Khalid',
+      'نورة السالم',
+      'منى العتيبي',
+      'ليلى الحربي',
+      'سارة المطيري',
+      'خالد الشمري',
+      'طلال القحطاني',
+      'هند السالم',
+      'ريم الدوسري',
+      'منيرة الدوسري',
+    ];
+    const used = new Set(names.map((name) => tint(name, 5)));
+    expect(used.size).toBe(5);
   });
 });

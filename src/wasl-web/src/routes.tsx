@@ -64,7 +64,6 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const TablePreview = lazy(() => import('./dev/TablePreview'));
       const LocalizationPreview = lazy(() => import('./dev/LocalizationPreview'));
       const CreateCustomerPreview = lazy(() => import('./dev/CreateCustomerPreview'));
-      const TicketDetailPreview = lazy(() => import('./dev/TicketDetailPreview'));
       const LoadersPreview = lazy(() => import('./dev/LoadersPreview'));
       const CustomerProfilePreview = lazy(() => import('./dev/CustomerProfilePreview'));
       return [
@@ -89,7 +88,6 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
         /* FE-027-00. The Phase 3b gate for `/tickets/:id`. It gates every other
          * 027 task: nothing is wired until the layout is approved in Arabic, at
          * 100 timeline entries and a 200-character subject. */
-        { path: '/_preview/ticket-detail', element: <TicketDetailPreview /> },
         /* FE-029-00. The Phase 3b gate for the loader system, and it gates every
          * rewired consumer: nothing moves onto a new shape until the ten are
          * reviewed in Arabic, in both directions, with reduced motion on. */

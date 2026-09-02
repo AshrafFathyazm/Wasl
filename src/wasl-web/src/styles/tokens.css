@@ -81,7 +81,16 @@
    * change is one variable and not a palette. Fixed tokens — status, neutral,
    * text, border, surface — must never point in here. See design/theming.md. */
   --brand: var(--navy-900); /* (C) — today's value is the house navy */
-  --on-brand: var(--Main-White-White); /* (D) — static default; COMPUTED at runtime */
+  /* (D) — STATIC. The comment here said "COMPUTED at runtime" and nothing
+   * computes it: `grep setProperty` over src/ finds four callers and none of them
+   * touches a brand token. Corrected 2026-09-01 rather than deleted, because the
+   * claim cost real time — it was the leading hypothesis for a white-on-white
+   * page number, and the truth is that `--brand` and `--on-brand` are each
+   * defined exactly once, here, and never scoped down.
+   *
+   * A tenant that changes `--brand` to a light colour will need this to become
+   * dark, and THAT is the day it earns a computation. Until then, white. */
+  --on-brand: var(--Main-White-White);
 
   --brand-hover: color-mix(in oklab, var(--brand) 88%, white); /* (D) */
   --brand-active: color-mix(in oklab, var(--brand) 82%, black); /* (D) */

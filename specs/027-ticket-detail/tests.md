@@ -441,3 +441,85 @@ Two guards went red during the work and both were right:
 - **The «read only» notice fires on a 403 from a write**, which is BR-6's handler denial. A
   policy `403` has an empty body and never reaches a handler, so it cannot reach this banner
   either; on this screen no endpoint carries a policy, so that gap is theoretical here.
+
+### 4.7 · Closing the four items §4.6 left open
+
+**1 · The preview showed a superseded design — CLOSED by deleting it.**
+
+`TicketDetailPreview.tsx` rendered the v2 screen from the same stylesheet the real page
+uses, so every shared class silently restyled a design nobody was maintaining, and the next
+reader to open `/_preview/ticket-detail` would have "fixed" the built screen to match a
+superseded canvas. ADR-009's gate was spent: the screen is built and has been reviewed in a
+browser by the owner, which is what a preview stands in for.
+
+Deleted with its route, and the CSS it was the only consumer of went with it — pruned
+mechanically rather than by eye, with every removed selector printed for review:
+
+```text
+consumers of the stylesheet   before: TicketDetailPage.tsx, TicketDetailPreview.tsx
+                              after:  TicketDetailPage.tsx
+classes the page names        169
+rules dropped                 86   (.pageHead .toggle .frame .screen .topBar .strip
+                                    .section .accordion .entry .composer .menu .dialog
+                                    .picker .banner .empty .skel* .stickyBar …)
+rules kept                    216
+stylesheet                    62,847 → 43,298 bytes
+```
+
+Every dropped selector is a v2 or preview-harness name; the three that look like v3
+(`.skelLine`, `.skelRow`, `.skelAvatar`) are the v2 spellings — v3 uses `.skRow` / `.skLines`
+and takes its shapes from `Skeleton`. Verified after: 511 tests, tsc, eslint, build, and the
+screen re-measured in a browser in both directions with nothing lost.
+
+`docs/sdd/design/screens/04-ticket-detail.md` is **rewritten as the v3 design of record**,
+keeping both earlier revision tables — a deleted decision is one somebody makes again. It
+also corrects two things the v2 document asserted that the build measured false, and closes
+its own open questions A and B.
+
+**2 · The white page number — CLOSED as far as it can be, and the token comment that
+misdirected it is fixed.**
+
+The cause chain is exhausted: `--brand` and `--on-brand` are each defined exactly **once**,
+in `tokens.css`, and are never scoped down — `grep` over `src/` for a redefinition returns
+one line each. Nothing computes them at runtime: `grep setProperty` finds four callers and
+none touches a brand token.
+
+**The token comment said `COMPUTED at runtime` and that sentence was the leading hypothesis
+for an hour.** Corrected in place rather than deleted, because the claim cost real time.
+
+Four measurements, at page 1 and page 2, in both languages: the active button is
+`rgb(29,23,77)` with white ink at rest, on hover, and with a sibling hovered. The symptom is
+closed off instead of the cause — the fill is restated across `hover`, `focus`,
+`focus-visible` and `active`, with `-webkit-text-fill-color` beside it because the base.css
+war showed those two can diverge. **If it recurs, the state to capture is which page is
+active and whether it had been clicked.**
+
+**3 · Something else writing to the dev database — NOT A DEFECT.**
+
+The comments arriving during the measurements are authored by **منى العتيبي**, the seeded
+Manager, with `recordedBy: null` and bodies like «بصضصب» and «ليبا» — keyboard noise from a
+signed-in session, not a process. That is the product owner's own browser on the same API.
+Recorded so the numbers in §4.3 are read as a moving target rather than as evidence of a
+second writer.
+
+**4 · Two avatars sharing a tint — CLOSED with a better hash and a stated limit.**
+
+The hash was the weak part, and it was measured rather than argued:
+
+```text
+sum of code units, 5 buckets   group sizes 4,3,1,1,1      «نورة السالم» = «منى العتيبي»
+FNV-1a,            5 buckets   group sizes 3,2,2,2,1      all three seeded agents distinct
+```
+
+Arabic names are built from a small set of letters, so their code-unit sums cluster — two of
+the three seeded agents collided at four colours *and* at five. FNV-1a with `Math.imul`
+(32-bit, so the same name tints identically in every engine) spreads them, and the avatar
+palette gains a fifth hue to match the tags.
+
+**Ten people over five colours must collide.** That is pigeonhole, and the trade-off is now
+written where the code is: a **tag** must differ from the tag beside it, so the hash chooses
+and a collision walks to the next free bucket within the ticket; a **person** must be one
+colour everywhere — the rail, every comment they wrote, the picker — so there is no walk,
+because de-colliding per region would give one person two colours on one screen. Four tests
+pin it, including the exact pair that used to collide, and a control that swaps FNV back for
+the sum turns that one red.

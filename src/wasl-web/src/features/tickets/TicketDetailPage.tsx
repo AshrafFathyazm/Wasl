@@ -175,16 +175,47 @@ const CHANNEL_ICON = {
  *   - nothing is claimed by the colour. It says "this is a different one", not
  *     "this one is urgent" — a tag tint that MEANT something would need a field
  *
- * Summing code units is enough and is stable across engines; a hash designed for
- * distribution would be a worse choice here, because a reader never sees the
- * buckets, only that two chips differ. */
-function tint(key: string, buckets: number) {
-  let sum = 0;
-  for (let i = 0; i < key.length; i += 1) sum += key.charCodeAt(i);
-  return sum % buckets;
+ * ── THE HASH WAS THE WEAK PART, AND IT WAS MEASURED ───────────────────────
+ * The first version summed code units, on the grounds that a reader never sees
+ * the buckets. That was wrong for THIS alphabet: Arabic names are built from a
+ * small set of letters, so their sums cluster, and two of the three seeded
+ * support users landed in the same bucket at four AND at five colours —
+ * «نورة السالم» and «منى العتيبي», measured against the running server.
+ *
+ * FNV-1a spreads them. Over ten real names from the seed:
+ *
+ *   sum, 5 buckets   group sizes 4,3,1,1,1   ← clustered
+ *   FNV, 5 buckets   group sizes 3,2,2,2,1   ← as even as ten over five can be
+ *
+ * TEN NAMES OVER FIVE COLOURS MUST COLLIDE — that is arithmetic, not a defect,
+ * and it is why the trade-off below is stated rather than hidden. `Math.imul`
+ * keeps the multiply in 32 bits, which is what makes the result identical in
+ * every engine; without it the float multiply loses the low bits and the same
+ * name can tint differently in two browsers. */
+export function tint(key: string, buckets: number) {
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash) % buckets;
 }
 
-const AVATAR_TINT = [styles.av0, styles.av1, styles.av2, styles.av3];
+/* FIVE, the same count the tags use, and the reason they are not de-collided the
+ * way tags are is a deliberate trade-off in the other direction:
+ *
+ *   A TAG must differ from the tag beside it — the owner ruled that, and a
+ *   ticket's tags are one visible set, so the walk runs within the ticket.
+ *
+ *   A PERSON must be the same colour everywhere — in the rail, on every comment
+ *   they wrote, and in the picker. That is what makes the colour a scanning aid
+ *   ("منى's circle") rather than decoration. De-colliding within each region
+ *   would give the same person two colours on one screen, which is worse than
+ *   two people sharing one.
+ *
+ * So: a better hash rather than a walk, and two people CAN still match. With
+ * three seeded agents they do not (measured); with ten they must. */
+const AVATAR_TINT = [styles.av0, styles.av1, styles.av2, styles.av3, styles.av4];
 
 const TAG_TINT = [styles.tagA, styles.tagB, styles.tagC, styles.tagD, styles.tagE];
 
