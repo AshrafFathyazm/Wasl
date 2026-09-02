@@ -143,3 +143,67 @@ counter — so a fix cannot become a query per row.
 | Q-3 | Is the status control a menu or inline buttons? | ~~there is no detail-screen design document~~ — false, see Q-5. `04-ticket-detail.md` already specified a **Take action ⌄** menu, so this was settled before it was asked | **A menu**, approved — and the reason is that controls which appear and disappear per state read as a broken toolbar, not the count. Six statuses with three typically allowed is a menu; inline buttons that appear and disappear per state read as a broken toolbar |
 | Q-4 | Does a comment support any formatting? | `013`'s contract carries a plain `body` | **Plain text.** Rendering markdown from a field the contract does not describe as markdown is an injection surface |
 | ~~Q-5~~ | ~~There is **no design document for this screen**~~ | **CLOSED 2026-08-31 — the premise was false.** `docs/sdd/design/screens/04-ticket-detail.md` existed the whole time: 102 lines naming every region, every action with its endpoint and failure paths, and every state. `design/screens/README.md` lists it in the inventory. It was never opened. | The preview was measured **against** that document rather than substituting for it, and the document was **revised from the approved preview** on 2026-08-31 — four regions kept, five things replaced, each recorded in *What this revision changed* rather than edited away. Q-5's approved conditions still held: Arabic, 100 timeline rows, a 200-character subject, and the document written after approval, not before. **The wrong half is the claim that the preview had no source of truth; it had one, and checking took one `ls`.** |
+
+---
+
+## 8 · Revision — the v3 canvas, 2026-09-01
+
+**This section is appended rather than edited into §4–§7, and the AC table above is left
+standing.** A spec is the record of what was asked for and when; rewriting §6 in place would
+make it look as though v3 had been the requirement from the start, and the three ACs it
+voids are exactly the ones a reviewer would otherwise check against a screen that no longer
+has them.
+
+The product owner supplied `Wasl Ticket Details v3.dc.html` and eleven review frames, with
+one rule: build the columns the backend has, and *"لو حاجه او اكشن او كولوم ملهوش موازي ليه
+في الباك اند اعتبره مش موجود في الديزاين"*.
+
+### 8.1 · What v3 changed about the requirement
+
+| Was (§4–§7) | Is | Where it is recorded |
+|---|---|---|
+| Q-2: newest at the **bottom**, "load earlier" above | **Newest first**, «تحميل الأقدم» at the foot | design doc §What v3 changed row 3 |
+| One merged timeline | **Two tabs**, each with its own total, server-filtered `?type=` | row 2 |
+| A take-action menu holding the transitions | **The status pill is the control**; the menu holds one live row and three inert ones | rows 1 and 8 |
+| Accordion sections + a 240px anchor rail | **A 292px rail of facts** and no accordion | rows 4 and 7 |
+| §5: escalation out of scope | **Drawn, inert, with a reason** | row 8 |
+| §5: the customer is text, the link is `018` | **A link to `/customers/:id`** | row 11 |
+
+### 8.2 · Acceptance criteria this revision changes
+
+| # | Status after v3 |
+|---|---|
+| AC-1 | **Unchanged and held.** Nothing renders a ticket from a write response; no `setQueryData` seeds a ticket key. A source scan asserts it |
+| AC-2 | **Unchanged and held**, and now stronger: an empty `allowedTransitions` renders the pill as TEXT and the Close row inert, both asserted with `[]` |
+| AC-3 | **Held, and it caught something.** The cursor is unchanged; the DISPLAY order flipped, and the test that can fail on the flip is the two-page one — a single-page test passes either way |
+| AC-4, AC-5 | **Unchanged and held**, with a fourth answer added: a `403` is its own banner, not a failure |
+| AC-6 | **Unchanged and held** |
+| AC-7 | **Held.** The picker lists `GET /api/support-users` and the server decides. The canvas's «وكيل · الفوترة» renders as the role alone — `SupportUserOption` has no department |
+| AC-8 | **Unchanged and held** — `dir="auto"` on the subject, the description, every comment body and every tag name |
+| AC-9 | **Unchanged and held** — dates through `lib/formatters.ts`, Latin digits in both locales, and the two tab counters with them |
+| AC-10 | **Held.** Every state was rendered in Arabic and recorded in `tests.md` §4.3–§4.7, and the English pass with it |
+| **AC-11** | **VOID.** It required the preview to be rendered and reviewed before anything was wired. That was honoured for v2. v3 arrived as a canvas plus review frames **on the running screen**, and the preview has been deleted — it showed the superseded design from the same stylesheet the real page uses. ADR-009's gate is satisfied differently here: the owner reviewed the built screen, which is what a preview stands in for. Recorded rather than quietly dropped |
+
+### 8.3 · The five regions with no backend, and what happened to each
+
+The rule's two halves, which are not in tension: a menu row promises nothing until it is
+pressed, so an unbuilt ACTION may be drawn inert with its reason. A DATA region may not —
+a countdown drawn from nothing is a fact the product does not have and looks exactly like a
+working one.
+
+| Region | Backend | Built as |
+|---|---|---|
+| SLA pill · rail SLA block · «خُرق زمن الحل» banner | no due date, no first-response time, no SLA field, table or setting | **absent** |
+| «@ مناداة زميل» | no field on a comment, no notification, nothing to resolve a name against | **absent** |
+| priority-change history row | no `PriorityChanged` in `TicketHistoryEventType` | **cannot arrive** |
+| تصعيد · دمج · تمديد الاستحقاق | no endpoint | **inert, each stating why**, and no client fetcher exists for any of them |
+| the assignee's department | `SupportUserOption` is `(id, fullName, role)` | **role only** |
+| per-tag and per-person colour | `TagSummary` is `(id, name)` | **derived from the name** — see the design doc's *Derived colour* |
+
+### 8.4 · Open questions this revision opens
+
+| # | Question | Working assumption |
+|---|---|---|
+| Q-6 | Past five people, two share an avatar tint. Ten over five must collide | A palette decision, not code. Identity (one person, one colour everywhere) is kept over distinctness deliberately |
+| Q-7 | «تذاكره الأخرى» stops at three and then a muted count with no link | `?customerId=` is a list filter, not a facet — a chip for it would put an id in the filter bar. A scoped list route is the answer if it is ever wanted |
+| Q-8 | No keyboard navigation inside the four menus: no arrow keys, no roving tabindex, no focus return on close | Escape and outside-press close them, and every row is reachable by Tab. Named as a gap rather than claimed |
