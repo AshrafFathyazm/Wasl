@@ -1,0 +1,505 @@
+/* ============================================================================
+ * The customer directory — `033`
+ * ============================================================================
+ * Geometry from `06-customers-list.md` and the values `026` measured for the
+ * ticket list, because the two screens are the same shape and a reader moving
+ * between them should not feel a change of grid.
+ *
+ * The pager and the date fields bring their OWN stylesheets — they are
+ * primitives now (`components/Table/TablePager`, `components/DateRangePicker`),
+ * promoted out of the ticket list in this same feature.
+ * ========================================================================= */
+
+.page {
+  padding-block: 28px 40px;
+  padding-inline: var(--space-8);
+}
+
+/* ---- the heading row ----------------------------------------------------- */
+
+/* ONE ROW, THREE PARTS: the title block, the toolbar, the primary action. It was
+   two rows — the title with the button, then the toolbar underneath — and a
+   screenshot showed the cost: the search box sat under the title against the
+   inline-end with the opposite half of the row empty. */
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ROW 2 — chips at the start, the toolbar pinned to the end. The reasoning for
+   that arrangement is on `.toolbar` in `TicketFilterBar.module.css`; the two
+   list screens use the same shape deliberately. */
+.tabsRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-block: 18px 12px;
+}
+
+.heading {
+  /* No flex-grow: the ticket list learned that giving the heading one lets it
+     absorb the toolbar's width and wrap the filter button under the search. */
+  min-inline-size: 0;
+}
+
+.actions {
+  flex: 0 0 auto;
+}
+
+.title {
+  margin-block: 0 var(--space-1);
+  font-size: 26px;
+  font-weight: var(--weight-bold);
+  line-height: 1.45;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ---- search and the filter panel ---------------------------------------- */
+
+/* NO `margin-block-start`. It was 18px, from when this bar sat UNDER a heading
+   the page owned; the heading is inside the bar now, so that margin was pushing
+   the page's own title down — 18px of the 102px measured above the <h1>. */
+.bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-inline-start: auto;
+  position: relative;
+
+  /* One unit that does not wrap — the ticket list shipped the opposite and the
+     filter button dropped under the search box in English only, because a flex
+     item cannot shrink below an <input>'s min-content width. */
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+.searchField {
+  position: relative;
+  flex: 0 0 320px;
+  min-inline-size: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  inset-inline-start: var(--space-3);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.searchField input {
+  padding-inline: calc(var(--space-3) * 2 + 16px) calc(var(--space-3) * 2 + 14px);
+}
+
+/* THE FOCUS RING IS SUPPRESSED UNCONDITIONALLY on this field, which the ticket
+   list had to learn twice: `:not(:focus-visible)` never fires for a text input
+   in Chrome — it grants `:focus-visible` on ANY focus, mouse included — so the
+   pointer/keyboard split that works for buttons does not exist here. The caret
+   is the field's focus indicator. */
+.searchField input:focus,
+.searchField input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.searchClear {
+  position: absolute;
+  inset-inline-end: var(--space-2);
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.searchClear:hover {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+.popWrap {
+  position: relative;
+}
+
+/* `.filterBtn` AND `.filterBtnOpen` ARE GONE — 2026-09-02. They styled a bare
+   <button> to look like the `Button` primitive and landed 6px wider than the
+   real one on /tickets (86 against 80, measured). With the toolbar pinned to the
+   row's inline-end that difference moved the search box, which is exactly the
+   inconsistency the report was about. Use the primitive; there is no reason for a
+   second تصفية button in this product. */
+
+.filterBadge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 20px;
+  block-size: 20px;
+  padding-inline: 6px;
+  border-radius: var(--radius-pill);
+  background-color: var(--brand);
+  color: var(--on-brand);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  position: absolute;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-end: 0;
+  z-index: var(--z-flyout);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  inline-size: 340px;
+  max-inline-size: calc(100vw - 2 * var(--space-4));
+  padding: 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  background-color: var(--surface-card);
+  box-shadow: var(--pop-lg, 0 10px 28px rgb(13 38 38 / 14%));
+}
+
+.facet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.facetLabel {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.facetNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.companySearch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  block-size: 34px;
+  padding-inline: 10px;
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  background-color: var(--surface-subtle);
+  color: var(--text-muted);
+}
+
+.companySearch input {
+  all: unset;
+  flex: 1;
+  min-inline-size: 0;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+
+/* Scrolls at eight rows. The list is server-capped at fifty, and a panel taller
+   than the table it filters is a panel that hides its own Apply button. */
+.companyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-block-size: 216px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.dateRow {
+  display: flex;
+  gap: 8px;
+}
+
+.panelFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--border-divider);
+}
+
+/* A BUTTON WITH BUTTON CHROME, not an underlined link — reported on the ticket
+   list 2026-09-01: "مسح الكل دا زرار برضو بتهوفر عليه". */
+.clearAll {
+  display: inline-flex;
+  align-items: center;
+  block-size: 32px;
+  padding-inline: 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.clearAll:hover {
+  border-color: var(--border-default);
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+/* ---- the applied chips --------------------------------------------------- */
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* NEUTRAL, not lavender — the same ruling the ticket list took on 2026-09-01.
+   Colour on a list screen already means something (a status, a priority); a
+   tinted filter chip competes for that attention while saying nothing about the
+   data. An applied filter is a fact about the QUERY. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  block-size: 28px;
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-sunken);
+  color: var(--text-primary);
+  font-size: var(--type-body-sm);
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  background-color: var(--surface-card);
+  color: var(--state-danger-text);
+}
+
+/* ---- the cells ---------------------------------------------------------- */
+
+/* THE WRAPPER for every truncating cell on this screen — see the long note on
+   `.subjectAnchor` in `TicketList.module.css` for what it is for and what the
+   three simpler versions measured. */
+.cellBox {
+  display: flex;
+  min-inline-size: 0;
+}
+
+/* IT IS AN <a> AND MUST NOT LOOK LIKE ONE — base.css gives every <a> the link
+   colour and an underline, so ninety names in a column came out blue. The FOCUS
+   RING is untouched: it is the only thing telling a keyboard user where they
+   are. Same treatment as the ticket list's subject line. */
+.name {
+  color: var(--text-primary);
+  text-decoration: none;
+  display: block;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: var(--weight-medium);
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The fixed-direction case: an address or a number is LTR whatever the page is,
+   so these carry `dir="ltr"` rather than `auto` — the wrapper still supplies
+   the page's placement. */
+.name:hover {
+  text-decoration: underline;
+}
+
+.email,
+.phone {
+  display: block;
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone {
+  font-variant-numeric: tabular-nums;
+}
+
+.created {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An em dash carries the absence. A blank cell reads as "not loaded". */
+.absent {
+  color: var(--text-placeholder);
+}
+
+/* ---- the empty and error panes ------------------------------------------ */
+
+.pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 24px 52px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.pane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--wasl-pattern);
+  background-size: var(--wasl-pattern-size);
+  /* UNPREFIXED ONLY. `stylelint --fix` stripped the `-webkit-` twin and left two
+     identical declarations; the prefix is unnecessary in every browser this
+     product supports, so the duplicate went rather than the fix being undone. */
+  mask-image: var(--wasl-pattern-mask);
+  opacity: var(--wasl-pattern-opacity);
+  pointer-events: none;
+}
+
+.mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 54px;
+  block-size: 54px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+  color: var(--text-muted);
+}
+
+.paneTitle {
+  position: relative;
+  margin: 14px 0 0;
+  font-size: 15.5px;
+  font-weight: var(--weight-medium);
+}
+
+.paneBody {
+  position: relative;
+  margin: 4px 0 0;
+  max-inline-size: 360px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+.trace {
+  position: relative;
+  margin-block-start: 8px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.paneCta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  block-size: 36px;
+  margin-block-start: 14px;
+  padding-inline: 15px;
+  border: 1px solid var(--border-focus);
+  border-radius: 7px;
+  background-color: var(--surface-card);
+  color: var(--text-link);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.paneCta:hover {
+  background-color: var(--surface-chip);
+}
+
+@media (width <= 700px) {
+  .toolbar {
+    flex-wrap: wrap;
+  }
+
+  .searchField {
+    flex: 1 1 200px;
+  }
+}
+
+/* The sheet badge: the customer's initial, tinted from their NAME so the same
+   person is the same colour in the row, in this badge and on their profile —
+   `035` AC-5, and the hash lives in `lib/tint.ts` for that reason. */
+.sheetAvatar {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: var(--radius-pill);
+}
+
+.sheetAvatar[data-tint="0"] {
+  background-color: var(--purple-50);
+  color: var(--purple-700);
+}
+
+.sheetAvatar[data-tint="1"] {
+  background-color: var(--blue-50);
+  color: var(--blue-600);
+}
+
+.sheetAvatar[data-tint="2"] {
+  background-color: var(--green-50);
+  color: var(--green-700);
+}
+
+.sheetAvatar[data-tint="3"] {
+  background-color: var(--amber-50);
+  color: var(--amber-500);
+}
+
+.sheetAvatar[data-tint="4"] {
+  background-color: var(--teal-100);
+  color: var(--teal-600);
+}

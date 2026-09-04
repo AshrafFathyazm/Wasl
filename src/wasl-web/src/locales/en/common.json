@@ -39,5 +39,26 @@
     "codeAr": "AR"
   },
   "loading": "Loading",
-  "loadingLong": "Still working — this is taking longer than usual."
+  "loadingLong": "Still working — this is taking longer than usual.",
+  "pager.rowsPerPage": "Rows per page",
+  "pager.range": "{{from}}–{{to}} of {{total}}",
+  "pager.prev": "Previous",
+  "pager.next": "Next",
+  "pager.morePages": "More pages",
+  "pager.goToPage": "Go to page {{page}}",
+  "cal.mon": "Mon",
+  "cal.tue": "Tue",
+  "cal.wed": "Wed",
+  "cal.thu": "Thu",
+  "cal.fri": "Fri",
+  "cal.sat": "Sat",
+  "cal.sun": "Sun",
+  "cal.hijri": "Hijri date",
+  "cal.prevMonth": "Previous month",
+  "cal.nextMonth": "Next month",
+  "cal.apply": "Apply",
+  "cal.placeholder": "dd/mm/yyyy",
+  "table.errorTitle": "Could not load the list",
+  "table.errorBody": "We could not reach the server. Please try again.",
+  "table.retry": "Try again"
 }

@@ -375,9 +375,29 @@ public sealed class CreateCustomerTests(WaslApiFactory factory)
             .Should().Be("https://wasl.local/errors/duplicate-customer",
                 "Q-D — indistinguishable from the pre-check's 409. The client cannot know which "
                 + "of the two racing requests it was, so the two paths must answer identically");
-        problem.GetProperty("errors").GetProperty("email").EnumerateArray()
-            .Should().ContainSingle().Which.GetString()
-            .Should().Be("A customer with this email already exists.");
+
+        /* EITHER FIELD, and that is a correction rather than a loosening — found 2026-09-01 by
+         * `033`, which added 28 tests and changed the suite's timing enough to expose it.
+         *
+         * This asserted `errors.email` and threw `KeyNotFoundException` on a full run while
+         * passing in isolation. The body is correct in both cases: `Body()` carries an email AND
+         * a phone, both are unique-filtered indexes, and the LOSER of the race collides on
+         * whichever index the engine happened to check first. `errors.phone` is as right an
+         * answer as `errors.email` — the product's promise (Q-D) is that the two 409 PATHS are
+         * indistinguishable, not that a race picks a particular column.
+         *
+         * The assertion still READS THE MESSAGE — `004b` found seventeen raw resource keys
+         * shipped under tests that only counted entries — and it still refuses a `409` with no
+         * `errors` object, which is the shape that means the violation was never translated. */
+        var errors = problem.GetProperty("errors");
+        var collided = errors.TryGetProperty("email", out var byEmail)
+            ? byEmail
+            : errors.GetProperty("phone");
+
+        collided.EnumerateArray().Should().ContainSingle().Which.GetString()
+            .Should().BeOneOf(
+                "A customer with this email already exists.",
+                "A customer with this phone number already exists.");
 
         // And exactly one row exists — the assertion the status codes alone do not make.
         using var scope = factory.Services.CreateScope();

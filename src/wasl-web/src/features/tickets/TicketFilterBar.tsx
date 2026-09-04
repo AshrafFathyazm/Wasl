@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
-import { TicketDateField } from './TicketDateField';
+import { DateField } from '../../components/DateRangePicker/DateField';
 import { IconClose, IconFilter, IconSearch } from '../../icons/icons';
 import {
   COMMUNICATION_CHANNELS,
@@ -15,6 +15,7 @@ import { formatNumber, type Lang } from '../../lib/formatters';
 import styles from './TicketFilterBar.module.css';
 import {
   activeFilterCount,
+  createdRangeIsInverted,
   TAB_STATUSES,
   type FilterState,
 } from './ticketFilters';
@@ -87,6 +88,19 @@ export interface TicketFilterBarProps {
    *  owns what the heading says; this only owns where it sits. */
   heading?: ReactNode | undefined;
 
+  /** The page's primary action, at the row's inline-end.
+   *
+   *  THE SLOT EXISTS ON BOTH LIST SCREENS, and that is the point: reported
+   *  2026-09-02 — *"مينفعش صفحة التذاكر تكون الفلاتر والبحث وشكل الجدول مختلف
+   *  المفروض كل الجداول في السيستم واماكن الحبث والفلاتر في نفس المكان"*.
+   *  Measured before the fix, at one viewport, in Arabic: the search box sat at
+   *  `513..833` on /customers and `180..500` on /tickets — because the
+   *  customer row ended with «عميل جديد» and the ticket row ended with the
+   *  toolbar, so `space-between` pushed it 333px further. Two screens, one
+   *  grid, and the toolbar is only in one place if the slot after it is
+   *  occupied on both. */
+  actions?: ReactNode | undefined;
+
   /** Rendered on the *All* tab. Absent while the counts are still landing. */
   totalCount?: number | undefined;
 
@@ -108,6 +122,7 @@ export function TicketFilterBar({
   totalCount,
   statusCounts,
   heading,
+  actions,
   lockedAssignee = false,
 }: TicketFilterBarProps) {
   const { t, i18n } = useTranslation('tickets');
@@ -160,6 +175,15 @@ export function TicketFilterBar({
     /* filters is read at the moment of opening, not subscribed to. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panelOpen]);
+
+  /* «تطبيق» IS REFUSED ON AN INVERTED RANGE, which is what keeps the server's
+     `400` unreachable from the picker. It mirrors a server rule for the reader's
+     sake and is never the authority — `readFilters` drops such a pair out of the
+     URL, and the endpoint refuses it either way. */
+  const draftRangeInverted = createdRangeIsInverted(
+    panelDraft.createdFrom,
+    panelDraft.createdTo,
+  );
 
   const toggleDraft = (key: 'priority' | 'channel', value: string) =>
     setPanelDraft((current) => ({
@@ -275,195 +299,7 @@ export function TicketFilterBar({
       <div className={styles.headRow}>
         {heading === undefined ? null : <div className={styles.heading}>{heading}</div>}
 
-        <div className={styles.toolbar}>
-          <div className={styles.searchField}>
-            <IconSearch size={16} className={styles.searchIcon} aria-hidden="true" />
-            <Input
-              label={t('list.search')}
-              labelHidden
-              placeholder={t('list.search')}
-              value={draft}
-              onChange={setDraft}
-            />
-            {draft ? (
-              <button
-                type="button"
-                className={styles.searchClear}
-                onClick={() => setDraft('')}
-                aria-label={tc('dismiss')}
-              >
-                <IconClose size={14} />
-              </button>
-            ) : null}
-          </div>
-
-          <Button
-            buttonType="secondary-outline"
-            /* THE COUNT IS A BADGE, NOT PART OF THE LABEL — the accessible name
-               stays "Filter" whether three filters are on or none, and the number
-               sits in a filled circle as the frames draw it. */
-            text={t('list.filter')}
-            iconStart={<IconFilter size={16} />}
-            {...(active > 0
-              ? {
-                  iconEnd: (
-                    <span className={styles.filterBadge}>
-                      {formatNumber(active, lang)}
-                    </span>
-                  ),
-                }
-              : {})}
-            onClick={() => setPanelOpen((open) => !open)}
-            aria-expanded={panelOpen}
-            aria-controls={panelId}
-          />
-
-          {/* ==================================================================
-              THE PANEL — the frames' shape: chips, a date range, مسح الكل,
-              and تطبيق. What it REPLACED is worth recording: six multi-select
-              dropdowns, applied on every click.
-
-              WHAT IS DELIBERATELY NOT HERE ANY MORE: category, assignee and
-              escalated. The frames' panel carries priority, channel and the
-              date range only. All three remain real filters — the URL reads
-              them, the applied-chip strip shows and removes them — the panel
-              just no longer offers controls for them. Removing capability from
-              a surface is a design decision the product owner made by frame,
-              recorded here rather than resolved silently.
-              ================================================================== */}
-          {panelOpen ? (
-            <div className={styles.panel} id={panelId}>
-              <fieldset className={styles.facet}>
-                <legend className={styles.facetLabel}>
-                  {t('list.column.priority')}
-                </legend>
-                <div className={styles.facetChips}>
-                  {TICKET_PRIORITIES.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={cx(
-                        styles.facetChip,
-                        panelDraft.priority.includes(value) && styles.facetChipOn,
-                      )}
-                      /* A toggle, and it says so — a chip that only LOOKS
-                         pressed is silent to anyone not looking at it. */
-                      aria-pressed={panelDraft.priority.includes(value)}
-                      onClick={() => toggleDraft('priority', value)}
-                    >
-                      {t(`priority.${value}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset className={styles.facet}>
-                <legend className={styles.facetLabel}>
-                  {t('list.column.channel')}
-                </legend>
-                <div className={styles.facetChips}>
-                  {COMMUNICATION_CHANNELS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={cx(
-                        styles.facetChip,
-                        panelDraft.channel.includes(value) && styles.facetChipOn,
-                      )}
-                      aria-pressed={panelDraft.channel.includes(value)}
-                      onClick={() => toggleDraft('channel', value)}
-                    >
-                      {t(`channel.${value}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              {/* LIVE AS OF 2026-08-31. These stood here drawn-and-disabled —
-                  the escalate precedent — because the endpoint bound no dates.
-                  The product owner said "شغل فلتر البحث بالتاريخ", so the
-                  endpoint grew \`createdFrom\`/\`createdTo\` (GetTicketsQuery
-                  documents the UTC-day reading; three integration tests pin the
-                  inclusive bounds) and the calendar the 026 preview proved was
-                  promoted to TicketDateField. */}
-              <div className={styles.dates}>
-                <TicketDateField
-                  label={t('list.createdFrom')}
-                  value={panelDraft.createdFrom}
-                  onChange={(createdFrom) =>
-                    setPanelDraft((current) => ({ ...current, createdFrom }))
-                  }
-                  lang={lang}
-                />
-                <TicketDateField
-                  label={t('list.createdTo')}
-                  value={panelDraft.createdTo}
-                  onChange={(createdTo) =>
-                    setPanelDraft((current) => ({ ...current, createdTo }))
-                  }
-                  lang={lang}
-                />
-              </div>
-
-              <div className={styles.panelFooter}>
-                <button
-                  type="button"
-                  className={styles.clearAll}
-                  onClick={() => {
-                    /* CLEARS AND APPLIES IN ONE PRESS — a clear that still
-                       needs تطبيق is a clear that looks broken. The SEARCH
-                       survives: it is a question the reader typed, not a facet
-                       they ticked, and the box has its own ×. */
-                    setPanelDraft({
-                      priority: [],
-                      channel: [],
-                      createdFrom: '',
-                      createdTo: '',
-                    });
-                    onChange({
-                      status: [],
-                      priority: [],
-                      category: [],
-                      channel: [],
-                      /* THE QUEUE SURVIVES مسح الكل — it is the page, not a
-                         facet. Clearing it would leave the nav highlighting
-                         "My tickets" over the whole team's.
-                         BELT AND BRACES, AND MEASURED AS SUCH: control C4 sets
-                         lockedAssignee false and turns only the CHIP test red,
-                         because the page strips the assignee on the way to the
-                         URL and re-applies it from the path either way. This is
-                         the component's own half of the contract — a caller that
-                         locks the assignee without that strip needs it — so it
-                         stays, with no claim that a green suite proves it. */
-                      assignee: lockedAssignee ? filters.assignee : '',
-                      escalated: undefined,
-                      search: filters.search,
-                      /* Dates are facets and مسح الكل clears facets. */
-                      createdFrom: '',
-                      createdTo: '',
-                    });
-                  }}
-                >
-                  {t('list.clearAll')}
-                </button>
-
-                <Button
-                  text={t('list.apply')}
-                  onClick={() => {
-                    onChange({
-                      ...filters,
-                      priority: panelDraft.priority,
-                      channel: panelDraft.channel,
-                      createdFrom: panelDraft.createdFrom,
-                      createdTo: panelDraft.createdTo,
-                    });
-                    setPanelOpen(false);
-                  }}
-                />
-              </div>
-            </div>
-          ) : null}
-        </div>
+        {actions === undefined ? null : <div className={styles.actions}>{actions}</div>}
       </div>
 
       {/* ======================================================================
@@ -524,6 +360,201 @@ export function TicketFilterBar({
             ))}
           </div>
         )}
+
+        {/* THE TOOLBAR LIVES ON THIS ROW, not on the title's — see `.toolbar`
+            in the stylesheet for the measurement that moved it. */}
+        <div className={styles.toolbar}>
+          <div className={styles.searchField}>
+            <IconSearch size={16} className={styles.searchIcon} aria-hidden="true" />
+            <Input
+              label={t('list.search')}
+              labelHidden
+              placeholder={t('list.search')}
+              value={draft}
+              onChange={setDraft}
+            />
+            {draft ? (
+              <button
+                type="button"
+                className={styles.searchClear}
+                onClick={() => setDraft('')}
+                aria-label={tc('dismiss')}
+              >
+                <IconClose size={14} />
+              </button>
+            ) : null}
+          </div>
+
+          <Button
+            buttonType="secondary-outline"
+            /* THE COUNT IS A BADGE, NOT PART OF THE LABEL — the accessible name
+               stays "Filter" whether three filters are on or none, and the number
+               sits in a filled circle as the frames draw it. */
+            text={t('list.filter')}
+            iconStart={<IconFilter size={16} />}
+            {...(active > 0
+              ? {
+                  iconEnd: (
+                    <span className={styles.filterBadge}>
+                      {formatNumber(active, lang)}
+                    </span>
+                  ),
+                }
+              : {})}
+            onClick={() => setPanelOpen((open) => !open)}
+            aria-expanded={panelOpen}
+            aria-controls={panelId}
+          />
+
+          {/* ==================================================================
+              THE PANEL — the frames' shape: chips, a date range, مسح الكل,
+              and تطبيق. What it REPLACED is worth recording: six multi-select
+              dropdowns, applied on every click.
+
+              WHAT IS DELIBERATELY NOT HERE ANY MORE: category, assignee and
+              escalated. The frames' panel carries priority, channel and the
+              date range only. All three remain real filters — the URL reads
+              them, the applied-chip strip shows and removes them — the panel
+              just no longer offers controls for them. Removing capability from
+              a surface is a design decision the product owner made by frame,
+              recorded here rather than resolved silently.
+              ================================================================== */}
+          {panelOpen ? (
+            <div className={styles.panel} id={panelId}>
+              <fieldset className={styles.facet}>
+                <legend className={styles.facetLabel}>{t('list.column.priority')}</legend>
+                <div className={styles.facetChips}>
+                  {TICKET_PRIORITIES.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={cx(
+                        styles.facetChip,
+                        panelDraft.priority.includes(value) && styles.facetChipOn,
+                      )}
+                      /* A toggle, and it says so — a chip that only LOOKS
+                         pressed is silent to anyone not looking at it. */
+                      aria-pressed={panelDraft.priority.includes(value)}
+                      onClick={() => toggleDraft('priority', value)}
+                    >
+                      {t(`priority.${value}`)}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset className={styles.facet}>
+                <legend className={styles.facetLabel}>{t('list.column.channel')}</legend>
+                <div className={styles.facetChips}>
+                  {COMMUNICATION_CHANNELS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={cx(
+                        styles.facetChip,
+                        panelDraft.channel.includes(value) && styles.facetChipOn,
+                      )}
+                      aria-pressed={panelDraft.channel.includes(value)}
+                      onClick={() => toggleDraft('channel', value)}
+                    >
+                      {t(`channel.${value}`)}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {/* LIVE AS OF 2026-08-31. These stood here drawn-and-disabled —
+                  the escalate precedent — because the endpoint bound no dates.
+                  The product owner said "شغل فلتر البحث بالتاريخ", so the
+                  endpoint grew \`createdFrom\`/\`createdTo\` (GetTicketsQuery
+                  documents the UTC-day reading; three integration tests pin the
+                  inclusive bounds) and the calendar the 026 preview proved was
+                  promoted to TicketDateField. */}
+              <div className={styles.dates}>
+                <DateField
+                  label={t('list.createdFrom')}
+                  value={panelDraft.createdFrom}
+                  onChange={(createdFrom) =>
+                    setPanelDraft((current) => ({ ...current, createdFrom }))
+                  }
+                  lang={lang}
+                />
+                <DateField
+                  label={t('list.createdTo')}
+                  value={panelDraft.createdTo}
+                  onChange={(createdTo) =>
+                    setPanelDraft((current) => ({ ...current, createdTo }))
+                  }
+                  lang={lang}
+                />
+              </div>
+
+              {draftRangeInverted ? (
+                <p className={styles.facetNote} role="alert">
+                  {t('list.rangeInverted')}
+                </p>
+              ) : null}
+
+              <div className={styles.panelFooter}>
+                <button
+                  type="button"
+                  className={styles.clearAll}
+                  onClick={() => {
+                    /* CLEARS AND APPLIES IN ONE PRESS — a clear that still
+                       needs تطبيق is a clear that looks broken. The SEARCH
+                       survives: it is a question the reader typed, not a facet
+                       they ticked, and the box has its own ×. */
+                    setPanelDraft({
+                      priority: [],
+                      channel: [],
+                      createdFrom: '',
+                      createdTo: '',
+                    });
+                    onChange({
+                      status: [],
+                      priority: [],
+                      category: [],
+                      channel: [],
+                      /* THE QUEUE SURVIVES مسح الكل — it is the page, not a
+                         facet. Clearing it would leave the nav highlighting
+                         "My tickets" over the whole team's.
+                         BELT AND BRACES, AND MEASURED AS SUCH: control C4 sets
+                         lockedAssignee false and turns only the CHIP test red,
+                         because the page strips the assignee on the way to the
+                         URL and re-applies it from the path either way. This is
+                         the component's own half of the contract — a caller that
+                         locks the assignee without that strip needs it — so it
+                         stays, with no claim that a green suite proves it. */
+                      assignee: lockedAssignee ? filters.assignee : '',
+                      escalated: undefined,
+                      search: filters.search,
+                      /* Dates are facets and مسح الكل clears facets. */
+                      createdFrom: '',
+                      createdTo: '',
+                    });
+                  }}
+                >
+                  {t('list.clearAll')}
+                </button>
+
+                <Button
+                  text={t('list.apply')}
+                  disabled={draftRangeInverted}
+                  onClick={() => {
+                    onChange({
+                      ...filters,
+                      priority: panelDraft.priority,
+                      channel: panelDraft.channel,
+                      createdFrom: panelDraft.createdFrom,
+                      createdTo: panelDraft.createdTo,
+                    });
+                    setPanelOpen(false);
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

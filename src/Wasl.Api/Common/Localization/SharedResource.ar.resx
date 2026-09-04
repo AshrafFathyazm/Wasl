@@ -175,6 +175,33 @@
   <data name="Validation.TicketFilter.CreatedRangeInverted" xml:space="preserve">
     <value>نهاية المدى الزمني تسبق بدايته.</value>
   </data>
+  <data name="Validation.Customer.ExpectedVersionRequired" xml:space="preserve">
+    <value>النسخة التي قرأتها مطلوبة. أعد تحميل العميل ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Validation.Customer.ExpectedVersionTooLong" xml:space="preserve">
+    <value>رمز النسخة هذا ليس من إصدار هذا الخادم.</value>
+  </data>
+  <data name="Validation.Customer.ExpectedVersionUndecodable" xml:space="preserve">
+    <value>تعذّر قراءة رمز النسخة.</value>
+  </data>
+  <data name="Validation.CustomerFilter.SortInvalid" xml:space="preserve">
+    <value>ترتيب غير مقبول. القيم المقبولة: fullName، createdAtUtc.</value>
+  </data>
+  <data name="Validation.CustomerFilter.DirInvalid" xml:space="preserve">
+    <value>اتجاه غير مقبول. القيم المقبولة: asc، desc.</value>
+  </data>
+  <data name="Validation.CustomerFilter.CreatedDateInvalid" xml:space="preserve">
+    <value>تاريخ غير مقروء. استخدم yyyy-MM-dd، مثل 2026-08-31.</value>
+  </data>
+  <data name="Validation.CustomerFilter.CalendarInvalid" xml:space="preserve">
+    <value>تقويم غير مقبول. القيم المقبولة: gregorian، hijri.</value>
+  </data>
+  <data name="Validation.CustomerFilter.CreatedRangeInverted" xml:space="preserve">
+    <value>نهاية المدى الزمني تسبق بدايته.</value>
+  </data>
+  <data name="Validation.CustomerFilter.CalendarUndeclared" xml:space="preserve">
+    <value>هذه السنة ليست ميلادية. إن كان التاريخ هجريًا فأضف calendar=hijri.</value>
+  </data>
   <data name="Validation.Ticket.CategoryInvalid" xml:space="preserve">
     <value>اختر تصنيفًا صحيحًا.</value>
   </data>

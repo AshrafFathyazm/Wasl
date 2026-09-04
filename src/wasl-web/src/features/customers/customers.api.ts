@@ -3,6 +3,8 @@ import type {
   CreateCustomerRequest,
   CreateCustomerResponse,
   CustomerDetail,
+  CustomerListItem,
+  PagedResult,
 } from '../../lib/api-types.provisional';
 
 /* ============================================================================
@@ -69,3 +71,135 @@ export async function createCustomer(
   });
   return { customer: result.data, location: result.location };
 }
+
+/* ============================================================================
+ * `033` — the directory, its filters, and the company vocabulary
+ * ========================================================================= */
+
+/**
+ * `GET /api/customers`'s query, `008` as amended by `033`.
+ *
+ * **Every filter is optional and omitted when empty, never sent blank.** `015`
+ * measured what a blank repeated parameter does on the server: `?status=` binds
+ * as an array holding one empty string, which its invalid-check then refused —
+ * a `400` for a filter bar that had just been CLEARED. The customers endpoint
+ * drops blanks too (`CustomerFilters.Companies`), and sending nothing is
+ * unambiguous against any server.
+ */
+export interface CustomerListParams {
+  page?: number;
+  pageSize?: number;
+
+  /** Substring over name, email and phone. Debounced by the caller. */
+  search?: string;
+
+  /** `fullName` | `createdAtUtc`. An unknown value is a `400`, not a fallback. */
+  sort?: CustomerSort;
+  dir?: SortDirection;
+
+  /** EXACT company names, OR-ed. The server clamps to twenty. */
+  company?: readonly string[];
+
+  /** `CompanyName IS NULL`, OR-ed with `company`. */
+  noCompany?: boolean;
+
+  /** ISO days — `2026-08-31` — read as UTC days, inclusive at both ends. */
+  createdFrom?: string;
+  createdTo?: string;
+
+  /** `hijri` makes BOTH bounds Hijri. Omitted means Gregorian. */
+  calendar?: 'hijri' | 'gregorian';
+}
+
+export type CustomerSort = 'fullName' | 'createdAtUtc';
+export type SortDirection = 'asc' | 'desc';
+
+/**
+ * `GET /api/customers` — `008`, with `033`'s five parameters.
+ *
+ * **NOTHING IS SORTED OR FILTERED HERE**, and that is a rule rather than an
+ * omission: the order is a contract, and sorting one page in the browser
+ * produces an order that is right on the page you are looking at and wrong
+ * across pages — failing on exactly the rows the tiebreak exists for.
+ *
+ * `page` and `pageSize` come back as the EFFECTIVE values after the server's
+ * clamping (BR-7.2 clamps rather than rejecting), so the control renders what
+ * came back and never what was sent.
+ */
+export function listCustomers(
+  params: CustomerListParams,
+  signal?: AbortSignal,
+): Promise<PagedResult<CustomerListItem>> {
+  return apiFetch<PagedResult<CustomerListItem>>('/api/customers', {
+    /* Spread, not a hand-built object: `apiFetch` drops `undefined` entries and
+     * repeats an array, so every filter is one line and the next one is a
+     * property rather than a branch. */
+    query: {
+      page: params.page,
+      pageSize: params.pageSize,
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.sort ? { sort: params.sort } : {}),
+      ...(params.dir ? { dir: params.dir } : {}),
+      ...(params.company && params.company.length > 0
+        ? { company: [...params.company] }
+        : {}),
+      ...(params.noCompany ? { noCompany: true } : {}),
+      ...(params.createdFrom ? { createdFrom: params.createdFrom } : {}),
+      ...(params.createdTo ? { createdTo: params.createdTo } : {}),
+      ...(params.calendar ? { calendar: params.calendar } : {}),
+    },
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/** `GET /api/customers/companies` — `033` §5.3. */
+export interface CustomerCompanies {
+  items: string[];
+
+  /**
+   * Whether ANY active customer has no company — a fact about the directory, not
+   * about this search.
+   *
+   * **It is not derivable from `items`.** The server caps the list, so an absent
+   * name may exist beyond the cap, and a null company is not in `items` by
+   * construction. The server answers it with its own `EXISTS`.
+   */
+  hasUncompanied: boolean;
+}
+
+/**
+ * The companies the filter panel may offer.
+ *
+ * **Server-backed, which is an adjustment to the canvas** (`033` §5.3): the
+ * canvas filters a hard-coded array of six in the browser. With 137 customers
+ * that fits; the mechanism has to be the one that still works at ten thousand,
+ * and a client-side filter over a truncated list silently hides companies that
+ * exist. The cost is a debounce on that input, where the canvas is instant.
+ */
+export function getCustomerCompanies(
+  params: { search?: string; limit?: number } = {},
+  signal?: AbortSignal,
+): Promise<CustomerCompanies> {
+  return apiFetch<CustomerCompanies>('/api/customers/companies', {
+    query: {
+      ...(params.search ? { search: params.search } : {}),
+      ...(params.limit ? { limit: params.limit } : {}),
+    },
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * The cache keys. Shaped like `ticketKeys`, and for the same reason: the whole
+ * parameter object is the key, so caching per filter combination falls out of it
+ * and a filter added tomorrow needs no key change.
+ */
+export const customerKeys = {
+  list: (params: CustomerListParams) => ['customers', 'list', params] as const,
+  detail: (id: string) => ['customers', 'detail', id] as const,
+
+  /** NOT under `['customers', …]`: the vocabulary is not a customer, and nesting
+   *  it there would mean invalidating a customer refetches it. `027` learned the
+   *  same thing about the tag set. */
+  companies: (search?: string) => ['customer-companies', search ?? ''] as const,
+};

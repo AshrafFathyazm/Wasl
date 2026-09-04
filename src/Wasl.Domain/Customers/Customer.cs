@@ -105,4 +105,73 @@ public sealed class Customer
             IsActive = true,
         };
     }
+
+    /// <summary>
+    /// Replaces every mutable field. `017`'s contract, built by `035`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>IT REPLACES, and the nulls are meant.</b> The endpoint is a <c>PUT</c>: an omitted
+    /// optional field arrives here as <c>null</c> and is stored as <c>null</c>. A method that
+    /// skipped nulls would make <c>PUT</c> behave like <c>PATCH</c> without saying so, and the
+    /// contract's own warning — "the request succeeds, returns <c>200</c>, and four fields are
+    /// gone" — would become impossible to honour.
+    /// </para>
+    /// <para>
+    /// <b>It takes ALREADY-NORMALISED contact values</b>, for the same reason
+    /// <see cref="Create"/> does: a null from <see cref="ContactNormalisation"/> has to become a
+    /// `400` naming a field, and only the boundary knows the field's name. One place decides the
+    /// stored form, and it is not this one.
+    /// </para>
+    /// <para>
+    /// <b>It does not touch <see cref="IsActive"/>, <see cref="CreatedAtUtc"/>,
+    /// <see cref="UpdatedAtUtc"/> or <see cref="RowVersion"/>.</b> The first is a different
+    /// operation with no endpoint; the timestamps are stamped in
+    /// <c>WaslDbContext.SaveChangesAsync</c> from <c>IRequestTimestamp</c>, which is what keeps
+    /// one request's writes on one instant (`007` AC-14 found the alternative: a create and a
+    /// read disagreeing in the seventh decimal place); and the rowversion belongs to the
+    /// database (ADR-013).
+    /// </para>
+    /// <para>
+    /// <b>This is the entity layer's SECOND mutator.</b> <c>SupportUser.ChangeLanguage</c> was the
+    /// first, in `014`. The count is worth knowing: every other state change in this product goes
+    /// through a factory or through EF Core's change tracker on a projection, and a third mutator
+    /// should have a reason as clear as these two.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="fullName"/> is null or whitespace.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Both contact values are null — BR-4.1. Not a validation exception, for
+    /// <see cref="Create"/>'s reason: by the time a request reaches here the validator has already
+    /// produced the `400` naming both fields, so this is the guard against a caller that is not a
+    /// request.
+    /// </exception>
+    public void Update(
+        string fullName,
+        string? normalisedEmail,
+        string? normalisedPhone,
+        string? companyName,
+        string? notes)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fullName);
+
+        if (normalisedEmail is null && normalisedPhone is null)
+        {
+            throw new InvalidOperationException(
+                "A customer requires an email address or a phone number (BR-4.1). The caller must "
+                + "normalise and validate both before calling Update.");
+        }
+
+        // Trimmed but not otherwise touched — a name is displayed verbatim (BR-8.10) and is
+        // deliberately not part of the duplicate rule (BR-4.6).
+        FullName = fullName.Trim();
+        Email = normalisedEmail;
+        PhoneE164 = normalisedPhone;
+
+        // Whitespace-only collapses to null, matching the factory: " " and null are the same
+        // absence, and storing one of them as a value makes an empty company sort and filter
+        // differently from a missing one.
+        CompanyName = string.IsNullOrWhiteSpace(companyName) ? null : companyName.Trim();
+        Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+    }
 }

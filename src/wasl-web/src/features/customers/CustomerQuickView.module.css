@@ -1,0 +1,101 @@
+/* The row's quick view, inside the side sheet. `035` §4.3b. */
+
+/* IT PADS ITSELF. `SideSheet`'s body pads nothing — see the note there — so
+   every content component owns its own inset. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: var(--sheet-padding);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: var(--weight-medium);
+}
+
+/* ---- one contact field per row ----------------------------------------- */
+
+/* A BORDERED ROW, not an input. The frame draws a boxed field and it is
+   tempting to reuse `Input` with `readOnly` — that would put a form control in
+   a read-only surface, so a keyboard would tab into it and a screen reader
+   would announce "edit text" for something nobody can edit. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 44px;
+  padding-inline: 14px;
+  border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+}
+
+.fieldValue {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fieldIcon {
+  flex: none;
+  color: var(--text-muted);
+}
+
+/* ---- the record rows ---------------------------------------------------- */
+
+.meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-block: 9px;
+  border-block-end: var(--border-width) solid var(--border-divider);
+}
+
+.meta:last-child {
+  border-block-end: 0;
+}
+
+.metaLabel {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+/* Pushed to the far edge, so the two rows' values line up with each other
+   rather than with their own labels. */
+.metaValue {
+  min-inline-size: 0;
+  margin-inline-start: auto;
+  overflow: hidden;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.absent {
+  color: var(--text-placeholder);
+}
+
+/* Full width at the foot of the body — the frame's «فتح الملف الكامل». It is in
+   the BODY rather than in the sheet's footer slot because the quick view has
+   nothing to submit: a footer with a border above it would promise a form. */
+.open {
+  margin-block-start: 4px;
+}
+
+.open button {
+  inline-size: 100%;
+}

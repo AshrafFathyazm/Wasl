@@ -94,14 +94,23 @@
 /* Cancel is a LINK, not a button, because it navigates. A control that changes
  * the URL and looks like a submit is one the keyboard and the middle mouse
  * button disagree about. */
+/* A LINK ON THE PAGE AND A BUTTON IN THE SHEET, and the two have to look
+   identical: which one renders depends on the mode, and a reader must not be
+   able to tell. `font: inherit` and `cursor` are what a <button> needs to stop
+   looking like one; `text-decoration: none` is what an <a> needs. */
 .cancel {
   display: inline-flex;
   align-items: center;
   block-size: var(--button-height-md);
   padding-inline: var(--space-3);
+  border: 0;
   border-radius: var(--button-radius);
+  background-color: transparent;
   color: var(--text-secondary);
+  font: inherit;
   font-size: var(--type-label-md);
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .cancel:hover {
@@ -115,4 +124,92 @@
   margin-inline-start: auto;
   font-size: var(--type-caption);
   color: var(--text-muted);
+}
+
+/* SHEET MODE. The sheet supplies its own padding and its own header, so the
+   page shell here would double both. */
+.bare {
+  display: contents;
+}
+
+/* THE FRAME'S DIVIDER. An <hr> rather than a border on the next field: a border
+   belongs to the thing it is on, and this line belongs to neither side — it is
+   the boundary between the identity fields and the contact fields. Reset to a
+   single logical rule, because a UA <hr> brings its own inset margins. */
+.rule {
+  block-size: 0;
+  margin-block: var(--space-1);
+  margin-inline: 0;
+  border: 0;
+  border-block-start: var(--border-width) solid var(--border-divider);
+}
+
+/* THE SHEET'S FOOTER, from the frame supplied 2026-09-03: «إلغاء» at its natural
+   width against the inline-start, «حفظ العميل» taking everything left over. On
+   the routed page the row keeps its old shape — a wide primary inside a 900px
+   card would be a button the width of a paragraph. */
+/* THE SHEET'S FOOTER, measured off the frame supplied 2026-09-03: «إلغاء» at its
+   natural width against the inline-start, «حفظ العميل» taking everything left
+   over. The routed page keeps its old shape — a full-width primary inside a
+   900px card would be a button the width of a paragraph. */
+.actionsSheet .submit {
+  flex: 1;
+}
+
+.actionsSheet .submit button {
+  inline-size: 100%;
+}
+
+/* ============================================================================
+ * SHEET MODE — 035 §4.3, from the frames supplied 2026-09-03.
+ * ========================================================================= */
+
+/* NO PERCENTAGE HEIGHT AND NO STICKY. Both were here, and together they produced
+   a vertical scrollbar on a form that fits plus a footer painted over the last
+   field: `min-block-size: 100%` resolved against a flex-derived box while a
+   `position: sticky` child sat inside it.
+
+   The sheet's body is a flex column now, so this form takes a DEFINITE height
+   from `flex: 1`. The field area below is the only scroller and the footer is a
+   normal flex child — always visible, never overlapping, and a scrollbar appears
+   only when the fields genuinely do not fit. */
+.formSheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+}
+
+/* No border, no radius, no padding — the panel supplies all three. */
+/* THE ONLY SCROLLER in the sheet, and it pads itself — `SideSheet`'s body pads
+   nothing, so its children decide their own inset and where their scroller is.
+   `min-block-size: 0` is what lets this shrink below its content: a flex child
+   defaults to `min-height: auto` and refuses, which is how the footer ended up
+   with nowhere to go. */
+.cardBare {
+  flex: 1;
+  min-block-size: 0;
+  padding: var(--sheet-padding);
+  border: 0;
+  border-radius: 0;
+  overflow: hidden auto;
+  scrollbar-width: thin;
+}
+
+/* THE PINNED FOOTER, and it is INSIDE the <form> on purpose. Moving it to the
+   sheet's own footer slot would put the submit button outside the form, so it
+   would need a `form="…"` attribute and a matching id — a second thing to keep
+   in step for no gain. Sticky gives the frame's result while the button stays
+   the form's own submit. */
+/* A PLAIN FLEX CHILD, with no negative margins. It spans the panel edge to edge
+   because it is a SIBLING of the scroller rather than a child of it. The earlier
+   version cancelled the body's padding with `calc(var(--sheet-padding) * -1)`,
+   and while those two numbers disagreed by 4px the sheet grew a HORIZONTAL
+   scrollbar. There is nothing left to disagree about. */
+.actionsSheet {
+  flex: none;
+  margin: 0;
+  padding: var(--space-4) var(--sheet-padding);
+  border-block-start: var(--border-width) solid var(--border-divider);
+  background-color: var(--surface-card);
 }

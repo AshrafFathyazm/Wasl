@@ -75,6 +75,12 @@ describe('AC-12 — no colour, radius, or spacing literal', () => {
          * stylesheet into re-deriving a button's radius instead of citing it.
          * The FIRST version of this guard did refuse them, and the two failures
          * it produced were the guard being wrong rather than the CSS. */
+        /* `0` IS NOT A RADIUS TOKEN — it is the absence of one, and the sheet
+         * variant of this form needs it: the panel supplies the frame that the
+         * card's own border and radius would duplicate. THIRD time this guard
+         * has been wrong about a value rather than catching one; the note above
+         * already records the first two. */
+        if (value?.trim() === '0') continue;
         expect(value).toMatch(/var\(--(radius-|[a-z-]+-radius)/);
       }
     });
@@ -90,7 +96,23 @@ describe('AC-12 — no colour, radius, or spacing literal', () => {
       expect(declarations.length).toBeGreaterThan(0);
       for (const [, property, value] of declarations) {
         /* `0` and `auto` are not measurements. Everything else must be a token. */
-        const parts = (value ?? '').trim().split(/\s+/);
+        /* A `calc()` WHOSE LENGTHS ARE ALL TOKENS is token-derived, and the
+         * word-splitting below cannot see it: it reported `*` and `-1` as stray
+         * measurements in `calc(var(--space-6) * -1)`. A negative inline margin
+         * over a token is how a pinned bar spans a padded container edge to
+         * edge, and there is no token for "minus space-6".
+         *
+         * The assertion is still real: the calc may contain NO literal length,
+         * and it must contain at least one token. */
+        const raw = (value ?? '').trim();
+        if (/^calc\(/.test(raw)) {
+          const literals = raw.match(/\d+(?:\.\d+)?(?:px|rem|em|%)/g) ?? [];
+          expect(literals, `${file}: ${property}: ${raw}`).toHaveLength(0);
+          expect(raw, `${file}: ${property}: ${raw}`).toMatch(/var\(--/);
+          continue;
+        }
+
+        const parts = raw.split(/\s+/);
         for (const part of parts) {
           if (part === '0' || part === 'auto') continue;
           expect(part, `${file}: ${property}: ${value}`).toMatch(/var\(--/);
@@ -139,15 +161,48 @@ describe('AC-8 — there is no duplicate pre-check anywhere in this feature', ()
     expect(offenders).toEqual([]);
   });
 
-  it('exposes exactly two fetchers, neither of which is a lookup', () => {
+  it('exposes only fetchers named for an endpoint, and none that is a lookup', () => {
     const api = read('customers.api.ts');
-    const exported = [...api.matchAll(/export (?:async )?function (\w+)/g)].map((m) => m[1]);
+    /* `?? ''` because a capture group is `string | undefined` under strict mode
+       and the filter below needs a string. It cannot actually be undefined —
+       the group is not optional — so this is a shape, not a value. */
+    const exported = [...api.matchAll(/export (?:async )?function (\w+)/g)].map(
+      (m) => m[1] ?? '',
+    );
 
-    /* Two, and named for the two endpoints `032` consumes. A third — anything
-     * shaped like `findByEmail` — is the pre-check arriving, and it would be a
-     * race two concurrent requests both pass (`007` AC-13) as well as an oracle
-     * telling anyone with the form open whether an address is on file. */
-    expect(exported.sort()).toEqual(['createCustomer', 'getCustomer']);
+    /* THIS ASSERTED A LIST OF EXACTLY TWO and `033` added two more — the directory
+     * and the company vocabulary. The list was the wrong shape for the claim: it
+     * failed on a feature that added a legitimate read, which makes it a change
+     * detector rather than a guard, and the next person's cheapest fix would have
+     * been to append a name without reading this comment.
+     *
+     * THE CLAIM IS UNCHANGED and is what AC-8 is actually about: no fetcher here
+     * answers *"does this customer already exist"*. Such a fetcher would be a
+     * race two concurrent requests both pass (`007` AC-13) and an oracle telling
+     * anyone with the form open whether an address is on file (BR-4.4). So the
+     * shape is refused rather than the count fixed. */
+    const lookupShaped = exported.filter((name) =>
+      /^(find|lookup|exists|check|verify)|ByEmail$|ByPhone$|Duplicate/i.test(name),
+    );
+
+    expect(lookupShaped).toEqual([]);
+    expect(exported.sort()).toEqual([
+      'createCustomer',
+      'getCustomer',
+      'getCustomerCompanies',
+      'listCustomers',
+    ]);
+  });
+
+  /* AND THE OTHER HALF, which the list above cannot see: `listCustomers` takes a
+   * `search`, so it COULD be used as a pre-check by a careless caller. The create
+   * form is where that would live. */
+  it('the create form issues no read before it submits', () => {
+    const form = read('CreateCustomerPage.tsx');
+
+    expect(form).not.toContain('listCustomers');
+    expect(form).not.toContain('getCustomerCompanies');
+    expect(form).not.toContain('useQuery');
   });
 });
 
@@ -160,10 +215,33 @@ describe('AC-13 — the catalogues are in step', () => {
     );
   }
 
+  /** A plural form is the SAME key. i18next appends `_zero`/`_one`/`_two`/`_few`/
+   *  `_many`/`_other`, and Arabic uses six where English uses two — so comparing
+   *  raw key names makes correct pluralisation look like broken parity.
+   *
+   *  Added 2026-09-01, when `033` introduced the namespace's first counted noun
+   *  (`list.count`) and this guard went red on six legitimate Arabic forms. The
+   *  fold is the fix; loosening the comparison to a subset would not be. */
+  const folded = (catalogue: unknown) => [
+    ...new Set(leaves(catalogue).map((key) => key.replace(/_(zero|one|two|few|many|other)$/, ''))),
+  ].sort();
+
   it('holds the same keys in en and ar', () => {
     /* BR-8.11's parity, for this namespace. A key present in one language falls
      * back to the other and looks deliberate — which is why it survives review. */
-    expect(leaves(arCustomers).sort()).toEqual(leaves(enCustomers).sort());
+    expect(folded(arCustomers)).toEqual(folded(enCustomers));
+  });
+
+  it('gives every counted noun its Arabic forms, which is what the fold hides', () => {
+    /* The fold above could pass on an Arabic catalogue with NO plural forms at
+       all, so the thing it hides is asserted separately: Arabic needs at least
+       `_one`, `_two` and `_other` for a counted noun, and `list.count` is this
+       namespace's. */
+    const ar = leaves(arCustomers);
+
+    for (const suffix of ['_one', '_two', '_other']) {
+      expect(ar, `list.count${suffix} is missing`).toContain(`list.count${suffix}`);
+    }
   });
 
   it('has no empty value in either language', () => {

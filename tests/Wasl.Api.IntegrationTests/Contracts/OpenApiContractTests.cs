@@ -53,7 +53,6 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
         ["PUT /api/settings/branding"] = "022-tenant-theming-settings",
         ["GET /api/locales"] = "014-language-preference-and-rtl",
         ["GET /api/customers/{id}/overview"] = "018-customer-overview",
-        ["PUT /api/customers/{id}"] = "017-update-customer",
         ["POST /api/tickets/{id}/escalate"] = "016-escalate-ticket",
         ["GET /api/communications/channels"] = "021-communication-provider-abstraction",
         ["POST /api/communications/inbound"] = "021-communication-provider-abstraction",

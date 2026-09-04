@@ -9,6 +9,7 @@ import { Button } from '../../components/Button/Button';
 import { Input } from '../../components/Input/Input';
 import { Textarea } from '../../components/Textarea/Textarea';
 import { ApiError } from '../../lib/api';
+import { cx } from '../../lib/cx';
 import styles from './CreateCustomer.module.css';
 import {
   createCustomerSchema,
@@ -79,7 +80,35 @@ function safeReturnUrl(raw: string | null): string | null {
   return raw;
 }
 
-export default function CreateCustomerPage() {
+export interface CreateCustomerFormProps {
+  /**
+   * Called on a successful create, INSTEAD of navigating.
+   *
+   * THE SHEET AND THE PAGE ARE THE SAME FORM — the frames supplied 2026-09-03
+   * put «عميل جديد» in a side sheet, and `035` Q-3 keeps `/customers/new`
+   * routed because the no-match empty state links to it carrying the search
+   * term and a sheet cannot be deep-linked. Two copies of a form with a
+   * double-submit guard, a `409` branch and a nine-field Zod schema is two
+   * copies that drift, so this takes a callback instead.
+   *
+   * Absent means page mode: navigate to the new customer, or back to wherever
+   * `?returnUrl=` came from.
+   */
+  onCreated?: ((id: string, fullName: string) => void) | undefined;
+
+  /** Sheet mode's «إلغاء». Absent means page mode, which uses a `Link`. */
+  onCancel?: (() => void) | undefined;
+
+  /** Sheet mode drops the page's own heading and back link — the sheet's header
+   *  already carries both, and two titles read as two screens. */
+  chrome?: boolean | undefined;
+}
+
+export function CreateCustomerForm({
+  onCreated,
+  onCancel,
+  chrome = true,
+}: CreateCustomerFormProps = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -114,6 +143,15 @@ export default function CreateCustomerPage() {
     mutationFn: (values: CreateCustomerParsed) =>
       createCustomer(toCreateCustomerRequest(values)),
     onSuccess: ({ customer, location }) => {
+      /* SHEET MODE FIRST. The caller closes the sheet and refetches the list —
+         it does NOT seed the list cache from this response (`026` §5,
+         `032` AC-1): a row the server has not been asked about sorts and pages
+         by rules only the server knows. */
+      if (onCreated !== undefined) {
+        onCreated(customer.id, customer.fullName);
+        return;
+      }
+
       if (returnUrl !== null) {
         /* Back where they came from, carrying the new customer so the ticket
          * form can select it without a second request. The ROUTE state, not a
@@ -216,13 +254,15 @@ export default function CreateCustomerPage() {
   const message = (raw: string | undefined) => (raw === undefined ? undefined : t(raw));
 
   return (
-    <div className={styles.page}>
-      <div className={styles.head}>
-        <Link className={styles.back} to={returnUrl ?? '/customers'}>
-          {t('common:back')}
-        </Link>
-        <h2 className={styles.title}>{t('customers:new.title')}</h2>
-      </div>
+    <div className={chrome ? styles.page : styles.bare}>
+      {!chrome ? null : (
+        <div className={styles.head}>
+          <Link className={styles.back} to={returnUrl ?? '/customers'}>
+            {t('common:back')}
+          </Link>
+          <h2 className={styles.title}>{t('customers:new.title')}</h2>
+        </div>
+      )}
 
       {formError === null ? null : (
         <div className={styles.notice} role="alert">
@@ -230,8 +270,13 @@ export default function CreateCustomerPage() {
         </div>
       )}
 
-      <form onSubmit={onSubmit} noValidate>
-        <div className={styles.card}>
+      <form className={cx(!chrome && styles.formSheet)} onSubmit={onSubmit} noValidate>
+        {/* NO CARD CHROME IN THE SHEET. A bordered, padded card inside a padded
+            panel is two frames around one form — it cost about 50px of height,
+            which is what pushed the content past the panel and produced the
+            scrollbar the frame does not have. On the routed page the card is
+            what separates the form from an otherwise empty screen. */}
+        <div className={cx(styles.card, !chrome && styles.cardBare)}>
           <Controller
             control={form.control}
             name="fullName"
@@ -244,11 +289,45 @@ export default function CreateCustomerPage() {
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 maxLength={200}
-                helperText={t('customers:new.nameHelp')}
+                placeholder={t('customers:new.namePlaceholder')}
+                /* HELPER TEXT ON THE PAGE, NOT IN THE SHEET. The frames differ
+                   and the difference is deliberate: the routed screen has room
+                   to explain where a name shows up, and the sheet is a fast
+                   path where five helper lines are five lines of reading
+                   between the reader and «حفظ». */
+                {...(chrome ? { helperText: t('customers:new.nameHelp') } : {})}
                 error={message(errors.fullName?.message)}
               />
             )}
           />
+
+          {/* THE FRAME'S ORDER — name, COMPANY, then the two contact fields.
+              Supplied 2026-09-03: "دا الشكل الصحيح لاضافة عميل عكس الي انت
+              عامله". `032` had company AFTER the contacts; the frame puts it
+              second, which also puts the BR-4.1 hint immediately above the pair
+              it governs instead of three fields away from one of them. */}
+          <Controller
+            control={form.control}
+            name="companyName"
+            render={({ field }) => (
+              <Input
+                ref={field.ref}
+                label={t('customers:field.company')}
+                placeholder={t('customers:new.companyPlaceholder')}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                maxLength={200}
+                error={message(errors.companyName?.message)}
+              />
+            )}
+          />
+
+          {/* A RULE, DRAWN AS A DIVIDER. The frame separates the identity fields
+              from the contact fields with a line, and the hint sits under it —
+              which is what makes "one of these two" read as being about the
+              group below rather than about the field above. */}
+          <hr className={styles.rule} />
 
           {/* ABOVE THE TWO FIELDS IT GOVERNS, and a HINT rather than an error: an
               empty form has not failed anything yet. A cross-field rule explained
@@ -268,6 +347,7 @@ export default function CreateCustomerPage() {
                 onChange={field.onChange}
                 onBlur={field.onBlur}
                 maxLength={320}
+                placeholder={t('customers:new.emailPlaceholder')}
                 error={message(errors.email?.message)}
               />
             )}
@@ -296,7 +376,7 @@ export default function CreateCustomerPage() {
                    parseable E.164 — a client narrowing its own API. The country
                    code is a placeholder instead, and the server normalises. */
                 placeholder={t('customers:new.phonePlaceholder')}
-                helperText={t('customers:new.phoneHelp')}
+                {...(chrome ? { helperText: t('customers:new.phoneHelp') } : {})}
                 error={message(errors.phone?.message)}
               />
             )}
@@ -312,21 +392,6 @@ export default function CreateCustomerPage() {
             </p>
           )}
 
-          <Controller
-            control={form.control}
-            name="companyName"
-            render={({ field }) => (
-              <Input
-                ref={field.ref}
-                label={t('customers:field.company')}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                maxLength={200}
-                error={message(errors.companyName?.message)}
-              />
-            )}
-          />
 
           <Controller
             control={form.control}
@@ -335,6 +400,7 @@ export default function CreateCustomerPage() {
               <Textarea
                 ref={field.ref}
                 label={t('customers:field.notes')}
+                placeholder={t('customers:new.notesPlaceholder')}
                 rows={4}
                 value={field.value}
                 onChange={field.onChange}
@@ -347,23 +413,61 @@ export default function CreateCustomerPage() {
           />
         </div>
 
-        <div className={styles.actions}>
+        {/* The frame closes the card with a line before the actions. */}
+        <hr className={styles.rule} />
+
+        <div className={cx(styles.actions, !chrome && styles.actionsSheet)}>
+          {/* CANCEL FIRST IN THE DOM, and the frame is why: it draws «إلغاء» at
+              the inline-START with «حفظ العميل» filling the rest toward the
+              inline-end. That is the opposite of the usual primary-first order,
+              and putting it in the DOM this way rather than reordering with CSS
+              keeps the tab order and the reading order the same as the visual
+              one — `order` on a flex child moves the pixels and leaves the
+              keyboard where it was.
+
+              A BUTTON in sheet mode, a LINK on the page: in a sheet there is
+              nowhere to navigate to — the reader is already where cancelling
+              returns them — and a link with an href would take them off the
+              list they were looking at. */}
+          {onCancel === undefined ? (
+            <Link className={styles.cancel} to={returnUrl ?? '/customers'}>
+              {t('common:cancel')}
+            </Link>
+          ) : (
+            <button type="button" className={styles.cancel} onClick={onCancel}>
+              {t('common:cancel')}
+            </button>
+          )}
+
           {/* `loading` disables AND shows the system loader, and THE LABEL DOES
               NOT CHANGE. `Button` keeps its accessible name while busy and
               carries `aria-busy` — swapping it to "Saving…" renames the control
               mid-action, so a screen reader announces a different button from the
               one that was pressed (AC-6). */}
-          <Button
-            type="submit"
-            text={t('customers:new.submit')}
-            loading={busy}
-          />
-          <Link className={styles.cancel} to={returnUrl ?? '/customers'}>
-            {t('common:cancel')}
-          </Link>
-          <span className={styles.optionalNote}>{t('customers:new.optionalNote')}</span>
+          <span className={styles.submit}>
+            <Button type="submit" text={t('customers:new.submit')} loading={busy} />
+          </span>
+
+          {/* THE OPTIONAL-FIELDS NOTE IS PAGE-ONLY. The sheet's frame has no room
+              for it and does not draw it; on the routed screen it sits at the
+              inline-end of the row. */}
+          {!chrome ? null : (
+            <span className={styles.optionalNote}>{t('customers:new.optionalNote')}</span>
+          )}
         </div>
       </form>
     </div>
   );
+}
+
+/**
+ * `/customers/new` — the routed screen.
+ *
+ * Kept because `033`'s no-match empty state links here **carrying the search
+ * term**, and a sheet cannot be deep-linked (`035` Q-3). An unreachable route is
+ * the defect this session found on `/tickets/new`; an unreachable route that
+ * something still links to would be worse.
+ */
+export default function CreateCustomerPage() {
+  return <CreateCustomerForm />;
 }

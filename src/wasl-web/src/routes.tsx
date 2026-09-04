@@ -24,6 +24,7 @@ const HomePage = lazy(() => import('./features/home/HomePage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
 const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
+const CustomersListPage = lazy(() => import('./features/customers/CustomersListPage'));
 const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
 const CustomerProfilePage = lazy(() => import('./features/customers/CustomerProfilePage'));
 
@@ -103,7 +104,12 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
 
 /** Paths that now have a real screen. Listed once so the placeholder spread and
  *  the real routes cannot disagree about which is which. */
-const OWNED_PATHS = new Set(['/tickets', '/tickets/mine', '/tickets/unassigned']);
+const OWNED_PATHS = new Set([
+  '/tickets',
+  '/tickets/mine',
+  '/tickets/unassigned',
+  '/customers',
+]);
 
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 
@@ -182,6 +188,10 @@ export const routes: RouteObject[] = [
            * the order, so `new` is not swallowed by `:id`. Written this way round
            * because relying on that ranking silently is how `/tickets` came to
            * render a placeholder for a whole release. */
+          /* `033`. `/customers` ITSELF IS A SCREEN NOW — it was `023`'s placeholder,
+           * filtered in from NAV_PATHS, and the comment beside `/customers/new`
+           * said the list was a later feature. This is that feature. */
+          { path: '/customers', element: <CustomersListPage /> },
           { path: '/customers/new', element: <CreateCustomerPage /> },
           { path: '/customers/:id', element: <CustomerProfilePage /> },
         ],

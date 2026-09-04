@@ -153,14 +153,17 @@ describe('the five states', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the error state with the server detail, and retries', async () => {
+  it('keeps the table and its headings, and shows ONE standard notice', async () => {
+    /* THE COPY IS THE PRIMITIVE'S NOW, and the server's `detail` is deliberately
+       not shown. This test asserted the opposite until 2026-09-03 — it required
+       «الخادم غير متاح» from the response — and that behaviour was the defect:
+       on a validation envelope `detail` is developer-facing, so the screen read
+       «تعذّر تحميل القائمة · راجع خاصية errors للاطّلاع على رسائل الحقول».
+
+       Ruled the same day: "ثبت شكل دا لكل جداول السيستم نفس الايكونز نفس الرسالة
+       نفس كل شيء للجداول". One event, one set of words, read from `common`. */
     const u = userEvent.setup();
     vi.mocked(listTickets).mockRejectedValue(
-      /* ApiError takes (problem, contentLanguage) — `status` comes off the
-       * problem, not a separate argument. Got this wrong first time and the
-       * test failed by rendering our fallback copy, which is exactly what it
-       * would have done on a real transport failure. Right symptom, wrong
-       * cause: the assertion was fine, the fixture was malformed. */
       new ApiError(
         {
           type: 'errors/unexpected',
@@ -173,13 +176,30 @@ describe('the five states', () => {
       ),
     );
     mounted();
+
     const alert = await screen.findByRole('alert');
-    /* The SERVER's message when it authored one — our copy would be less useful
-     * and would hide that the server said something. */
-    expect(within(alert).getByText('الخادم غير متاح')).toBeInTheDocument();
+    expect(within(alert).getByText(i18n.t('common:table.errorTitle'))).toBeInTheDocument();
+    expect(within(alert).getByText(i18n.t('common:table.errorBody'))).toBeInTheDocument();
+
+    /* The server's own `detail` is NOT on screen. Asserted, because dropping it
+       was the point. */
+    expect(screen.queryByText('الخادم غير متاح')).not.toBeInTheDocument();
+
+    /* The trace id IS — the one string a reader can hand to somebody who can act
+       on it. */
+    expect(within(alert).getByText('00-abc-def-00')).toBeInTheDocument();
+
+    /* AND THE TABLE SURVIVES. Reported 2026-09-03: "ارسم الجدول عادي الهدير يكون
+       موجود والبودي بتاع الجداول تكون فيها الايرور دا بس متخفيش رسم الجدول
+       بالهيدر بتاعه". A page that replaces its whole table reads as broken
+       rather than as a failed request. */
+    expect(
+      screen.getByRole('columnheader', { name: i18n.t('tickets:list.column.subject') }),
+    ).toBeInTheDocument();
+    expect(screen.queryAllByRole('row')).toHaveLength(1);
 
     vi.mocked(listTickets).mockResolvedValue(page());
-    await u.click(within(alert).getByRole('button'));
+    await u.click(within(alert).getByRole('button', { name: i18n.t('common:table.retry') }));
     expect(await screen.findByText('TCK-2026-000042')).toBeInTheDocument();
   });
 });
@@ -198,7 +218,9 @@ describe('changing the page size returns to page 1', () => {
      * on anything else, so the rows-per-page control is now driven by opening it
      * and clicking a row. The assertion below is untouched. */
     await u.click(screen.getByRole('combobox'));
-    await u.click(within(await screen.findByRole('listbox')).getByRole('option', { name: '100' }));
+    await u.click(
+      within(await screen.findByRole('listbox')).getByRole('option', { name: '100' }),
+    );
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
     expect(vi.mocked(listTickets).mock.calls[0]![0]).toEqual({ page: 1, pageSize: 100 });
   });
@@ -282,7 +304,9 @@ describe('FE-026-09 — the row navigates, AND it has a menu again', () => {
      * six-row page, and a screen reader walks all of them. */
     expect(screen.queryByRole('menu')).toBeNull();
 
-    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+    await u.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }),
+    );
 
     const items = screen.getAllByRole('menuitem');
     expect(items.map((i) => i.textContent)).toEqual([
@@ -297,7 +321,9 @@ describe('FE-026-09 — the row navigates, AND it has a menu again', () => {
     const u = userEvent.setup();
     mounted();
     await screen.findByText('TCK-2026-000042');
-    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+    await u.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }),
+    );
 
     /* The design draws the item, so it is drawn — and it does not pretend to
      * work. There is no escalate endpoint in the API at all; `016` is unbuilt.
@@ -313,7 +339,9 @@ describe('FE-026-09 — the row navigates, AND it has a menu again', () => {
     mounted();
     await screen.findByText('TCK-2026-000042');
 
-    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }));
+    await u.click(
+      screen.getByRole('button', { name: i18n.t('tickets:list.rowActions') }),
+    );
 
     /* The row's own handler ignores a click that started on a button, and the
      * trigger stops propagation. Both halves are needed and neither is visible
@@ -419,7 +447,7 @@ describe('AC-026-06 — a refetch keeps the rows on screen', () => {
       () => new Promise((resolve) => (release = resolve)),
     );
 
-    await u.click(screen.getByRole('button', { name: i18n.t('tickets:list.next') }));
+    await u.click(screen.getByRole('button', { name: i18n.t('common:pager.next') }));
     await waitFor(() => expect(listTickets).toHaveBeenCalledTimes(2));
 
     /* The row the reader was looking at is still there... */
@@ -492,5 +520,49 @@ describe('escalation and assignment render only when the row says so', () => {
       await screen.findByText(i18n.t('tickets:list.unassigned')),
     ).toBeInTheDocument();
     expect(container.querySelector('[class*="avatar"]')).toBeNull();
+  });
+});
+
+describe('an inverted created range never reaches the request', () => {
+  /* THE PRODUCTION PATH, end to end: a hand-typed or stale link carrying a
+     range that ends before it starts. The endpoint refuses that range —
+     `400`, `errors.createdTo` — and the refusal must not reach a reader,
+     because it arrives as an error pane over a list that was working.
+
+     Measured 2026-09-03, Arabic, before the reader dropped it:
+       /tickets?createdFrom=2026-09-01&createdTo=2026-08-01
+         rendered «تعذّر تحميل القائمة · راجع خاصية errors للاطّلاع على رسائل
+         الحقول» — the server's DEVELOPER-facing detail, on screen.
+       /customers with the same pair answered 200 totalCount 0 and said
+         «لا عميل يطابق هذا» — a false claim about the data. */
+
+  it('sends neither bound, and still lists', async () => {
+    mounted('/tickets?createdFrom=2026-09-01&createdTo=2026-08-01');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+    const params = vi.mocked(listTickets).mock.calls.at(-1)?.[0];
+    expect(params?.createdFrom).toBeUndefined();
+    expect(params?.createdTo).toBeUndefined();
+  });
+
+  it('shows no chip for the range it dropped', async () => {
+    /* THE URL KEEPS THE STALE PAIR, and that is the same behaviour every other
+       dropped value has — `?sort=email` stays in the address bar too. What
+       matters is that nothing in the product acts on it: no request carries it
+       and no chip offers to remove a filter that is not applied. Asserting the
+       URL was cleaned was the first version of this test, and it was WRONG —
+       the page rewrites the URL on a filter CHANGE, not on a read. */
+    mounted('/tickets?createdFrom=2026-09-01&createdTo=2026-08-01');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+    expect(screen.queryByText(/01\/09\/2026/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/01\/08\/2026/)).not.toBeInTheDocument();
+  });
+
+  it('keeps a range that runs forwards — the control', async () => {
+    /* Without this, a reader that dropped BOTH bounds unconditionally would
+       pass the two tests above while deleting the feature. */
+    mounted('/tickets?createdFrom=2026-08-01&createdTo=2026-09-01');
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+    expect(vi.mocked(listTickets).mock.calls.at(-1)?.[0]?.createdFrom).toBe('2026-08-01');
+    expect(vi.mocked(listTickets).mock.calls.at(-1)?.[0]?.createdTo).toBe('2026-09-01');
   });
 });

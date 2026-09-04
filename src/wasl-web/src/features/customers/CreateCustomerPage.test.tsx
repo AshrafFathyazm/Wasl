@@ -84,7 +84,7 @@ function renderPage(initialEntry = '/customers/new') {
 
 /** The minimum a valid submit needs: a name and one contact method (BR-4.1). */
 async function fillMinimum(user: UserEvent) {
-  await user.type(screen.getByLabelText(/Full name/), 'Noura Al-Salem');
+  await user.type(screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))), 'Noura Al-Salem');
   await user.type(screen.getByLabelText(/^Email/), 'noura@example.com');
 }
 
@@ -340,7 +340,7 @@ describe('AC-10 — the phone field is pinned LTR, the others are not', () => {
 
     /* The other two stay `auto`: a name is language content in either script, and
      * an address has strong LTR characters of its own the moment it is typed. */
-    expect(screen.getByLabelText(/الاسم الكامل/)).toHaveAttribute('dir', 'auto');
+    expect(screen.getByLabelText(new RegExp(i18n.t('customers:field.name')))).toHaveAttribute('dir', 'auto');
     expect(screen.getByLabelText(/البريد الإلكتروني/)).toHaveAttribute('dir', 'auto');
 
     await i18n.changeLanguage('en');
@@ -366,7 +366,7 @@ describe('AC-9 — BR-4.1 is stated before the fields it governs', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(/Full name/), 'Noura Al-Salem');
+    await user.type(screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))), 'Noura Al-Salem');
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
     /* NOTHING REACHES THE SERVER: the client mirror is what makes this cheap,

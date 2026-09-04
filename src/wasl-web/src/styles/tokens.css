@@ -58,6 +58,26 @@
   --teal-600: #4a9e96;
   --teal-400: #6fbfb0;
 
+  /* THE ROW-HOVER PAIR — `035` §7, specified by the product owner as raw hexes.
+     Neither was in this file: the nearest existing values are `--neutral-200`
+     (#dee5e7) and `--neutral-400` (#9fabb5), and a near-match is a second
+     palette rather than a refinement — the note on the semantic block below
+     already says so about `--amber-50`. They read as a desaturated teal, which
+     is why they sit in this ramp. */
+  --teal-300: #9fb4bc;
+
+  /* TWO STEPS LIGHTER THAN THE SPECIFIED #D6E4E8 — asked for 2026-09-03, "خفف
+     الهوفر بتاع الرو في الجدول درجتين كمان". Each step is ~28% toward white:
+     #d6e4e8 -> #e0eaed -> #e9f1f3. The original value is kept in this comment
+     because it is what the product owner's CSS specified, and the lift is a
+     later refinement rather than a correction of it. A THIRD step was asked for
+     the same day, so the ramp is #d6e4e8 -> #e0eaed -> #e9f1f3 -> #eff5f6.
+
+     `--teal-300` is deliberately NOT lightened with it: the 3px rail is what
+     still tells the eye which row is under the cursor now that the fill is this
+     quiet, and softening both would leave the hover barely readable. */
+  --teal-100: #eff5f6;
+
   /* Status — all four pairs now complete (A) */
   --blue-600: #387ad8;
   --blue-500: #1570ef;
@@ -128,7 +148,29 @@
    * edge and the sixty lines inside it are not the same weight, and spending one
    * token on both is what makes a long table read as graph paper. */
   --border-divider: #e8edef; /* (D) row divider, inside the card */
-  --surface-row-hover: #fafcfc; /* (D) table row hover */
+  /* `--surface-row-hover` IS NOT THE TABLE ROW'S, despite the name, and `035`
+   * nearly repurposed it. Eleven consumers: one table row, and TEN faint
+   * hovers on the ticket detail's menu items and panel rows plus the tab
+   * track — every one of which wants this near-white. Rewriting it to the
+   * product owner's #D6E4E8 would have restyled nine surfaces nobody asked
+   * about. The table row got its own four tokens instead (below), and this one
+   * keeps its value and gains an honest description: a GENERIC faint hover.
+   * Renaming it is a separate cleanup with eleven call sites. */
+  --surface-row-hover: #fafcfc; /* (D) generic faint hover — NOT the table row */
+
+  /* ==== TABLE ROW STATE (035 §7, from the product owner's CSS) ==========
+   * Four tokens because the row has two states and each carries a fill and a
+   * 3px leading rail.
+   *
+   * The SELECTED pair is dead CSS on arrival: nothing in the product marks a
+   * row selected yet. Defined anyway — the ticket detail's row flyout and
+   * `035`'s sheet both create that state, and a rule written after the fact is
+   * a rule written twice. A test sets `aria-selected` directly so it is not
+   * merely unasserted. */
+  --surface-table-row-hover: var(--teal-100);
+  --border-table-row-rail: var(--teal-300);
+  --surface-table-row-selected: var(--purple-50);
+  --border-table-row-rail-selected: var(--navy-900);
   --surface-chip: #f1f4f5; /* (D) segmented track, filter chip, neutral fill */
 
   /* ==== CHANNEL IDENTITY (D) =============================================
@@ -495,6 +537,18 @@
   --content-height: 956px;
   --content-padding: var(--space-7); /* 56 */
   --content-gap: var(--space-6); /* 24 */
+
+  /* THE SIDE SHEET'S PADDING, and it is a token because TWO modules need the
+     same number: `SideSheet` pads its body with it, and the create form inside
+     cancels it with a negative inline margin so its pinned footer spans the
+     panel edge to edge.
+
+     It lived in `SideSheet.module.css` first and the customers stylesheet read
+     it from there — AC-12 caught that as a reference to an undeclared property,
+     which is exactly what a cross-module custom property is. Two numbers for one
+     distance had already produced a 4px-per-side overflow and a horizontal
+     scrollbar; one number in the wrong FILE is the same defect one step later. */
+  --sheet-padding: var(--space-6);
   --sidebar-padding-block: var(--space-4);
   --sidebar-padding-inline: var(--space-6);
   --sidebar-gap: var(--space-4);

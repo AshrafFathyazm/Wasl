@@ -142,8 +142,54 @@
   border-block-end: 0;
 }
 
-.row:hover .td {
-  background-color: var(--surface-row-hover);
+/* ============================================================================
+ * ROW HOVER — `035` §7. On the <tr>, and the rail on the LEADING edge.
+ * ============================================================================
+ * IT WAS `.row:hover .td`, which lit eight cells that happen to abut. The
+ * requirement is explicit that the row lights ONCE, and it is the reason the
+ * background moved up here: the cells set no background of their own, so the
+ * row's shows through all of them.
+ *
+ * `border-collapse: collapse` on `.table` is what makes the inset shadow paint
+ * at all. It was already set — asserted in `tableRowHover.test.ts` rather than
+ * assumed, because nothing about `separate` would error.
+ *
+ * NOTHING UNDER `:hover` TOUCHES A SIZE. No padding, no height, no border, no
+ * border-width — any of them makes the row jump under the cursor. The
+ * transition names `background-color` alone for the same reason: `transition:
+ * background` would animate a shorthand that includes `background-position`.
+ *
+ * THE RAIL'S DIRECTION IS NOT AUTOMATIC, and the requirement assumed it was —
+ * "يمين في RTL تلقائياً لما الاتجاه مضبوط على الجدول". `box-shadow` offsets are
+ * PHYSICAL: there is no logical form, and a shadow does not flip with
+ * `direction` the way `inset-inline-start` does — so a single `inset 3px` would
+ * paint the rail on the LEFT of an RTL table, at the row's TRAILING edge. The
+ * sign is therefore a custom property, set once per direction, and it is the
+ * only physical value in this file. Checked by eye in both directions; the
+ * screenshots are recorded in `035`'s `tests.md`.
+ * ========================================================================= */
+.row {
+  --row-rail-x: 3px;
+
+  transition: background-color 120ms linear;
+}
+
+[dir='rtl'] .row {
+  --row-rail-x: -3px;
+}
+
+.row:hover {
+  background-color: var(--surface-table-row-hover);
+  box-shadow: inset var(--row-rail-x) 0 0 var(--border-table-row-rail);
+}
+
+/* THE SELECTED ROW WINS, and hover does not touch it. Dead CSS today — nothing
+   in the product marks a row selected — and specified now for the reason on the
+   tokens themselves. */
+.row[aria-selected='true'],
+.row[aria-selected='true']:hover {
+  background-color: var(--surface-table-row-selected);
+  box-shadow: inset var(--row-rail-x) 0 0 var(--border-table-row-rail-selected);
 }
 
 /* Cursor only. No focus ring and no tabindex — the keyboard path is the link
@@ -285,4 +331,105 @@
   border-start-start-radius: var(--radius-lg);
   border-start-end-radius: var(--radius-lg);
   color: var(--brand);
+}
+
+/* ============================================================================
+ * THE ERROR NOTICE — one shape for every table in the product.
+ * ============================================================================
+ * Ruled 2026-09-03: "ثبت شكل دا لكل جداول السيستم نفس الايكونز نفس الرسالة نفس
+ * كل شيء للجداول". The two list screens had each grown their own — different
+ * titles, different body copy, one padding of 56/24/52 and the other of
+ * space-12/space-6, and only one offering a retry. This is the shape the
+ * screenshot fixes, and it lives here so a third table cannot grow a fourth.
+ *
+ * IT SITS UNDER THE HEADER, not instead of the table. Reported the same day:
+ * "ارسم الجدول عادي الهدير يكون موجود والبودي بتاع الجداول تكون فيها الايرور دا
+ * بس متخفيش رسم الجدول بالهيدر بتاعه" — a page that replaces its whole table
+ * with a pane reads as broken rather than as a failed request.
+ * ========================================================================= */
+.notice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: var(--space-12);
+  padding-inline: var(--space-6);
+  overflow: hidden;
+  text-align: center;
+}
+
+/* The brand tiles, masked so they clear the copy. Both list screens already
+   painted this behind their own panes; it moved here with the notice. */
+.notice::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--wasl-pattern);
+  background-size: var(--wasl-pattern-size);
+  /* UNPREFIXED. The prefix is unnecessary in every browser this product
+     supports, and the other stylesheets that still carry it predate this rule. */
+  mask-image: var(--wasl-pattern-mask);
+  opacity: var(--wasl-pattern-opacity);
+  pointer-events: none;
+}
+
+/* Everything sits above the tiles. Without this the pattern paints over the
+   copy at the tile boundaries and reads as a rendering fault. */
+.noticeMark,
+.noticeTitle,
+.noticeBody,
+.noticeTrace,
+.noticeCta {
+  position: relative;
+}
+
+.noticeMark {
+  display: grid;
+  place-items: center;
+  inline-size: 68px;
+  block-size: 68px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+  color: var(--text-muted);
+}
+
+.noticeTitle {
+  margin: 14px 0 0;
+  font-size: 15.5px;
+  font-weight: var(--weight-medium);
+}
+
+.noticeBody {
+  margin: 4px 0 0;
+  max-inline-size: 360px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+.noticeTrace {
+  margin-block-start: 8px;
+  color: var(--text-muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}
+
+.noticeCta {
+  display: inline-flex;
+  align-items: center;
+  block-size: 36px;
+  margin-block-start: 14px;
+  padding-inline: 15px;
+  border: 1px solid var(--border-focus);
+  border-radius: 7px;
+  background-color: var(--surface-card);
+  color: var(--text-link);
+  font: inherit;
+  font-size: 13px;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.noticeCta:hover {
+  background-color: var(--surface-chip);
 }

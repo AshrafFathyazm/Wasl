@@ -4,10 +4,33 @@ import { useTranslation } from 'react-i18next';
 import { IconCalendar, IconChevronDown } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import type { Lang } from '../../lib/formatters';
-import styles from './TicketFilterBar.module.css';
+import styles from './DateField.module.css';
+
+/* ============================================================================
+ * PROMOTED OUT OF `features/tickets` on 2026-09-01 — `033` §7.1
+ * ============================================================================
+ * It was `TicketDateField`. The customers directory needs the same control, and
+ * a range filter cannot be expressed by any built primitive — `033` §7.1 refuses
+ * the native `<input type="date">` for three measured reasons and names this the
+ * ninth component with its written justification.
+ *
+ * WHAT CHANGED IN THE MOVE, and it is only these three things:
+ *   the name          `TicketDateField` -> `DateField` (a range is two of them)
+ *   the stylesheet    extracted by selector, not rewritten
+ *   the catalogue     `tickets:` -> `common:cal.*`, because a calendar is not a
+ *                     ticket and two callers of one control must not read two
+ *                     vocabularies
+ *
+ * The BEHAVIOUR is untouched, including the three defects the product owner
+ * reported against it on the ticket list: the Hijri toggle lives on the FIELD
+ * (its state used to die with the popover, so a Hijri pick wrote the Gregorian
+ * form into the trigger), the trigger text is composed from `formatToParts`
+ * (`format()` chose the month NAME and the mixed runs reordered), and the
+ * calendar opens upward over its own panel rather than over the table.
+ * ========================================================================= */
 
 /* =============================================================================
- * TicketDateField — the panel's date input, PORTED from the 026 preview
+ * DateField — the panel's date input, PORTED from the 026 preview
  * =============================================================================
  * The calendar below is the preview's `Calendar` promoted to the product: the
  * preview proved the pieces the frames ask for — Monday-first clipped-word
@@ -20,9 +43,12 @@ import styles from './TicketFilterBar.module.css';
  * that changed calendars with the toggle would filter by a different day than
  * the one on screen.
  *
- * FEATURE-LOCAL, not a primitive. One consumer, and the cap on the component
- * set requires a written reason for a ninth — this is the CustomerPicker
- * precedent, and it moves the day a second screen needs a date.
+ * IT WAS FEATURE-LOCAL AND THIS PARAGRAPH SAID SO — corrected 2026-09-01 rather
+ * than deleted, because the condition it named is what happened. It read: *"one
+ * consumer, and the cap on the component set requires a written reason for a
+ * ninth — it moves the day a second screen needs a date."* `033` is that second
+ * screen, the written reason is its §7.1, and the move is the one at the top of
+ * this file.
  * ========================================================================== */
 
 const CAL_ROWS = 6;
@@ -129,7 +155,7 @@ function monthNames(lang: Lang): string[] {
   return Array.from({ length: 12 }, (_, i) => fmt.format(new Date(2026, i, 15)));
 }
 
-export interface TicketDateFieldProps {
+export interface DateFieldProps {
   label: string;
   /** ISO day or `''`. */
   value: string;
@@ -137,8 +163,8 @@ export interface TicketDateFieldProps {
   lang: Lang;
 }
 
-export function TicketDateField({ label, value, onChange, lang }: TicketDateFieldProps) {
-  const { t } = useTranslation('tickets');
+export function DateField({ label, value, onChange, lang }: DateFieldProps) {
+  const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
 
   /* THE HIJRI TOGGLE LIVES ON THE FIELD, NOT IN THE CALENDAR — reported
@@ -188,7 +214,7 @@ export function TicketDateField({ label, value, onChange, lang }: TicketDateFiel
         <span className={styles.dateBtnValue} dir="ltr">
           {triggerText === null ? (
             <span className={styles.dateBtnPlaceholder}>
-              {t('list.datePlaceholder')}
+              {t('cal.placeholder')}
             </span>
           ) : (
             triggerText
@@ -232,8 +258,12 @@ function Calendar({
   onApply: (iso: string) => void;
   onCancel: () => void;
 }) {
-  const { t } = useTranslation('tickets');
-  const { t: tc } = useTranslation('common');
+  /* ONE NAMESPACE, and it is `common`. This read `tickets` for its own strings
+     and `common` for the shared ones; a promoted primitive must not read a
+     FEATURE's catalogue at all — the customers directory has no `tickets`
+     namespace loaded, and every string it named moved with it. */
+  const { t } = useTranslation('common');
+  const tc = t;
 
   const start = value ? new Date(`${value}T00:00:00`) : new Date();
   const [month, setMonth] = useState(
@@ -414,7 +444,7 @@ function Calendar({
           className={styles.calSolidBtn}
           onClick={() => onApply(sel)}
         >
-          {t('list.apply')}
+          {t('cal.apply')}
         </button>
       </div>
     </div>

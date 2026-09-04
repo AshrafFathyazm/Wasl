@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Mark } from '../../brand/Mark';
-import { Dropdown } from '../../components/Dropdown/Dropdown';
 import { Table, type TableColumn } from '../../components/Table/Table';
-import { IconChevronDown, IconEye } from '../../icons/icons';
+import { TablePager } from '../../components/Table/TablePager';
+import { IconEye } from '../../icons/icons';
 import { IconArrowUp, IconCircleX, IconReassign } from '../../icons/icons-added';
 import {
   IconEmail,
@@ -109,6 +109,10 @@ function SubjectLink({ to, subject }: { to: string; subject: string }) {
 
   return (
     <span className={styles.subjectAnchor}>
+      {/* `dir="auto"` HERE AND A FLEX WRAPPER AROUND IT — read the note on
+          `.subjectAnchor` in the stylesheet before touching either. Three
+          single-element versions of this were measured and each got one of the
+          two halves wrong. */}
       <Link
         className={styles.subjectLine}
         dir="auto"
@@ -141,7 +145,6 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-const PAGE_SIZES = [10, 20, 50, 100] as const;
 const DEFAULT_PAGE_SIZE = 20;
 
 /** Reading a URL parameter is parsing untrusted input. A hand-typed `?page=abc`
@@ -152,179 +155,16 @@ function readInt(raw: string | null, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-/**
- * WHICH PAGE NUMBERS TO DRAW, with an ellipsis standing in for the rest.
+/* `ErrorState` USED TO LIVE HERE and is deleted — 2026-09-03.
  *
- * The design shows `‹ 1 2 … 16 ›`: the first page, the last page, and a window
- * around the current one. Written as a pure function so the shape is testable
- * without a render — every off-by-one in a pager lives at its edges, and the
- * edges are page 1, page 2, the last page and the one before it.
+ * It replaced the whole table with a pane, which took the columns, the chip
+ * strip's meaning and the pager with it. And it printed `problem.detail`, which
+ * on a validation envelope is deliberately DEVELOPER-facing: the screen read
+ * «تعذّر تحميل القائمة · راجع خاصية errors للاطّلاع على رسائل الحقول».
  *
- * `null` is the ellipsis. It carries no page, which is why it is not `0` or
- * `-1`: both are numbers a careless `onPage` would happily navigate to.
+ * The notice is `Table`'s now, under the header, with one set of words in
+ * `common` for every table in the product.
  */
-export function pageWindow(page: number, totalPages: number): Array<number | null> {
-  const last = Math.max(totalPages, 1);
-  if (last <= 7) return Array.from({ length: last }, (_, i) => i + 1);
-
-  const around = [page - 1, page, page + 1].filter((n) => n > 1 && n < last);
-  const shown = [1, ...around, last];
-
-  const out: Array<number | null> = [];
-  let previous = 0;
-  for (const n of shown) {
-    /* A gap of exactly one page renders as that page rather than as an
-     * ellipsis: `1 … 3` hides a single number behind three dots, which is
-     * wider than the number it replaced. */
-    if (n - previous === 2) out.push(previous + 1);
-    else if (n - previous > 2) out.push(null);
-    out.push(n);
-    previous = n;
-  }
-  return out;
-}
-
-function Footer({
-  lang,
-  page,
-  pageSize,
-  totalPages,
-  totalCount,
-  rowsOnPage,
-  onPage,
-  onPageSize,
-}: {
-  lang: Lang;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  totalCount: number;
-  rowsOnPage: number;
-  onPage: (n: number) => void;
-  onPageSize: (n: number) => void;
-}) {
-  const { t } = useTranslation('tickets');
-  return (
-    <div className={styles.footer}>
-      <div className={styles.footStart}>
-      {/* `031` replaced the raw `<select>` that used to sit here. The visible
-          text stays a `<span>` and the control's own label is hidden, because
-          `Dropdown` stacks its label above its trigger and this footer is one
-          line. The string is passed twice on purpose — once to be seen, once to
-          name the control for assistive technology, which a `<label>` cannot do
-          for a `div role="combobox"`. */}
-      <span className={styles.perPage}>
-        {t('list.rowsPerPage')}
-        <span className={styles.perPageField}>
-          <Dropdown
-            size="sm"
-            label={t('list.rowsPerPage')}
-            labelHidden
-            value={String(pageSize)}
-            onChange={(value) => {
-              if (value !== null) onPageSize(Number(value));
-            }}
-            options={PAGE_SIZES.map((n) => ({
-              value: String(n),
-              /* BR-8.13 — a page size is a count, not an identifier. */
-              label: formatNumber(n, lang),
-            }))}
-          />
-        </span>
-      </span>
-
-      {/* THE RANGE, NOT THE PAGE NUMBER. `1–8 of 124` answers "where am I in the
-          data"; `page 1 of 16` answers "where am I in the pager", which is a
-          question about the control rather than about the tickets. The design
-          shows the range, and it is also the only one of the two that stays true
-          when the page size changes under the reader. */}
-      <span className={styles.range}>
-        {t('list.range', {
-          from: formatNumber(totalCount === 0 ? 0 : (page - 1) * pageSize + 1, lang),
-          /* The LAST ROW ON THIS PAGE, counted rather than computed: the final
-             page is short, and `page * pageSize` would claim rows that are not
-             there. */
-          to: formatNumber(totalCount === 0 ? 0 : (page - 1) * pageSize + rowsOnPage, lang),
-          total: formatNumber(totalCount, lang),
-        })}
-      </span>
-      </div>
-
-      <div className={styles.pager}>
-        {/* THE ARROWS ARE GLYPHS AND THEY MIRROR THEMSELVES. `IconChevronDown`
-            rotated is one asset for both directions, and the rotation is logical:
-            under RTL "previous" points right, which is what the CSS does with a
-            single `scaleX` on the row rather than two icons and a branch. */}
-        <button
-          type="button"
-          className={styles.pageArrow}
-          disabled={page <= 1}
-          aria-label={t('list.prev')}
-          onClick={() => onPage(page - 1)}
-        >
-          <IconChevronDown size={18} className={styles.arrowPrev} aria-hidden="true" />
-        </button>
-
-        {pageWindow(page, totalPages).map((n, index) =>
-          n === null ? (
-            /* An ellipsis is not a control: no button, no tab stop, and a name
-               for anyone listening rather than a bare "…". */
-            <span
-              key={`gap-${index}`}
-              className={styles.pageGap}
-              aria-label={t('list.morePages')}
-            >
-              {'…'}
-            </span>
-          ) : (
-            <button
-              key={n}
-              type="button"
-              className={cx(styles.pageBtn, n === page && styles.pageBtnActive)}
-              /* `aria-current`, not just a class: the active page is a state, and
-                 a colour is not announced. */
-              {...(n === page ? { 'aria-current': 'page' as const } : {})}
-              aria-label={t('list.goToPage', { page: formatNumber(n, lang) })}
-              onClick={() => onPage(n)}
-            >
-              {formatNumber(n, lang)}
-            </button>
-          ),
-        )}
-
-        <button
-          type="button"
-          className={styles.pageArrow}
-          disabled={page >= Math.max(totalPages, 1)}
-          aria-label={t('list.next')}
-          onClick={() => onPage(page + 1)}
-        >
-          <IconChevronDown size={18} className={styles.arrowNext} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
-  const { t } = useTranslation('tickets');
-  /* The server's own message when it authored one, our copy otherwise. A
-   * transport failure has no ProblemDetails to read, and rendering an empty
-   * string for it would say nothing at all. */
-  const detail = error instanceof ApiError ? error.problem?.detail : undefined;
-  return (
-    <div className={styles.error} role="alert">
-      <span className={styles.emptyMark} aria-hidden="true">
-        <Mark size={44} />
-      </span>
-      <p className={styles.emptyTitle}>{t('list.errorTitle')}</p>
-      <p className={styles.emptyBody}>{detail ?? t('list.errorBody')}</p>
-      <button type="button" className={styles.retry} onClick={onRetry}>
-        {t('list.errorCta')}
-      </button>
-    </div>
-  );
-}
 
 
 /**
@@ -367,11 +207,7 @@ function minutesSince(timestamp: number): number {
  * ========================================================================== */
 export type TicketQueue = 'mine' | 'unassigned';
 
-export default function TicketListPage({
-  queue,
-}: {
-  queue?: TicketQueue | undefined;
-}) {
+export default function TicketListPage({ queue }: { queue?: TicketQueue | undefined }) {
   const { t, i18n } = useTranslation('tickets');
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
   const navigate = useNavigate();
@@ -535,9 +371,8 @@ export default function TicketListPage({
               convenience — it adds no tabindex and no role, deliberately — so
               this anchor is the only way a keyboard or a screen reader reaches
               the ticket. Removing it leaves the row navigable by mouse only. */}
-          {/* `dir="auto"` on the element that holds the text (measured: an RTL
-              cell cuts a Latin subject at its START), and the tooltip lives in
-              SubjectLink — see its note. */}
+          {/* The bidi handling and the tooltip both live in SubjectLink — see
+              the note on its anchor, which records what `dir="auto"` cost. */}
           <SubjectLink to={`/tickets/${row.id}`} subject={row.subject} />
           <span className={styles.subjectMeta}>
             <span className={styles.ticketNumber} dir="ltr">
@@ -673,10 +508,27 @@ export default function TicketListPage({
           ? 'emptyUnassigned'
           : 'empty';
 
-  const state = query.isPending ? 'loading' : items.length > 0 ? 'data' : 'empty';
+  /* ERROR FIRST. A failed request also has zero items, so checking `empty` first
+     would tell the reader "no tickets match" when nothing was ever asked. */
+  const state = query.isError
+    ? 'error'
+    : query.isPending
+      ? 'loading'
+      : items.length > 0
+        ? 'data'
+        : 'empty';
 
   return (
     <main className={styles.page}>
+      {/* NO `actions` HERE, and that is a ruling rather than an omission.
+           One was added on 2026-09-02 to match /customers and it put «تذكرة
+           جديدة» on screen TWICE — the shell's sidebar already carries it, and
+           its own note calls it "the one create action for the whole section,
+           at the TOP of the sidebar rather than in the page header".
+
+           The toolbar's position does not depend on this slot: it is pinned with
+           `margin-inline-start: auto`, measured at x=88 on both list screens
+           with the slot filled on one and empty on the other. */}
       <TicketFilterBar
         filters={filters}
         onChange={setFilters}
@@ -711,14 +563,21 @@ export default function TicketListPage({
         }
       />
 
-      {query.isError ? (
-        <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-      ) : (
-        <Table
+      {/* THE TABLE IS ALWAYS DRAWN — reported 2026-09-03. It used to be replaced
+          by `ErrorState`, so a failed request took the columns, the chip strip's
+          meaning and the pager with it. The notice lives in the primitive now,
+          under the header, and says the same words on every table. */}
+      <Table
           label={t('list.tableLabel')}
           columns={columns}
           rows={items}
           rowKey={(row) => row.id}
+          /* 62px rows. `03-tickets-list.md` and `06-customers-list.md` both
+             specify 61 — the SAME number — and the 70px default was measured
+             for this screen alone, before there was a second table for it to
+             disagree with. The subject cell's two lines total 37px; dense
+             leaves 46px of content box. */
+          density="dense"
           /* THE ROW MENU IS BACK, and Q-7's ruling is the reason it looks like
              this rather than the reason it is absent.
 
@@ -862,7 +721,7 @@ export default function TicketListPage({
           }
           onRowClick={openTicket}
           footer={
-            <Footer
+            <TablePager
               lang={lang}
               page={effectivePage}
               pageSize={effectivePageSize}
@@ -875,8 +734,11 @@ export default function TicketListPage({
               onPageSize={setPageSize}
             />
           }
+          onRetry={() => void query.refetch()}
+          traceId={
+            query.error instanceof ApiError ? query.error.problem?.traceId : undefined
+          }
         />
-      )}
     </main>
   );
 }

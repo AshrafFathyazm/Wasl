@@ -162,7 +162,35 @@ function knownIsoDay(raw: string | null): string {
     : raw;
 }
 
+/**
+ * Both created bounds, with an INVERTED PAIR DROPPED.
+ *
+ * Each bound survives validation on its own, so nothing here caught the pair —
+ * and the server refuses it: `400`, `errors.createdTo`. That refusal is right
+ * (a range that ends before it starts is a contradiction, not an empty window)
+ * and it must never reach a reader, because it arrives as an error pane over a
+ * list that was working. Measured 2026-09-03 before this function existed:
+ * `?createdFrom=2026-09-01&createdTo=2026-08-01` on /tickets rendered
+ * «تعذّر تحميل القائمة» with the server's developer-facing detail underneath.
+ *
+ * Dropping BOTH is deliberate. Keeping one would silently filter by a bound the
+ * reader did not choose; dropping the pair applies the policy this file already
+ * states for every other unreadable value — the link degrades to a wider list.
+ */
+function readCreatedRange(params: URLSearchParams): { from: string; to: string } {
+  const from = knownIsoDay(params.get('createdFrom'));
+  const to = knownIsoDay(params.get('createdTo'));
+  return from !== '' && to !== '' && to < from ? { from: '', to: '' } : { from, to };
+}
+
+/** True when a draft range cannot be applied — the panels disable «تطبيق» on it,
+ *  which is what stops the picker building a request the server refuses. */
+export function createdRangeIsInverted(from: string, to: string): boolean {
+  return from !== '' && to !== '' && to < from;
+}
+
 export function readFilters(params: URLSearchParams): FilterState {
+  const created = readCreatedRange(params);
   return {
     status: known(params.getAll('status'), STATUS_VALUES),
     priority: known(params.getAll('priority'), TICKET_PRIORITIES),
@@ -171,8 +199,8 @@ export function readFilters(params: URLSearchParams): FilterState {
     assignee: knownAssignee(params.get('assignee')),
     escalated: knownEscalated(params.get('escalated')),
     search: (params.get('search') ?? '').trim(),
-    createdFrom: knownIsoDay(params.get('createdFrom')),
-    createdTo: knownIsoDay(params.get('createdTo')),
+    createdFrom: created.from,
+    createdTo: created.to,
   };
 }
 

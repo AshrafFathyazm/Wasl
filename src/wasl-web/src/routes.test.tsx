@@ -57,15 +57,25 @@ describe('/tickets resolves to the list, not the 023 placeholder', () => {
       const el = leafFor(path).element as { type?: unknown } | null;
       return el?.type;
     };
-    expect(typeOf('/tickets')).not.toBe(typeOf('/customers'));
-    /* And two placeholders DO share a component — which is what makes the
-     * assertion above meaningful rather than trivially true.
+    /* THE PAIR HAS BEEN REWRITTEN TWICE AND THAT IS THE POINT — each time
+     * because the path it used as a known placeholder became a real screen:
+     * `/tickets/mine` when `026` built the scoped queues, then `/customers`
+     * when `033` built the directory. Both went red for the right reason.
      *
-     * THIS CONTROL USED `/tickets/mine` AND CANNOT ANY MORE: that path is a real
-     * screen now, so the pair became two real screens and the assertion would
-     * have gone red for the right reason. `/` is the placeholder still left in
-     * NAV_PATHS. */
-    expect(typeOf('/customers')).toBe(typeOf('/'));
+     * `/` IS THE ONLY PLACEHOLDER LEFT IN NAV_PATHS, so the control can no
+     * longer be "two placeholders share a component". It is now: the dashboard
+     * is still the placeholder, and each real screen differs from it AND from
+     * the others. When `020` builds the dashboard this test has nothing left to
+     * compare and should be deleted rather than bent. */
+    expect(typeOf('/tickets')).not.toBe(typeOf('/'));
+    expect(typeOf('/customers')).not.toBe(typeOf('/'));
+    expect(typeOf('/customers')).not.toBe(typeOf('/tickets'));
+
+    /* And the placeholder is genuinely still there — otherwise the three
+     * assertions above would pass on a build where `/` had become a screen too,
+     * which is exactly how they would stop meaning anything. */
+    expect(NAV_PATHS).toContain('/');
+    expect(typeOf('/')).toBeDefined();
   });
 
   it('does not shadow the sibling ticket routes', () => {

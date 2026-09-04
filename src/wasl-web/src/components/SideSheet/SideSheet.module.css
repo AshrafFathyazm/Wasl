@@ -1,0 +1,221 @@
+/* ============================================================================
+ * The side sheet — `035` §4.3.
+ * ============================================================================
+ * Geometry from the frames supplied 2026-09-03. The panel is docked to the
+ * INLINE-END edge: the frames are Arabic and draw it on the LEFT of the screen,
+ * which in an RTL page is the end. Under `dir="ltr"` it mirrors to the right
+ * from the logical properties alone, with no second rule. THIS PARAGRAPH SAID
+ * "inline-start" and the panel shipped on the wrong side — see the note on
+ * `.panel`.
+ *
+ * `030` recorded the drawer's design contradicting itself — a navy header at
+ * h56 in `10-shared-patterns.md` against a WHITE one in the newer spec, and
+ * 250ms against 220ms. The frames settle both: white header, and the enter is
+ * the token below.
+ * ========================================================================= */
+
+.host {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+}
+
+/* A BUTTON, so it covers the viewport and has to be told not to look like one. */
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background-color: rgb(13 38 38 / 34%);
+  cursor: pointer;
+  animation: sheet-scrim 160ms linear;
+}
+
+.panel {
+  position: absolute;
+  inset-block: 0;
+
+  /* INLINE-END, not inline-start. Both frames are Arabic and draw the panel on
+     the LEFT of the screen — which in an RTL page is the END edge, not the
+     start. I read "left" as "start" and shipped it on the right; the screenshot
+     is what caught it. Under `dir="ltr"` it mirrors to the right from this one
+     declaration. */
+  inset-inline-end: 0;
+
+  display: flex;
+  flex-direction: column;
+  /* 600px, MEASURED OFF THE FRAME supplied 2026-09-03 — the panel spans 0..598
+     of an 1840px viewport beside the table. It shipped at 420 first, which is a
+     comfortable reading width and the wrong one: the frame gives the form room
+     for a full name and an address without either wrapping. */
+  inline-size: 600px;
+  max-inline-size: 100vw;
+  background-color: var(--surface-card);
+
+  /* The shadow falls toward the content, so its offset follows the panel's edge
+     and therefore the direction. It is the one physical value here, for the
+     reason the table's rail records: `box-shadow` has no logical form. */
+  box-shadow: var(--sheet-shadow, 0 0 40px rgb(13 38 38 / 18%));
+  animation: sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* THE PANEL SLIDES FROM ITS OWN EDGE. `translateX(-100%)` would enter from the
+   left in both directions and fly ACROSS the screen in Arabic; the logical
+   custom property is what keeps it entering from the edge it is docked to. */
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    /* Away from the edge it is docked to. `--ld-dir` is `1` in LTR and `-1` in
+       RTL, so this is `+100%` on the right in English and `-100%` on the left
+       in Arabic — the panel always enters from OFF its own edge rather than
+       flying across the screen. */
+    transform: translateX(calc(100% * var(--ld-dir, 1)));
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes sheet-scrim {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Nobody asked for motion. `029`'s rule: the reduced-motion branch is not an
+   afterthought, and a slide is exactly the kind of movement that triggers
+   vestibular symptoms. */
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .scrim {
+    animation: none;
+  }
+}
+
+/* ---- the header --------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-4) var(--sheet-padding);
+  border-block-end: var(--border-width) solid var(--border-divider);
+}
+
+.badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+  color: var(--text-secondary);
+  font-size: 17px;
+  font-weight: var(--weight-bold);
+}
+
+.heading {
+  min-inline-size: 0;
+}
+
+.title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: var(--weight-bold);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Pushed to the far edge rather than reordered — see the note on the control. */
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-inline-start: auto;
+  border: 0;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.close:hover {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+/* ---- the body ----------------------------------------------------------- */
+
+/* `min-block-size: 0` is what lets a flex child scroll instead of growing the
+   panel past the viewport — the same declaration the shell's nav needed. */
+/* A FLEX COLUMN THAT PADS NOTHING, and both halves are the fix for a scrollbar
+   that would not go away.
+
+   It used to pad its children and let them scroll. The create form then filled
+   it with `min-block-size: 100%` and pinned its footer with `position: sticky`
+   — a percentage height against a flex-derived box, with a sticky child inside
+   it. That combination has no dependable answer: it produced a vertical
+   scrollbar on a form that fits, and the footer painted over the last field.
+
+   Now the CONTENT owns the padding and the content decides where its scroller
+   is. The form makes its own field area the scroller and keeps its footer
+   outside it, so the footer is always visible and nothing overlaps. */
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+  /* NOTHING SCROLLS SIDEWAYS. A sheet is a column of fields; a horizontal
+     scrollbar here always means something inside is miscomputed, and hiding it
+     would hide the symptom rather than the cause — so it is clipped and the
+     cause is fixed instead. */
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+
+  /* A THIN scrollbar, not a hidden one. The frame shows none because its own
+     content fits; when a form is long enough to scroll, a reader has to be
+     able to see that it does. `scrollbar-width: none` would hide the only
+     signal that there is more below, which is worse than a narrow track. */
+  scrollbar-width: thin;
+}
+
+.bodyNoFooter {
+  padding-block-end: 28px;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  padding: var(--space-4) var(--sheet-padding);
+  border-block-start: var(--border-width) solid var(--border-divider);
+}
+
+@media (width <= 480px) {
+  .panel {
+    inline-size: 100vw;
+  }
+}

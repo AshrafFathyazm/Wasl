@@ -39,6 +39,7 @@ import type {
   TimelineFilter,
 } from '../../lib/api-types.provisional';
 import { cx } from '../../lib/cx';
+import { tint } from '../../lib/tint';
 import { formatDateTime, formatNumber, type Lang } from '../../lib/formatters';
 import { Mark } from '../../brand/Mark';
 
@@ -192,14 +193,11 @@ const CHANNEL_ICON = {
  * keeps the multiply in 32 bits, which is what makes the result identical in
  * every engine; without it the float multiply loses the low bits and the same
  * name can tint differently in two browsers. */
-export function tint(key: string, buckets: number) {
-  let hash = 2166136261;
-  for (let i = 0; i < key.length; i += 1) {
-    hash ^= key.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return Math.abs(hash) % buckets;
-}
+/* MOVED TO `lib/tint.ts` by `035`, and re-exported here so this file's own call
+ * sites and `027`'s tests keep working. The reasoning above is the reasoning
+ * there — read it in one place. The customer screens need the same guarantee,
+ * and two implementations of "one person, one colour" would drift invisibly. */
+export { tint };
 
 /* FIVE, the same count the tags use, and the reason they are not de-collided the
  * way tags are is a deliberate trade-off in the other direction:

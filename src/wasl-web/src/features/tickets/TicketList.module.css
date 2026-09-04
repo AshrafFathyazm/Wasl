@@ -25,9 +25,19 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  margin-block: 0 var(--space-6);
+  /* NO BOTTOM MARGIN. It was 24px, and it was the last thing making the two
+     list screens sit at different heights: search at y=237 here against y=208
+     on /customers, measured. The gap under the heading belongs to `.tabsRow`,
+     which both screens share the value of. */
+  margin-block: 0;
   color: var(--text-muted);
-  font-size: var(--type-body-sm);
+
+  /* 12/1.4 — the same as the customer directory's subtitle, deliberately. It was
+     `--type-body-sm` with no line-height, which made this heading block 15px
+     taller than the other list screen's and put the two search boxes at
+     different heights: 213 against 196, measured. */
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .subtitleDot {
@@ -63,7 +73,11 @@
      `.subjectAnchor` for the tooltip, it silently became inline again — an
      inline box ignores `overflow`, so every long subject ran under the customer
      column. Seen on the live screen, not in a test: jsdom draws no boxes. */
+  /* THE ITEM — it carries `dir="auto"` in the JSX and owns the truncation, so
+     the ellipsis lands at the end of the words. `min-inline-size: 0` is what
+     lets a flex item shrink below its content and clip at all. */
   display: block;
+  min-inline-size: 0;
   overflow: hidden;
   color: var(--text-primary);
   text-decoration: none;
@@ -74,6 +88,31 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ============================================================================
+ * A TRUNCATING CELL NEEDS TWO DIRECTIONS AT ONCE, and `unicode-bidi: plaintext`
+ * is what supplies both.
+ * ============================================================================
+ * The ORDERING wants the content's direction: `text-overflow: ellipsis` cuts at
+ * the end of the line, and only the content's own direction puts that at the end
+ * of the words. Measured 2026-09-02: with the block left in the page's
+ * direction, an Arabic subject on an English page was cut at its START
+ * («…متأخرة عدة ساعات» — the beginning gone), which is the mirror of the defect
+ * `dir="auto"` had been added for ("an RTL cell cuts a Latin subject at its
+ * START").
+ *
+ * The ALIGNMENT wants the page's, because the `th` above has the page's and
+ * `text-align: start` resolves against whatever direction the element itself
+ * ended up with. `dir="auto"` changes THAT direction, so it fixes the cut and
+ * breaks the alignment: measured 227px out in English and 61px in Arabic,
+ * reported as "الهيدر مش تحته الرو الخاص بيه".
+ *
+ * `unicode-bidi: plaintext` splits them — it derives the bidi paragraph's
+ * direction from the content while leaving the `direction` PROPERTY inherited,
+ * and `text-align: start` reads the property. So there is no `dir` attribute on
+ * these elements and there must not be one: `dir="auto"` would put the element's
+ * own direction back in play and take the alignment with it.
+ * ========================================================================= */
 
 .subjectLine:hover {
   text-decoration: underline;
@@ -182,39 +221,6 @@
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: var(--weight-bold);
-}
-
-/* ---- Footer --------------------------------------------------------------- */
-
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  padding: var(--space-3) var(--space-4);
-  border-block-start: var(--border-width) solid var(--border-subtle);
-}
-
-.perPage {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
-  font-size: var(--text-helper);
-}
-
-.perPageField {
-  /* The trigger sizes to its content — a page-size menu holding "10" does not
-   * need a field-width box. `031`: was `.select`, on a native element. */
-  display: inline-flex;
-  inline-size: 88px;
-}
-
-.pager {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
 }
 
 .pageOf {
@@ -456,130 +462,6 @@
   background-color: var(--border-divider);
 }
 
-/* ============================================================================
- * The numbered pager — `‹ 1 2 … 16 ›` plus `1–8 of 124`
- * ============================================================================
- * It was Previous / `1 of 16` / Next. The design numbers the pages, and the
- * difference is not decoration: on sixteen pages, two arrows make page 9 eight
- * clicks away and there is no way to see how far the data goes.
- * ========================================================================== */
-
-.range {
-  color: var(--text-muted);
-  font-size: var(--type-body-sm);
-  /* Digits and an en dash are directionally neutral, so the run would reorder
-     inside an RTL line and read `124 من 8–1`. */
-  unicode-bidi: isolate;
-}
-
-.pager {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.pageBtn,
-.pageArrow {
-  display: grid;
-  place-items: center;
-  min-inline-size: 34px;
-  block-size: 34px;
-  padding-inline: var(--space-1);
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  background-color: transparent;
-  /* NAVY INK, at rest and under the pointer — ruled by frame 2026-09-01
-     ("خلي لونها زي ما هي كحلي"). The spec sheet filed inactive page numbers
-     under muted #606873; the frame overrules it, and hover still moves only
-     the ground. */
-  color: var(--brand);
-  /* 12px — the spec files page numbers with the counters, not with the cells. */
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-
-/* HOVER MOVES THE GROUND, NEVER THE INK — reported 2026-09-01: the page
-   number's colour jumped under the pointer. The surface says "you are here";
-   the digit stays exactly as it was. */
-.pageBtn:hover:not(:disabled),
-.pageArrow:hover:not(:disabled) {
-  background-color: var(--surface-chip);
-}
-
-.pageBtn:focus-visible,
-.pageArrow:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: -2px;
-}
-
-/* THE CURRENT PAGE IS FILLED, as the design draws it — and it carries
-   `aria-current="page"` in the markup, because a fill is not announced. */
-.pageBtnActive {
-  background-color: var(--brand);
-  border-color: var(--brand);
-  color: var(--on-brand);
-  font-weight: var(--weight-medium);
-}
-
-/* THE FILL SURVIVES EVERY STATE, and the list below is deliberately exhaustive.
- *
- * Reported 2026-09-01: the current page number turned WHITE under the pointer —
- * white ink on a lost ground. IT COULD NOT BE REPRODUCED HERE, at page 1 or page
- * 2, in either language: the measured button stayed rgb(29,23,77) with white ink
- * at rest, on hover, and with a sibling hovered.
- *
- * So the cause is unknown and the SYMPTOM is closed off instead. Every state that
- * could drop the ground restates it, and -webkit-text-fill-color is restated with
- * it because the base.css war showed those two can diverge.
- *
- * If it recurs, the thing to capture is which page is active and whether the
- * button had been clicked first — that is the state this could not construct. */
-.pageBtnActive,
-.pageBtnActive:hover,
-.pageBtnActive:focus,
-.pageBtnActive:focus-visible,
-.pageBtnActive:active {
-  background-color: var(--brand);
-  border-color: var(--brand);
-  color: var(--on-brand);
-  -webkit-text-fill-color: var(--on-brand);
-}
-
-.pageArrow {
-  color: var(--text-muted);
-}
-
-.pageArrow:disabled {
-  color: var(--text-placeholder);
-  cursor: not-allowed;
-}
-
-/* THE ELLIPSIS IS BOXED, per the frame — it reads as a member of the row, not
-   as punctuation floating between buttons. Still not a control: no border
-   colour change on hover, no cursor, no tab stop. */
-.pageGap {
-  display: grid;
-  place-items: center;
-  min-inline-size: 34px;
-  block-size: 34px;
-  border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-}
-
-/* ONE ASSET, ROTATED, and the rotation is the direction. `IconChevronDown`
-   points down; a quarter turn each way gives both arrows, and under RTL the
-   page reverses them because the transform follows the writing mode through
-   `--ld-dir` — the same variable `029` introduced for its loaders. */
-.arrowPrev {
-  transform: rotate(calc(90deg * var(--ld-dir, 1)));
-}
-
-.arrowNext {
-  transform: rotate(calc(-90deg * var(--ld-dir, 1)));
-}
-
 
 /* ============================================================================
  * The subject tooltip — the whole sentence, shown only when the cell cut it
@@ -591,13 +473,50 @@
  * see its note for why the check is not stored.
  * ========================================================================== */
 
+/* ============================================================================
+ * A TRUNCATING CELL NEEDS TWO DIRECTIONS AT ONCE — the page's to place the box,
+ * the content's to decide which end the ellipsis eats. Two elements, one each.
+ * ============================================================================
+ * ONE ELEMENT CANNOT DO BOTH, and all three single-element attempts were
+ * measured on 2026-09-02:
+ *
+ *   `dir="auto"` alone      — the cut is right, the box is on the wrong edge:
+ *                             227px from its own heading in English, 61px in
+ *                             Arabic. Reported as "الهيدر مش تحته الرو الخاص بيه".
+ *   no `dir` at all         — the box is right, the cut takes the BEGINNING of
+ *                             a mixed-direction value («…متأخرة عدة ساعات», the
+ *                             start gone), which is the defect `dir="auto"` was
+ *                             added for in the first place.
+ *   `unicode-bidi: plaintext` — fixes the cut and NOT the alignment: it changes
+ *                             the line box's base direction, and `text-align:
+ *                             start` resolves against that, so English measured
+ *                             227px out again.
+ *
+ * `text-align: match-parent` is the declaration CSS provides for exactly this,
+ * and Chrome 152 does not support it — `CSS.supports('text-align',
+ * 'match-parent')` returns false, and the declaration is dropped from the
+ * cascade silently, which is how it first read as working. Only the
+ * vendor-prefixed form exists, and prefixes are banned.
+ *
+ * So: the WRAPPER is a flex container in the page's direction, which places its
+ * one item at the page's start; the ITEM carries the `dir` and owns
+ * `overflow`/`text-overflow`, so the cut follows the words. Do not merge them
+ * back into one element.
+ * ========================================================================= */
 .subjectAnchor {
   position: relative;
-  display: block;
+
+  /* THE WRAPPER — flex, so its single item is placed at the page's inline-start
+     however the item's own direction ends up. It was `display: block`, which
+     hands the placement to the item's `text-align`. */
+  display: flex;
   min-inline-size: 0;
 }
 
 .subjectTip {
+  /* The tooltip is the untruncated copy of the same string and carries the same
+     `dir="auto"`, so it reads in the same order as the line it explains. It
+     never truncates, so it needs no wrapper. */
   position: absolute;
   inset-block-end: calc(100% + var(--space-2));
   inset-inline-start: 0;
@@ -623,21 +542,4 @@
 .subjectTipBelow {
   inset-block-end: auto;
   inset-block-start: calc(100% + var(--space-1));
-}
-
-
-/* The frame's footer: rows-per-page and the range share the start; the pager
-   stands alone at the end. */
-.footStart {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-/* A disabled arrow sits in a quiet grey square — the frame draws the OFF state
-   as a surface, not as faded ink alone, so "there is no previous page" is
-   visible before it is tried. */
-.pageArrow:disabled {
-  background-color: var(--surface-sunken);
-  border-radius: var(--radius-sm);
 }

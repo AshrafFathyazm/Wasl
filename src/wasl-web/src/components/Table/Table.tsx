@@ -6,7 +6,9 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 
+import { Mark } from '../../brand/Mark';
 import { IconChevronDown, IconMore } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import { Loader } from '../Loader/Loader';
@@ -85,11 +87,63 @@ export interface TableProps<TRow> {
    *  anyone not looking at the heading above it. */
   label: string;
 
-  state?: 'data' | 'loading' | 'empty';
+  /**
+   * `'error'` KEEPS THE TABLE, and that is a ruling rather than a nicety.
+   *
+   * Reported 2026-09-03 with a screenshot of a bare error pane: *"لما يكون فيه
+   * مشكلة في الداتا زي كدا ارسم الجدول عادي الهدير يكون موجود والبودي بتاع
+   * الجداول تكون فيها الايرور دا بس متخفيش رسم الجدول بالهيدر بتاعه"*. Both list
+   * screens replaced the whole table with a pane, so a failed request looked
+   * like a broken page — the columns, the pager and the card were all gone at
+   * once, and nothing on screen said what the reader had been looking at.
+   *
+   * It is the same argument the empty state already carried in this file: *"one
+   * that also drops the column headings reads as a broken page rather than an
+   * empty list"*. An error is the stronger case of it.
+   */
+  state?: 'data' | 'loading' | 'empty' | 'error';
 
   /** The caller's element. The empty state carries artwork and copy that differ
    *  per reason — that is product content, not a primitive's. */
   empty?: ReactNode;
+
+  /**
+   * ONE ERROR NOTICE FOR EVERY TABLE — icon, copy, retry, all of it here.
+   *
+   * Ruled 2026-09-03: *"ثبت شكل دا لكل جداول السيستم نفس الايكونز نفس الرسالة
+   * نفس كل شيء للجداول"*. The two list screens had drifted already — one said
+   * «تعذّر تحميل القائمة» and the other «تعذّر تحميل العملاء», with different
+   * body copy and only one of them offering a retry. A failed request is the
+   * same event on every table, so it reads the same words from `common` and
+   * this component draws it.
+   *
+   * `empty` stays the CALLER'S element, and the difference is not an
+   * inconsistency: an empty list has a reason — no customers yet, no matches for
+   * a search, an empty personal queue — and each reason needs its own copy and
+   * its own next step. A failed request has one reason.
+   *
+   * These two props are the facts the primitive cannot know.
+   */
+  onRetry?: () => void;
+
+  /**
+   * The row that is currently open elsewhere — a side sheet, a detail panel.
+   *
+   * It writes `aria-selected` on that row, which `035` §7 specified as **dead
+   * CSS on arrival**: the fill and the navy rail existed with nothing in the
+   * product producing the attribute. The customer directory's quick view is the
+   * first producer, and the rule was written first for the reason recorded then
+   * — a rule written after the fact is a rule written twice.
+   *
+   * Compared with `rowKey(row)`, so the caller holds an ID rather than a row
+   * object and a refetch cannot leave the highlight on a stale reference.
+   */
+  selectedRowKey?: string | null | undefined;
+
+  /** The trace id from the failed response, if it carried one. The one string a
+   *  reader can hand to somebody who can act on it, and it matches the server
+   *  log by construction (`002`). */
+  traceId?: string | undefined;
 
   /** Rows visible before the body scrolls. Default 10 — the page size, so the
    *  card shows exactly one page and scrolling never crosses a page boundary. */
@@ -351,6 +405,9 @@ export function Table<TRow>({
   label,
   state = 'data',
   empty,
+  onRetry,
+  traceId,
+  selectedRowKey,
   visibleRows,
   density = 'default',
   footer,
@@ -362,6 +419,11 @@ export function Table<TRow>({
   sortLabel = '',
   skeletonRows,
 }: TableProps<TRow>) {
+  /* `common`, because the error notice belongs to every table and reads the same
+     words on all of them. This is the primitive's ONLY user-facing copy — the
+     empty state's words stay with the screen that knows why the list is empty. */
+  const { t } = useTranslation('common');
+
   const [openFlyout, setOpenFlyout] = useState<string | null>(null);
   const close = useCallback(() => setOpenFlyout(null), []);
 
@@ -449,6 +511,40 @@ export function Table<TRow>({
     </thead>
   );
 
+  /*
+   * ONE derived value, read in three places — the body, the notice slot and the
+   * footer. Three separate `state === …` comparisons is how one of them ends up
+   * disagreeing with the others.
+   *
+   * `empty` is the CALLER's element; the error notice is this component's, and
+   * the asymmetry is deliberate. An empty list has a reason — no customers yet,
+   * no matches for a search, an empty personal queue — and each reason needs its
+   * own copy and its own next step. A failed request has one reason, so it reads
+   * one set of words from `common` and looks the same on every table.
+   */
+  const notice =
+    state === 'empty' ? (
+      empty
+    ) : state === 'error' ? (
+      <div className={styles.notice} role="alert">
+        <span className={styles.noticeMark} aria-hidden="true">
+          <Mark size={44} />
+        </span>
+        <p className={styles.noticeTitle}>{t('table.errorTitle')}</p>
+        <p className={styles.noticeBody}>{t('table.errorBody')}</p>
+        {traceId === undefined ? null : (
+          <bdi className={styles.noticeTrace} dir="ltr">
+            {traceId}
+          </bdi>
+        )}
+        {onRetry === undefined ? null : (
+          <button type="button" className={styles.noticeCta} onClick={onRetry}>
+            {t('table.retry')}
+          </button>
+        )}
+      </div>
+    ) : null;
+
   return (
     <div
       className={cx(styles.card, styles[density], refreshing && styles.refreshing)}
@@ -472,6 +568,9 @@ export function Table<TRow>({
         </div>
       ) : null}
 
+      {/* ONE derived value, read in three places — the body, the notice and the
+          footer. Three separate `state === …` comparisons is how one of them
+          ends up disagreeing with the others. */}
       <div
         className={cx(styles.scroller, capped && styles.capped)}
         style={bodyStyle}
@@ -479,7 +578,7 @@ export function Table<TRow>({
       >
         <table className={styles.table} aria-label={label}>
           {head}
-          {state === 'empty' ? null : (
+          {notice === null ? (
             <tbody>
               {state === 'loading'
                 ? Array.from({ length: skeletonCount }, (_, i) => (
@@ -509,6 +608,12 @@ export function Table<TRow>({
                       <tr
                         key={key}
                         className={cx(styles.row, onRowClick && styles.rowClickable)}
+                        /* `undefined`, not `false`, on an unselected row:
+                           `aria-selected="false"` on every row of a table that
+                           is not a selection widget tells a screen reader the
+                           whole list is selectable. Only the open row carries
+                           it. */
+                        aria-selected={key === selectedRowKey ? true : undefined}
                         onClick={
                           onRowClick
                             ? (e) => {
@@ -550,16 +655,22 @@ export function Table<TRow>({
                     );
                   })}
             </tbody>
-          )}
+          ) : null}
         </table>
       </div>
 
-      {/* The header stays above an empty state. One that also drops the column
-          headings reads as a broken page rather than an empty list, and the
-          headings are what tell you which filter to relax. */}
-      {state === 'empty' ? empty : null}
+      {/* THE HEADER STAYS ABOVE BOTH NOTICES. One that also drops the column
+          headings reads as a broken page rather than an empty list — and for an
+          error that is worse, because the reader cannot tell whether the screen
+          failed or the data did. The headings are also what tell you which
+          filter to relax. */}
+      {notice}
 
-      {state === 'empty' ? null : footer}
+      {/* NO PAGER under either. A pager over no rows offers to move through
+          pages that are not there; under an error it would report the count
+          from the last successful request, which is a stale fact presented as a
+          current one. */}
+      {notice === null ? footer : null}
     </div>
   );
 }

@@ -252,3 +252,99 @@ client can tell that its request for `fr` produced English (BR-8.3).
 | Arabic content round-trips byte-identical, and Q-7's limitation is pinned | `TEST-008-13` |
 | Arabic `type` and `errors` keys byte-identical to English | Covered by `005-localization-core`, re-asserted here |
 | This contract matches what was built | Generated OpenAPI compared before the feature closes — `REV-008-03` |
+
+---
+
+## Contract changes
+
+### 2026-09-01 — `033-customers-list` adds five list parameters and one endpoint
+
+**The frozen text above is not edited.** This is the rule `error-contract.md` set when `429`
+arrived late and `034` followed when it added `?customerId=` to `010`'s list: a frozen contract
+is amended at its foot, so a reader can see both what was promised and what changed.
+
+The canvas the product owner supplied draws a filter panel with controls this endpoint had no
+parameters for. `033` §4 records the ruling — **build the canvas as drawn** — which is what
+reopens the contract rather than reducing the screen.
+
+| Parameter | Type | Default | Rules |
+|---|---|---|---|
+| `sort` | enum `fullName` \| `createdAtUtc` | `fullName` | An unknown value is a **`400`**, not a fallback |
+| `dir` | enum `asc` \| `desc` | `asc` | Same |
+| `company` | repeated string | absent | **Exact** match on `CompanyName`, case-insensitive from the column's own collation. Repeated values are OR-ed. **Clamped to 20**, per BR-7.2 |
+| `noCompany` | bool | `false` | `CompanyName IS NULL`, **OR-ed with `company`** so "Acme or none" is expressible |
+| `createdFrom` | `yyyy-MM-dd` | absent | Inclusive, read as UTC midnight |
+| `createdTo` | `yyyy-MM-dd` | absent | Inclusive **to the end of that day** — the handler compares `< createdTo + 1 day` |
+| `calendar` | enum `gregorian` \| `hijri` | `gregorian` | Applies to **both** bounds. `015` built the parser; the other lane moved it to `Common/DateRangeFilter` for this feature |
+
+**Every ordering ends `ThenBy(Id)`.** `008` AC-15 already required it for names (BR-4.6 makes
+duplicates ordinary); `createdAtUtc` makes ties *likely* rather than possible, because
+`RequestTimestamp` truncates to `datetime2(3)` and `--seed` writes many customers inside one
+request.
+
+**An unknown `sort` is a `400` while an out-of-range `pageSize` still clamps**, and the
+distinction is the one this contract already draws: *an out-of-range value is clamped; a
+non-integer is a `400`, because there is nothing to clamp.* `pageSize=500` has an obvious
+nearest legal value. `sort=email` does not — silently ordering by name returns a
+correct-looking page in the wrong order, which is the failure a client cannot see.
+
+**An inverted range is an empty page, not a `400`.** `createdFrom > createdTo` describes a
+window with nothing in it, `totalCount: 0` says exactly that, and BR-7.6 already covers the
+shape. **The tickets list answers `400` for the same shape** (`Validation.TicketFilter.CreatedRangeInverted`,
+`015`, 2026-08-31) — the two endpoints therefore differ, which is raised in `033`'s summary for
+a ruling rather than reconciled by whichever lane touched it last.
+
+`?sort=1` and `?dir=0` are `400`s: `Enum.TryParse` accepts an ordinal — including one no member
+has — so without an explicit digit guard the request would succeed and order by something the
+caller never asked for. `009` shipped exactly that class of defect through a `DEFAULT` the
+caller could not see.
+
+### `GET /api/customers/companies`
+
+New with `033` §5.3. **The filter panel needs the list of companies to offer and nothing
+returned it.**
+
+```http
+GET /api/customers/companies?search=gulf&limit=50
+```
+
+```json
+{ "items": ["Gulf Logistics Co.", "Gulf Services Ltd."], "hasUncompanied": true }
+```
+
+| Part | Rules |
+|---|---|
+| `search` | Case-insensitive substring, the same provider-escaped `Contains` the list uses. Trimmed; whitespace-only is absent |
+| `limit` | Default 50, **clamped** to 100 |
+| `items` | Distinct non-null `CompanyName` of **active** customers, ordered ascending, capped at `limit` |
+| `hasUncompanied` | Whether any **active** customer has no company — so the panel offers the "no company" row only when it would match something |
+| Auth | `[Authorize]`, both roles. No `403`, like the rest of this contract's reads |
+| `401` | Without a token, and it writes one `Auth.Unauthenticated` audit row (`004b`) |
+
+| Situation | Response |
+|---|---|
+| No companies match | `200` with `items: []`. BR-7.6 — empty is `[]`, never `null` |
+| A deactivated customer's company | **Absent.** Its presence would be a filter that returns nothing, on a name the UI itself offered — the list has filtered on `IsActive` since Q-1 and the two must agree |
+| `?limit=5000` | Clamped to 100. `200`, never a `400` |
+| Two customers at one company | One entry. `Distinct()` in the query, not in the client |
+| One request | Costs **two** database commands — the names and an `EXISTS` for `hasUncompanied`. The second cannot be derived from the first: the cap means an absent name may exist beyond it, and a null company is not in `items` by construction |
+
+**`hasUncompanied` is not `items.Any(x => x is null)`.** That is the shape this endpoint exists
+to avoid: a client deriving it from a capped list would offer or hide the row by accident.
+
+## Verification — the 2026-09-01 additions
+
+| What | How |
+|---|---|
+| Sort on both columns, both directions | `CustomerFilterTests.Sorting_*` |
+| A tie **exists**, and is then broken across two pages of one | `Two_customers_can_share_a_creation_instant_byte_for_byte`, `A_tie_is_broken_so_two_pages_of_one_cover_both_rows_exactly_once` |
+| An unknown `sort`/`dir`, and the ordinal form, are `400`s naming the parameter | `An_unknown_sort_or_direction_is_refused_and_names_the_parameter` |
+| `pageSize` still clamps | `An_out_of_range_page_size_is_still_clamped` |
+| `company` OR, exact, case-insensitive, and OR-ed with `noCompany` | `Two_companies_are_ored_and_a_third_is_excluded`, `The_company_match_is_case_insensitive_and_exact`, `A_company_and_no_company_are_ored_with_each_other` |
+| The 20-value clamp drops the twenty-first | `More_than_twenty_companies_are_clamped_rather_than_refused` |
+| `createdTo` includes `23:59:59.999` of that day | `Created_to_includes_the_last_millisecond_of_that_day` |
+| An inverted range is an empty page | `An_inverted_range_is_an_empty_page_rather_than_a_refusal` |
+| A Hijri bound needs `?calendar=hijri`, and works with it | `A_hijri_looking_date_without_the_calendar_is_refused`, `A_hijri_range_filters_when_the_calendar_is_declared` |
+| The companies list is distinct, ordered, active-only | `The_companies_endpoint_returns_distinct_names_in_order`, `The_companies_endpoint_ignores_deactivated_customers` |
+| Its cost does not grow with the answer | `The_companies_endpoint_costs_the_same_for_one_company_as_for_twenty` |
+| Both roles, and `401` without a token | `An_agent_may_read_the_companies_too`, `The_companies_endpoint_refuses_an_anonymous_caller` |

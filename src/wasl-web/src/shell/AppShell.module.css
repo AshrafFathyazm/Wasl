@@ -27,5 +27,15 @@
   flex: 1;
   gap: var(--content-gap);
   padding: var(--content-padding);
+
+  /* LESS AT THE TOP THAN AT THE SIDES, and the asymmetry is the fix for a
+     reported defect rather than a taste. `--content-padding` is 56px on all
+     four sides and every page adds its own block padding underneath it, so the
+     first heading sat 84px below the topbar on /tickets and 102px on
+     /customers — measured, in Arabic, against a reference screen the product
+     owner supplied. The sides keep 56: the table cards' inline edges are
+     measured against that frame. The top does not need it, because the topbar
+     draws a border. */
+  padding-block-start: var(--space-6);
   background-color: var(--surface-content);
 }

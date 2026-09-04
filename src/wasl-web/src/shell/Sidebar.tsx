@@ -25,6 +25,7 @@ interface SidebarProps {
 export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const collapsed = mode === 'collapsed';
 
   return (
@@ -82,13 +83,24 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
 
       {/* The one create action for the whole section, at the TOP of the sidebar
           rather than in the page header. Collapsed it becomes icon-only, and the
-          component then REQUIRES an aria-label — the visible text is gone. */}
+          component then REQUIRES an aria-label — the visible text is gone.
+
+          IT HAD NO onClick UNTIL 2026-09-02, so `/tickets/new` was routed by
+          `024` and reachable only by typing the URL — a grep for the path over
+          src/ found it in one comment and in the route table, and nowhere else.
+          The button rendered, took focus and did nothing. */}
       <div className={styles.cta}>
         <Button
           text={t('tickets:new')}
           withText={!collapsed}
           iconStart={<IconAdd size={16} />}
           aria-label={t('tickets:new')}
+          onClick={() => {
+            /* onNavigate too: in drawer mode the sidebar is an overlay, and
+               routing under it leaves it open on top of the form. */
+            onNavigate();
+            void navigate('/tickets/new');
+          }}
         />
       </div>
 

@@ -39,5 +39,26 @@
     "codeAr": "AR"
   },
   "loading": "جارٍ التحميل",
-  "loadingLong": "ما زال العمل جارياً — الأمر يستغرق وقتاً أطول من المعتاد."
+  "loadingLong": "ما زال العمل جارياً — الأمر يستغرق وقتاً أطول من المعتاد.",
+  "pager.rowsPerPage": "عدد الصفوف في الصفحة",
+  "pager.range": "{{from}}–{{to}} من {{total}}",
+  "pager.prev": "السابق",
+  "pager.next": "التالي",
+  "pager.morePages": "صفحات أخرى",
+  "pager.goToPage": "الانتقال إلى الصفحة {{page}}",
+  "cal.mon": "الإثنين",
+  "cal.tue": "الثلاثاء",
+  "cal.wed": "الأربعاء",
+  "cal.thu": "الخميس",
+  "cal.fri": "الجمعة",
+  "cal.sat": "السبت",
+  "cal.sun": "الأحد",
+  "cal.hijri": "التاريخ الهجري",
+  "cal.prevMonth": "الشهر السابق",
+  "cal.nextMonth": "الشهر التالي",
+  "cal.apply": "تطبيق",
+  "cal.placeholder": "dd/mm/yyyy",
+  "table.errorTitle": "تعذّر تحميل القائمة",
+  "table.errorBody": "لم نتمكن من الوصول إلى الخادم. حاول مرة أخرى.",
+  "table.retry": "إعادة المحاولة"
 }
