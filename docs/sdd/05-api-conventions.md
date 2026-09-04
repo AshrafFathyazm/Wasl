@@ -23,8 +23,12 @@ One shape, applied everywhere. Every deviation must be justified in a review art
 | `401 Unauthorized` | Missing or invalid token |
 | `403 Forbidden` | Authenticated but not permitted (see BR-6) |
 | `404 Not Found` | The addressed resource does not exist |
-| `409 Conflict` | The request is valid but conflicts with current state: duplicate customer, forbidden status transition, stale version, already escalated |
+| `405 Method Not Allowed` | The route exists and the method does not (`002b`) |
+| `409 Conflict` | The request is valid but conflicts with current state: duplicate customer, forbidden status transition, stale version, already escalated, idempotency key reused |
+| `415 Unsupported Media Type` | The body is not `application/json` (`002b`) |
+| `429 Too Many Requests` | Too many failed sign-ins (`004b`), or too many writes (`036`). Carries `Retry-After` |
 | `500 Internal Server Error` | Unhandled fault; body carries a trace id and nothing else |
+| `503 Service Unavailable` | The write was rolled back for a transient reason and may be retried — today, a SQL Server deadlock victim (`036`). Carries `Retry-After` |
 
 `200` is never returned with an error in the body.
 

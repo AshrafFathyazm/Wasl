@@ -216,8 +216,22 @@ internal sealed class IdempotencyFilter(
 
         if (result is CreatedAtActionResult created && context.Controller is ControllerBase controller)
         {
+            // ── ABSOLUTE, because that is what `CreatedAtActionResult` emits ─────────
+            //
+            // MEASURED: the three-argument overload returns a PATH, and the replayed response
+            // then carried `/api/tickets/{id}` where the original carried
+            // `http://localhost/api/tickets/{id}`. Both resolve in a browser and the two responses
+            // were no longer identical, which is exactly what AC-16 is for.
+            //
+            // The cost, stated: the stored value pins the scheme and host of the FIRST request,
+            // so a replay reaching a differently-named host inside the retention window returns
+            // the original host's URL. Accepted over the alternative — a replay that differs in
+            // shape from the response it is claiming to be.
+            var request = context.HttpContext.Request;
+
             location = controller.Url.Action(
-                created.ActionName, created.ControllerName, created.RouteValues);
+                created.ActionName, created.ControllerName, created.RouteValues,
+                request.Scheme, request.Host.Value);
         }
 
         // The stored Location is dropped rather than truncated if it will not fit. A truncated

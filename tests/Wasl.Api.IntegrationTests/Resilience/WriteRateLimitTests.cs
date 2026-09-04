@@ -73,7 +73,10 @@ public sealed class WriteRateLimitTests(WaslApiFactory factory)
     /// <c>RandomNumberGenerator</c> for the discriminator, never a slice of a UUIDv7 —
     /// `CLAUDE.md`, and `007` collided two customers on a unique index doing exactly that.
     /// </remarks>
-    private async Task<HttpClient> CreatePrivateClientAsync(WebApplicationFactory<Program> host, string password = "Private-Pa55!")
+    private async Task<HttpClient> CreatePrivateClientAsync(
+        WebApplicationFactory<Program> host,
+        string language = "en",
+        string password = "Private-Pa55!")
     {
         var email = $"limit-{RandomNumberGenerator.GetInt32(1_000_000_000):D9}@wasl.local";
 
@@ -82,9 +85,17 @@ public sealed class WriteRateLimitTests(WaslApiFactory factory)
             var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
+            // ── The language is on the USER, not on an Accept-Language header ────────
+            //
+            // MEASURED. The localization test first sent `Accept-Language: ar` and got `en` back
+            // — because BR-8.4's resolution order is `?culture=` → the user's stored
+            // PreferredLanguage → Accept-Language → `en`, and a user seeded with the default
+            // outranks the header. That is `005` working correctly, and asserting through the
+            // header would have made this test a statement about the wrong mechanism.
             context.SupportUsers.Add(SupportUser.Create(
                 "Rate Limit Probe", email, hasher.Hash(password), SupportRole.Agent,
-                new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)));
+                new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                preferredLanguage: language));
 
             await context.SaveChangesAsync();
         }
@@ -181,8 +192,7 @@ public sealed class WriteRateLimitTests(WaslApiFactory factory)
     public async Task The_429_is_enveloped_and_localized()
     {
         using var host = LimitedHost();
-        var client = await CreatePrivateClientAsync(host);
-        client.DefaultRequestHeaders.AcceptLanguage.Add(new StringWithQualityHeaderValue("ar"));
+        var client = await CreatePrivateClientAsync(host, language: "ar");
 
         var refused = await BurstUntilRefusedAsync(client);
 

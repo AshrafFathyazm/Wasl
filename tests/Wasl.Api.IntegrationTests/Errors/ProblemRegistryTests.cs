@@ -122,7 +122,12 @@ public sealed class ProblemRegistryTests
         // the registry row turned it red, which forced the contract table to be corrected in the
         // same change. That is the whole purpose of the list — it is not documentation of the
         // registry, it is a second, independent statement that has to be made to agree with it.
-        int[] documented = [400, 401, 403, 404, 405, 409, 415, 429, 500];
+        // `036` did the same thing for `503`, and found the table had drifted while doing it:
+        // 405, 415 and 429 were in THIS list and not in the table, so the "second, independent
+        // statement" had quietly become one statement plus a copy. All four rows are in the table
+        // now — the drift is the failure mode this test exists to catch, arriving from the side
+        // the test cannot see.
+        int[] documented = [400, 401, 403, 404, 405, 409, 415, 429, 500, 503];
 
         Registry().Values
             .Select(StatusOf)

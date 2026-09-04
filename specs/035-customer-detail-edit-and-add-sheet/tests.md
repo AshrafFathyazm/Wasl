@@ -206,12 +206,66 @@ hard-codes copy asserts the copy rather than the behaviour.
 
 ---
 
-## NOT verified, and not claimed
+## Measured once Docker came back — and it found the `+966` defect
 
-- **The `+966` order in the phone field inside the sheet.** A screenshot showed
-  `5X XXX XXXX 966+`. The element carries `dir="ltr"` and `Input` forwards it correctly,
-  so this needs a browser to settle — and the local SQL container stopped responding
-  (`docker ps` itself times out), so there is no API and no sign-in.
+Five layout changes had accumulated with no browser behind them. All of it measured at
+1500×900, Arabic, signed in as the seeded Manager.
+
+```text
+add sheet      panel x 0..600 (w 600, h 900)   dir rtl   docScrollsX false
+               scrollers: 3, and NONE overflows — overflowsY false,
+                          overflowsX false, scrollHeight − clientHeight = 0
+               footer visible inside the panel, submit inside the footer
+quick view     panel x 0..600                  1 scroller, no overflow
+               rows marked aria-selected: 1
+profile        switcher segments -> /customers/{id} and /customers/{id}/edit
+               Edit button present and enabled
+edit           prefilled from the read, id chip present, «حفظ التغييرات»
+console errors none, on every screen
+```
+
+**The scrollbar reports are settled by that `by: 0`** — not by an argument. The
+structural rewrite (flush flex body, one scroller, plain flex footer) holds.
+
+### The `+966` order was a real defect, and the cause was not where I looked
+
+A screenshot showed `5X XXX XXXX 966+` three times and I could not measure it. The
+element **did** carry `dir="ltr"`, `Input` **did** forward it, and the placeholder string
+was correct — I checked all three from the source and reported it as unverified rather
+than guessing. Measured: **`phoneDir: "rtl"` on an element whose attribute said `ltr`.**
+
+The cause is one rule in `Input.module.css`:
+
+```css
+.control:placeholder-shown { direction: inherit; }
+```
+
+Added deliberately, with a measurement behind it — an empty `dir="auto"` field falls back
+to `ltr` and puts an Arabic placeholder against the wrong edge of an RTL form. But it was
+**unscoped**, and **an author `direction` declaration beats the `dir` attribute**: `dir`
+is a presentational hint and sits below author CSS in the cascade. So it also overrode
+every field that pins its direction on purpose.
+
+Scoped to `.control[dir='auto']:placeholder-shown`, which keeps both intents. Re-measured:
+`phoneDir: "ltr"`, and the placeholder renders `+966 5X XXX XXXX`.
+
+**`032` had already written the `dir="ltr"` and its reason on that field.** The attribute
+was right the whole time and a rule two files away was quietly winning — which is why
+reading the source could not find it and one measurement did.
+
+### The save round trip, through the real UI
+
+```text
+PUT 200  {"fullName":"مُعدَّل 46585", …}
+GET 200  {"fullName":"مُعدَّل 46585", …}   <- the refetch
+GET 200  {"fullName":"مُعدَّل 46585", …}
+landed on /customers/{id}   heading «مُعدَّل 46585»
+```
+
+`PUT` → invalidate → navigate → the profile shows the new name. Nothing seeded from the
+write response.
+
+## Still NOT verified, and not claimed
 - **The frames draw a fixed `+966` prefix box.** `032` ruled against one with a reason: a
   static prefix makes a non-Saudi number unenterable while `POST /api/customers` accepts
   any parseable E.164 — a client narrowing its own API. Building it reverses that ruling,
