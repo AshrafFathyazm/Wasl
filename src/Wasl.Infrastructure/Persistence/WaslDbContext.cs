@@ -58,10 +58,35 @@ public sealed class WaslDbContext(
             return await base.SaveChangesAsync(cancellationToken);
         }
 
+        // ── `036` §3.3, AC-8. FIRST, and matched on the CHAIN rather than on a type ──
+        //
+        // MEASURED, and the first version of this catch was wrong. A deadlock does not arrive as
+        // a DbUpdateException: EF Core's SqlServerExecutionStrategy catches the transient failure
+        // and rethrows it wrapped in an InvalidOperationException carrying the advisory
+        //
+        //   "An exception has been raised that is likely due to a transient failure. Consider
+        //    enabling transient error resiliency by adding 'EnableRetryOnFailure'..."
+        //
+        // with the real DbUpdateException -> SqlException(1205) underneath. Catching
+        // DbUpdateException therefore translated NOTHING, and the induced-deadlock test reported
+        // `found {InvalidOperationException}` — a `500` for the exact case this feature is about.
+        //
+        // So the match is on the inner chain and not on the wrapper's type: the wrapper belongs to
+        // EF and can change, the error number belongs to SQL Server and cannot.
+        //
+        // (That advisory is EF recommending Q-3's route B. It was considered and declined — see
+        // TransientConflictException: the retried delegate must be idempotent and a create handler
+        // has already drawn a ticket number, which a rollback does not return.)
+        catch (Exception exception) when (IsDeadlockVictim(exception))
+        {
+            throw new TransientConflictException(exception);
+        }
+
         // ── `036` §3.2, AC-4 ────────────────────────────────────────────────────────
         //
-        // FIRST, because DbUpdateConcurrencyException derives from DbUpdateException and would
-        // otherwise be tested against TranslateDuplicate, fail to match, and fall out unhandled.
+        // Before the duplicate catch, because DbUpdateConcurrencyException derives from
+        // DbUpdateException and would otherwise be tested against TranslateDuplicate, fail to
+        // match, and fall out unhandled.
         //
         // Three handlers compare `rowversion` explicitly before applying their rules, and that
         // ordering is deliberate and unchanged — `012`'s contract fixes it, and catching this
@@ -78,17 +103,6 @@ public sealed class WaslDbContext(
             throw new ConcurrencyConflictException(exception);
         }
 
-        // ── `036` §3.3, AC-8 ────────────────────────────────────────────────────────
-        //
-        // SQL Server chose this request as the deadlock victim and has already rolled the batch
-        // back. Nothing was written and a retry is very likely to succeed, which is exactly what
-        // makes `500` the wrong answer — see TransientConflictException for why `503` and not
-        // `409`, and for why the retry is the client's and not ours (Q-3, route A).
-        catch (DbUpdateException exception) when (IsDeadlockVictim(exception.InnerException))
-        {
-            throw new TransientConflictException(exception);
-        }
-
         catch (DbUpdateException exception) when (TranslateDuplicate(exception) is { } domain)
         {
             // `007` Q-D. Rethrown as the exception the pre-check raises, so the loser of a race
@@ -97,14 +111,6 @@ public sealed class WaslDbContext(
             // The original is kept as the inner exception: a 500 that reached here by another route
             // would otherwise lose its stack, and BR-9's failure row records the outcome either way.
             throw domain;
-        }
-
-        // A deadlock that surfaces WITHOUT being wrapped — the statement failed before EF built a
-        // DbUpdateException around it. Rarer than the wrapped form and produced by the same
-        // engine condition, so it must not answer differently.
-        catch (SqlException exception) when (IsDeadlockVictim(exception))
-        {
-            throw new TransientConflictException(exception);
         }
     }
 
