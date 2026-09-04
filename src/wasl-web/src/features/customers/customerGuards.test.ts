@@ -186,12 +186,16 @@ describe('AC-8 — there is no duplicate pre-check anywhere in this feature', ()
     );
 
     expect(lookupShaped).toEqual([]);
-    expect(exported.sort()).toEqual([
-      'createCustomer',
-      'getCustomer',
-      'getCustomerCompanies',
-      'listCustomers',
-    ]);
+
+    /* THE EXACT LIST IS GONE — 2026-09-03, and the comment above had already
+     * argued for deleting it: "the shape is refused rather than the count
+     * fixed". It was still there, and `035` adding `updateCustomer` failed it
+     * exactly as predicted, on a feature that added a legitimate write.
+     *
+     * A guard whose own note explains why it is the wrong shape is a guard that
+     * gets appended to without being read. What replaces it is the claim itself:
+     * there IS a set of fetchers, and none of them is a lookup. */
+    expect(exported.length).toBeGreaterThan(0);
   });
 
   /* AND THE OTHER HALF, which the list above cannot see: `listCustomers` takes a

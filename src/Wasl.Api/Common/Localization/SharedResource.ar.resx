@@ -319,4 +319,22 @@
   <data name="Validation.User.LanguageUnsupported" xml:space="preserve">
     <value>اختر الإنجليزية أو العربية.</value>
   </data>
+  <data name="Error.RateLimited.TooManyRequests" xml:space="preserve">
+    <value>طلبات كثيرة. انتظر قليلًا ثم أعد المحاولة.</value>
+  </data>
+  <data name="Error.TransientConflict.Title" xml:space="preserve">
+    <value>تعذّر حفظ التغيير.</value>
+  </data>
+  <data name="Error.TransientConflict" xml:space="preserve">
+    <value>طلب آخر كان يعدّل السجلات نفسها. لم يُحفظ شيء. أعد المحاولة.</value>
+  </data>
+  <data name="Error.IdempotencyConflict.Title" xml:space="preserve">
+    <value>هذا المفتاح مُستخدَم من قبل.</value>
+  </data>
+  <data name="Error.Idempotency.KeyReused" xml:space="preserve">
+    <value>استُخدم Idempotency-Key هذا لطلب مختلف. أرسل مفتاحًا جديدًا.</value>
+  </data>
+  <data name="Validation.Idempotency.KeyTooLong" xml:space="preserve">
+    <value>يجب ألا يتجاوز Idempotency-Key ١٢٨ حرفًا.</value>
+  </data>
 </root>

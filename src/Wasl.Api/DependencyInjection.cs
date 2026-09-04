@@ -5,6 +5,7 @@ using Wasl.Api.Common;
 using Wasl.Api.Common.Auth;
 using Wasl.Api.Common.Errors;
 using Wasl.Api.Common.Localization;
+using Wasl.Api.Common.RateLimiting;
 using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application.Common.Abstractions;
 
@@ -115,6 +116,14 @@ public static class DependencyInjection
 
         // `004`. Throws at startup if the signing key is missing or shorter than 32 bytes.
         services.AddWaslAuthentication(configuration);
+
+        // `036` §3.4. The general write limit — separate from `004b`'s sign-in throttle, which
+        // counts failures rather than requests and stays on its one endpoint (AC-12).
+        //
+        // AFTER AddErrorContract, because OnRejected resolves ProblemDetailsFactory: the `429` it
+        // writes goes through the same producer as every other error, which is what stops it
+        // being the empty-bodied status `002b` had to fix three times.
+        services.AddWaslRateLimiting(configuration);
 
         // `004` AC-12. Read at startup so a missing seed password fails the host build rather
         // than the first sign-in, and so there is nowhere for a default to hide.

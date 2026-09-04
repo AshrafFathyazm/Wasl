@@ -70,10 +70,14 @@ internal sealed class GlobalExceptionHandler(
         // `004b` AC-35. Set BEFORE the body is written, because a header cannot be added once the
         // response has started — and a 429 without Retry-After tells a client to wait without
         // saying how long, so it retries immediately and the limit achieves nothing.
-        if (exception is RateLimitedException limited)
+        //
+        // `036`: matched on IRetryAfterHint, not on RateLimitedException. That was correct while
+        // exactly one type carried a wait; a second (TransientConflictException) makes a type
+        // switch here a list the next feature forgets to extend, and forgetting it is silent.
+        if (exception is IRetryAfterHint retryable)
         {
             context.Response.Headers.RetryAfter =
-                limited.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                retryable.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         var problem = exception switch

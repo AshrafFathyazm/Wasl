@@ -223,8 +223,79 @@ hard-codes copy asserts the copy rather than the behaviour.
 
 ---
 
+## §4.2 — the edit screen, and the switcher · delivered
+
+`/customers/:id/edit` on `017`'s frozen contract, plus the switcher Q-1 turned out to be
+real, plus «تعديل» on the profile.
+
+**It reuses the create form's Zod schema**, and that is a decision rather than a
+shortcut: BR-4.1, BR-4.2 and BR-4.3 are the same rules on both endpoints and the server
+enforces them from the same `ContactNormalisation`. A second schema would be a second
+opinion about the same business rules, and the drift shows up as a form that refuses what
+the server accepts — which is worse than the other way round, because nothing on the
+server ever hears about the attempt.
+
+**`expectedVersion` is deliberately NOT in the schema.** It is not something a reader
+types; it comes from the READ, and it is re-read after every save because the contract
+guarantees the response's `version` is immediately usable as the next one.
+
+`409 concurrency-conflict` gets its own banner and its own control — **load the current
+copy**, not retry — because it is the one failure on this screen that retyping cannot
+fix. The client branches on `type`, never on `title` or `detail` (BR-8).
+
+### Q-1 was answered, and my working assumption was wrong
+
+The spec recorded the centred pill above the breadcrumb as *"the canvas's switcher — not
+built"*, reasoning from `027`, whose frames carried a similar element that genuinely was
+the design tool's artboard switcher. **It is product chrome.** Corrected in the spec with
+the quotation that settled it, rather than quietly rewritten.
+
+Built as **two segments with real targets** — details ⇄ edit. The frames show a third
+label, «إضافة عميل», and it is **not** built: from `/customers/new` the other segment
+would read «تفاصيل العميل» and have no customer to point at. A segment that leads nowhere
+is the thing this feature refuses everywhere else. Raised as **Q-5**.
+
+### Three guards went red, and all three were the guard being wrong
+
+| Guard | What it caught | Resolution |
+|---|---|---|
+| AC-12 · undeclared token | `var(--font-mono, …)` in the new id chip | **The token does not exist**, and `032` had already ruled on it: index.html loads Plex Sans and Plex Sans Arabic only, and referencing a token that is not there "reads as though the system had a mono face when it does not". Now `font-family: monospace`, with `032`'s reason quoted |
+| AC-8 · the fetcher list | `updateCustomer` broke an exact-list assertion | **The comment above it already argued for deleting the list** — *"a change detector rather than a guard… the shape is refused rather than the count fixed"* — and the list was still there. It failed on a feature that added a legitimate write, exactly as predicted. The list is gone; the shape refusal stays |
+| `032` AC-1 · no Edit control | *"renders no Edit control — 017 is not built"* | The reason is gone, so the test asserts the **opposite** now: the control is real, so it must be enabled and must actually navigate. The rule it protected — *a disabled button is a promise about an endpoint* — is quoted in both the test and the view |
+
+`AC-12` also refused `border-radius: 0` and `calc(var(--space-6) * -1)`. Both were the
+guard, not the CSS — `0` is the absence of a radius and a `calc()` over tokens is
+token-derived — and it was widened with a written reason, then **a control armed with
+three real literals (one inside a `calc()`) caught all three.**
+
+### The stale-comment sweep
+
+`CreateCustomer.module.css` had grown **four duplicated comment blocks** — every rewrite
+this session added a note without removing the one it replaced, so the file carried both
+the superseded reasoning and the current one. Removed. A stale comment beside a correct
+rule is the same defect as a stale test.
+
+### Suites
+
+```text
+npx vitest run       34 files, 604 tests, all passed
+npx tsc --noEmit     clean
+npx eslint src       clean
+npm run lint:i18n    ar, en · 5 namespaces · 381 keys
+npx stylelint        clean on every file this feature added; the 2 remaining in
+                     Customers.module.css predate it
+```
+
+---
+
 ## Still to do in this feature
 
-- §4.1 — `/customers/:id` rebuilt to the frame, with the switcher (Q-1, now answered)
-- §4.2 — `/customers/:id/edit`
+- §4.1 — `/customers/:id` **is not rebuilt to the frame.** The switcher and «تعديل» are
+  on it, and the regions the frame draws are the ones `032` already built — but the
+  three-card contact strip, the two-column notes/record split, and the ticket history
+  block (Q-2) have not been laid out to the frame's geometry
+- The browser has verified **none** of this: Docker Desktop's Linux engine answers `500`
+  to `docker start`, so there is no database, no API and no sign-in. Every layout claim
+  in §4.2 and §4.3 is reasoned from the CSS, not measured
 - `tasks.md` and `summary.md`
+- **Q-5** — the switcher's third segment

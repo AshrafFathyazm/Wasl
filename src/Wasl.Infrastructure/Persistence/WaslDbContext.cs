@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Common.Abstractions;
 using Wasl.Domain.Audit;
 using Wasl.Domain.Common;
+using Wasl.Domain.Common.Exceptions;
+using Wasl.Infrastructure.Persistence.Configurations;
 using Wasl.Application.Features.Customers.CreateCustomer;
 using Wasl.Domain.Customers;
 using Wasl.Domain.Tickets;
@@ -55,6 +57,38 @@ public sealed class WaslDbContext(
         {
             return await base.SaveChangesAsync(cancellationToken);
         }
+
+        // ── `036` §3.2, AC-4 ────────────────────────────────────────────────────────
+        //
+        // FIRST, because DbUpdateConcurrencyException derives from DbUpdateException and would
+        // otherwise be tested against TranslateDuplicate, fail to match, and fall out unhandled.
+        //
+        // Three handlers compare `rowversion` explicitly before applying their rules, and that
+        // ordering is deliberate and unchanged — `012`'s contract fixes it, and catching this
+        // exception INSTEAD would put the version check after the transition rules. But the
+        // explicit check cannot cover the writer that arrives between it and this line;
+        // AssignTicketCommandHandler says EF re-checks the rowversion here, and it does. That
+        // re-check threw into an unmapped path and produced a `500` for the one race the explicit
+        // check was never able to see.
+        //
+        // Same reasoning as the duplicate translation below: the loser of a race must receive the
+        // body a sequential caller receives.
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new ConcurrencyConflictException(exception);
+        }
+
+        // ── `036` §3.3, AC-8 ────────────────────────────────────────────────────────
+        //
+        // SQL Server chose this request as the deadlock victim and has already rolled the batch
+        // back. Nothing was written and a retry is very likely to succeed, which is exactly what
+        // makes `500` the wrong answer — see TransientConflictException for why `503` and not
+        // `409`, and for why the retry is the client's and not ours (Q-3, route A).
+        catch (DbUpdateException exception) when (IsDeadlockVictim(exception.InnerException))
+        {
+            throw new TransientConflictException(exception);
+        }
+
         catch (DbUpdateException exception) when (TranslateDuplicate(exception) is { } domain)
         {
             // `007` Q-D. Rethrown as the exception the pre-check raises, so the loser of a race
@@ -64,6 +98,43 @@ public sealed class WaslDbContext(
             // would otherwise lose its stack, and BR-9's failure row records the outcome either way.
             throw domain;
         }
+
+        // A deadlock that surfaces WITHOUT being wrapped — the statement failed before EF built a
+        // DbUpdateException around it. Rarer than the wrapped form and produced by the same
+        // engine condition, so it must not answer differently.
+        catch (SqlException exception) when (IsDeadlockVictim(exception))
+        {
+            throw new TransientConflictException(exception);
+        }
+    }
+
+    /// <summary>
+    /// SQL Server error 1205 — this session was chosen as the deadlock victim.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>1205 and nothing else.</b> 1222 (lock request timeout) is deliberately excluded: a
+    /// timeout means the work may still be in progress somewhere, so telling the client to retry
+    /// could double a write that eventually committed. A 1205 victim's batch is already rolled
+    /// back by the engine, which is what makes the retry advice safe to give.
+    /// </para>
+    /// <para>
+    /// Walks the inner chain, because EF wraps and the provider sometimes wraps again.
+    /// </para>
+    /// </remarks>
+    internal const int DeadlockVictimErrorNumber = 1205;
+
+    private static bool IsDeadlockVictim(Exception? exception)
+    {
+        for (var candidate = exception; candidate is not null; candidate = candidate.InnerException)
+        {
+            if (candidate is SqlException sql && sql.Number == DeadlockVictimErrorNumber)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <inheritdoc cref="SaveChangesAsync(CancellationToken)"/>
@@ -115,9 +186,32 @@ public sealed class WaslDbContext(
             return DuplicateCustomer.Email();
         }
 
-        return message.Contains(DuplicateCustomer.PhoneIndex, StringComparison.Ordinal)
-            ? DuplicateCustomer.Phone()
-            : null;
+        if (message.Contains(DuplicateCustomer.PhoneIndex, StringComparison.Ordinal))
+        {
+            return DuplicateCustomer.Phone();
+        }
+
+        // ── `036` §3.1, AC-1 and AC-2 ───────────────────────────────────────────────
+        //
+        // `034` added this index and wrote down, correctly, that the pre-check is not the
+        // guarantee — and then did not extend this method, so the index caught the race and
+        // answered `500`. Two attaches of the same tag produced `409` or `500` depending only on
+        // whether they overlapped in time.
+        //
+        // The SAME exception the pre-check throws, for the reason `007` recorded as Q-D: a client
+        // must not be able to tell which half of the rule caught it, and the cheapest way to
+        // guarantee that is for both paths to construct the same type rather than two that look
+        // alike.
+        if (message.Contains(TicketTagConfiguration.UniqueIndexName, StringComparison.Ordinal))
+        {
+            return new TagUnchangedException();
+        }
+
+        // Anything else is rethrown untouched and becomes a `500` — the honest answer for a
+        // constraint nobody has written a message for, and the behaviour AC-3 asserts. Widening
+        // this to "any 2601" would translate an unrelated index's violation into a confident,
+        // wrong `409`.
+        return null;
     }
 
     private void Stamp()

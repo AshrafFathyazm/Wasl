@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Wasl.Api.Common.Idempotency;
 using Wasl.Api.Contracts.Tickets;
 using Wasl.Application.Features.Tickets.AddComment;
 using Wasl.Application.Features.Tickets.AssignTicket;
@@ -54,7 +55,23 @@ public sealed class TicketsController(ISender sender) : ControllerBase
     /// after the route changed, and the `201` would then point at a `404` — which is the defect
     /// decision 3 moved <see cref="GetById"/> into this feature to avoid.
     /// </remarks>
+    /// <remarks>
+    /// <para>
+    /// <b><c>[Idempotent]</c> arrived with `036`, and it is OPT-IN per request.</b> A caller that
+    /// sends no <c>Idempotency-Key</c> gets exactly the behaviour this endpoint has always had —
+    /// two clicks, two tickets — because requiring the header would be a breaking change to a
+    /// frozen contract. `CLAUDE.md`'s concurrency checklist opens with this endpoint by name, and
+    /// `05-api-conventions.md` §Idempotency refuses to DEDUPLICATE it server-side for a reason
+    /// that still stands: inferring that two bodies meant one ticket is guessing. A key is not a
+    /// guess — the client states it.
+    /// </para>
+    /// <para>
+    /// The sequence guarantees a unique ticket NUMBER, never a single ticket. That is worth
+    /// stating here because it is the thing that looks like protection and is not.
+    /// </para>
+    /// </remarks>
     [HttpPost]
+    [Idempotent]
     [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

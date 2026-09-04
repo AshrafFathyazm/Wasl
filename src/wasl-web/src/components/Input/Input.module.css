@@ -141,8 +141,30 @@
  * takes the direction from the form rather than naming `rtl` anywhere.
  *
  * Verified in both directions: empty → follows the interface; "Gulf" → ltr;
- * "أحمد" → rtl; cleared → follows the interface again. */
-.control:placeholder-shown {
+ * "أحمد" → rtl; cleared → follows the interface again.
+ *
+ * ---
+ *
+ * `[dir='auto']` ADDED 2026-09-03, AND IT IS THE FIX FOR A REAL DEFECT.
+ *
+ * This rule was unscoped, and an author `direction` declaration BEATS the `dir`
+ * attribute — `dir` is a presentational hint and sits below author CSS in the
+ * cascade. So it also overrode the fields that pin their direction on purpose:
+ * the phone field carries `dir="ltr"` precisely so `+966 5X XXX XXXX` reads as a
+ * phone number, and while empty it rendered `5X XXX XXXX 966+` — the country
+ * code at the far end, still looking like a plausible number.
+ *
+ * Reported three times off screenshots and unmeasurable each time: the local
+ * database was down, so there was no API and no sign-in. MEASURED once it came
+ * back: the placeholder STRING was correct and the computed direction was `rtl`
+ * on an element whose attribute said `ltr`. `032` had already written the
+ * `dir="ltr"` and its reason on that field — the attribute was there the whole
+ * time and this rule was quietly winning.
+ *
+ * The scope is what keeps both intents: an `auto` field still follows the
+ * interface while empty, and a field that was told which direction it is keeps
+ * it. */
+.control[dir='auto']:placeholder-shown {
   direction: inherit;
 }
 

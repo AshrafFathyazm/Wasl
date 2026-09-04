@@ -51,6 +51,23 @@ internal sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
 /// </summary>
 internal sealed class TicketTagConfiguration : IEntityTypeConfiguration<TicketTag>
 {
+    /// <summary>
+    /// The index whose violation means the ticket already carries this tag. `036` §3.1.
+    /// </summary>
+    /// <remarks>
+    /// <b>A constant rather than a literal, because two files must agree on it</b> — this
+    /// configuration creates the index and <c>WaslDbContext.TranslateDuplicate</c> matches the
+    /// SQL Server message against its name. `007` learned the same thing for customers and put
+    /// its two names on <c>DuplicateCustomer</c>; that class is in <c>Wasl.Application</c>
+    /// because the pre-check that raises the exception lives there. This one is here because
+    /// both halves are in <c>Wasl.Infrastructure</c> and there is no boundary to cross.
+    /// <para>
+    /// Matching on the NAME and not on error number 2601/2627 is the rule, not an
+    /// implementation detail — see <c>TranslateDuplicate</c>.
+    /// </para>
+    /// </remarks>
+    public const string UniqueIndexName = "UX_TicketTags_Ticket_Tag";
+
     public void Configure(EntityTypeBuilder<TicketTag> builder)
     {
         builder.ToTable("TicketTags");
@@ -65,9 +82,15 @@ internal sealed class TicketTagConfiguration : IEntityTypeConfiguration<TicketTa
         // case, and the client guard is not the guarantee — CLAUDE.md's first concurrency row.
         // Two parallel requests both pass a "does it already have this tag" check and only the
         // index stops the second insert.
+        //
+        // `036` §3.1 finished the sentence above. The index did stop the second insert and then
+        // produced a `500`, because WaslDbContext.TranslateDuplicate knew only `007`'s two
+        // customer indexes by name. The loser of the race and the loser of a sequential
+        // double-click now get the same `409 errors/tag-unchanged` — `007` Q-D's rule, which was
+        // written once for customers and not generalised.
         builder.HasIndex(link => new { link.TicketId, link.TagId })
             .IsUnique()
-            .HasDatabaseName("UX_TicketTags_Ticket_Tag");
+            .HasDatabaseName(UniqueIndexName);
 
         builder.HasOne<Ticket>()
             .WithMany()

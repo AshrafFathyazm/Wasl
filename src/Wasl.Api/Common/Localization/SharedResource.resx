@@ -319,4 +319,22 @@
   <data name="Validation.User.LanguageUnsupported" xml:space="preserve">
     <value>Choose either English or Arabic.</value>
   </data>
+  <data name="Error.RateLimited.TooManyRequests" xml:space="preserve">
+    <value>Too many requests. Wait a moment and try again.</value>
+  </data>
+  <data name="Error.TransientConflict.Title" xml:space="preserve">
+    <value>The change could not be saved.</value>
+  </data>
+  <data name="Error.TransientConflict" xml:space="preserve">
+    <value>Another request was changing the same records. Nothing was saved. Try again.</value>
+  </data>
+  <data name="Error.IdempotencyConflict.Title" xml:space="preserve">
+    <value>This request key was already used.</value>
+  </data>
+  <data name="Error.Idempotency.KeyReused" xml:space="preserve">
+    <value>This Idempotency-Key was already used for a different request. Send a new key.</value>
+  </data>
+  <data name="Validation.Idempotency.KeyTooLong" xml:space="preserve">
+    <value>Idempotency-Key must be 128 characters or fewer.</value>
+  </data>
 </root>

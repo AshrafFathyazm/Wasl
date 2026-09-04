@@ -5,10 +5,11 @@ import { Badge } from '../../components/Badge/Badge';
 import { Button } from '../../components/Button/Button';
 import { Skeleton } from '../../components/Loader/Skeleton';
 import { IconCustomer } from '../../icons/icons';
-import { IconAlert, IconRetry } from '../../icons/icons-added';
+import { IconAlert, IconEdit, IconRetry } from '../../icons/icons-added';
 import { formatDate, formatPhone, type Lang } from '../../lib/formatters';
 import type { CustomerDetail } from '../../lib/api-types.provisional';
 import { CopyValue } from './CopyValue';
+import { CustomerScreenSwitcher } from './CustomerScreenSwitcher';
 import styles from './Customers.module.css';
 
 /* ============================================================================
@@ -52,6 +53,11 @@ export interface CustomerProfileViewProps {
   /** Which language the dates are formatted for. Passed rather than read from
    *  i18next here, so the preview can render both side by side. */
   lang: Lang;
+
+  /** Opens `/customers/:id/edit`. A CALLBACK rather than a `<Link>` in here:
+   *  this component is also mounted by the preview and by tests, and a hard
+   *  route inside a view is a route those two have to provide a router for. */
+  onEdit?: ((id: string) => void) | undefined;
 }
 
 /** The id, shown short and copied whole. Eight and four is the shape support
@@ -107,11 +113,21 @@ export function CustomerProfileView({
   onRetry,
   onCopied,
   lang,
+  onEdit,
 }: CustomerProfileViewProps) {
   const { t } = useTranslation();
 
   return (
     <div className={styles.page}>
+      {/* ABOVE THE BREADCRUMB, which is where the frames put it — `035` Q-1,
+          answered after I had written it into the spec as the design canvas's
+          own artboard switcher. It renders only when there IS a customer: on a
+          `404` or a failed request both of its segments would point at an id
+          the product could not load. */}
+      {state === 'loaded' && customer ? (
+        <CustomerScreenSwitcher id={customer.id} />
+      ) : null}
+
       <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>
         <Link className={styles.crumbLink} to="/customers">
           {t('common:nav.customers')}
@@ -175,10 +191,25 @@ export function CustomerProfileView({
             <Badge tone="neutral" label={t('customers:profile.inactive')} />
           )}
 
-          {/* NO EDIT CONTROL. `07-customer-profile.md` says hidden until US-003
-              ships, and `017` is not built — no `PUT /api/customers/{id}` exists
-              in the API at all. Absent, not disabled: a disabled button is a
-              promise, and this one would be a promise about an endpoint. */}
+          {/* «تعديل» — AND THIS NOTE USED TO SAY THE OPPOSITE.
+              It read: "NO EDIT CONTROL… `017` is not built — no
+              `PUT /api/customers/{id}` exists in the API at all. Absent, not
+              disabled: a disabled button is a promise, and this one would be a
+              promise about an endpoint."
+
+              `035` built that endpoint on `017`'s frozen contract, so the
+              reason is gone and the control is real. Kept as a quotation rather
+              than deleted, because the RULE it states is still the rule — a
+              disabled button is a promise about an endpoint — and the next
+              person to meet an undrawn action needs to find it. */}
+          <div className={styles.headAction}>
+            <Button
+              buttonType="secondary-outline"
+              text={t('customers:profile.edit')}
+              iconStart={<IconEdit size={16} />}
+              onClick={() => onEdit?.(customer.id)}
+            />
+          </div>
         </div>
       ) : null}
 

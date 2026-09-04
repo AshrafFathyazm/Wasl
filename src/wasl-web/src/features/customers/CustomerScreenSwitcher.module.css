@@ -1,0 +1,57 @@
+/* ============================================================================
+ * The customer screens' switcher — `035` Q-1.
+ * ============================================================================
+ * A carved track with a raised pill on the active segment. The same shape the
+ * ticket list's status strip uses, and deliberately the same: two segmented
+ * controls in one product that look different are two controls a reader has to
+ * learn twice.
+ * ========================================================================= */
+
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+
+  /* CENTRED, which is the one thing the frames are unambiguous about — it sits
+     above the breadcrumb, not beside it. `margin-inline: auto` rather than a
+     `justify-content` on a parent, so the control centres itself wherever it is
+     placed and no page has to know. */
+  margin-inline: auto;
+  margin-block-end: var(--space-4);
+  padding: var(--space-1);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-chip);
+}
+
+.seg {
+  display: inline-flex;
+  align-items: center;
+  block-size: 34px;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+
+  /* base.css gives every <a> the link colour and an underline; a segment is a
+     control, not a sentence. The FOCUS RING is untouched — it is the only thing
+     telling a keyboard user which segment they are on. */
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.seg:hover {
+  color: var(--text-primary);
+}
+
+/* THE RAISED PILL. `--surface-card` against `--surface-chip` is what makes it
+   read as lifted out of the track rather than tinted inside it. */
+.segOn {
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: var(--seg-shadow, 0 1px 2px rgb(13 38 38 / 8%));
+}
+
+.segOn:hover {
+  color: var(--text-primary);
+}

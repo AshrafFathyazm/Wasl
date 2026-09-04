@@ -85,6 +85,10 @@ function renderAt(id: string) {
           <Routes>
             <Route path="/customers/:id" element={<CustomerProfilePage />} />
             <Route path="/customers" element={<p>{'the list'}</p>} />
+            {/* A STUB, so `035`'s Edit control can be asserted to actually
+                navigate. Rendering the real page here would pull its query and
+                its form into a test about the profile. */}
+            <Route path="/customers/:id/edit" element={<p>{'the edit screen'}</p>} />
           </Routes>
         </MemoryRouter>
       </I18nextProvider>
@@ -120,16 +124,40 @@ describe('AC-1 — the page reads the customer from the read endpoint', () => {
     expect(screen.getByText(CUSTOMER.notes!)).toBeInTheDocument();
   });
 
-  it('renders no Edit control — 017 is not built', async () => {
+  it('renders an Edit control that opens the edit route', async () => {
+    /* THIS TEST ASSERTED THE OPPOSITE until 2026-09-03: "renders no Edit
+     * control — 017 is not built", with the note *"ABSENT, not disabled… a
+     * disabled button with the same label would still fail this"*. `035` built
+     * `PUT /api/customers/{id}` on `017`'s frozen contract, so the reason for
+     * the absence is gone.
+     *
+     * The RULE it was protecting still holds and is now protected the other way
+     * round: the control is real, so it must actually go somewhere. A disabled
+     * button or one that navigates nowhere fails this. */
     vi.mocked(getCustomer).mockResolvedValue(CUSTOMER);
     renderAt(ID);
     await screen.findByRole('heading', { level: 2 });
 
-    /* ABSENT, not disabled. Queried by role rather than by text so a disabled
-     * button with the same label would still fail this. */
+    const edit = screen.getByRole('button', { name: /edit|تعديل/i });
+    expect(edit).toBeEnabled();
+
+    await userEvent.click(edit);
+    expect(await screen.findByText('the edit screen')).toBeInTheDocument();
+  });
+
+  it('offers the screen switcher, with both segments pointing at real routes', async () => {
+    /* `035` Q-1, answered by the product owner after I had written it into the
+     * spec as the design canvas's own artboard switcher. It is product chrome. */
+    vi.mocked(getCustomer).mockResolvedValue(CUSTOMER);
+    renderAt(ID);
+    await screen.findByRole('heading', { level: 2 });
+
     expect(
-      screen.queryByRole('button', { name: /edit|تعديل/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: i18n.t('customers:switcher.details') }),
+    ).toHaveAttribute('href', `/customers/${ID}`);
+    expect(
+      screen.getByRole('link', { name: i18n.t('customers:switcher.edit') }),
+    ).toHaveAttribute('href', `/customers/${ID}/edit`);
   });
 });
 

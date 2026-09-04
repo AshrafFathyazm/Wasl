@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { Toast } from '../../components/Toast/Toast';
 import { IconCheck } from '../../icons/icons';
@@ -32,6 +32,7 @@ const TOAST_MS = 1800;
 
 export default function CustomerProfilePage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
 
@@ -92,6 +93,7 @@ export default function CustomerProfilePage() {
         onRetry={() => void query.refetch()}
         onCopied={(fieldLabel) => setCopied(fieldLabel)}
         lang={lang}
+        onEdit={(customerId) => void navigate(`/customers/${customerId}/edit`)}
       />
 
       {/* ONE TOAST, NAMING WHAT WAS COPIED. Three copy controls share it, and the

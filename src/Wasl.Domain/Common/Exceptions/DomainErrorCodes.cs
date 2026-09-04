@@ -149,6 +149,34 @@ public static class DomainErrorCodes
     /// A `429`, and the only status in this registry that is neither a client mistake nor a
     /// business-rule refusal — it is the server declining to answer for a while. It carries no
     /// `errors` dictionary, because no field is at fault.
+    /// <para>
+    /// <b>`036` gave it a second producer.</b> `004b` raised it only from the sign-in throttle;
+    /// the general write limiter raises it too. The <c>type</c> is deliberately shared — a client
+    /// backs off identically for both — and the two are told apart by the <b>title</b>, which is
+    /// what <c>DomainException.TitleKey</c> exists for.
+    /// </para>
     /// </remarks>
     public const string RateLimited = "rate-limited";
+
+    /// <summary>
+    /// The write was rolled back for a transient reason and may be retried. `036` §3.3.
+    /// </summary>
+    /// <remarks>
+    /// A `503`, and the only code here that describes neither the request nor a rule — it
+    /// describes two requests overlapping in time. Today its one source is a SQL Server deadlock
+    /// victim (error 1205). See <see cref="TransientConflictException"/> for why it is not a
+    /// `409`: every other conflict in this registry is a fact a retry cannot change, and this one
+    /// is a fact a retry very likely can.
+    /// </remarks>
+    public const string TransientConflict = "transient-conflict";
+
+    /// <summary>
+    /// An <c>Idempotency-Key</c> was reused with a different request body. `036` §3.5.
+    /// </summary>
+    /// <remarks>
+    /// Its own code rather than folding into <see cref="Validation"/>: the request is well-formed
+    /// and every field is valid, and the client's correct reaction — mint a new key, or stop — is
+    /// not the reaction a `400` asks for.
+    /// </remarks>
+    public const string IdempotencyConflict = "idempotency-conflict";
 }

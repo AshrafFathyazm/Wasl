@@ -27,6 +27,7 @@ const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage
 const CustomersListPage = lazy(() => import('./features/customers/CustomersListPage'));
 const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
 const CustomerProfilePage = lazy(() => import('./features/customers/CustomerProfilePage'));
+const EditCustomerPage = lazy(() => import('./features/customers/EditCustomerPage'));
 
 /* `027`. THE REAL DETAIL SCREEN, replacing the placeholder that stood here.
  *
@@ -194,6 +195,13 @@ export const routes: RouteObject[] = [
           { path: '/customers', element: <CustomersListPage /> },
           { path: '/customers/new', element: <CreateCustomerPage /> },
           { path: '/customers/:id', element: <CustomerProfilePage /> },
+
+          /* `/customers/:id/edit` — `035` §4.2. AFTER the profile for the same
+             reason `/customers/new` comes before `/customers/:id`: the reader
+             of this table should meet the more specific path next to the one it
+             extends. React Router matches on specificity, not on order, so this
+             is for the reader and not for the router. */
+          { path: '/customers/:id/edit', element: <EditCustomerPage /> },
         ],
       },
     ],

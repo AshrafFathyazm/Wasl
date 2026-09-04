@@ -36,6 +36,37 @@ public abstract class DomainException : Exception
         MessageArguments = messageArguments;
     }
 
+    /// <summary>
+    /// The same, carrying the exception this one was translated from. `036`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>For the translations only</b> — a rule that refuses a request has no cause to carry,
+    /// and a domain rule that wraps an infrastructure exception is a layering mistake, not a
+    /// use of this constructor. It exists because `036` turns two <i>engine</i> conditions into
+    /// domain exceptions: a rowversion mismatch EF detected, and a deadlock SQL Server resolved.
+    /// </para>
+    /// <para>
+    /// <b>Without it those two are undiagnosable.</b> <c>GlobalExceptionHandler</c> logs a
+    /// <see cref="DomainException"/> at <c>Warning</c> with no exception object, because a
+    /// business rule refusing a request is the system working. That is right for a duplicate
+    /// email and wrong for a deadlock: the log would say <c>transient-conflict</c> and record
+    /// neither the statement nor the victim. The cause is carried so the handler can log it.
+    /// </para>
+    /// <para>
+    /// It never reaches the wire. <c>ProblemDetails</c> is built from
+    /// <see cref="ErrorCode"/> and <see cref="MessageKey"/> only — NFR-4, and `002` already
+    /// forbids a stack trace, SQL, or an exception type name in <c>detail</c>.
+    /// </para>
+    /// </remarks>
+    protected DomainException(string errorCode, string messageKey, Exception? cause)
+        : base(messageKey, cause)
+    {
+        ErrorCode = errorCode;
+        MessageKey = messageKey;
+        MessageArguments = [];
+    }
+
     /// <summary>Which rule broke. A value from <see cref="DomainErrorCodes"/>.</summary>
     public string ErrorCode { get; }
 

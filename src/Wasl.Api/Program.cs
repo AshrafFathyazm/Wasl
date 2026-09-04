@@ -185,6 +185,29 @@ app.UseAuthentication();
 app.UseRequestLocalization();
 app.UseAuthorization();
 
+// ── `036` §3.4. AFTER authentication, localization AND authorization ─────────────
+//
+// All three positions are load-bearing and every one of them fails quietly if moved:
+//
+//   after UseAuthentication  — the partition is the caller's user id, read through ICurrentUser.
+//                              Before it there is no principal, so every authenticated write
+//                              would share one address-keyed bucket and one busy agent would
+//                              throttle the whole office. That is `004b` AC-37's failure arriving
+//                              on a different endpoint.
+//   after UseRequestLocalization — OnRejected builds a LOCALIZED body. Before it no culture is
+//                              resolved, so the 429 comes back in the process default while every
+//                              other response on the same host is Arabic. `005` measured exactly
+//                              this shape for the 401 and the fix was the same: move the
+//                              registration, not the reader.
+//   after UseAuthorization   — an unauthenticated or forbidden request should be refused for
+//                              THAT reason. A 429 in front of a 401 tells an anonymous caller
+//                              they are being rate limited on an endpoint they may not reach,
+//                              which is a fact about the system they should not be given.
+//
+// It goes before MapControllers because a limiter that runs after the endpoint has executed has
+// limited nothing.
+app.UseRateLimiter();
+
 // ── 002b. The statuses nobody throws ─────────────────────────────────────────────
 //
 // Routing answers a 404 for an unmatched path and a 405 for an undeclared method by writing

@@ -563,6 +563,20 @@ has already had, or that the shape of a feature makes likely.
 | **Is `DateTime.UtcNow` called anywhere?** `IRequestTimestamp` or `TimeProvider`, never inline | Two timestamps in one request that should be one |
 | **Is `pageSize` clamped on every path?** BR-7.2 | An unclamped page size is a denial of service with one query string |
 | **Is any SQL built by interpolation?** `ExecuteSqlRaw`, `FromSqlRaw` | EF1002 is an analyser rule, and the habit formed in a test moves to `015`, which builds a query from user input |
+| **Is check-then-act relied on as the guarantee?** A `SELECT` before an `INSERT` decides on state that is already stale by the time the `INSERT` runs | `007` keeps its pre-check for the readable `409`, and the **filtered unique index** is what makes it correct. The pre-check is the message; the index is the rule. Neither substitutes for the other. **And the index is only half done until its violation is TRANSLATED** — `034` built `UX_TicketTags_Ticket_Tag`, wrote this rule in a comment, and left the race answering `500` for three features. `WaslDbContext.TranslateDuplicate` is the list; adding an index means adding a row to it |
+| **Can the same request be retried safely?** `POST /api/tickets` can, **with an `Idempotency-Key`** (`036`). `POST /api/customers` needs none — BR-4's unique index answers a double-submit with a `409`. `POST /…/comments` still cannot | A retry after a failure is indistinguishable from a second intent. Either the write is idempotent, or the client can double it and nothing notices |
+| **Does a client timeout prove the server did not commit?** It does not — the transaction commits and the response is lost | Whatever the client does next has to be safe on an already-committed write. This is the retry row above, arriving through the path nobody tests. **On `POST /api/tickets` the key now makes it safe; everywhere else this is still open** |
+| **Is a deadlock or a serialization failure translated into a business conflict?** SQL Server error 1205 is **not** `errors/concurrency-conflict` — it is `503 errors/transient-conflict` with `Retry-After` (`036`) | A transient database failure answered as a business `409` tells the user to fix something that is not wrong, and buries a lock-ordering defect under a plausible message. **1222 (lock timeout) is deliberately NOT translated**: a timeout does not prove the work was rolled back, so advising a retry could double a write that eventually commits |
+| **Is the transaction boundary the whole handler?** `TransactionBehaviour` wraps it, so anything slow inside holds locks for the duration | An `ICommunicationProvider` call or any HTTP hop inside the transaction turns one network stall into a table of blocked writers. Do the external call after the commit, not inside it |
+| **Does this endpoint need a throttle of its own?** Every write is now under the general limit — 60 per caller per minute (`036` §3.4) — and `POST /api/auth/token` keeps `004b`'s separate `(address, email)` failure throttle **instead of**, not on top of, the general one | Most writes do not need their own — but "there is no general rate limit" is no longer the default answer, and a NEW endpoint that needs a tighter one still needs a **stated reason**, not an assumption inherited from the endpoint beside it. **Reads are deliberately unlimited**: nothing in this product polls, so a read limit has no legitimate load to calibrate against |
+
+### Evidence, not a reading of the code
+
+Each applicable row is satisfied by exactly one of: a database constraint, an explicit
+version check, a transaction boundary, an idempotency mechanism, transient-failure
+handling, a throttle — or **a named reason the control does not apply**. "The code looks
+safe" is not one of them. `007` AC-13 is the project's only concurrency test, and it exists
+because the pre-check it guards reads correct and is not the guarantee.
 
 ### Authentication — `004`'s backend half is built. Read this before touching it
 
@@ -669,7 +683,7 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | **.NET 10** — confirmed by the product owner 2026-08-23, while the house platform targets `net8.0` | `specs/001-solution-skeleton/research.md` R-3 — current LTS, one line to revert. `global.json` pins the SDK band because a preview `10.0.400` is also installed and would otherwise win |
 | React, not Angular | ADR-003 (Q-4, Q-12 closed) |
 | No global state store | ADR-011 §1 |
-| `ICommunicationProvider` + one Mock **is** built | `docs/sdd/08-board.md`, feature `021`. Channels is a named module in the requirement |
+| `ICommunicationProvider` + one Mock is **specified and NOT built** | `docs/sdd/08-board.md`, feature `021`. Channels is a named module in the requirement, and the module is still a requirement. **This row said "is built" until `036` grepped for it: zero matches in `src/`, and `Wasl.Domain/Communications/` holds one file, `CommunicationChannel.cs`.** Corrected in place, in the shape `034` used for `Interaction` one line above — a false claim of a built component is worse than an unbuilt one, because nobody goes looking |
 | Attachments are **out of scope**, stated explicitly in the affected `spec.md` | `docs/sdd/00-project-context.md` |
 | Theming: token architecture in `006`, settings screen deferred | ADR-012, accepted in part |
 | **`TransactionBehaviour` and `AuditBehaviour` live in `Wasl.Infrastructure`**, not beside `ValidationBehaviour` | `003` `research.md` R-14, product owner 2026-08-25. Both need a real transaction; `IApplicationDbContext` exposes no EF Core type and `IDbContextTransaction` is one, so putting it there would fail the architecture test. The `IUnitOfWork` wrapper was the alternative and was turned down — the boundary keeps **no exemption** |

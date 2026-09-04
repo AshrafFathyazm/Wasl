@@ -590,3 +590,10 @@
   padding-inline: var(--space-1);
   line-height: 1;
 }
+
+/* «تعديل» at the header's inline-end, as the frame draws it. `margin-inline-start:
+   auto` rather than an order change, so the DOM stays avatar → name → action and
+   a screen reader hears the identity before the control. */
+.headAction {
+  margin-inline-start: auto;
+}

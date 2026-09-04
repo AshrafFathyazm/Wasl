@@ -174,6 +174,11 @@ public static class DependencyInjection
 
         services.AddScoped<IAuditWriter, AuditWriter>();
 
+        // `036` §3.5. Scoped, and it takes the context FACTORY rather than the request's context
+        // — see IdempotencyStore for why: a reservation must outlive the rollback of the command
+        // it guards, which a context enrolled in that command's transaction cannot do.
+        services.AddScoped<IIdempotencyStore, Persistence.Idempotency.IdempotencyStore>();
+
         // Singleton: it holds one cached dummy hash and no per-request state (`004`).
         services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
 

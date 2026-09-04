@@ -5,6 +5,8 @@ import type {
   CustomerDetail,
   CustomerListItem,
   PagedResult,
+  UpdateCustomerRequest,
+  UpdateCustomerResponse,
 } from '../../lib/api-types.provisional';
 
 /* ============================================================================
@@ -203,3 +205,27 @@ export const customerKeys = {
    *  same thing about the tag set. */
   companies: (search?: string) => ['customer-companies', search ?? ''] as const,
 };
+
+/**
+ * `PUT /api/customers/{id}` — `017`'s frozen contract, built by `035`.
+ *
+ * **NO RETRY, and unlike the create the reason is not idempotency.** This
+ * endpoint *is* idempotent in the HTTP sense, but a retry would carry the same
+ * `expectedVersion` — which the first attempt has already consumed if it
+ * reached the server. The second attempt then answers `409` for a save that
+ * succeeded, and the reader is told their copy is stale when it is not.
+ *
+ * The caller refetches on success and takes `version` from the response, which
+ * the contract guarantees is immediately usable as the next `expectedVersion`.
+ */
+export function updateCustomer(
+  id: string,
+  body: UpdateCustomerRequest,
+  signal?: AbortSignal,
+): Promise<UpdateCustomerResponse> {
+  return apiFetch<UpdateCustomerResponse>(`/api/customers/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}

@@ -131,6 +131,26 @@ internal static class ProblemTypes
 
         [DomainErrorCodes.AssigneeNotFound] = new(
             StatusCodes.Status404NotFound, CarriesErrors: false, TitleKey: "Error.AssigneeNotFound.Title"),
+
+        // ── Added by `036` ──────────────────────────────────────────────────────────
+        //
+        // A `503`, and the only one in this registry. Every other conflict here is a fact about
+        // the request that a retry cannot change; this one is a fact about two requests
+        // overlapping in time, and a retry very likely resolves it. Putting it in the `409`
+        // bucket would tell a client never to retry the one failure it should.
+        //
+        // No `errors` and no field: the request was fine. It also carries no detail about WHICH
+        // rows deadlocked — that is a fact about another user's work (NFR-4).
+        [DomainErrorCodes.TransientConflict] = new(
+            StatusCodes.Status503ServiceUnavailable, CarriesErrors: false,
+            TitleKey: "Error.TransientConflict.Title"),
+
+        // A `409`, alongside duplicate-customer and concurrency-conflict, and for the same
+        // reason: the request is well-formed and every field is valid — what is wrong is its
+        // relationship to a request that came before it. So no `errors` dictionary.
+        [DomainErrorCodes.IdempotencyConflict] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false,
+            TitleKey: "Error.IdempotencyConflict.Title"),
     };
 
     /// <summary>Every registered code. Used by the completeness test (AC-14, AC-15).</summary>

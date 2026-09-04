@@ -84,10 +84,22 @@
     "errorTitle": "The profile could not be loaded",
     "errorBody": "The request did not complete. Try again, and if it keeps happening send this reference to support.",
     "retry": "Try again",
-    "backToList": "Back to customers"
+    "backToList": "Back to customers",
+    "edit": "Edit"
   },
   "quick": {
     "record": "Record",
     "openProfile": "Open the full profile"
+  },
+  "switcher": {
+    "label": "Customer screens",
+    "details": "Customer details",
+    "edit": "Edit customer"
+  },
+  "edit": {
+    "title": "Edit customer",
+    "submit": "Save changes",
+    "reload": "Load the current copy",
+    "staleBody": "Somebody else changed this customer while you were editing. Load the current copy and apply your changes again."
   }
 }

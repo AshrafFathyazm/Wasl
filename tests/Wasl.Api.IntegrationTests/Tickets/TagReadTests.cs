@@ -94,7 +94,18 @@ public sealed class TagReadTests(WaslApiFactory factory)
             .Select(tag => tag.GetProperty("name").GetString()!)
             .ToList();
 
-        names.Should().BeInAscendingOrder(StringComparer.Ordinal,
+        // ── CASE-INSENSITIVE, because that is what the COLUMN is ────────────────────
+        //
+        // This read `StringComparer.Ordinal` until `036`, which contradicted the sentence below
+        // it: `dbo.Tags.Name` carries an explicit CI collation (TagConfiguration), so SQL sorts
+        // «race» before «Refund» while .NET ordinal puts every capital letter first. The two
+        // agreed only while every tag in the database happened to share a case.
+        //
+        // It went red the moment `036` added lowercase tag names beside the seeded «Refund…» —
+        // which is the assertion working, not `036` breaking it. The ORDER BY was never wrong;
+        // the comparer was.
+        names.Should().BeInAscendingOrder(
+            StringComparer.Create(System.Globalization.CultureInfo.InvariantCulture, ignoreCase: true),
             "ordered in SQL under the database collation. This asserts the ORDER, not that two "
             + "requests agree — `013` proved the second proves nothing");
     }

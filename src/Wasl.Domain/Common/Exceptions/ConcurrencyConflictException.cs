@@ -21,6 +21,16 @@ namespace Wasl.Domain.Common.Exceptions;
 /// merge, and the answer is to reload — a partial merge of a state machine is how a ticket ends
 /// up in a status nobody chose.
 /// </para>
+/// <para>
+/// <b>`036` gave it a SECOND source, and the paragraph above still holds.</b>
+/// <c>WaslDbContext.SaveChangesAsync</c> now catches <c>DbUpdateConcurrencyException</c> and
+/// raises this — not instead of the explicit comparison, which stays exactly where `012` put it,
+/// but for the writer that arrives BETWEEN that comparison and the save. That window is the only
+/// one the explicit check cannot see, and until `036` it produced a `500`. `036` AC-6 is the
+/// guard: a stale version plus a forbidden transition must still answer
+/// <c>concurrency-conflict</c>, which goes red if anyone ever "simplifies" this by deleting the
+/// explicit check in favour of the catch.
+/// </para>
 /// </remarks>
-public sealed class ConcurrencyConflictException()
-    : DomainException(DomainErrorCodes.ConcurrencyConflict, "Error.Ticket.ConcurrencyConflict");
+public sealed class ConcurrencyConflictException(Exception? cause = null)
+    : DomainException(DomainErrorCodes.ConcurrencyConflict, "Error.Ticket.ConcurrencyConflict", cause);

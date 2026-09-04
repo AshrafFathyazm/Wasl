@@ -761,3 +761,35 @@ export interface CreateCustomerRequest {
  * Raised as a contract-vs-build difference in `032`'s `tests.md`, Q-7.
  */
 export type CreateCustomerResponse = CustomerDetail;
+
+// PROVISIONAL — hand-written against specs/017-update-customer/
+// contracts/customer-update-api.md (frozen), built by `035`.
+// Delete when OpenAPI generation lands. ADR-011 §6.
+/**
+ * The body of `PUT /api/customers/{id}`.
+ *
+ * **IT REPLACES; IT DOES NOT MERGE.** The contract says so in words and names
+ * the consequence: an omitted or `null` optional field is **cleared**, so
+ * `{ fullName, email, expectedVersion }` alone sets phone, company and notes to
+ * `null` and answers `200`. That is the one failure on this endpoint that
+ * produces no error at all, which is why every field is REQUIRED here even
+ * though three of them are nullable — a caller that omits one in TypeScript is
+ * a caller that did not decide to clear it.
+ *
+ * `expectedVersion` is the `version` the client READ. Missing → `400`;
+ * malformed → `400`; stale → `409 errors/concurrency-conflict`. Three answers
+ * for three faults, and treating a missing one as "no opinion" would turn every
+ * client that forgets it into a last-write-wins client, silently.
+ */
+export interface UpdateCustomerRequest {
+  fullName: string;
+  email: string | null;
+  phone: string | null;
+  companyName: string | null;
+  notes: string | null;
+  expectedVersion: string;
+}
+
+/** The `200` body — the same shape as the read, for the reason the create's
+ *  alias records: the contract requires a `GET` to return an identical body. */
+export type UpdateCustomerResponse = CustomerDetail;

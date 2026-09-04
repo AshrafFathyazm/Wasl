@@ -112,6 +112,20 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         await ((IAsyncDisposable)this).DisposeAsync();
     }
 
+    /// <summary>
+    /// <c>RateLimit:WritesPerWindow</c>, read off the type that enforces it. `036` §3.4.
+    /// </summary>
+    /// <remarks>
+    /// Reflection rather than a literal string, and rather than <c>InternalsVisibleTo</c> —
+    /// <c>WriteRateLimiting</c> is internal to <c>Wasl.Api</c> and `002` chose this route for
+    /// <c>ProblemTypes</c> for the same reason. A literal key would keep "working" after the
+    /// setting was renamed, silently leaving the suite under the production limit again.
+    /// </remarks>
+    public static readonly string RateLimitKey = (string)typeof(Program).Assembly
+        .GetType("Wasl.Api.Common.RateLimiting.WriteRateLimiting")!
+        .GetField("ConfigurationKey", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!
+        .GetRawConstantValue()!;
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         // "Testing", not "Development", and this is not cosmetic.
@@ -171,6 +185,23 @@ public sealed class WaslApiFactory : WebApplicationFactory<Program>, IAsyncLifet
         builder.UseSetting("Seed:ManagerPassword", ManagerPassword);
         builder.UseSetting("Seed:AgentPassword", AgentPassword);
         builder.UseSetting("Seed:AgentTwoPassword", AgentTwoPassword);
+
+        // ── `036` §3.4. The suite is a legitimate client that no human rate describes ───
+        //
+        // MEASURED, not anticipated. The first full run after the write limiter went in failed
+        // 174 tests: this suite drives every write in the product as two seeded users inside one
+        // minute, so it blows through a per-user limit sized for a person at a screen — and the
+        // failures land on unrelated assertions (`400` expected, `429` found) which reads as the
+        // feature under test being broken.
+        //
+        // Raised HERE rather than lowered in `src/`, because the alternative is weakening a
+        // production protection to fit a test host. The limiter itself is still asserted, by
+        // WriteRateLimitTests, which builds its own host with a deliberately tiny limit.
+        //
+        // High enough that the whole suite fits under it, and finite rather than absent: if the
+        // partition key ever regressed to something shared, this number is still a ceiling and
+        // the suite would fail loudly instead of proving nothing.
+        builder.UseSetting(RateLimitKey, "100000");
 
         // The 002 error-contract probes. Test-only routes, mapped here and never in src/,
         // so the envelope can be asserted against the frozen contract before any product
