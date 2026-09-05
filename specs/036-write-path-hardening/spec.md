@@ -268,7 +268,13 @@ from memory.
 | Rate limit hit by the frontend's own polling | The frontend has no polling today. If the limiter's numbers are set below what a real screen issues, the first symptom is a `429` on a legitimate session — which is why Q-4 asks for numbers rather than assuming them |
 | Deadlock inside the audit write on the second connection | `AuditWriter` uses `AddDbContextFactory` — a **separate connection** — to write `dbo.AuditLog` while the request transaction may hold locks on the same table. Not measured. Named here because a self-inflicted block is the deadlock this design makes most likely, and it must be in the induced-deadlock test's candidate list |
 
-## 7 · Open Questions
+## 7 · Open Questions — **ALL RULED 2026-09-05**
+
+> **Ruled by the product owner on 2026-09-05, after review**, with "الأفضل" on each of the
+> three gating questions — i.e. take the working assumption this section had already written
+> down and defended. Every one was taken **as written**; nothing was reinterpreted. The
+> consequences are in `summary.md` §2, and the table below is left in its original shape so
+> the question and its answer stay side by side.
 
 **Not answered here, and not to be guessed into the design.** Each carries a working
 assumption so the shape is discussable; none is a decision.
@@ -310,4 +316,13 @@ Written under Gate 1. **No code, no scaffolding, no package.** Six open question
 and Q-3, Q-4 and Q-5 each decide whether a section of §3 exists at all — so this spec is
 not implementable as written, by design.
 
-Awaiting review.
+~~Awaiting review.~~
+
+**Approved 2026-09-05.** Q-3, Q-4 and Q-5 ruled the same day (§7). Implemented and delivered
+the same day — 669 tests, evidence in [tests.md](tests.md), outcome and deviations in
+[summary.md](summary.md).
+
+**Two ACs are recorded N/A rather than deleted:** AC-9 and AC-10 belong to Q-3's route B, and
+route A was chosen. **Two AC assumptions were disproved by measurement** — §3.4's fixed limit
+and §3.3's `DbUpdateException` catch — and both are corrected in `summary.md` §5 rather than
+edited out of this file.
