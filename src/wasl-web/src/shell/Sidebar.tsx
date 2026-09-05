@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '../components/Button/Button';
-import { IconAdd, IconChevronDown, IconResolved } from '../icons/icons';
-import { IconSettings, IconSignOut } from '../icons/icons-added';
+import { IconAdd, IconChevronDown, IconResolved, IconSettings, IconSignOut } from '../icons/icons';
 import { Mark } from '../brand/Mark';
 import { WORDMARK_AR, WORDMARK_LATIN } from '../brand/wordmark';
 import { cx } from '../lib/cx';
@@ -347,8 +346,9 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
 
             <div className={styles.divider} />
 
-            {/* Both glyphs are ours — the inherited set has neither a gear nor
-                an exit. Drawn to the set's own rules; see icons-added.tsx. */}
+            {/* `IconSignOut` is ours, labelled (D) in `icons/icons.tsx`; the
+                document has no exit glyph. `IconSettings` is the document's
+                slider form, not the gear that used to be here. */}
             {/* FE-014-03 — this row existed and did nothing. It is the only
                 route to /settings/localization: the settings area has no nav
                 entry of its own, deliberately, because one screen behind a

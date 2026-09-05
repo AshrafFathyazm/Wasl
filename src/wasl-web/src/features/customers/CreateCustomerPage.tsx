@@ -299,7 +299,7 @@ export function CreateCustomerForm({
   const message = (raw: string | undefined) => (raw === undefined ? undefined : t(raw));
 
   return (
-    <div className={chrome ? styles.page : styles.bare}>
+    <div className={chrome ? styles.page : styles.bare} {...(chrome ? { "data-fills": "" } : {})}>
       {!chrome ? null : (
         <div className={styles.head}>
           <Link className={styles.back} to={returnUrl ?? '/customers'}>

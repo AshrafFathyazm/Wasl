@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -259,5 +262,68 @@ describe('the side sheet without a scrim does not block the page', () => {
     }
 
     expect(escaped).toBe(true);
+  });
+});
+
+/* ============================================================================
+ * The breakpoint — `030` AC-12, asserted from the SOURCE
+ * ============================================================================
+ * "Below 768px the panel renders as a full page. Asserted at the breakpoint,
+ * both sides."
+ *
+ * jsdom APPLIES NO MEDIA QUERIES AND PERFORMS NO LAYOUT, so no rendered test in
+ * this suite can see a breakpoint at all — `matchMedia` is a stub and
+ * `getBoundingClientRect` returns zeros. A test that mounted the sheet at a
+ * pretend width and asserted its size would be asserting the stub.
+ *
+ * So this reads the stylesheet, which is where the claim actually lives. The
+ * same reason `nearMatch.test.ts` and `shellLayout.test.ts` scan source: some
+ * claims are about the code.
+ * ========================================================================= */
+describe('030 AC-12 — below 768px it is a full page, not a narrow panel', () => {
+  const raw = readFileSync(
+    resolve(process.cwd(), 'src/components/SideSheet/SideSheet.module.css'),
+    'utf8',
+  );
+  /* Comments stripped: the block below EXPLAINS the old 480 by name, and a scan
+     over raw text would find it and pass on the prose that says it was wrong. */
+  const css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
+
+  it('read the file and stripped its comments, so the assertions mean something', () => {
+    expect(css.length).toBeGreaterThan(1500);
+    expect(raw).toContain('This was `480px`');
+    expect(css).not.toContain('This was `480px`');
+    expect(css).toContain('.panel {');
+  });
+
+  it('breaks at 768, and no longer at 480', () => {
+    expect(css).toMatch(/@media\s*\(\s*width\s*<=\s*768px\s*\)/);
+
+    /* THE OTHER SIDE OF THE BREAKPOINT, and it is the half that was wrong rather
+       than missing. 480 is the SMALLEST RUNG OF THE WIDTH LADDER
+       (`--panel-w-sm`), not a breakpoint — the two were unrelated numbers that
+       happened to be spelled the same, and the sheet spent the whole 481–768
+       band rendering as a 480px column beside a 288px strip of dimmed list. */
+    expect(css).not.toMatch(/@media\s*\(\s*width\s*<=\s*480px\s*\)/);
+  });
+
+  it('gives up the panel’s chrome too, not just its width', () => {
+    const query = css.slice(css.indexOf('@media (width <= 768px)'));
+
+    expect(query).toContain('inline-size: 100vw');
+
+    /* WHAT BEATS THE LADDER IS SOURCE ORDER, NOT SPECIFICITY, and this comment
+       said specificity until it was checked. `.panel`, `.sm`, `.md` and `.lg`
+       are all single-class selectors — identical specificity — so the media
+       query wins only because it is last in the file (line 287 against 94–102).
+       Recorded because it is fragile in a way specificity would not be:
+       reordering this file, or a bundler that hoists media queries, changes the
+       answer silently and a `size="lg"` sheet stays 640px on a phone.
+
+       `max-inline-size` is restated here for the same reason — belt to the
+       ladder's braces, not because `.panel`'s own value is missing. */
+    expect(query).toContain('max-inline-size: 100vw');
+    /* A shadow stands off a surface behind it. At full width there is none. */
+    expect(query).toContain('box-shadow: none');
   });
 });

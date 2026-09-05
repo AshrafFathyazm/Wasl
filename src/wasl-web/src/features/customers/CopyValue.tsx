@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { IconCheck } from '../../icons/icons';
-import { IconCopy } from '../../icons/icons-added';
+import { IconCheck, IconCopy } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import styles from './Customers.module.css';
 

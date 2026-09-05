@@ -26,7 +26,9 @@ const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
 const CustomersListPage = lazy(() => import('./features/customers/CustomersListPage'));
 const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
-const CustomerProfilePage = lazy(() => import('./features/customers/CustomerProfilePage'));
+const CustomerProfilePage = lazy(
+  () => import('./features/customers/CustomerProfilePage'),
+);
 const EditCustomerPage = lazy(() => import('./features/customers/EditCustomerPage'));
 
 /* `027`. THE REAL DETAIL SCREEN, replacing the placeholder that stood here.
@@ -68,6 +70,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const CreateCustomerPreview = lazy(() => import('./dev/CreateCustomerPreview'));
       const LoadersPreview = lazy(() => import('./dev/LoadersPreview'));
       const CustomerProfilePreview = lazy(() => import('./dev/CustomerProfilePreview'));
+      const FeedbackPreview = lazy(() => import('./dev/FeedbackPreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
@@ -99,6 +102,13 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
          * only reach by breaking something — a `404` and a failed request, which
          * are different states for the reason the preview page states. */
         { path: '/_preview/customer-profile', element: <CustomerProfilePreview /> },
+        /* FE-030-00. `030` AC-17, and it is LATE: the consumers were rewired on
+         * 2026-09-05 before this existed, so the criterion's "reviewed before
+         * anything is wired" cannot be met and is recorded unmet. It is built for
+         * AC-18 instead — the Arabic pass has no other way to happen, because
+         * jsdom paints nothing and 655 green tests have not seen a stripe, a
+         * counter or a modal in either direction. */
+        { path: '/_preview/feedback', element: <FeedbackPreview /> },
       ];
     })()
   : [];

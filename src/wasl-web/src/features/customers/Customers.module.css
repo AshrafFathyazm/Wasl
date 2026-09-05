@@ -12,12 +12,31 @@
  * already broken the language the file is written in.
  * ========================================================================== */
 
+/* IT FILLS THE FRAME, like every list screen — 2026-09-06.
+ *
+ * Reported twice: «نفس مشكلة برضو المقاسات والمساحات الفاضية», then «مش معقول كل
+ * المساحات الفاضيه دي». Two separate things were making the space, and the first
+ * one hid the second.
+ *
+ * 1. IT WAS 627px WIDE WHILE ASKING FOR 1000. `.content` is a flex COLUMN, so a
+ *    child's cross-size would normally `stretch` — but `margin-inline: auto` on
+ *    a flex item overrides stretch and makes it shrink-to-fit. The page sized
+ *    itself to its widest card and never reached its own cap, which is why
+ *    RAISING the cap would have changed nothing. `inline-size: 100%` is the fix,
+ *    and it is a pre-existing defect: `.content` was already a flex column.
+ *
+ * 2. THE CAP ITSELF. At a true 1000 the page still left 161px empty on each side
+ *    ON TOP OF the 56 `.content` already pads. The cap is gone, so this now
+ *    matches `/customers` and `/tickets`, which fill.
+ *
+ * `margin-inline: auto` is kept and is now inert — it costs nothing and it is
+ * what would re-centre the column if a cap is ever wanted back. */
 .page {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
-  max-inline-size: 1000px;
+  inline-size: 100%;
   margin-inline: auto;
 }
 

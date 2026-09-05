@@ -1,6 +1,6 @@
 import { forwardRef, useId, useState, type KeyboardEvent } from 'react';
 
-import { IconEye, IconEyeOff } from '../../icons/icons-added';
+import { IconEye, IconEyeOff } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import { useDeferredBusy } from '../../lib/useDeferredBusy';
 import { Loader } from '../Loader/Loader';

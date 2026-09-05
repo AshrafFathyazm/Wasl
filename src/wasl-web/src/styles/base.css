@@ -266,3 +266,24 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* ----------------------------------------------------------------------------
+ * Directional icons mirror under RTL — 037
+ * ----------------------------------------------------------------------------
+ * `icons/icons.tsx` puts `data-flip` on the twenty glyphs the icon document
+ * lists as directional, plus `IconSignOut`, which the document does not contain.
+ * This is the ONLY rule that acts on it.
+ *
+ * Before 037 the mirroring was each consumer's job, and exactly one consumer
+ * ever did it — `.signOut .rowIcon` in `Sidebar.module.css`, now removed.
+ * Nineteen icons needed the same treatment and silently went without: an
+ * arrow pointing out of an Arabic screen looks like a rendering bug, not a
+ * missing rule, so nobody files it.
+ *
+ * `transform` and not `scale`, because a consumer that sets its own transform
+ * on an icon would silently win — `iconRtl.test.ts` scans for that.
+ * -------------------------------------------------------------------------- */
+
+[dir='rtl'] [data-flip] {
+  transform: scaleX(-1);
+}

@@ -51,15 +51,58 @@ describe('the shell sidebar cannot grow with the page', () => {
     expect(tsx).toContain('<aside');
   });
 
-  it('pins the panel to the viewport rather than to the content', () => {
+  /* REWRITTEN 2026-09-06, and it asserts the OUTCOME now rather than one
+   * mechanism for it.
+   *
+   * It used to require `position: sticky` + `inset-block-start: 0` +
+   * `align-self: flex-start` + `block-size: 100dvh` on the panel. Every one of
+   * those existed to survive A PAGE THAT SCROLLED. The page does not scroll any
+   * more — `.shell` is `100dvh` with `overflow: hidden` — so the panel is a
+   * plain flex item at `block-size: 100%` and gets exactly the viewport height
+   * with nothing pinning it.
+   *
+   * The DEFECT this guards is unchanged and is still the thing asserted: the
+   * panel must take its height from the frame, never from the content, because
+   * that is what pushed the account block two thousand pixels down. What changed
+   * is which declarations produce it, so both halves are checked — the panel's,
+   * and the shell's, which is now load-bearing for it. */
+  it('takes the panel height from the frame, never from the content', () => {
     const rule = css.slice(css.indexOf('.sidebar {'), css.indexOf('.collapsed {'));
 
-    expect(rule).toContain('position: sticky');
-    expect(rule).toContain('inset-block-start: 0');
-    /* `align-self` is not decoration: a flex item is STRETCHED back to the row's
-       height without it, and the height below is then ignored. */
-    expect(rule).toContain('align-self: flex-start');
-    expect(rule).toMatch(/\bblock-size: 100dvh/);
+    /* The panel fills its row rather than measuring itself. */
+    expect(rule).toMatch(/\bblock-size: 100%/);
+    expect(rule).toContain('min-block-size: 0');
+
+    /* And the row is exactly one viewport, and never scrolls — without this the
+       100% above resolves against something that grows, which is the original
+       defect wearing a different declaration. */
+    const shell = declarations(read('AppShell.module.css'));
+    const shellRule = shell.slice(shell.indexOf('.shell {'), shell.indexOf('.main {'));
+    expect(shellRule).toMatch(/\bblock-size: 100dvh/);
+    expect(shellRule).toContain('overflow: hidden');
+  });
+
+  /* NOT PART OF THE ORIGINAL GUARD, and added because removing `position:
+   * sticky` broke it for one build: sticky was also the CONTAINING BLOCK for the
+   * collapse toggle, which is absolutely positioned at `inset-inline-end: -13px`.
+   * Without a positioned ancestor the button resolved against the viewport and
+   * landed at x 1475 on a 1500px window — far from the panel, and overhanging
+   * the document enough to give it a horizontal scrollbar. */
+  it('keeps a containing block for the absolutely positioned toggle', () => {
+    const rule = css.slice(css.indexOf('.sidebar {'), css.indexOf('.collapsed {'));
+    const toggle = css.slice(css.indexOf('.toggle {'), css.indexOf('.toggle {') + 400);
+
+    expect(toggle).toContain('position: absolute');
+    expect(toggle).toMatch(/inset-inline-end:\s*-/);
+    expect(rule).toMatch(/position:\s*(relative|sticky|absolute|fixed)/);
+  });
+
+  /* The panel must NOT clip, or it cuts the toggle's overhang in half — measured
+   * at 12px of a 26px circle, in both the expanded and collapsed states. */
+  it('does not clip the panel, so the toggle can straddle its edge', () => {
+    const rule = css.slice(css.indexOf('.sidebar {'), css.indexOf('.collapsed {'));
+    expect(rule).not.toMatch(/overflow:\s*hidden/);
+    expect(rule).toContain('overflow: visible');
   });
 
   it('does not give the panel a MINIMUM height, which is what let it grow', () => {

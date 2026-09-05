@@ -242,3 +242,41 @@ product mark and the icons the domain needed — escalate has no standard glyph.
 
 Stronger than a bespoke set, because it is a decision with a derivation behind it rather
 than effort with a result.
+
+---
+
+## Superseded — 2026-09-05, by `037-icon-system`
+
+Recorded here rather than edited above, in the shape `error-contract.md` uses for its
+`429` change: a document that quietly rewrites itself loses the argument that produced it.
+
+**The product owner supplied a bespoke 63-icon system** — `design/icons/wasl-icon-system.md`
+carries its geometry and states which half of it could be vendored faithfully. Two of this
+file's statements stopped being true on that day:
+
+| Above | After `037` |
+|---|---|
+| *"The set as built — **twenty** icons in `design/icons/`"* | **73 exports**, in one module at `src/wasl-web/src/icons/icons.tsx`. The twenty are a subset, and `design/icons/*.svg` is kept as the historical record rather than regenerated |
+| *"The icons worth drawing — only where no library has the concept, and only three"* (escalate · channel composite · ticket reference) | A whole set was drawn. **The reasoning above is not withdrawn** — it was right about the trade, and the trade was then made differently by the person entitled to make it. It stands as the argument that was overruled, not as an error |
+
+**Three of this file's rules were reaffirmed, and are now ENFORCED for the first time.**
+The 24 box, stroke 1.5 at every size, and no fills all won against the new document, which
+asked for a 20-unit keyline, 1.75 at 16px, and a filled *node* it named as its own
+signature. `037` §1 R-1 is the ruling.
+
+> **Rule 2 had drifted, and nothing noticed.** When the keyline was first measured rather
+> than read, **nine of the thirty-nine icons then in the set were outside it** —
+> `IconAssign`, `IconClosed`, `IconSms`, `IconFilter`, `IconCopy`, `IconAlert`,
+> `IconTriangleAlert`, `IconCircleInfo` by 0.5 to 1.0 units, and `IconWhatsapp` by 0.081.
+> The build had been green throughout. A rule with no guard is a preference, and this one
+> is the whole of the set's stated signature.
+
+Four tests now hold it, in `src/wasl-web/src/icons/`: `iconKeyline` (the box),
+`iconRules` (fills, stroke, `viewBox`, default size, one declaration per name),
+`iconRtl` (the mirror list), `iconCoverage` (every export used or named with a reason).
+Each has been broken on purpose and seen to fail — `specs/037-icon-system/tests.md`.
+
+**What did NOT change:** the two-rule signature itself. Corner radius 2 and the 16-unit
+keyline are still what makes this set read as ours, and after `037` they are the *only*
+thing that does — the incoming document's node was the alternative on offer and it was
+declined.

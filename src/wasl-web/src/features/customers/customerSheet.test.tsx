@@ -62,8 +62,16 @@ const page = (
 });
 
 function LocationProbe() {
-  const { pathname } = useLocation();
-  return <span data-testid="pathname">{pathname}</span>;
+  const { pathname, search } = useLocation();
+  return (
+    <>
+      <span data-testid="pathname">{pathname}</span>
+      {/* THE SEARCH TOO, since `030` AC-11 made the open panel a URL parameter.
+          A probe that only reported the pathname would have shown the quick view
+          opening and closing with no change at all. */}
+      <span data-testid="search">{search}</span>
+    </>
+  );
 }
 
 const mounted = (url = '/customers') => {
@@ -461,5 +469,73 @@ describe('«عميل جديد» opens the create sheet', () => {
       expect(screen.getByText(i18n.t('customers:new.createdToast'))).toBeInTheDocument(),
     );
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+/* ============================================================================
+ * `030` AC-11 — the panel round-trips through the URL
+ * ============================================================================
+ * "A deep link opens the panel on the right tab, and closing it leaves a clean
+ * URL."
+ *
+ * THE TAB HALF IS NOT ASSERTED HERE AND IS NOT CLAIMED: this sheet has no tabs.
+ * §5's tabbed variant is unbuilt, and a test for a tab that does not exist would
+ * be a green row standing for nothing. The open/close half is what this screen
+ * has, and it is the half that was broken — the panel lived in `useState`, so it
+ * could not be linked to, could not survive a reload, and closed on a Back press
+ * that the reader had every reason to expect would close it.
+ * ========================================================================= */
+describe('030 AC-11 — the quick view is deep-linkable', () => {
+  it('opens straight from a URL, with no click at all', async () => {
+    mounted(`/customers?open=${ROW.id}`);
+    await rendered();
+
+    /* The panel is open on first paint. Nothing was clicked. */
+    const sheet = await screen.findByRole('dialog', { name: 'علي الأحمد' });
+    expect(within(sheet).getByText('ali.ahmed@abyan.sa')).toBeInTheDocument();
+  });
+
+  it('writes the row into the URL when a click opens it', async () => {
+    const u = userEvent.setup();
+    mounted();
+    await u.click(await screen.findByText('علي الأحمد'));
+    await screen.findByRole('dialog');
+
+    expect(screen.getByTestId('search')).toHaveTextContent(`open=${ROW.id}`);
+  });
+
+  it('leaves a CLEAN url on close — no empty parameter left behind', async () => {
+    const u = userEvent.setup();
+    mounted(`/customers?open=${ROW.id}`);
+    await screen.findByRole('dialog');
+
+    await u.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    /* `?open=` with an empty value would still be a parameter, would still
+       render in the address bar, and would be copied into any link the reader
+       shares. Asserted as EMPTY rather than as "does not contain the id" —
+       the second passes on `?open=`. */
+    expect(screen.getByTestId('search')).toHaveTextContent('');
+    expect(screen.getByTestId('search').textContent).not.toContain('open');
+  });
+
+  it('keeps the filters when the panel opens and closes over them', async () => {
+    const u = userEvent.setup();
+    mounted('/customers?q=%D8%B9%D9%84%D9%8A');
+    await rendered();
+
+    await u.click(await screen.findByText('علي الأحمد'));
+    await screen.findByRole('dialog');
+
+    /* BOTH PARAMETERS, and this is what a naive `setParams({open: id})` breaks:
+       replacing the whole search object drops the reader's search term, and the
+       list behind the panel silently becomes a different list. */
+    expect(screen.getByTestId('search')).toHaveTextContent('q=');
+    expect(screen.getByTestId('search')).toHaveTextContent(`open=${ROW.id}`);
+
+    await u.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByTestId('search')).toHaveTextContent('q=');
   });
 });

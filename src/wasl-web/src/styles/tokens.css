@@ -263,7 +263,18 @@
   --font-ar: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif; /* (D) */
 
   --weight-regular: 400;
-  --weight-medium: 500; /* named in the scale, not yet seen on a layer */
+  --weight-medium: 500; /* the sort menu's active row, since 2026-09-06 */
+
+  /* ADDED 2026-09-06 for the table header's sorted state, which the icon
+   * instruction specifies as 600.
+   *
+   * It was written as `var(--weight-semibold)` BEFORE the token existed, which
+   * is an invalid value: the declaration is dropped at computed-value time and
+   * the weight falls back to the 700 on `.th`. Nothing errored, the stylesheet
+   * read correctly, and the header looked untouched. Caught by reading
+   * `getComputedStyle` in a real browser — a fifth tool for the list in
+   * CLAUDE.md that produced a well-formed report about nothing. */
+  --weight-semibold: 600;
   --weight-bold: 700;
 
   --type-h1: 36px;

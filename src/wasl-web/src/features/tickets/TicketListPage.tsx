@@ -6,15 +6,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mark } from '../../brand/Mark';
 import { Table, type TableColumn } from '../../components/Table/Table';
 import { TablePager } from '../../components/Table/TablePager';
-import { IconEye } from '../../icons/icons';
-import { IconArrowUp, IconCircleX, IconReassign } from '../../icons/icons-added';
-import {
-  IconEmail,
-  IconLivechat,
-  IconSms,
-  IconWebform,
-  IconWhatsapp,
-} from '../../icons/icons';
+import { IconAssign, IconClosed, IconEmail, IconEscalate, IconEye, IconLivechat, IconSms, IconWebform, IconWhatsapp } from '../../icons/icons';
 import { ApiError } from '../../lib/api';
 import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
@@ -519,7 +511,7 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
         : 'empty';
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-fills>
       {/* NO `actions` HERE, and that is a ruling rather than an omission.
            One was added on 2026-09-02 to match /customers and it put «تذكرة
            جديدة» on screen TWICE — the shell's sidebar already carries it, and
@@ -621,7 +613,7 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                     void navigate(`/tickets/${row.id}`, { state: { intent: 'assign' } });
                   }}
                 >
-                  <IconReassign size={16} aria-hidden="true" />
+                  <IconAssign size={16} aria-hidden="true" />
                   {t('list.action.reassign')}
                 </button>
 
@@ -640,7 +632,7 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                   aria-disabled="true"
                   title={t('list.action.escalateUnavailable')}
                 >
-                  <IconArrowUp size={16} aria-hidden="true" />
+                  <IconEscalate size={16} aria-hidden="true" />
                   {t('list.action.escalate')}
                 </button>
 
@@ -655,7 +647,7 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                     void navigate(`/tickets/${row.id}`, { state: { intent: 'close' } });
                   }}
                 >
-                  <IconCircleX size={16} aria-hidden="true" />
+                  <IconClosed size={16} aria-hidden="true" />
                   {t('list.action.close')}
                 </button>
               </div>
@@ -719,6 +711,7 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
               ) : null}
             </div>
           }
+          fill
           onRowClick={openTicket}
           footer={
             <TablePager

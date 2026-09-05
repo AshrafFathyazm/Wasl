@@ -61,5 +61,9 @@
   "table.errorTitle": "تعذّر تحميل القائمة",
   "table.errorBody": "لم نتمكن من الوصول إلى الخادم. حاول مرة أخرى.",
   "table.retry": "إعادة المحاولة",
-  "retry": "إعادة المحاولة"
+  "retry": "إعادة المحاولة",
+  "table.sortMenu": "فرز",
+  "table.sortAsc": "فرز تصاعدي",
+  "table.sortDesc": "فرز تنازلي",
+  "table.sortClear": "إزالة الفرز"
 }

@@ -1,7 +1,8 @@
 # 030 — The Feedback Layer · summary
 
 **Delivered 2026-09-05, partially.** Toast, its host and Modal are built and wired; the
-**side panel's four variants are not**, and four acceptance criteria are unmet. Evidence
+**side panel's four variants are not**. Fourteen of eighteen criteria are met, **AC-13 and
+AC-17 are unmet with reasons, and AC-10 needs a ruling rather than work.** Evidence
 is in `tests.md`; this is what was built, what was traded, and what is still open.
 
 ---
@@ -113,7 +114,7 @@ ladder and a conditional `scrim`.
 |---|---|
 | **AC-1 met by substitution** | The `.dc.html` is not vendored and will not be. An ASCII re-issue and eight screenshots stand in its place, and both are in the repository |
 | **AC-3's value changed** | The criterion names `.45`; the ruling made it `.40`. The criterion's shape — one value, guarded by a test — is met |
-| **No `/_preview/feedback`** | AC-17 requires the preview reviewed *before* any consumer is rewired. The consumers were rewired without one. Unmet, not VOID |
+| **`/_preview/feedback` exists but AC-17 does not** | The criterion is *reviewed before anything is wired*, and the consumers were rewired first. The page was built for **AC-18** instead — the Arabic pass has no other way to happen. Unmet, not VOID |
 | **`--scrim` is off the token ladder at 20px** | `--sheet-padding` too. The (G) document names `18px 20px` / `20px` / `14px 20px`, and the ladder has no 20 |
 | **A second elevation** | `tokens.css` said *"one elevation, deliberately"*. `--shadow-lg` is a second, under that note's own escape clause: a document names the value |
 | **Assignment and tag writes fire nothing** | §1.5 tie-break 5 — the visible change is its own feedback. §1.1 lists neither. Absence by reading, not by omission |
@@ -126,9 +127,7 @@ ladder and a conditional `scrim`.
 - **AC-10 is half-met and needs a ruling.** A modal over unsaved input refuses the scrim;
   `Escape` still closes it. The source contradicts itself — §3's behaviour line puts the
   *except* on all three dismissal paths, §8 rule 6 names only the scrim. Not guessed.
-- **The side panel's four variants are not built** — filter, loading, tabbed, empty. AC-11
-  (URL round-trip), AC-12 (768px full page) and AC-13 (skeleton geometry) are unmet, and
-  `SideSheet` breaks at 480px rather than 768.
+- **The side panel's four variants are not built** — filter, loading, tabbed, empty. **AC-12 and AC-11 are closed** (see `tests.md` §7); **AC-13 stays unmet**, and it is unmet for a reason rather than for want of time: a loading panel has no consumer. The quick view renders from the row it was opened on and the add form has nothing to load, so building one would be building a component nothing uses — the thing `027` established a preview must never draw.
 - **Nothing in the suite has seen any of these three surfaces drawn.** jsdom has no layout
   and applies no media queries: the 70vh cap, the stack's placement, the stripe, every
   measurement and every `prefers-reduced-motion` branch are unasserted.

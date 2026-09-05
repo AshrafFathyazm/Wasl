@@ -8,9 +8,21 @@
  * Most people assume the reverse (tokens.css note 3).
  * ============================================================================ */
 
+/* A FIXED HEIGHT AND "overflow: hidden", so the WINDOW never scrolls —
+ * 2026-09-06, ruled: «الهيدر يكون ثابت والبودي الروز بس الي بتتحرك، يتشال من
+ * جنب الصفحة».
+ *
+ * "100dvh" rather than "100vh": on mobile Safari "100vh" is the tallest the
+ * viewport ever gets, so a fixed-height shell would hide its own last rows
+ * behind the URL bar.
+ *
+ * The scroll moved INSIDE. A list page fills this box and its table body is the
+ * only scroller on the screen, so the title, the tabs, the search box and the
+ * filter row stay put. Every other page still scrolls, in ".content" below. */
 .shell {
   display: flex;
-  min-block-size: 100vh;
+  block-size: 100dvh;
+  overflow: hidden;
   background-color: var(--surface-content);
 }
 
@@ -19,6 +31,10 @@
   flex-direction: column;
   flex: 1;
   min-inline-size: 0;
+
+  /* Without this the column refuses to shrink under its content and the shell
+   * overflows instead of the body scrolling. */
+  min-block-size: 0;
 }
 
 .content {
@@ -38,4 +54,28 @@
      draws a border. */
   padding-block-start: var(--space-6);
   background-color: var(--surface-content);
+
+  /* THE FALLBACK SCROLLER. A page that does not fill the box scrolls here, as
+   * everything did before; a list page sets `block-size: 100%` so it fits
+   * exactly and this never engages. */
+  min-block-size: 0;
+  overflow-y: auto;
+}
+
+/* A PAGE THAT FILLS GETS A TIGHTER FRAME — 2026-09-06.
+ *
+ * 56px below a card that already ends in a pager is dead space, and on a
+ * fixed-height page it is dead space TAKEN FROM THE TABLE: every pixel of
+ * padding is a row the reader does not get. Reported against a reference where
+ * the table runs to the frame — «المساحات الفاضيه عندنا في وصل برضو المفروض
+ * متكونش فاضيه كدا».
+ *
+ * The SIDES keep 56. The note above explains why, and it still holds: the
+ * cards' inline edges are measured against that frame.
+ *
+ * `:has()` rather than a class the page has to remember to set — the condition
+ * IS "a child that fills", so reading it off the child cannot fall out of step.
+ * `Dropdown.module.css` already relies on `:has()`. */
+.content:has(> [data-fills]) {
+  padding-block: var(--space-6) var(--space-6);
 }

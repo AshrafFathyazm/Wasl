@@ -4,9 +4,38 @@
 
 /* The type-and-spacing spec (2026-09-01): the page pads 28px on top and 40px
    at the bottom — it breathes from below, not from above. */
+/* THE PAGE FILLS THE SHELL AND DOES NOT SCROLL — 2026-09-06.
+ *
+ * Everything above the table is fixed furniture: the title, the count, the
+ * status chips, the search box and the filter button. Only the table body
+ * moves, and the pager sits in the card footer so it stays on screen instead
+ * of being something you scroll down to.
+ *
+ * "min-block-size: 0" is what makes the table shrink rather than push the page
+ * taller — a flex item defaults to "min-height: auto" and refuses to go below
+ * its content, which brings the window scrollbar straight back with nothing
+ * reporting an error. Pair it with "fill" on <Table>. */
 .page {
-  padding-block: 28px 40px;
-  padding-inline: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  /* NO BLOCK PADDING OF ITS OWN — 2026-09-06. `.content` already pads, and
+     the two were stacking: 24 + 28 above the header block and 40 + 56 below the
+     card, which is 96px of dead space under the pager. Measured against the
+     reference the product owner supplied, where the table runs to the frame.
+     The INLINE padding stays: the card edges are measured against that frame. */
+  /* NO PADDING OF ITS OWN, on either axis — 2026-09-06.
+
+     Both were stacking on `.content`'s. Block: 24 + 28 above the header block
+     and 40 + 56 below the card, which is 96px of dead space under the pager.
+     Inline: 56 + 32, so the card sat 88px from the rail against roughly 50 in
+     the reference the product owner supplied — «المسافات بين السايد بار
+     والجدول».
+
+     `.content` keeps its 56, and that is still the frame the card edges are
+     measured against. This only stops measuring it twice. */
+  padding: 0;
 }
 
 .title {

@@ -88,6 +88,48 @@
   overflow: auto;
 }
 
+/* FILL MODE — the card owns the height the page gives it, and the SCROLLER is
+ * the only thing that moves. Ruled 2026-09-06.
+ *
+ * "min-block-size: 0" on BOTH is the load-bearing half, and it is invisible
+ * when missing: a flex item's default "min-height: auto" refuses to shrink
+ * below its content, so the card grows past the page instead of scrolling
+ * inside it, the window gets its scrollbar back, and nothing errors. */
+.cardFill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+}
+
+.scrollerFill {
+  flex: 1;
+  min-block-size: 0;
+
+  /* NO SCROLLBAR BESIDE THE TABLE — ruled 2026-09-06: «ولازم ميكونش فيه scroll
+   * في جنب الجدول، الاسكرول بيتم بدون side scroll».
+   *
+   * It still scrolls: wheel, trackpad, touch, and the keyboard all work, and
+   * `overflow: auto` is untouched. Only the bar is hidden, because it drew a
+   * grey track inside the card's rounded corner and read as a second frame
+   * around the rows.
+   *
+   * THE COST, STATED: a hidden scrollbar is a missing affordance — nothing tells
+   * a reader the body scrolls until they try. Two things carry it instead, and
+   * both were already there: the last row is visibly cut by the card's edge, and
+   * the pager in the footer names the page and the total. Do not hide the bar on
+   * a container that has neither.
+   *
+   * Two properties because they cover different engines and NEITHER is
+   * redundant: `scrollbar-width` is the standard one Firefox implements, the
+   * `::-webkit-scrollbar` pseudo-element is what Chromium and Safari read. */
+  scrollbar-width: none;
+}
+
+.scrollerFill::-webkit-scrollbar {
+  display: none;
+}
+
 .capped {
   max-block-size: calc(
     var(--table-header-height) + var(--row-h) * var(--table-visible-rows, 10)
@@ -204,13 +246,27 @@
 
 /* ---- Sorting -------------------------------------------------------------- */
 
+/* THREE STATES, AND THE REST STATE HAS NO GLYPH.
+ *
+ * A neutral arrow on every sortable heading turns the header row into a row of
+ * arrows, and the one column that IS sorted stops standing out — which is the
+ * only thing the glyph is there to say. So `sort` appears on hover, on focus,
+ * and while the menu is open; `sort-asc` / `sort-desc` are always visible and
+ * carry `--brand`.
+ *
+ * THE BUTTON IS 32px TALL AND THE ICON IS 16. The heading text is caption-sized
+ * and a control sized to it is an 18px target — under every pointer guideline
+ * and unpleasant with a trackpad. The height is on the button, not on a wrapper,
+ * so the whole thing is the target rather than the words inside it. */
 .sortBtn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  block-size: auto;
-  padding: 0;
+  min-block-size: 32px;
+  padding-inline: var(--space-2);
+  margin-inline-start: calc(var(--space-2) * -1);
   border: 0;
+  border-radius: var(--radius-sm);
   background-color: transparent !important;
   color: var(--text-muted) !important;
   font: inherit;
@@ -219,17 +275,115 @@
   cursor: pointer;
 }
 
+.sortBtn:hover {
+  background-color: var(--surface-subtle) !important;
+}
+
+.sortBtn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+/* SORTED. The label goes to 600 and the glyph to the brand — two signals, not
+ * one, because colour alone is not a distinction for every reader. */
 .sortBtnOn {
   color: var(--text-primary) !important;
+  font-weight: var(--weight-semibold);
+}
+
+.sortBtnOn .sortIcon {
+  color: var(--brand);
 }
 
 .sortIcon {
   flex: none;
-  transition: transform 120ms;
 }
 
-.sortIconUp {
-  transform: rotate(180deg);
+/* The neutral glyph, hidden at rest. `visibility`, not `display`: the heading
+ * must not change width when a pointer crosses it, which is what made the whole
+ * header row shift on hover the first time this was tried. */
+.sortIconIdle {
+  visibility: hidden;
+}
+
+.sortBtn:hover .sortIconIdle,
+.sortBtn:focus-visible .sortIconIdle,
+.sortBtnOpen .sortIconIdle {
+  visibility: visible;
+}
+
+/* ---- The sort menu -------------------------------------------------------- */
+
+/* `position: fixed` for the same reason as the row flyout — the body scrolls, so
+ * it clips on both axes and an absolutely positioned menu born in a <th> is cut
+ * off by the table. Coordinates come from `useFlyoutPosition` in Table.tsx,
+ * aligned to the heading's LEADING edge rather than its trailing one: this hangs
+ * off a column in the middle of the row, not off the last one. */
+.sortMenu {
+  position: fixed;
+  inset-inline-start: var(--flyout-x, 0);
+  inset-block-start: var(--flyout-y, 0);
+  z-index: var(--z-flyout);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 188px;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-md);
+  text-align: start;
+  visibility: hidden;
+}
+
+.sortMenuPlaced {
+  visibility: visible;
+}
+
+.sortMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  min-block-size: 40px;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+.sortMenuItem:hover {
+  background-color: var(--surface-subtle);
+}
+
+.sortMenuItem:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+
+/* THE ACTIVE ROW CARRIES NO TICK. The glyph on the left already says which
+ * ordering this is, and adding a check puts two columns of icons in one row —
+ * the reader then has to work out which of the two is the state. Fill and weight
+ * carry it instead. */
+.sortMenuItemOn {
+  background-color: var(--surface-subtle);
+  font-weight: var(--weight-medium);
+}
+
+/* ABOVE "clear" ONLY. It is a cancel, not a third ordering, and a menu of three
+ * evenly spaced rows reads as three equal choices. */
+.sortMenuRule {
+  display: block;
+  block-size: var(--border-width);
+  margin-block: var(--space-1);
+  margin-inline: calc(var(--space-1) * -1);
+  background-color: var(--surface-sunken);
 }
 
 /* ---- The row flyout ------------------------------------------------------- */

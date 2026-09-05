@@ -200,7 +200,7 @@ export default function EditCustomerPage() {
   if (query.isError) {
     const notFound = query.error instanceof ApiError && query.error.status === 404;
     return (
-      <div className={styles.page}>
+      <div className={styles.page} data-fills>
         <p className={styles.notice} role="alert">
           {notFound
             ? t('customers:profile.notFoundBody')
@@ -214,7 +214,7 @@ export default function EditCustomerPage() {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-fills>
       {id === '' ? null : <CustomerScreenSwitcher id={id} />}
 
       <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>

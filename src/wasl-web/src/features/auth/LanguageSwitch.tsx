@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import { IconGlobe } from '../../icons/icons-added';
+import { IconGlobe } from '../../icons/icons';
 import { changeLanguage } from '../../lib/i18n';
 import { isLanguage, type Language } from '../../lib/direction';
 import styles from './Login.module.css';

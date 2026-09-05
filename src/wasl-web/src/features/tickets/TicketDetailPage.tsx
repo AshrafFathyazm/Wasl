@@ -11,31 +11,10 @@ import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button/Button';
 import { Skeleton } from '../../components/Loader/Skeleton';
 import { Textarea } from '../../components/Textarea/Textarea';
-/* TWO ICON FILES, and `icons-added.tsx` is not re-exported from `icons.tsx` —
-   so an import naming the wrong one type-checks nowhere and, worse, breaks the
-   MODULE at runtime: the screen renders blank with one line in the console. */
-import {
-  IconArrowRight,
-  IconArrowUp,
-  IconEdit,
-  IconEyeOff,
-} from '../../icons/icons-added';
-import {
-  IconAdd,
-  IconAssign,
-  IconCheck,
-  IconChevronDown,
-  IconClose,
-  IconComment,
-  IconEmail,
-  IconEscalate,
-  IconLivechat,
-  IconSearch,
-  IconSms,
-  IconTicket,
-  IconWebform,
-  IconWhatsapp,
-} from '../../icons/icons';
+/* ONE icon module since `037`. The warning that stood here — two files, and an
+   import naming the wrong one renders the screen blank — no longer applies,
+   because there is no second file to name. */
+import { IconAdd, IconArrowRight, IconAssign, IconCalendar, IconCheck, IconChevronDown, IconClose, IconComment, IconEdit, IconEmail, IconEscalate, IconEyeOff, IconLivechat, IconMerge, IconPriority, IconSearch, IconSms, IconTicket, IconWebform, IconWhatsapp } from '../../icons/icons';
 import { useToast } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type {
@@ -344,7 +323,7 @@ function EventIcon({ type, actor }: { type: TimelineEntry['type']; actor: string
   if (type === 'Escalated') {
     return (
       <span className={cx(styles.eventIcon, styles.eventIconDanger)} aria-hidden="true">
-        <IconArrowUp size={13} />
+        <IconEscalate size={13} />
       </span>
     );
   }
@@ -1087,7 +1066,7 @@ export default function TicketDetailPage() {
               subject card repeats it as a coloured edge — one small chip is not
               enough to change a triage decision. */}
           <span className={cx(styles.prioPill, PRIORITY_CLASS[ticket.priority])}>
-            <IconArrowUp size={13} aria-hidden="true" />
+            <IconPriority size={13} aria-hidden="true" />
             {t(`priority.${ticket.priority}`)}
           </span>
 
@@ -1114,9 +1093,14 @@ export default function TicketDetailPage() {
                     nothing here for a keyboard to reach. */}
                 {(
                   [
-                    ['escalate', <IconArrowUp size={15} aria-hidden="true" key="e" />],
-                    ['merge', <IconTicket size={15} aria-hidden="true" key="m" />],
-                    ['extendDue', <IconEscalate size={15} aria-hidden="true" key="d" />],
+                    /* Each of the three is the DOCUMENT's glyph for the act now.
+                       They were not: escalate drew a bare arrow, merge drew a
+                       ticket, and extendDue drew the escalate swoosh — three
+                       stand-ins from before the icon document existed, and the
+                       last one was actively wrong. */
+                    ['escalate', <IconEscalate size={15} aria-hidden="true" key="e" />],
+                    ['merge', <IconMerge size={15} aria-hidden="true" key="m" />],
+                    ['extendDue', <IconCalendar size={15} aria-hidden="true" key="d" />],
                   ] as const
                 ).map(([key, glyph]) => (
                   <button

@@ -9,7 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { Mark } from '../../brand/Mark';
-import { IconChevronDown, IconMore } from '../../icons/icons';
+import { IconClose, IconMore, IconSort, IconSortAsc, IconSortDesc } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import { Loader } from '../Loader/Loader';
 import { Skeleton } from '../Loader/Skeleton';
@@ -149,6 +149,23 @@ export interface TableProps<TRow> {
    *  card shows exactly one page and scrolling never crosses a page boundary. */
   visibleRows?: number;
 
+  /**
+   * FILL THE SPACE THE PAGE GIVES IT, instead of capping at `visibleRows`.
+   *
+   * The card becomes a flex column — scroller, then footer — and the SCROLLER is
+   * the only thing on the screen that scrolls. The page around it does not, so
+   * the title, the tabs, the search box and the filter button stay put while the
+   * rows move under the headings, and the pager stays on screen instead of being
+   * something you scroll to.
+   *
+   * Ruled 2026-09-06: «الهيدر يكون ثابت والبودي الروز بس الي بتتحرك، يتشال من
+   * جنب الصفحة». It needs a caller that gives it a bounded height — a list page
+   * whose root is `block-size: 100%` inside the shell's non-scrolling content
+   * area. Without one the card has nothing to fill and grows to its content,
+   * which is the old behaviour rather than a broken one.
+   */
+  fill?: boolean;
+
   density?: 'dense' | 'default' | 'roomy';
 
   footer?: ReactNode;
@@ -195,16 +212,11 @@ const ARIA_SORT = {
   desc: 'descending',
 } as const;
 
-/** asc → desc → unsorted. The third step matters: without it there is no way
- *  back to the server's default order once a column has been touched. */
-function nextSort(
-  current: TableSort | null | undefined,
-  columnId: string,
-): TableSort | null {
-  if (!current || current.columnId !== columnId) return { columnId, direction: 'asc' };
-  if (current.direction === 'asc') return { columnId, direction: 'desc' };
-  return null;
-}
+/* `nextSort` LIVED HERE and is deleted — 2026-09-06.
+ *
+ * It cycled asc → desc → unsorted on one button. The menu names all three
+ * outcomes, so there is no next step to compute: each row sets its own
+ * direction, and "clear" is a row rather than the far side of two clicks. */
 
 /**
  * WIDTHS ARE RATIOS, NOT PIXELS — and this is what removes the horizontal
@@ -274,6 +286,11 @@ function useFlyoutPosition(
   triggerRef: React.RefObject<HTMLButtonElement | null>,
   flyoutRef: React.RefObject<HTMLDivElement | null>,
   open: boolean,
+  /* `end` — the row menu's original behaviour: outer edges aligned, so a flyout
+   * hung off the last column opens back across its own row. `start` — the sort
+   * menu, which hangs off a heading somewhere in the middle and should open
+   * under the word it belongs to. */
+  align: 'start' | 'end' = 'end',
 ) {
   const [placed, setPlaced] = useState(false);
 
@@ -310,44 +327,156 @@ function useFlyoutPosition(
      * `inset-inline-start` measures from the RIGHT under RTL, so the physical
      * arithmetic happens here and the stylesheet stays logical. */
     const rtl = getComputedStyle(trigger).direction === 'rtl';
-    const raw = rtl ? window.innerWidth - box.left - size.width : box.right - size.width;
+    const raw =
+      align === 'end'
+        ? rtl
+          ? window.innerWidth - box.left - size.width
+          : box.right - size.width
+        : rtl
+          ? window.innerWidth - box.right
+          : box.left;
     const start = Math.max(gap, Math.min(raw, window.innerWidth - size.width - gap));
 
     flyout.style.setProperty('--flyout-x', `${start}px`);
     flyout.style.setProperty('--flyout-y', `${top}px`);
     setPlaced(true);
-  }, [open, triggerRef, flyoutRef]);
+  }, [open, triggerRef, flyoutRef, align]);
 
   return placed;
 }
 
-function SortButton({
+/**
+ * THREE HEADER STATES, NOT TWO — the product owner's instruction, 2026-09-06.
+ *
+ * | state    | at rest            | icon                        |
+ * |----------|--------------------|-----------------------------|
+ * | unsorted | **no icon at all** | neutral `IconSort` on hover or while the menu is open |
+ * | asc      | `IconSortAsc`      | `--brand`, label weight 600 |
+ * | desc     | `IconSortDesc`     | `--brand`, label weight 600 |
+ *
+ * The empty rest state is the point: a glyph on every sortable heading turns the
+ * whole header row into arrows, and then none of them means anything. The one
+ * column that IS sorted has to be findable at a glance, which it cannot be if it
+ * is competing with five neutral ones.
+ *
+ * This replaced a CLICK-THROUGH TOGGLE (asc → desc → unsorted on one button).
+ * The toggle was smaller and it was guessing: nothing on screen said what the
+ * next click would do, and the third press — back to the server's order — was
+ * unreachable except by cycling. A menu names all three.
+ */
+function SortHeader({
   label,
   sortLabel,
   direction,
-  onToggle,
+  onSort,
+  labels,
 }: {
   label: string;
   sortLabel: string;
   direction: SortDirection | null;
-  onToggle: () => void;
+  onSort: (next: SortDirection | null) => void;
+  labels: { asc: string; desc: string; clear: string };
 }) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const placed = useFlyoutPosition(triggerRef, menuRef, open, 'start');
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (
+        !menuRef.current?.contains(e.target as Node) &&
+        !triggerRef.current?.contains(e.target as Node)
+      )
+        setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const choose = (next: SortDirection | null) => {
+    setOpen(false);
+    onSort(next);
+  };
+
+  /* The glyph is decorative in every state — `aria-sort` on the <th> is what a
+   * screen reader reads, and it says the same thing without one. */
+  const glyph =
+    direction === 'asc' ? (
+      <IconSortAsc size={16} aria-hidden="true" className={styles.sortIcon} />
+    ) : direction === 'desc' ? (
+      <IconSortDesc size={16} aria-hidden="true" className={styles.sortIcon} />
+    ) : (
+      <IconSort size={16} aria-hidden="true" className={cx(styles.sortIcon, styles.sortIconIdle)} />
+    );
+
   return (
-    <button
-      type="button"
-      className={cx(styles.sortBtn, direction && styles.sortBtnOn)}
-      onClick={onToggle}
-    >
-      {label}
-      {/* The arrow is decorative — `aria-sort` on the <th> is what a screen
-          reader reads, and it says the same thing without a glyph. */}
-      <IconChevronDown
-        size={14}
-        aria-hidden="true"
-        className={cx(styles.sortIcon, direction === 'asc' && styles.sortIconUp)}
-      />
-      <span className={styles.srOnly}>{sortLabel}</span>
-    </button>
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={cx(styles.sortBtn, direction && styles.sortBtnOn, open && styles.sortBtnOpen)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {label}
+        {glyph}
+        <span className={styles.srOnly}>{sortLabel}</span>
+      </button>
+
+      {open ? (
+        <div
+          ref={menuRef}
+          role="menu"
+          className={cx(styles.sortMenu, placed && styles.sortMenuPlaced)}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className={cx(styles.sortMenuItem, direction === 'asc' && styles.sortMenuItemOn)}
+            onClick={() => choose('asc')}
+          >
+            <IconSortAsc size={16} aria-hidden="true" />
+            {labels.asc}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={cx(styles.sortMenuItem, direction === 'desc' && styles.sortMenuItemOn)}
+            onClick={() => choose('desc')}
+          >
+            <IconSortDesc size={16} aria-hidden="true" />
+            {labels.desc}
+          </button>
+
+          {/* A RULE ABOVE THIS ONE ONLY. "Clear" is a cancel, not a third
+              ordering — grouping it with the two directions would read as three
+              equal choices, one of which happens to undo. */}
+          <span className={styles.sortMenuRule} role="separator" />
+          <button
+            type="button"
+            role="menuitem"
+            className={styles.sortMenuItem}
+            onClick={() => choose(null)}
+          >
+            <IconClose size={16} aria-hidden="true" />
+            {labels.clear}
+          </button>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -409,6 +538,7 @@ export function Table<TRow>({
   traceId,
   selectedRowKey,
   visibleRows,
+  fill = false,
   density = 'default',
   footer,
   rowFlyout,
@@ -423,6 +553,11 @@ export function Table<TRow>({
      words on all of them. This is the primitive's ONLY user-facing copy — the
      empty state's words stay with the screen that knows why the list is empty. */
   const { t } = useTranslation('common');
+  const sortMenuLabels = {
+    asc: t('table.sortAsc'),
+    desc: t('table.sortDesc'),
+    clear: t('table.sortClear'),
+  };
 
   const [openFlyout, setOpenFlyout] = useState<string | null>(null);
   const close = useCallback(() => setOpenFlyout(null), []);
@@ -467,7 +602,7 @@ export function Table<TRow>({
    * caller passing its page size gets a card exactly one page tall, which never
    * overflows either. The cap exists for a caller that deliberately shows fewer
    * rows than it holds. */
-  const capped = visibleRows !== undefined && rows.length > visibleRows;
+  const capped = !fill && visibleRows !== undefined && rows.length > visibleRows;
   const bodyStyle = capped
     ? ({ '--table-visible-rows': String(visibleRows) } as React.CSSProperties)
     : undefined;
@@ -486,11 +621,14 @@ export function Table<TRow>({
               aria-sort={col.sortable ? (active ? ARIA_SORT[active] : 'none') : undefined}
             >
               {col.sortable && onSortChange ? (
-                <SortButton
+                <SortHeader
                   label={col.header}
                   sortLabel={sortLabel}
                   direction={active}
-                  onToggle={() => onSortChange(nextSort(sort, col.id))}
+                  labels={sortMenuLabels}
+                  onSort={(next) =>
+                    onSortChange(next === null ? null : { columnId: col.id, direction: next })
+                  }
                 />
               ) : (
                 col.header
@@ -547,7 +685,7 @@ export function Table<TRow>({
 
   return (
     <div
-      className={cx(styles.card, styles[density], refreshing && styles.refreshing)}
+      className={cx(styles.card, styles[density], fill && styles.cardFill, refreshing && styles.refreshing)}
       aria-busy={refreshing || undefined}
     >
       {/* BAR, on a refetch only (design/loaders.md §2: background loading that
@@ -572,7 +710,7 @@ export function Table<TRow>({
           footer. Three separate `state === …` comparisons is how one of them
           ends up disagreeing with the others. */}
       <div
-        className={cx(styles.scroller, capped && styles.capped)}
+        className={cx(styles.scroller, capped && styles.capped, fill && styles.scrollerFill)}
         style={bodyStyle}
         data-table-scroller=""
       >

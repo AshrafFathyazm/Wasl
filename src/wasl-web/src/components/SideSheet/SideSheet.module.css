@@ -158,15 +158,27 @@
   border-block-end: var(--border-width) solid var(--border-divider);
 }
 
+/* 40px SINCE 2026-09-06, and this partly reverses a ruling from the day before.
+ *
+ * It was 44, then `design/feedback-layer.md` cut it to 32 because ~100px of
+ * chrome sat above a form that then had to scroll. The icon instruction of
+ * 2026-09-06 specifies a 40px circle carrying a 20px glyph, and 40 is the size
+ * that lets a real icon read: at 32 a 20px glyph leaves 6px of ring and stops
+ * looking like a badge.
+ *
+ * THE COST IS 8px OF HEADER, not the 12 the original complaint was about, and
+ * the cause of that complaint was the block padding rather than the badge — it
+ * is `--sheet-head-padding-block` above that carries the fix, and it is
+ * unchanged.
+ *
+ * NOT CLICKABLE, so no `cursor: pointer` and no `:hover` — the instruction's §6.
+ * If a header ever becomes clickable, the circle is already the 40px target. */
 .badge {
   display: grid;
   place-items: center;
   flex: none;
-  /* 32, not the frames' 44. The badge carries nothing the title beside it does
-     not already say — an avatar initial or a `+` — so it pays for itself in
-     header height rather than in meaning. */
-  inline-size: 32px;
-  block-size: 32px;
+  inline-size: 40px;
+  block-size: 40px;
   border-radius: var(--radius-pill);
   background-color: var(--surface-chip);
   color: var(--text-secondary);
@@ -271,8 +283,23 @@
   border-block-start: var(--border-width) solid var(--border-divider);
 }
 
-@media (width <= 480px) {
+/* A FULL PAGE BELOW 768px, NOT A NARROW PANEL — `design/feedback-layer.md` §4,
+   `030` AC-12.
+
+   This was `480px`, and 480 is the SMALLEST rung of the width ladder rather than
+   a breakpoint: the two are unrelated numbers that happened to be spelled the
+   same, and reading one as the other is why the sheet spent the 481–768 band
+   rendering as a 480px column against a viewport barely wider than itself. On a
+   tablet in portrait that is a panel with a 288px strip of dimmed list beside
+   it — too narrow to read and too wide to ignore.
+
+   `inline-size` alone is not the rule. A full page has no rounded edge, no
+   shadow standing off a surface behind it, and no border on the inline-start
+   side — because there is nothing behind it any more. */
+@media (width <= 768px) {
   .panel {
     inline-size: 100vw;
+    max-inline-size: 100vw;
+    box-shadow: none;
   }
 }

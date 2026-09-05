@@ -163,6 +163,10 @@ describe('sorting is a request, and the control belongs to Table', () => {
         name: new RegExp(i18n.t('customers:list.column.name')),
       }),
     );
+    /* The heading opens a MENU now (2026-09-06) rather than toggling. The first
+       row is ascending; the URL is written when a row is chosen, not when the
+       menu opens — which is the point of the menu. */
+    await userEvent.click(screen.getAllByRole('menuitem')[0] as HTMLElement);
 
     await waitFor(() => expect(urlSearch()).toContain('sort=fullName'));
     expect(urlSearch()).toContain('dir=asc');
@@ -171,22 +175,68 @@ describe('sorting is a request, and the control belongs to Table', () => {
     );
   });
 
-  it('cycles to unsorted on the third press, and then sends no sort', async () => {
+
+  it('drops a date that is not a real day', async () => {
+    mounted('/customers?createdFrom=2026-02-31');
+    await rendered();
+
+    /* Validated by ROUND TRIP, not by a regex: `2026-02-31` matches every shape a
+       pattern can express and is not a day. */
+    expect(lastParams()).not.toHaveProperty('createdFrom');
+  });
+
+  it('clamps the company list to twenty, as the server does', async () => {
+    const many = Array.from({ length: 25 }, (_, i) => `company=C${i}`).join('&');
+    mounted(`/customers?${many}`);
+    await rendered();
+
+    expect(lastParams()?.company).toHaveLength(20);
+  });
+});
+
+describe('sorting is a request, and the control belongs to Table', () => {
+  it('writes the column and the direction to the URL, then asks for them', async () => {
     mounted();
     await rendered();
 
-    const header = screen.getByRole('button', {
-      name: new RegExp(i18n.t('customers:list.column.name')),
-    });
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('customers:list.column.name')),
+      }),
+    );
+    /* The heading opens a MENU now (2026-09-06) rather than toggling. The first
+       row is ascending; the URL is written when a row is chosen, not when the
+       menu opens — which is the point of the menu. */
+    await userEvent.click(screen.getAllByRole('menuitem')[0] as HTMLElement);
 
-    await userEvent.click(header);
-    await userEvent.click(header);
+    await waitFor(() => expect(urlSearch()).toContain('sort=fullName'));
+    expect(urlSearch()).toContain('dir=asc');
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({ sort: 'fullName', dir: 'asc' }),
+    );
+  });
+
+  /* REWRITTEN 2026-09-06 — there is no third press. "Clear" is its own menu
+     row, reachable in one press from any state, and that is why the toggle was
+     replaced. What still matters is unchanged and is what this asserts: after
+     clearing, the URL carries no sort and the request sends none, so the list
+     goes back to the server's own order. */
+  it('clears the sort in one press, and then sends no sort', async () => {
+    mounted();
+    await rendered();
+
+    const header = () =>
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('customers:list.column.name')),
+      });
+
+    await userEvent.click(header());
+    await userEvent.click(screen.getAllByRole('menuitem')[1] as HTMLElement);
     await waitFor(() => expect(urlSearch()).toContain('dir=desc'));
 
-    await userEvent.click(header);
+    await userEvent.click(header());
+    await userEvent.click(screen.getAllByRole('menuitem')[2] as HTMLElement);
 
-    /* `Table` owns asc → desc → unsorted (`026` Q-T-3), and the third step is the
-       one that matters: without it there is no way back to the server's order. */
     await waitFor(() => expect(urlSearch()).not.toContain('sort='));
     await waitFor(() => expect(lastParams()).not.toHaveProperty('sort'));
   });

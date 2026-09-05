@@ -1,0 +1,101 @@
+/* A development preview — FE-030-00. Stripped from the production bundle by
+ * `import.meta.env.DEV` in routes.tsx.
+ *
+ * IT DECLARES NO TOAST, MODAL OR PANEL STYLE OF ITS OWN. `027` deleted a preview
+ * that rendered a superseded screen from the same stylesheet the real page used,
+ * so every shared class silently restyled a design nobody was maintaining. This
+ * file is a page frame and nothing else: the surfaces below bring their own
+ * modules, which is the point of looking at them here.
+ */
+
+.page {
+  min-block-size: 100dvh;
+  padding: var(--space-12) var(--space-8) 96px;
+  background-color: var(--surface-content);
+  color: var(--text-primary);
+}
+
+.head,
+.section {
+  max-inline-size: 1180px;
+  margin-inline: auto;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block-end: var(--space-6);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-h2);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-ar-heading);
+}
+
+.lead {
+  margin: 0;
+  max-inline-size: 70ch;
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  line-height: var(--leading-ar-normal);
+}
+
+.toggle {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-sunken);
+  align-self: flex-start;
+}
+
+.on,
+.off {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font: inherit;
+  font-size: var(--text-helper);
+  cursor: pointer;
+}
+
+.on {
+  background-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.off {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.section {
+  padding-block-start: var(--space-8);
+}
+
+.h2 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--type-label-lg);
+  font-weight: var(--weight-bold);
+}
+
+/* THE FIVE CARDS SIDE BY SIDE, wrapping. A tone that only exists for four
+   seconds cannot be compared against the one beside it, which is why they are
+   rendered inline here rather than fired through the host. */
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}

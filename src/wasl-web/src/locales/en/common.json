@@ -61,5 +61,9 @@
   "table.errorTitle": "Could not load the list",
   "table.errorBody": "We could not reach the server. Please try again.",
   "table.retry": "Try again",
-  "retry": "Try again"
+  "retry": "Try again",
+  "table.sortMenu": "Sort",
+  "table.sortAsc": "Sort ascending",
+  "table.sortDesc": "Sort descending",
+  "table.sortClear": "Clear sort"
 }

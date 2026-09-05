@@ -76,13 +76,13 @@ run 5: Tests 653 passed (653)
 | AC-8 | *pauses the countdown while the pointer is on the card* · *pauses on FOCUS too* | **Met** — both |
 | AC-9 | `Modal.test.tsx` *keeps Tab inside it* · *returns focus to whatever opened it* | **Met** |
 | AC-10 | *does NOT close on a scrim click over unsaved input* | **PARTIAL — see gaps** |
-| AC-11 | — | **Not met** — no panel URL round-trip |
-| AC-12 | — | **Not met** — `SideSheet` breaks at 480px, not 768 |
+| AC-11 | `customerSheet.test.tsx` — *030 AC-11 — the quick view is deep-linkable* (4 tests) | **Met in part** — open/close round-trips; the tab half has no tabs to assert |
+| AC-12 | `SideSheet.test.tsx` — *030 AC-12* (3 tests, source scan) | **Met** |
 | AC-13 | — | **Not met** — no loading panel variant |
 | AC-14 | `lint:i18n` · every primitive takes labels as props | **Met** |
 | AC-15 | `lint:tokens` clean · three undeclared fallbacks removed | **Met**, see below |
 | AC-16 | *still renders every tone when the animation is gone* | **PARTIAL — see gaps** |
-| AC-17 | — | **Not met** — no `/_preview/feedback` |
+| AC-17 | `/_preview/feedback` exists | **Not met** — built AFTER the consumers were rewired, which is the half the criterion is about |
 | AC-18 | §4 below | **Partial** — findings recorded |
 
 ### AC-1 — met by substitution, and the substitution is the finding
@@ -214,3 +214,92 @@ are unverified on screen**.
 | G-4 | AC-17 unmet | There is no `/_preview/feedback`, and the consumers were rewired without one. `027` VOIDed its own preview criterion for a different reason; this one is simply not done |
 | G-5 | `Modal` sizes `md` and `lg` have **no consumer** | Proven by tests, which is honest and is not the same as proven in the product |
 | G-6 | The 70vh cap and every measurement | jsdom has no layout. **Nothing in this suite has seen any of these three surfaces drawn** |
+
+---
+
+## 7 · Second pass — 2026-09-05, after the first report
+
+Three criteria were closed and one guard was answered. Re-measured:
+
+| Command | Result |
+|---|---|
+| `npm run test -- --exclude "**/iconKeyline.test.ts"` | `Test Files 38 passed (38)` · `Tests 662 passed (662)` |
+| `npm run lint` · `lint:tokens` · `lint:i18n` | clean |
+
+### AC-12 — closed, and the number it had was not a breakpoint
+
+`SideSheet` broke at **480px**, and 480 is the smallest rung of the width ladder
+(`--panel-w-sm`), not a breakpoint. The two were unrelated numbers spelled the same, and
+the sheet spent the whole **481–768 band** rendering as a 480px column against a viewport
+barely wider than itself — on a tablet in portrait, a panel with a 288px strip of dimmed
+list beside it.
+
+Asserted from the source, because jsdom applies no media queries: `matchMedia` is a stub
+and a test that mounted the sheet at a pretend width would be asserting the stub. Three
+tests, with a stripper control.
+
+**One comment in that test was wrong and was corrected before it shipped.** It said the
+media query beats the ladder classes on *specificity*; they are all single-class selectors
+at identical specificity, and it wins on **source order** (line 287 against 94–102).
+Recorded because it is fragile in a way specificity would not be — reordering the file, or
+a bundler that hoists media queries, changes the answer silently.
+
+### AC-11 — closed in part
+
+The quick view lived in `useState`, so it could not be linked to, could not survive a
+reload, and closed on a Back press the reader had every reason to expect would close it.
+It is `?open=<id>` now — a search parameter and not a route segment, because
+`/customers/:id` is the full profile and a segment here would be a second URL for the same
+record showing less of it.
+
+Four tests: opens from a URL with no click, writes the id on open, leaves a **clean** URL
+on close (asserted as empty, not as "does not contain the id" — the second passes on
+`?open=`), and keeps the reader's filters across an open/close.
+
+**The control ran by accident and is the more convincing for it.** A `git checkout --` to
+undo a deliberate break also reverted the change itself, and the four tests went red
+together: *opens straight from a URL*, *writes the row into the URL*, *leaves a CLEAN
+url*, *keeps the filters*.
+
+**The tab half of AC-11 is not asserted and is not claimed.** This sheet has no tabs; §5's
+tabbed variant is unbuilt, and a test for a tab that does not exist would be a green row
+standing for nothing.
+
+### AC-17 — still unmet, and the preview exists anyway
+
+`/_preview/feedback` renders the five tones statically side by side, the live host with
+its three stack rules on their own controls (`×2`, the eviction, the 10s hold), the three
+modal sizes and the destructive variant, under an `rtl`/`ltr` toggle.
+
+**It does not close AC-17.** The criterion is *"reviewed before anything is wired"*, and
+the consumers were rewired first. It also draws no panel variants, because none are built
+and `027` established that a preview must never draw a component that does not exist.
+
+**It was built for AC-18.** The Arabic pass has no other way to happen: jsdom paints
+nothing, and 662 green tests have not seen a stripe, a `×2` counter or a modal in either
+direction.
+
+### A third lane appeared in the tree, and its guard found a real defect in this feature
+
+`specs/037-icon-system/`, `iconGeometry.ts` and `iconKeyline.test.ts` are untracked work
+in progress from another lane. Its guard measures every icon against the 16-unit keyline
+(4…20), and it caught **both icons this feature added**:
+
+```
+IconTriangleAlert reaches 0.50 units outside the keyline — x 3.50…20.50
+IconCircleInfo    reaches 1.00 units outside the keyline — x 3.00…21.00, y 3.00…21.00
+```
+
+Both fixed: the triangle redrawn to `M12 4.5L4 19h16L12 4.5z`, and the circle to `r="8"`,
+which is what `IconCircleX` and `IconResolved` already use. **`IconCircleInfo` was drawn at
+`r="9"` to mirror `IconAlert` exactly — and `IconAlert` is one of the icons that guard
+finds outside the keyline, so mirroring it copied the defect.** Half a unit is invisible
+next to a 1.5 stroke; reading the path would not have found either.
+
+**Seven icons still fail that guard and none of them is this feature's** — `IconCopy`,
+`IconAlert`, `IconAssign`, `IconClosed`, `IconWhatsapp`, `IconSms`, `IconFilter`. They are
+`037`'s to resolve.
+
+**`npm run build` is RED, and not on this feature's code.** `iconGeometry.ts` — untracked,
+`037`'s — carries 14 type errors. Counted: `tsc` reports 14, and **0** outside that file.
+Not fixed here; it is another lane's file mid-build.

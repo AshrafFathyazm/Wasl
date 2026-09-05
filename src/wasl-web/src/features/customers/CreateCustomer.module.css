@@ -9,12 +9,36 @@
  * only reads correctly top to bottom.
  * ========================================================================== */
 
+/* THE SAME COLUMN AS THE PROFILE IT SITS BEHIND — 2026-09-06.
+ *
+ * «صفحة تعديل العميل لازم تكون شبة الصفحة الي قبلها في المقاسات». The two are one
+ * screen with a switcher between them, and they were rendering 517px and 627px
+ * wide against a 1323px column: moving between the tabs moved the whole layout.
+ *
+ * TWO FAULTS, and the first hid the second. `margin-inline: auto` on a child of
+ * a flex COLUMN overrides `stretch` and makes the item shrink-to-fit, so this
+ * page sized to its widest field and never reached even the 680 it asked for.
+ * And the cap itself then left the rest of the frame empty. `inline-size: 100%`
+ * plus no cap, matching `Customers.module.css` exactly.
+ *
+ * THE HEADER ABOVE STILL SAYS "single column, 640 maximum" AND IS NOW OUT OF
+ * DATE ON BOTH COUNTS. It is left standing rather than rewritten, because the
+ * argument it records is the one the layout below had to answer — see the note
+ * on `.card:not(.cardBare)`, which is where the two columns are decided and
+ * where the 640 measure actually comes back. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  max-inline-size: 680px;
+
+  /* 12, not 16 — the last 20px of the scroll this page was reported for, taken
+     from the three gaps between switcher, breadcrumb, title and card rather than
+     from any one of them. */
+  gap: var(--space-3);
+
+  /* NO PADDING OF ITS OWN — `.content` already pads, and the two were stacking.
+     Same change the list pages took on 2026-09-06, same reason. */
+  padding: 0;
+  inline-size: 100%;
   margin-inline: auto;
 }
 
@@ -60,6 +84,38 @@
   border-radius: var(--radius-lg);
 }
 
+/* TWO COLUMNS ON THE PAGE, ONE IN THE SHEET — 2026-09-06.
+ *
+ * «الزاير تكون موجوده هي وباقي الانبوتس من غير احتياج ل scroll». The routed form
+ * was 887px tall in a 664px frame — 303px of scroll — because it was one column
+ * of full-width fields in a 1260px card. Measured.
+ *
+ * `:not(.cardBare)` is what keeps the sheet out of it: both modes render
+ * `styles.card` and the sheet adds `.cardBare`, so this selector is exactly
+ * "page mode". A 480px sheet has no room for two columns.
+ *
+ * THE FILE HEADER'S "640 maximum" ARGUMENT IS NOT BEING OVERRULED — read it
+ * again. `08-create-customer.md` argues against a two-column form because "this
+ * one has a cross-field rule that only reads correctly top to bottom", and that
+ * rule is email-or-phone. They are laid out as a PAIR on one row here, adjacent
+ * rather than separated, which is if anything a better reading of it than a
+ * single column that puts them 180px apart. And at 1260 the two tracks are
+ * ~610px each — the documented measure, restored, instead of one 1212px field.
+ *
+ * The divider and the last field span, so the identity/contact boundary still
+ * runs the full width and Notes is not a half-width box beside nothing. */
+.card:not(.cardBare) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-6);
+  align-items: start;
+}
+
+.card:not(.cardBare) > .rule,
+.card:not(.cardBare) > :last-child {
+  grid-column: 1 / -1;
+}
+
 /* `.hint` was here and is DELETED, not left behind — its only two consumers
  * went with it on 2026-09-05 (see `CreateCustomerPage.tsx`). An orphaned class
  * in a module nobody imports is the next person's evidence that a surface still
@@ -82,7 +138,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-block-start: var(--space-4);
+  margin-block-start: var(--space-2);
 }
 
 /* A LINK ON THE PAGE AND A BUTTON IN THE SHEET, and the two have to look

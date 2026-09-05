@@ -5,7 +5,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Table, type TableColumn } from './Table';
+import { Table, type TableColumn, type TableSort } from './Table';
 
 /*
  * The primitive's contract: specs/026-ticket-list/table-primitive.md.
@@ -111,24 +111,75 @@ describe('Q-T-3 — Table owns the sort control, 015 owns the query', () => {
     );
   });
 
-  it('cycles asc → desc → unsorted, so a touched column can be released', async () => {
+  /* REWRITTEN 2026-09-06. The control was a click-through toggle — asc → desc →
+   * unsorted on one button — and is a three-row menu now, on the product
+   * owner's instruction. So the assertion is no longer "the third press
+   * releases it": each outcome is named on its own row and reachable in one
+   * press from any state, which is the whole reason the toggle was replaced. */
+  it('names all three outcomes, each reachable in one press from any state', async () => {
     const onSortChange = vi.fn();
     const cols = COLUMNS.map((c) => (c.id === 'name' ? { ...c, sortable: true } : c));
     const u = userEvent.setup();
 
-    const { rerender } = render(
+    const draw = (sort: TableSort | null) => (
       <Table
         columns={cols}
         rows={PEOPLE}
         rowKey={(p) => p.id}
         label="t"
         onSortChange={onSortChange}
+        sort={sort}
+        sortLabel="ترتيب"
+      />
+    );
+
+    const { rerender } = render(draw(null));
+
+    /* From UNSORTED, the third row still reads "clear" and still resolves to
+     * null — a menu row that cannot be reached is worse than a cycle. */
+    await u.click(screen.getByRole('button', { name: /الاسم/ }));
+    let items = screen.getAllByRole('menuitem');
+    expect(items).toHaveLength(3);
+    await u.click(items[2] as HTMLElement);
+    expect(onSortChange).toHaveBeenLastCalledWith(null);
+
+    await u.click(screen.getByRole('button', { name: /الاسم/ }));
+    await u.click(screen.getAllByRole('menuitem')[0] as HTMLElement);
+    expect(onSortChange).toHaveBeenLastCalledWith({ columnId: 'name', direction: 'asc' });
+
+    /* FROM asc, DESC IS ONE PRESS — under the old toggle it was one press too,
+     * but "clear" was two. That asymmetry is what this replaces. */
+    rerender(draw({ columnId: 'name', direction: 'asc' }));
+    await u.click(screen.getByRole('button', { name: /الاسم/ }));
+    items = screen.getAllByRole('menuitem');
+    await u.click(items[1] as HTMLElement);
+    expect(onSortChange).toHaveBeenLastCalledWith({ columnId: 'name', direction: 'desc' });
+
+    rerender(draw({ columnId: 'name', direction: 'desc' }));
+    await u.click(screen.getByRole('button', { name: /الاسم/ }));
+    await u.click(screen.getAllByRole('menuitem')[2] as HTMLElement);
+    expect(onSortChange).toHaveBeenLastCalledWith(null);
+  });
+
+  /* THE REST STATE HAS NO GLYPH, and that is the instruction's point: a neutral
+   * arrow on every sortable heading makes the sorted column stop standing out.
+   * jsdom resolves the module stylesheet, so `visibility` is readable here. */
+  it('shows no sort glyph on an unsorted heading, and a brand one when sorted', () => {
+    const cols = COLUMNS.map((c) => (c.id === 'name' ? { ...c, sortable: true } : c));
+    const { rerender, container } = render(
+      <Table
+        columns={cols}
+        rows={PEOPLE}
+        rowKey={(p) => p.id}
+        label="t"
+        onSortChange={vi.fn()}
         sort={null}
         sortLabel="ترتيب"
       />,
     );
-    await u.click(screen.getByRole('button', { name: /الاسم/ }));
-    expect(onSortChange).toHaveBeenLastCalledWith({ columnId: 'name', direction: 'asc' });
+    const idle = container.querySelector('thead svg');
+    expect(idle, 'the neutral glyph is rendered but hidden, not absent').not.toBeNull();
+    expect(idle?.getAttribute('class')).toMatch(/sortIconIdle/);
 
     rerender(
       <Table
@@ -136,31 +187,20 @@ describe('Q-T-3 — Table owns the sort control, 015 owns the query', () => {
         rows={PEOPLE}
         rowKey={(p) => p.id}
         label="t"
-        onSortChange={onSortChange}
+        onSortChange={vi.fn()}
         sort={{ columnId: 'name', direction: 'asc' }}
         sortLabel="ترتيب"
       />,
     );
-    await u.click(screen.getByRole('button', { name: /الاسم/ }));
-    expect(onSortChange).toHaveBeenLastCalledWith({
-      columnId: 'name',
-      direction: 'desc',
-    });
-
-    rerender(
-      <Table
-        columns={cols}
-        rows={PEOPLE}
-        rowKey={(p) => p.id}
-        label="t"
-        onSortChange={onSortChange}
-        sort={{ columnId: 'name', direction: 'desc' }}
-        sortLabel="ترتيب"
-      />,
-    );
-    await u.click(screen.getByRole('button', { name: /الاسم/ }));
-    expect(onSortChange).toHaveBeenLastCalledWith(null);
+    const active = container.querySelector('thead svg');
+    expect(active?.getAttribute('class')).not.toMatch(/sortIconIdle/);
+    expect(container.querySelector('thead button')?.getAttribute('class')).toMatch(/sortBtnOn/);
   });
+
+  /* The old cycle test lived here and is DELETED, not skipped — 2026-09-06.
+   * It drove a control that no longer exists, so it could only be kept green by
+   * asserting the toggle behaviour the menu deliberately replaced. The two tests
+   * above cover what it covered. */
 });
 
 /* AC-T-04, the half of it jsdom CAN see.
@@ -306,12 +346,47 @@ describe('the guards jsdom cannot express', () => {
     expect(tsx).not.toContain('dir="auto"');
   });
 
-  /* AC-T-04 — no scrollbar, because nothing overflows. Asserted as the absence
-   * of the two ways of faking it. */
-  it('removes the need for a scrollbar rather than hiding one', () => {
-    expect(css).not.toContain('scrollbar-width: none');
-    expect(css).not.toContain('::-webkit-scrollbar');
-    /* Widths are ratios normalised to percentages, so the table fits any frame. */
+  /* AC-T-04 — no HORIZONTAL scrollbar, because nothing overflows sideways.
+   *
+   * NARROWED 2026-09-06, and narrowed rather than deleted. This used to forbid
+   * `scrollbar-width: none` and `::-webkit-scrollbar` anywhere in the file, and
+   * that over-reached: what AC-T-04 protects is the WIDTH mechanism — columns
+   * are ratios normalised to percentages, so the table fits any frame and the
+   * bar is unnecessary rather than concealed. Hiding it instead would paper over
+   * columns that genuinely do not fit.
+   *
+   * Vertical overflow in `fill` mode is a different thing entirely: it is
+   * INTENDED. The body is meant to scroll — that is the whole point of the mode
+   * — and the product owner ruled the bar itself out on 2026-09-06 («ولازم
+   * ميكونش فيه scroll في جنب الجدول»). Nothing is being faked there.
+   *
+   * So the two hiding declarations are allowed in EXACTLY ONE rule, and this
+   * asserts that scope. Loosening it to "anywhere" would let a future change
+   * hide the horizontal bar again, which is the defect AC-T-04 exists for. */
+  it('hides a scrollbar only in fill mode, and never the horizontal one', () => {
+    const fillRule = ruleBody('scrollerFill');
+    expect(fillRule, '.scrollerFill is not declared').not.toBeNull();
+    expect(fillRule).toContain('scrollbar-width: none');
+
+    /* Every occurrence belongs to the fill scroller — the rule itself and its
+     * webkit companion. COUNTED rather than trusted, because "the one I just
+     * read is the only one" is exactly the assumption that lets a second appear.
+     *
+     * COMMENTS COME OUT FIRST. The stylesheet's own note explains why both
+     * declarations are needed and therefore contains both names; counting the
+     * raw file finds them and fails on prose. `029` and `027` each shipped a
+     * guard that went red on its own comment, and this is the third. */
+    const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(code, 'the comment stripper removed everything').toContain('.scrollerFill');
+    expect(code.match(/scrollbar-width: none/g)).toHaveLength(1);
+    expect(code.match(/::-webkit-scrollbar/g)).toHaveLength(1);
+    expect(code).toContain('.scrollerFill::-webkit-scrollbar');
+
+    /* The horizontal axis is never hidden, and never suppressed. */
+    expect(css).not.toContain('overflow-x: hidden');
+
+    /* Widths are ratios normalised to percentages, so the table fits any frame.
+     * This is the half of AC-T-04 that has not changed. */
     expect(tsx).toContain('function widthPercents');
     expect(tsx).toContain('toFixed(4)}%');
   });

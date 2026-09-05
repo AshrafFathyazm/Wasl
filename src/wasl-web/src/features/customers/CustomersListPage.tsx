@@ -10,7 +10,7 @@ import { Button } from '../../components/Button/Button';
 import { SideSheet } from '../../components/SideSheet/SideSheet';
 import { Table, type TableColumn, type TableSort } from '../../components/Table/Table';
 import { TablePager } from '../../components/Table/TablePager';
-import { IconAdd } from '../../icons/icons';
+import { IconAdd, IconAddCustomer, IconCustomerProfile } from '../../icons/icons';
 import { ApiError } from '../../lib/api';
 import type { CustomerListItem } from '../../lib/api-types.provisional';
 import { formatDate, formatNumber, formatPhone, type Lang } from '../../lib/formatters';
@@ -270,7 +270,32 @@ export default function CustomersListPage() {
    * a filter change and on window focus, and a held object would go stale while
    * the sheet displayed it. Looked up from `items` every render, so a row that
    * leaves the page takes its sheet with it. */
-  const [openId, setOpenId] = useState<string | null>(null);
+  /* THE PANEL HAS ITS OWN URL — `design/feedback-layer.md` §4, `030` AC-11.
+   *
+   * This was `useState`, and a panel held in component state is a panel that
+   * cannot be linked to, cannot be reloaded onto, and vanishes on Back while the
+   * list behind it stays put — which is the Back a reader presses to close it.
+   *
+   * A SEARCH PARAMETER RATHER THAN A ROUTE SEGMENT, because the panel does not
+   * replace the list: `/customers/:id` is the full profile and already exists,
+   * so a segment here would be a second URL for the same record showing less of
+   * it. `?open=` says "the directory, with this row expanded", which is what it
+   * is. ADR-011 §1 lands the same way — no global store, and state that must
+   * survive a reload belongs in the URL.
+   *
+   * IT MERGES INTO THE EXISTING PARAMETERS rather than replacing them. Handing
+   * `setParams` a fresh object drops the reader's search and filters, and the
+   * list behind the panel silently becomes a different list — asserted.
+   *
+   * `replace: true` on close only, so dismissing does not leave a history entry
+   * the reader has to press Back through twice to get out of. */
+  const openId = params.get('open');
+  const setOpenId = (next: string | null) => {
+    const out = new URLSearchParams(params);
+    if (next === null) out.delete('open');
+    else out.set('open', next);
+    setParams(out, { replace: next === null });
+  };
   const [addOpen, setAddOpen] = useState(false);
 
   /* THE TWO HALVES OF §3's "closes on a scrim click, EXCEPT over unsaved input".
@@ -315,7 +340,7 @@ export default function CustomersListPage() {
         : 'data';
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} data-fills>
       <CustomerFilterBar
         filters={filters}
         onChange={setFilters}
@@ -359,6 +384,7 @@ export default function CustomersListPage() {
              — that default is right for the ticket list, whose subject cell is
              two lines. Every cell here is one. */
         density="dense"
+        fill
         sort={sort}
         onSortChange={onSortChange}
         sortLabel={t('list.sortBy')}
@@ -439,12 +465,23 @@ export default function CustomersListPage() {
         onClose={() => setOpenId(null)}
         label={openRow?.fullName ?? ''}
         badge={
-          <span
-            className={styles.sheetAvatar}
-            data-tint={avatarBucket(openRow?.fullName ?? '')}
-          >
-            {avatarInitial(openRow?.fullName ?? '')}
-          </span>
+          /* THE INITIAL WINS WHENEVER THERE IS A NAME, and the icon is only the
+             stand-in — the instruction of 2026-09-06 says so in as many words:
+             `customer-profile` belongs to the loading and empty states, when
+             there is no photo and no name yet.
+
+             The distinction is not decoration. A letter that is present says
+             WHICH customer this is; a generic card says nothing, so swapping a
+             real initial for it loses information to gain a glyph. */
+          openRow === null ? (
+            <span className={styles.sheetBadgeProfile}>
+              <IconCustomerProfile size={20} aria-hidden="true" />
+            </span>
+          ) : (
+            <span className={styles.sheetAvatar} data-tint={avatarBucket(openRow.fullName)}>
+              {avatarInitial(openRow.fullName)}
+            </span>
+          )
         }
         title={<bdi>{openRow?.fullName}</bdi>}
         subtitle={
@@ -472,7 +509,11 @@ export default function CustomersListPage() {
         open={addOpen}
         onClose={requestCloseAdd}
         label={t('new.title')}
-        badge={<IconAdd size={20} />}
+        badge={
+          <span className={styles.sheetBadgeAdd}>
+            <IconAddCustomer size={20} aria-hidden="true" />
+          </span>
+        }
         title={t('new.title')}
         subtitle={t('new.sheetHint')}
       >

@@ -21,34 +21,48 @@
 
   inline-size: var(--sidebar-width);
 
-  /* ONE VIEWPORT TALL, PINNED, AND IT SCROLLS INSIDE ITSELF.
+  /* IT FILLS THE SHELL, AND THE NAV IS WHAT SCROLLS.
    *
-   * It was `min-block-size: 100vh` in a flex row, so on a long page the panel
-   * grew to the CONTENT's height — and `.nav { flex: 1 }` plus `.user
-   * { margin-block-start: auto }` then pushed the account block to the bottom of
-   * that, which on the ticket list is about two thousand pixels down. Reported
-   * 2026-09-01: reaching your own name took a long scroll, and the nav had
-   * scrolled out of sight by the time you got there.
+   * ── What this used to be, and why it changed — 2026-09-06 ────────────────
    *
-   * Three declarations do it, and each is needed:
+   * It was `position: sticky` + `align-self: flex-start` + `block-size: 100dvh`
+   * + `overflow: hidden`, and every one of those existed to survive A PAGE THAT
+   * SCROLLED: before this it was `min-block-size: 100vh` in a flex row, so on a
+   * long page the panel grew to the CONTENT's height and pushed the account
+   * block about two thousand pixels down (reported 2026-09-01 — reaching your
+   * own name took a long scroll).
    *
-   *   position: sticky + inset-block-start   the panel stays put while the page
-   *                                          scrolls under it
-   *   align-self: flex-start                 without it the flex row STRETCHES
-   *                                          the item back to the row height and
-   *                                          the height below is ignored
-   *   block-size: 100dvh                     not `min-`: a minimum is what let it
-   *                                          grow. `dvh` rather than `vh` so a
-   *                                          mobile browser's collapsing chrome
-   *                                          does not hide the account block
+   * The page does not scroll any more. `.shell` is `100dvh` with
+   * `overflow: hidden`, so a plain flex item already gets exactly the viewport
+   * height and stays put with nothing pinning it. Sticky against a container
+   * that never scrolls is machinery for a problem that no longer exists.
    *
-   * The nav is the part that scrolls when the item list outgrows the panel — see
-   * `.nav` below. The account block never moves. */
-  position: sticky;
-  inset-block-start: 0;
-  align-self: flex-start;
-  block-size: 100dvh;
-  overflow: hidden;
+   * ── AND `overflow: hidden` WAS CLIPPING THE TOGGLE ───────────────────────
+   *
+   * The collapse button sits at `inset-inline-end: -13px`, deliberately
+   * straddling the panel's edge. `overflow: hidden` cut the outer 12px of it in
+   * BOTH states — measured: expanded the button spans x 274 … 300 inside a panel
+   * of 0 … 288; collapsed, 54 … 80 inside 0 … 68. What reached the screen was a
+   * half-circle, which reads as a rendering fault rather than a control, and it
+   * was reported as the arrow disappearing.
+   *
+   * Nothing here needs to clip: the nav does its own clipping and its own
+   * scrolling, one line below. */
+  /* `relative` IS LOAD-BEARING, and dropping it was a defect for one build.
+   *
+   * The old `position: sticky` was doing two jobs and only one of them was
+   * written down. Besides pinning the panel it was the CONTAINING BLOCK for the
+   * collapse toggle, which is `position: absolute` at `inset-inline-end: -13px`.
+   * Removing sticky left the toggle resolving against the initial containing
+   * block: measured at x 1475 on a 1500px viewport — pinned to the far edge of
+   * the window, and overhanging it enough to give the DOCUMENT a horizontal
+   * scrollbar, which then stole 15px of height back from the shell.
+   *
+   * `relative` restores the containing block and nothing else. */
+  position: relative;
+  block-size: 100%;
+  min-block-size: 0;
+  overflow: visible;
 
   padding-block: var(--sidebar-padding-block);
   padding-inline: var(--sidebar-padding-inline);
@@ -271,6 +285,32 @@
   min-block-size: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+
+  /* `clip`, AND IT HAS TO BE `clip` RATHER THAN LEFT ALONE — 2026-09-06.
+   *
+   * An unset `overflow-x` is `visible`, and the spec turns `visible` into `auto`
+   * the moment the other axis is not visible. So `overflow-y: auto` alone gave
+   * this a HORIZONTAL scrollbar too, and collapsed it had something to scroll:
+   * measured at 51px wide against 265px of content, because a nav item keeps its
+   * label in the DOM at full width when the rail narrows. The bar was reported
+   * as "اسكرول من تحت صغير كدا".
+   *
+   * `clip` RATHER THAN `hidden` IS AN INTENT, NOT AN OUTCOME HERE — measured,
+   * because the first version of this comment claimed otherwise. `clip` is
+   * supposed to refuse the scroll outright where `hidden` only hides the bar,
+   * but beside an `overflow-y: auto` Chrome computes it to `hidden` anyway:
+   * `getComputedStyle` reports `hidden`, and setting `scrollLeft = 80` on the
+   * collapsed rail moves it to 80. So the axis is still programmatically
+   * scrollable and only the BAR is gone. Kept as `clip` because it is the
+   * correct declaration where an engine honours it.
+   *
+   * THE RESIDUAL, stated rather than implied: collapsed, this box is 51px wide
+   * around 265px of content, because a nav item keeps its label in the DOM at
+   * full width when the rail narrows. Nothing shows it and nothing can scroll to
+   * it by wheel or drag, but focus moving to a clipped label would scroll the
+   * rail sideways. The real fix is for a collapsed item to stop reserving the
+   * label's width; that is a change to how the rail renders, not to this line. */
+  overflow-x: clip;
 }
 
 /* Uppercase, letterspaced, muted. Hidden when collapsed, with its height
@@ -583,9 +623,8 @@
  * mirroring to the consumer, and this is the consumer. The gear is rotational
  * and must NOT mirror — mirroring an icon that has no direction is how a set
  * ends up with two versions of the same glyph. */
-[dir='rtl'] .signOut .rowIcon {
-  transform: scaleX(-1);
-}
+/* The sign-out arrow mirrors under RTL via [data-flip] in base.css now (037).
+ * The rule that stood here was the only per-consumer flip in the product. */
 
 .signOut .rowIcon {
   color: inherit;
