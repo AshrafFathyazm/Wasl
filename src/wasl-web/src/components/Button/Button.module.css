@@ -206,3 +206,33 @@
   flex: none;
   align-items: center;
 }
+
+/* ---- Danger -------------------------------------------------------------- */
+
+/* `030` — `design/feedback-layer.md` §3's destructive primary. The `!important`
+   and `-webkit-text-fill-color` are note 1's, at the head of this file: they are
+   not decoration and they are not defensive, they are what stops the UA
+   stylesheet winning on a <button> in Safari.
+
+   It has NO hover-tint reasoning of its own to record beyond the obvious: a
+   destructive control that lightens on hover reads as being disabled, so it
+   darkens. */
+.danger {
+  background-color: var(--action-danger-bg) !important;
+  color: var(--action-danger-text) !important;
+  -webkit-text-fill-color: var(--action-danger-text) !important;
+  border-color: var(--action-danger-border);
+}
+
+.danger:hover:not(:disabled),
+[data-preview-state='hover'] .danger:not(:disabled) {
+  background-color: var(--action-danger-hover) !important;
+  border-color: var(--action-danger-hover);
+}
+
+.danger:disabled {
+  background-color: var(--surface-sunken) !important;
+  color: var(--text-placeholder) !important;
+  -webkit-text-fill-color: var(--text-placeholder) !important;
+  border-color: var(--border-subtle);
+}

@@ -405,11 +405,14 @@
   color: var(--state-warning-text);
 }
 
-.noticeMuted {
-  border-color: var(--border-default);
-  background-color: var(--surface-subtle);
-  color: var(--text-secondary);
-}
+/* `.noticeMuted` was here and is DELETED. Its only consumer was the `403`
+   banner, and `feedback-layer.md` §1.2 moved that to a toast on 2026-09-05 — a
+   permission denial is request-wide, so it has no field to sit beside.
+
+   Removed rather than kept "in case": `027` paid for an orphaned stylesheet once
+   already, when a deleted preview left 86 selectors alive for a screen nobody
+   was maintaining. A class with no caller is the next person's evidence that a
+   surface still exists. */
 
 .noticeDanger {
   border-color: color-mix(in oklab, var(--state-danger-text) 30%, transparent);

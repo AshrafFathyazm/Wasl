@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -102,12 +102,23 @@ export interface CreateCustomerFormProps {
   /** Sheet mode drops the page's own heading and back link — the sheet's header
    *  already carries both, and two titles read as two screens. */
   chrome?: boolean | undefined;
+
+  /** Reports whether anything has been typed. The HOST needs it, not this form:
+   *  `feedback-layer.md` §3 makes "closes on a scrim click, EXCEPT over unsaved
+   *  input" a rule about the container, and only the container knows it is being
+   *  closed. React Hook Form's `isDirty` stays inside this component otherwise.
+   *
+   *  Reported rather than exposed as a ref, because the host uses it to DECIDE
+   *  and a decision taken from a ref read during render is a decision taken on a
+   *  value React never told anyone changed. */
+  onDirtyChange?: ((dirty: boolean) => void) | undefined;
 }
 
 export function CreateCustomerForm({
   onCreated,
   onCancel,
   chrome = true,
+  onDirtyChange,
 }: CreateCustomerFormProps = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -134,10 +145,41 @@ export function CreateCustomerForm({
   const form = useForm<CreateCustomerFormValues, unknown, CreateCustomerParsed>({
     defaultValues: emptyCreateCustomerForm,
     resolver: zodResolver(createCustomerSchema),
-    /* On blur. Validating as someone types tells them they are wrong before they
-     * have finished being right (`10-shared-patterns.md`). */
-    mode: 'onBlur',
+    /* NOTHING IS WRONG UNTIL THE READER SAYS THEY ARE DONE — ruled 2026-09-05.
+     *
+     * This was `mode: 'onBlur'`, which validates on blur whether or not the
+     * field was ever typed in. Tabbing from the name field to the company field
+     * therefore put «الاسم الكامل مطلوب» under an empty box the reader had not
+     * touched yet — the form accusing them of omitting something they were on
+     * their way to type. `10-shared-patterns.md`'s reason for not validating on
+     * every keystroke ("wrong before they have finished being right") applies to
+     * an untouched blur just as squarely.
+     *
+     * So: an empty required field is a SAVE-time fact, and after the first save
+     * attempt each blur re-checks — which is when a blur genuinely means "I am
+     * done with this one".
+     *
+     * WHAT THIS DOES NOT YET GIVE: a field the reader typed into and then left
+     * with a bad value still waits for the first submit. The exact rule wants
+     * blur-validation for a DIRTY field before that, and RHF has no mode for
+     * "blurred and dirty" — it needs a per-field `trigger()` gated on
+     * `formState.dirtyFields`. Not built; recorded so it is not mistaken for
+     * done. */
+    mode: 'onSubmit',
+    reValidateMode: 'onBlur',
   });
+
+  /* THE HOST IS TOLD, and it is told from an effect rather than from a render.
+   *
+   * `formState.isDirty` is a subscribed value: reading it here is what makes
+   * this component re-render when it flips, and the effect is what carries that
+   * flip outward without calling a parent's setState during render. Guarded on
+   * the boolean itself so a keystroke that does not change dirtiness — every
+   * keystroke after the first — reports nothing. */
+  const { isDirty } = form.formState;
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const mutation = useMutation({
     mutationFn: (values: CreateCustomerParsed) =>
@@ -158,7 +200,10 @@ export function CreateCustomerForm({
          * query cache write: seeding `['customer', id]` from a create response
          * is the thing AC-1 forbids. */
         navigate(returnUrl, {
-          state: { createdCustomerId: customer.id, createdCustomerName: customer.fullName },
+          state: {
+            createdCustomerId: customer.id,
+            createdCustomerName: customer.fullName,
+          },
         });
         return;
       }
@@ -329,10 +374,21 @@ export function CreateCustomerForm({
               group below rather than about the field above. */}
           <hr className={styles.rule} />
 
-          {/* ABOVE THE TWO FIELDS IT GOVERNS, and a HINT rather than an error: an
-              empty form has not failed anything yet. A cross-field rule explained
-              under the second field is explained too late (AC-9). */}
-          <p className={styles.hint}>{t('customers:new.contactRequired')}</p>
+          {/* THE STANDING HINT IS GONE — product owner, 2026-09-05.
+              It read `customers:new.contactRequired` above the pair, and
+              `createCustomer.schema.ts` emits THE SAME KEY on both `email` and
+              `phone`. So the moment the rule was broken the one sentence
+              appeared three times on one screen: once as a calm hint and twice
+              in red, two fields apart, saying exactly the same thing.
+
+              `design/feedback-layer.md` §1.6 is the rule it broke — never two
+              surfaces for one event — and this was three.
+
+              WHAT IT COST, stated rather than hidden: a reader on an untouched
+              form is no longer told in advance that one of the two is needed;
+              they find out by submitting. That is the accepted trade, and it is
+              the reason the schema's message must stay a full sentence rather
+              than shrinking to "required". */}
 
           <Controller
             control={form.control}
@@ -391,7 +447,6 @@ export function CreateCustomerForm({
               </Link>
             </p>
           )}
-
 
           <Controller
             control={form.control}

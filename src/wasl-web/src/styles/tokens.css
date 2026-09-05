@@ -212,10 +212,32 @@
   --action-secondary-text: var(--brand);
   --action-danger-bg: var(--red-600);
 
+  /* THE OTHER THREE HALVES OF THE DANGER BUTTON, added when `030` gave it its
+     first consumer. `--action-danger-bg` had sat here alone since `006` with
+     nothing to paint: `feedback-layer.md` §3 names the solid red primary, and a
+     button needs a text colour and a border to be drawn at all. Deriving them at
+     the call site is how a second red gets into the system. */
+  --action-danger-text: var(--on-brand); /* (G) */
+  --action-danger-border: var(--red-600); /* (G) */
+  --action-danger-hover: #cf3b3b; /* (G) — one step down from --red-600 */
+
   --state-success-bg: var(--green-50);
   --state-success-text: var(--green-700);
   --state-warning-bg: var(--amber-50);
   --state-warning-text: #8a5a00; /* (D) — no readable amber text in source */
+
+  /* THE ONE TONE WHOSE FILL IS NOT ITS TEXT, and the reason is note 9 above:
+     `--state-warning-text` is DERIVED because amber has no readable text form.
+     Everywhere the other three tones paint a solid mark — a toast's 3px stripe,
+     a bar, a dot — they can reach for their own `-text` value, because
+     `--green-700`, `--red-600` and `--blue-500` are legible as both. Amber is
+     not, so the two roles split, and the split needs a name or every caller
+     resolves it by reaching past the semantics to `--amber-500`.
+
+     Added when `030`'s toast became the first component to paint a warning as a
+     SHAPE rather than as a tinted panel; `lint:tokens` is what surfaced the gap,
+     which is what it says it is for. */
+  --state-warning-fill: var(--amber-500); /* (G) */
   --state-danger-bg: var(--red-50);
   --state-danger-text: var(--red-600);
   --state-info-bg: var(--blue-50);
@@ -257,6 +279,7 @@
   --type-body-md: 16px;
   --type-body-sm: 12px;
   --type-label-lg: 16px;
+  --type-card-title: 16px; /* (G) — the modal title, feedback-layer.md §3 */
   --type-label-md: 14px;
   --type-label-sm: 12px;
   --type-caption: 12px;
@@ -486,6 +509,23 @@
    * question asked once. */
   --shadow-md: 0 4px 12px rgb(13 38 38 / 8%); /* (F) */
 
+  /* THE SECOND ELEVATION, and the paragraph above said there would not be one.
+     It was right about the question it had: one pair of distant planes, a menu
+     over a page. `030` brings a second pair that is genuinely further apart — a
+     modal and a side sheet lift off the WHOLE document, not off the row beneath
+     them, and (G) §2/§3 give the two shadows different values for that reason.
+     The note's own escape clause applies: "the rule stops applying the moment a
+     document names the value".
+
+     BOTH WERE ALREADY IN THE PRODUCT AS FALLBACKS THAT ALWAYS WON —
+     `var(--modal-shadow, 0 12px 32px …)` and `var(--sheet-shadow, 0 0 40px …)`
+     named custom properties that had never been declared, so every render used
+     the literal. `030` AC-15 is written against exactly that shape: a fallback
+     is a raw value wearing a token's clothes, and it passes a grep for
+     `var(--`. */
+  --shadow-lg: 0 12px 32px rgb(13 38 38 / 12%); /* (G) — modal */
+  --sheet-shadow: 0 0 40px rgb(13 38 38 / 18%); /* (G) — the side sheet's edge */
+
   /* ==== MOTION — transitions (C) ==========================================
    * Distinct from `--motion-loader-*` above, and the distinction is the one
    * motion.md now writes down: a loader's duration is a CYCLE LENGTH, these are
@@ -524,6 +564,38 @@
   --dropdown-chip-height: 24px; /* (F) */
   --dropdown-search-height: 36px; /* (F) — doc §02, sticky at the menu head */
 
+  /* ==== FEEDBACK LAYER (G) ================================================
+   *   (G) `wasl-feedback-spec.ascii.md` — the toast/modal/panel design document,
+   *       supplied 2026-09-05 as pure 7-bit ASCII. Its §0 names these values and
+   *       says, in the document itself: ADD THESE BEFORE BUILDING, do not measure
+   *       from a screenshot. See design/feedback-layer.md.
+   *
+   * THE SCRIM IS ONE VALUE, and it arrives with three predecessors — which is
+   * why it is a token rather than a literal. `10-shared-patterns.md` wrote .45,
+   * the (G) document writes .4, and `SideSheet.module.css` shipped .34. A fourth
+   * site, `Sidebar.module.css`, was ALREADY at 40% — so the ruled value is not a
+   * new fourth answer, it is the one the shell has been using all along, and the
+   * other two collapse into it. Ruled by the product owner 2026-09-05: none of
+   * the three differences is visible, so the change is free and the drift closes.
+   *
+   * Nobody writes an inline `rgb(...)` for a scrim after this. That is the whole
+   * point of the token — .34 against .4 is exactly the near-match `tokens.css`
+   * already warns about twice, and it went unnoticed for a release because no
+   * two of the four sites were ever read side by side. */
+  --scrim: rgb(13 38 38 / 40%); /* (G) */
+
+  /* Three widths per surface, and NO free values. `035` shipped the side sheet
+   * at 600px measured off a single frame — a sample, not a rule — and the ladder
+   * exists so the next screen does not measure a second one. The panel takes a
+   * `size` prop against these three; it does not take a number. */
+  --toast-width: 360px; /* (G) — max-inline-size 90vw at the call site */
+  --modal-w-sm: 420px; /* (G) — confirm, warning, short message */
+  --modal-w-md: 560px; /* (G) — short form, pick-from-list */
+  --modal-w-lg: 720px; /* (G) — compact table, attachment preview */
+  --panel-w-sm: 360px; /* (G) — filters, properties, quick settings */
+  --panel-w-md: 480px; /* (G) — ticket detail, customer profile */
+  --panel-w-lg: 640px; /* (G) — long form, rule editor */
+
   /* ==== APP SHELL (C) — exact, arithmetic closes ========================== */
 
   --frame-width: 1440px;
@@ -548,7 +620,26 @@
      which is exactly what a cross-module custom property is. Two numbers for one
      distance had already produced a 4px-per-side overflow and a horizontal
      scrollbar; one number in the wrong FILE is the same defect one step later. */
-  --sheet-padding: var(--space-6);
+  /* 20, DOWN FROM `--space-6` (24) — `design/feedback-layer.md`, ruled
+     2026-09-05. It is deliberately off the 4/8/12/16/24 ladder because the (G)
+     document names it: header `18px 20px`, body `20px`, footer `14px 20px`. The
+     inline value is the one shared across all three, so it is the token and the
+     two block values stay literals in the sheet's own file.
+
+     The 4px it gives back is per side on every row of a form that was
+     scrolling — see the note on `SideSheet`'s `.head`. */
+  --sheet-padding: 20px;
+
+  /* The chrome's two block values, here for the reason the paragraph above
+     gives: they are one distance shared by `SideSheet`'s own header and footer
+     AND by the create form's footer, which is a SEPARATE element in a different
+     module that has to line up with it pixel for pixel. That is a cross-module
+     distance, so it is a cross-module property.
+     `AC-12`'s guard is what forced them out of the component files, and it was
+     right to — a literal `14px` in two modules is two numbers for one edge. */
+  --sheet-head-padding-block: 18px;
+  --sheet-foot-padding-block: 14px;
+
   --sidebar-padding-block: var(--space-4);
   --sidebar-padding-inline: var(--space-6);
   --sidebar-gap: var(--space-4);

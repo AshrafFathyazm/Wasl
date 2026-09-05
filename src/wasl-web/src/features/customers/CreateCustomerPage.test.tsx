@@ -84,7 +84,10 @@ function renderPage(initialEntry = '/customers/new') {
 
 /** The minimum a valid submit needs: a name and one contact method (BR-4.1). */
 async function fillMinimum(user: UserEvent) {
-  await user.type(screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))), 'Noura Al-Salem');
+  await user.type(
+    screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))),
+    'Noura Al-Salem',
+  );
   await user.type(screen.getByLabelText(/^Email/), 'noura@example.com');
 }
 
@@ -98,8 +101,10 @@ describe('AC-6 — one request per submit, and the control keeps its name', () =
     const user = userEvent.setup();
     /* Resolves on our schedule, so both clicks land while the first request is
      * still in flight — which is the only way to exercise the guard. */
-    let release: (value: { customer: CreateCustomerResponse; location: string | null }) => void =
-      () => {};
+    let release: (value: {
+      customer: CreateCustomerResponse;
+      location: string | null;
+    }) => void = () => {};
     vi.mocked(createCustomer).mockReturnValue(
       new Promise((resolve) => {
         release = resolve;
@@ -307,7 +312,11 @@ describe('the returnUrl, and the open redirect it must not become', () => {
     expect(await screen.findByText('landed:/tickets/new')).toBeInTheDocument();
   });
 
-  for (const hostile of ['https://evil.example/steal', '//evil.example', 'javascript:alert(1)']) {
+  for (const hostile of [
+    'https://evil.example/steal',
+    '//evil.example',
+    'javascript:alert(1)',
+  ]) {
     it(`refuses ${hostile} and goes to the profile instead`, async () => {
       const user = userEvent.setup();
       vi.mocked(createCustomer).mockResolvedValue({
@@ -340,25 +349,51 @@ describe('AC-10 — the phone field is pinned LTR, the others are not', () => {
 
     /* The other two stay `auto`: a name is language content in either script, and
      * an address has strong LTR characters of its own the moment it is typed. */
-    expect(screen.getByLabelText(new RegExp(i18n.t('customers:field.name')))).toHaveAttribute('dir', 'auto');
+    expect(
+      screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))),
+    ).toHaveAttribute('dir', 'auto');
     expect(screen.getByLabelText(/البريد الإلكتروني/)).toHaveAttribute('dir', 'auto');
 
     await i18n.changeLanguage('en');
   });
 });
 
-describe('AC-9 — BR-4.1 is stated before the fields it governs', () => {
-  it('renders the contact rule as a hint on an empty form, not as an error', async () => {
+/* ============================================================================
+ * AC-9 was REVERSED on 2026-09-05, and the criterion is recorded as superseded
+ * rather than deleted.
+ * ============================================================================
+ * AC-9 read: BR-4.1 is stated BEFORE the fields it governs, as a standing hint,
+ * because a cross-field rule explained under the second field is explained too
+ * late. Nothing about that reasoning was wrong.
+ *
+ * What was wrong was that it did not survive contact with the validator.
+ * `createCustomer.schema.ts` emits `customers:new.contactRequired` on BOTH
+ * `email` and `phone`, so a form that actually broke the rule showed one
+ * sentence three times — and THE OLD TEST BELOW ASSERTED EXACTLY THAT, with
+ * `toHaveLength(3)` and a comment explaining the three as correct. It is the
+ * clearest evidence in this file that a duplicate can be written down, reviewed,
+ * and guarded, without anyone reading it as a duplicate.
+ *
+ * `design/feedback-layer.md` §1.6 — never two surfaces for one event — is what
+ * it breaks, and that document did not exist when AC-9 was written.
+ *
+ * THE COST IS REAL AND IS NOT ARGUED AWAY: a reader on an untouched form is no
+ * longer warned in advance. Product owner's call, and the reason the catalogue
+ * entry must stay a whole sentence.
+ * ========================================================================= */
+describe('AC-9 (superseded) — BR-4.1 is carried by the validator alone', () => {
+  it('shows no standing contact hint on an empty form', async () => {
     renderPage();
 
-    const hint = screen.getByText(
-      'At least one contact method is required — an email address or a phone number.',
-    );
-    expect(hint).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'At least one contact method is required — an email address or a phone number.',
+      ),
+    ).toBeNull();
 
-    /* A HINT. An empty form has failed nothing, so the rule must not be in the
-     * accessibility tree as an error and must not be attached to a field. */
-    expect(hint.closest('[role="alert"]')).toBeNull();
+    /* AND THE FORM HAS STILL FAILED NOTHING. Removing the hint must not have
+       been done by promoting it to an error that fires on an untouched form,
+       which is the obvious wrong way to make the duplicate go away. */
     expect(screen.getByLabelText(/^Email/)).not.toHaveAttribute('aria-invalid');
   });
 
@@ -366,7 +401,10 @@ describe('AC-9 — BR-4.1 is stated before the fields it governs', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))), 'Noura Al-Salem');
+    await user.type(
+      screen.getByLabelText(new RegExp(i18n.t('customers:field.name'))),
+      'Noura Al-Salem',
+    );
     await user.click(screen.getByRole('button', { name: 'Create' }));
 
     /* NOTHING REACHES THE SERVER: the client mirror is what makes this cheap,
@@ -378,7 +416,15 @@ describe('AC-9 — BR-4.1 is stated before the fields it governs', () => {
     const messages = await screen.findAllByText(
       'At least one contact method is required — an email address or a phone number.',
     );
-    /* Three: the standing hint plus one message under each of the two fields. */
-    expect(messages).toHaveLength(3);
+
+    /* TWO, AND TWO IS THE CEILING. This read `toHaveLength(3)` — the standing
+       hint plus one message under each field — and the comment beside it
+       described the three as the design. It was the duplicate, written down and
+       guarded.
+     *
+     * The count still matters and is still exact rather than `>= 1`: two is
+     * `007`'s `400` naming both fields, and the reader has to see the rule
+     * wherever they were typing. A third occurrence means the hint came back. */
+    expect(messages).toHaveLength(2);
   });
 });

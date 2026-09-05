@@ -10,7 +10,18 @@ import styles from './Button.module.css';
  * designed. `danger` does not exist yet — no destructive action is in scope, and
  * adding it later is one CSS block.
  */
-export type ButtonType = 'primary' | 'secondary-outline';
+/* `danger` added by `030` — `design/feedback-layer.md` §3: "destructive primary
+   = solid `--action-danger-bg`". It is a TYPE rather than a colour passed in,
+   because the destructive button also carries a rule the caller must not be able
+   to opt out of: it is never the default focus target, which `Modal` enforces
+   from its own `destructive` prop. */
+export type ButtonType = 'primary' | 'secondary-outline' | 'danger';
+
+const VARIANT_CLASS = {
+  primary: 'primary',
+  'secondary-outline': 'secondaryOutline',
+  danger: 'danger',
+} as const satisfies Record<ButtonType, string>;
 
 export interface ButtonProps {
   /** Default 'primary'. Named `buttonType` because the native <button> element
@@ -99,10 +110,10 @@ export function Button({
   return (
     <button
       type={type}
-      className={cx(
-        styles.button,
-        buttonType === 'primary' ? styles.primary : styles.secondaryOutline,
-      )}
+      /* A LOOKUP, NOT A TERNARY. It was `primary ? primary : secondaryOutline`,
+         which silently maps every future type onto the outline — `danger` would
+         have rendered as a white bordered button and looked deliberate. */
+      className={cx(styles.button, styles[VARIANT_CLASS[buttonType]])}
       disabled={isDisabled}
       /* The accessible name is UNCHANGED while loading. No "Loading…" string is
        * introduced, because a primitive holds no strings. */

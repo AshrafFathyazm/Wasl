@@ -199,5 +199,9 @@
   "detail.action.close": "إغلاق التذكرة",
   "detail.actionUnavailable": "غير متاح بعد — لا يوجد في الخادم ما ينفّذ هذا الإجراء.",
   "detail.closeNotAllowed": "الإغلاق ليس من الانتقالات المسموح بها لهذه التذكرة.",
-  "list.rangeInverted": "نهاية المدى تسبق بدايته. اعكس التاريخين لتطبيق التصفية."
+  "list.rangeInverted": "نهاية المدى تسبق بدايته. اعكس التاريخين لتطبيق التصفية.",
+  "detail.statusToastTitle": "تم تحديث حالة التذكرة.",
+  "detail.commentToastTitle": "تم إرسال الردّ.",
+  "detail.writeFailedTitle": "تعذّر إرسال التغيير.",
+  "detail.writeFailedBody": "لم نتمكن من الوصول إلى الخادم. لم يُحفظ شيء."
 }

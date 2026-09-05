@@ -60,5 +60,6 @@
   "cal.placeholder": "dd/mm/yyyy",
   "table.errorTitle": "تعذّر تحميل القائمة",
   "table.errorBody": "لم نتمكن من الوصول إلى الخادم. حاول مرة أخرى.",
-  "table.retry": "إعادة المحاولة"
+  "table.retry": "إعادة المحاولة",
+  "retry": "إعادة المحاولة"
 }

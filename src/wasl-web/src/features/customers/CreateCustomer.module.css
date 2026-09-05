@@ -60,17 +60,11 @@
   border-radius: var(--radius-lg);
 }
 
-/* A HINT, NOT AN ERROR — the info surface, never the danger one. An empty form
- * has failed nothing, and a red rule above two empty fields reads as a rejection
- * of something the user has not submitted yet. */
-.hint {
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background-color: var(--state-info-bg);
-  color: var(--state-info-text);
-  font-size: var(--type-caption);
-}
+/* `.hint` was here and is DELETED, not left behind — its only two consumers
+ * went with it on 2026-09-05 (see `CreateCustomerPage.tsx`). An orphaned class
+ * in a module nobody imports is the next person's evidence that a surface still
+ * exists, and `027` already paid for that once when a preview kept 86 selectors
+ * alive for a screen nobody was maintaining. */
 
 /* Appears only after a `409`, directly under the pair it concerns. It is the
  * only path to the existing record — BR-4.7 keeps the id out of the response —
@@ -135,8 +129,13 @@
    single logical rule, because a UA <hr> brings its own inset margins. */
 .rule {
   block-size: 0;
-  margin-block: var(--space-1);
-  margin-inline: 0;
+
+  /* NO MARGIN OF ITS OWN. The card is a flex column with a 16px gap, so a
+     divider that also carries `--space-1` block margin puts 4px on each side of
+     a distance the gap has already set — and the gap is what every other pair of
+     rows in the form is measured by. One spacing mechanism per axis; the
+     divider is a row like any other. */
+  margin: 0;
   border: 0;
   border-block-start: var(--border-width) solid var(--border-divider);
 }
@@ -186,6 +185,12 @@
   border-radius: 0;
   overflow: hidden auto;
   scrollbar-width: thin;
+
+  /* Matches `SideSheet`'s body. This is the sheet's real scroller — the sheet's
+     own body pads nothing and scrolls nothing here — so the gutter has to be
+     reserved on THIS box or the fields still jump when a form outgrows the
+     fold. */
+  scrollbar-gutter: stable;
 }
 
 /* A PLAIN FLEX CHILD, with no negative margins. It spans the panel edge to edge
@@ -196,7 +201,7 @@
 .actionsSheet {
   flex: none;
   margin: 0;
-  padding: var(--space-4) var(--sheet-padding);
+  padding: var(--sheet-foot-padding-block) var(--sheet-padding);
   border-block-start: var(--border-width) solid var(--border-divider);
   background-color: var(--surface-card);
 }

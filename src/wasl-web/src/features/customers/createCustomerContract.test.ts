@@ -85,16 +85,29 @@ describe('the create form accepts everything the API accepts', () => {
   it('marks the email field NOT required in the markup', () => {
     /* The frame draws a red asterisk on it. `Input` renders the asterisk from
        `required`, so this is the assertion that keeps the two apart: the field
-       is optional, and the RULE is carried by the hint above the pair. */
+       is optional, and BR-4.1 is a rule about the PAIR, not about either one. */
     const email = /name="email"[\s\S]{0,600}?\/>/.exec(code(FORM))?.[0] ?? '';
     expect(email).not.toBe('');
     expect(email).not.toMatch(/\brequired\b/);
+  });
 
-    /* And the hint that carries BR-4.1 is present, above both fields. */
-    const hint = code(FORM).indexOf("t('customers:new.contactRequired')");
-    const emailAt = code(FORM).indexOf('name="email"');
-    expect(hint).toBeGreaterThan(-1);
-    expect(hint).toBeLessThan(emailAt);
+  it('carries BR-4.1 in ONE place, and it is the validator', () => {
+    /* THIS ASSERTION IS INVERTED FROM WHAT IT WAS, and the inversion is the
+       point. It used to require a standing hint above the pair, on the argument
+       that a cross-field rule explained under the second field is explained too
+       late. The argument was sound and the implementation was not:
+       `createCustomer.schema.ts` emits `customers:new.contactRequired` on BOTH
+       `email` and `phone`, so a broken rule put one sentence on screen three
+       times — a hint and two identical red lines.
+
+       Removed by the product owner 2026-09-05, and guarded here so it does not
+       come back by sympathy for the original argument. `feedback-layer.md` §1.6:
+       never two surfaces for one event.
+
+       The message itself stays a full sentence in the catalogue precisely
+       because it is now the only carrier — a validator message shortened to
+       "مطلوب" would leave the rule unexplained anywhere. */
+    expect(code(FORM)).not.toContain("t('customers:new.contactRequired')");
   });
 
   /* ---- BR-4.3: any parseable E.164 --------------------------------------- */

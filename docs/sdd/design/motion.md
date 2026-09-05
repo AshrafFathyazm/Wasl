@@ -41,9 +41,28 @@ battery cost with no user benefit.
 | **100ms** | Hover, focus ring, colour change. Below perception |
 | **150ms** | The default for anything appearing or disappearing |
 | **200ms** | Accordion, dropdown, tooltip |
-| **250ms** | Drawer and modal enter |
+| **180ms** | **Modal enter** — amended 2026-09-05, see below |
+| **220ms** | **Side panel enter** — amended 2026-09-05, see below |
+| **250ms** | ~~Drawer and modal enter~~ — superseded by the two rows above |
 | **300ms** | The ceiling for anything on a working surface |
 | **>300ms** | Login only |
+
+> **The 250ms row is amended, not shadowed.** `030` §3 rows 6 and 7 recorded the feedback
+> layer's source document specifying 180ms for a modal and 220ms for a side panel against
+> this table's 250. Ruled by the product owner 2026-09-05: **the source wins and this file
+> changes**, rather than the two coexisting.
+>
+> **That is the opposite of how rows 4 and 8 of the same list were ruled**, and the
+> difference is the whole point. `.4` against `.45`, and `cubic-bezier(.2,.7,.3,1)` against
+> `--ease-out`, are invisible in review — a near-match is a second scale, not a refinement,
+> so the token won and the source's values were deleted. **180ms against 250ms is
+> perceptible and is a real design intent.** A value somebody can see the difference in
+> gets decided; a value nobody can gets collapsed. Keeping both would have left this table
+> describing something the product does not do.
+>
+> The old value is struck through rather than removed, because `035` shipped the side
+> sheet before the ruling and its own CSS records reading 250 against 220 as a
+> contradiction it had to settle from frames.
 
 Easing:
 

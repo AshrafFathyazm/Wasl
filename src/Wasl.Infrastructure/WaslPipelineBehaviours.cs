@@ -23,6 +23,16 @@ namespace Wasl.Infrastructure;
 public static class WaslPipelineBehaviours
 {
     /// <summary>
+    /// Translates a deadlock victim raised anywhere beneath it. `036b`.
+    /// </summary>
+    /// <remarks>
+    /// <b>Unconstrained, and outermost in <c>WaslPipeline.DeclaredOrder</c>.</b> Both are
+    /// load-bearing and neither is a default — see the behaviour's own remarks. It runs for
+    /// queries as well as commands, which is the difference from <see cref="Transaction"/>.
+    /// </remarks>
+    public static Type TransientFailure => typeof(Persistence.Behaviours.TransientFailureBehaviour<,>);
+
+    /// <summary>
     /// One transaction per <c>ICommand</c> request. BR-9.3.
     /// </summary>
     public static Type Transaction => typeof(Persistence.Behaviours.TransactionBehaviour<,>);

@@ -202,3 +202,69 @@ internal static class CustomerProbeWriter
     private static void Set(Customer customer, string property, object? value) =>
         typeof(Customer).GetProperty(property)!.SetValue(customer, value);
 }
+
+/// <summary>
+/// Writes one customer, waits for its partner, then READS another. `036b` AC-1, AC-5.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The second statement is a <c>SELECT</c>, and that is the whole probe.</b> `036` translated
+/// a deadlock at <c>SaveChangesAsync</c>, so a victim chosen on a write was answered and a victim
+/// chosen on a read was a `500`. Two of these running in opposite order deadlock on the read:
+/// </para>
+/// <code>
+/// T1: UPDATE A          T2: UPDATE B
+/// T1: SELECT B  ──┐  ┌── T2: SELECT A
+///                 └──┘   one of the SELECTs is the victim
+/// </code>
+/// <para>
+/// The <c>UPDATE</c> comes first so each side holds an X lock the other needs; under READ
+/// COMMITTED a <c>SELECT</c> alone releases its share lock immediately and can never be half of a
+/// cycle. **That is also why AC-4 — a deadlock on a pure query — cannot be induced without lock
+/// hints, and is recorded rather than faked.**
+/// </para>
+/// <para>
+/// <b><c>IAuditableCommand</c>, so AC-5 is testable.</b> The audit row must record what
+/// <c>AuditBehaviour</c> classified, not <c>transient-conflict</c> — which is what would happen
+/// if <c>TransientFailureBehaviour</c> were registered inside <c>Audit</c> instead of outside it.
+/// </para>
+/// </remarks>
+internal sealed record ReadDeadlockProbeCommand(Guid MineId, Guid TheirsId)
+    : IAuditableCommand<ProbeResult>
+{
+    public string AuditAction => "Customer.ProbeReadDeadlock";
+
+    public AuditTarget DescribeTarget(ProbeResult? response) =>
+        new("Customer", response?.CustomerId ?? MineId, response?.Label ?? "probe-customer");
+}
+
+internal sealed class ReadDeadlockProbeHandler(WaslDbContext context)
+    : IRequestHandler<ReadDeadlockProbeCommand, ProbeResult>
+{
+    /// <summary>
+    /// Set by the test to the two participants; null when nothing is coordinating.
+    /// </summary>
+    /// <remarks>
+    /// A static, because the two sides of a deadlock are two scopes and there is nothing else
+    /// they share. Reset by the test in a <c>finally</c> — an abandoned barrier would block the
+    /// next run of this class rather than fail it.
+    /// </remarks>
+    internal static Barrier? BothHoldOne;
+
+    public async Task<ProbeResult> Handle(ReadDeadlockProbeCommand request, CancellationToken cancellationToken)
+    {
+        var mine = await context.Customers.SingleAsync(c => c.Id == request.MineId, cancellationToken);
+
+        CustomerProbeWriter.SetCompanyName(mine, $"held {Guid.CreateVersion7()}");
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Timed, so a failure on either side cannot hang the other forever — a stuck suite is a
+        // worse outcome than a red test, and harder to diagnose.
+        BothHoldOne?.SignalAndWait(TimeSpan.FromSeconds(30));
+
+        // THE READ. Blocks on the partner's X lock, and closes the cycle.
+        var theirs = await context.Customers.SingleAsync(c => c.Id == request.TheirsId, cancellationToken);
+
+        return new ProbeResult(mine.Id, theirs.FullName, context.Database.CurrentTransaction is not null);
+    }
+}

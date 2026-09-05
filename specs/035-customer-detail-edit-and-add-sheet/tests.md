@@ -265,6 +265,46 @@ landed on /customers/{id}   heading «مُعدَّل 46585»
 `PUT` → invalidate → navigate → the profile shows the new name. Nothing seeded from the
 write response.
 
+## The focus trap, and the control that caught a false green
+
+`aria-modal="true"` tells a screen reader the rest of the document is inert. **It does
+nothing about the Tab key.** A reader could tab out of the sheet into the page behind the
+scrim and type into a form they could not see. Closing also dropped focus onto `<body>`,
+so the next Tab started from the top of the document.
+
+Both closed. Tab and Shift+Tab wrap at the two ends only — every press in between is the
+browser's own, which is what keeps a radio group and the date picker's roving tabindex
+working inside the panel. Focus returns to whatever opened the sheet, if that element is
+still in the document (the quick view's «فتح الملف الكامل» navigates, so the row it came
+from may be gone).
+
+The scrim stopped being a labelled button. It had the **same accessible name as the ×**,
+sat outside the panel, and would have needed an exception in the trap. A keyboard already
+has two ways out — Escape and the × — so it is `aria-hidden`, out of the tab order, still
+clickable for a mouse.
+
+### Two false greens, one after the other
+
+**1. The visibility filter used `offsetParent`, and jsdom performs no layout.** It is
+always `null` there, so `focusableIn` returned an **empty list** and the trap fell into
+its "nothing to cycle between" branch, which pins focus to the panel. Both Tab tests went
+green on that — focus really did stay inside, for a reason with nothing to do with
+wrapping. Replaced with attribute and computed-style checks that jsdom and a browser
+answer the same way.
+
+**2. Asserting the final position passed with the trap DETACHED.** Six presses walk out of
+the panel, around the rest of the document and back in, so focus was inside again by
+coincidence. The control is what found it: detaching the listener left the tests green.
+
+Re-armed after fixing both, the control now reads:
+
+```text
+× wraps Tab at the end        → after Tab #2: expected false to be true
+× wraps Shift+Tab at the start → after Shift+Tab #2: expected false to be true
+```
+
+**Two presses.** That is how far focus got out of a sheet nobody could see past.
+
 ## Still NOT verified, and not claimed
 - **The frames draw a fixed `+966` prefix box.** `032` ruled against one with a reason: a
   static prefix makes a non-Saudi number unenterable while `POST /api/customers` accepts

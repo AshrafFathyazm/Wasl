@@ -14,10 +14,26 @@
  * the token below.
  * ========================================================================= */
 
+/* NO SCRIM IS THE DEFAULT, and the layer follows from it — `feedback-layer.md`
+   §4. Without a scrim the panel COMPLETES the context rather than replacing it,
+   so the list behind stays a live target and the host must not intercept the
+   clicks meant for it. `inset: 0` alone would: an invisible full-viewport box
+   over the table swallows every row click and nothing reports an error.
+
+   `--z-drawer` 100 rather than `--z-modal` 300 for the same reason. A panel that
+   does not block does not outrank a modal, and the shipped version claimed 300
+   unconditionally. */
 .host {
   position: fixed;
   inset: 0;
+  z-index: var(--z-drawer);
+  pointer-events: none;
+}
+
+/* WITH a scrim the panel does block, and then it is a modal surface. */
+.hostBlocking {
   z-index: var(--z-modal);
+  pointer-events: auto;
 }
 
 /* A BUTTON, so it covers the viewport and has to be told not to look like one. */
@@ -26,7 +42,13 @@
   inset: 0;
   border: 0;
   padding: 0;
-  background-color: rgb(13 38 38 / 34%);
+
+  /* THE TOKEN, and it replaces the third of four values this colour had. The
+     other three were `.45` in `10-shared-patterns.md`, `.4` in the feedback
+     spec, and `34%` here — while `Sidebar.module.css` had been painting 40% all
+     along, which is the one that won. Nobody writes an inline `rgb()` for a
+     scrim now; see `design/feedback-layer.md` §7. */
+  background-color: var(--scrim);
   cursor: pointer;
   animation: sheet-scrim 160ms linear;
 }
@@ -44,19 +66,41 @@
 
   display: flex;
   flex-direction: column;
-  /* 600px, MEASURED OFF THE FRAME supplied 2026-09-03 — the panel spans 0..598
-     of an 1840px viewport beside the table. It shipped at 420 first, which is a
-     comfortable reading width and the wrong one: the frame gives the form room
-     for a full name and an address without either wrapping. */
-  inline-size: 600px;
+
+  /* The host does not take pointer events; the panel must. */
+  pointer-events: auto;
+
+  /* A LADDER, NOT A NUMBER — `feedback-layer.md` §4, ruled 2026-09-05.
+     This was `600px`, measured off the single frame supplied 2026-09-03 (the
+     panel spans 0..598 of an 1840px viewport beside the table). That is a
+     SAMPLE, not a rule: the frame is one screen at one width, and the previous
+     value before it — 420 — was measured the same way and was also wrong. The
+     ladder exists so the next screen does not measure a third one, which is why
+     the size arrives as a prop against three tokens and not as a length. The
+     create form is five fields and sits inside `md` without wrapping. */
+  inline-size: var(--panel-w-md);
   max-inline-size: 100vw;
   background-color: var(--surface-card);
 
   /* The shadow falls toward the content, so its offset follows the panel's edge
      and therefore the direction. It is the one physical value here, for the
      reason the table's rail records: `box-shadow` has no logical form. */
-  box-shadow: var(--sheet-shadow, 0 0 40px rgb(13 38 38 / 18%));
+  box-shadow: var(--sheet-shadow);
   animation: sheet-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* The three rungs. `md` is the default and is declared on `.panel` itself, so a
+   caller that passes nothing gets the customer profile's width. */
+.sm {
+  inline-size: var(--panel-w-sm);
+}
+
+.md {
+  inline-size: var(--panel-w-md);
+}
+
+.lg {
+  inline-size: var(--panel-w-lg);
 }
 
 /* THE PANEL SLIDES FROM ITS OWN EDGE. `translateX(-100%)` would enter from the
@@ -100,12 +144,17 @@
 
 /* ---- the header --------------------------------------------------------- */
 
+/* 18px block, and the badge below drops to 32 — `design/feedback-layer.md`,
+   ruled 2026-09-05. This was `--space-4` (16) around a 44px badge, which made
+   ~100px of chrome above a form that then had to scroll. THE SCROLLBAR WAS THE
+   SYMPTOM AND THE SPACING WAS THE CAUSE: the content measures ~630px against a
+   900px viewport, so nothing needed a wider or a taller panel. */
 .head {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   flex: 0 0 auto;
-  padding: var(--space-4) var(--sheet-padding);
+  padding: var(--sheet-head-padding-block) var(--sheet-padding);
   border-block-end: var(--border-width) solid var(--border-divider);
 }
 
@@ -113,12 +162,15 @@
   display: grid;
   place-items: center;
   flex: none;
-  inline-size: 44px;
-  block-size: 44px;
+  /* 32, not the frames' 44. The badge carries nothing the title beside it does
+     not already say — an avatar initial or a `+` — so it pays for itself in
+     header height rather than in meaning. */
+  inline-size: 32px;
+  block-size: 32px;
   border-radius: var(--radius-pill);
   background-color: var(--surface-chip);
   color: var(--text-secondary);
-  font-size: 17px;
+  font-size: 14px;
   font-weight: var(--weight-bold);
 }
 
@@ -129,7 +181,7 @@
 .title {
   margin: 0;
   overflow: hidden;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: var(--weight-bold);
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -140,7 +192,7 @@
   margin: 2px 0 0;
   overflow: hidden;
   color: var(--text-muted);
-  font-size: 12.5px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -199,6 +251,11 @@
      able to see that it does. `scrollbar-width: none` would hide the only
      signal that there is more below, which is worse than a narrow track. */
   scrollbar-width: thin;
+
+  /* THE TRACK'S SPACE IS RESERVED WHETHER OR NOT IT IS DRAWN. Without this the
+     layout shifts by the scrollbar's width at the exact moment a form grows past
+     the fold — every field slides sideways while the reader is typing in one. */
+  scrollbar-gutter: stable;
 }
 
 .bodyNoFooter {
@@ -210,7 +267,7 @@
   align-items: center;
   gap: var(--space-3);
   flex: 0 0 auto;
-  padding: var(--space-4) var(--sheet-padding);
+  padding: var(--sheet-foot-padding-block) var(--sheet-padding);
   border-block-start: var(--border-width) solid var(--border-divider);
 }
 

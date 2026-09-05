@@ -60,5 +60,6 @@
   "cal.placeholder": "dd/mm/yyyy",
   "table.errorTitle": "Could not load the list",
   "table.errorBody": "We could not reach the server. Please try again.",
-  "table.retry": "Try again"
+  "table.retry": "Try again",
+  "retry": "Try again"
 }

@@ -6,6 +6,31 @@
 resolved**, which is AC-2. Q-3 carries a working assumption. **Q-1 is the gate**: no
 implementation until `Toasts Modals Panels.dc.html` is in `docs/sdd/design/` byte-exact
 and §04 has been read against it.
+
+> **UPDATE 2026-09-05 — Q-1 IS CLOSED, and the design of record moved.**
+>
+> The `.dc.html` never arrived intact and it is not going to: the channel reads UTF-8 as
+> Latin-1 and drops `0x80–0x9F`, which is `ف ق ك ل م ن ه و ي` and every diacritic. It was
+> supplied a second time and corrupted identically. **The gate was met a different way** —
+> eight rendered screenshots, legible, covering §01 to §05, and then a **pure 7-bit ASCII
+> re-issue** (18,206 bytes, maximum byte `0x7c`, zero above `0x7F`, Arabic as `\uXXXX`).
+> Both are vendored: `docs/sdd/design/feedback/wasl-feedback-spec.ascii.md`.
+>
+> **§04 was read.** It is §1 of `docs/sdd/design/feedback-layer.md` — and the ASCII
+> re-issue *expanded* it from five rows to six subsections, so it is authored content now,
+> not a transcription. **That file is the design of record; this spec is no longer it.**
+>
+> **All nine rows of §3 are ruled** — product owner, 2026-09-05. See §7 of the design of
+> record. Two go to the token (`--scrim`, `--ease-out`) on the near-match rule; the rest go
+> to the source; and §3's rows 6 and 7 amend `motion.md` rather than coexist with it.
+>
+> **§1's premise below is stale in one respect and it is left standing with this note
+> rather than edited away:** the side panel *is* built. `035` shipped `SideSheet` on
+> 2026-09-03 from a later set of frames, four days after this spec was written, and its
+> own CSS records settling two of §3's rows from them. It shipped at 600px with an
+> unconditional 34% scrim; both are corrected against the ladder and the `scrim` prop.
+> **The Modal is still not built**, and it is now the dependency under three rows of the
+> matrix plus the panel's scrim-click rule.
 **Extends:** `006-design-system` · `docs/sdd/design/screens/10-shared-patterns.md` ·
 `docs/sdd/design/motion.md`
 **Depends on:** `029-loader-system` — for the motion tokens and the `Skeleton` shape
@@ -55,6 +80,28 @@ recoverable with high confidence, and each is marked below with the anchor it re
 and an English `.md` is authored beside it. That cannot happen for this document until a
 byte-exact copy reaches the repository, and **no acceptance criterion below is satisfied
 by the pasted copy**.
+
+> **RESOLVED 2026-09-05, and the precedent turned out to be the wrong shape.**
+>
+> A second paste corrupted identically, which settled that the channel is not going to
+> deliver this file — so waiting for a byte-exact `.dc.html` was waiting for something
+> that could not happen. **The `029` precedent asked for a format that the pipe destroys.**
+>
+> Two artefacts closed it instead. **Eight rendered screenshots** — the document displayed,
+> Arabic intact, §01 through §05 — which is what made §04 readable. Then a **pure 7-bit
+> ASCII re-issue**, which is the real answer: no byte above `0x7F` exists in it, so no
+> Latin-1 reader has anything to drop, and the Arabic rides as `\uXXXX` escapes. All 18
+> strings were decoded through `JSON.parse` and checked against the screenshots.
+>
+> **The claim in the table above — that §04 is unreadable — was true of the paste and not
+> of the document.** It is left standing because it was accurate when written and because
+> the reason it stopped being true is the useful part: *the fix was a format, not a
+> channel*. The same delivery re-issued `Loaders.dc.html`, closing the identical note that
+> had been open in `loaders.md` since 2026-08-31.
+>
+> Vendored at `docs/sdd/design/feedback/wasl-feedback-spec.ascii.md` and
+> `docs/sdd/design/loaders/wasl-loaders-spec.ascii.md`. **Documents supplied to this
+> repository should use that format.**
 
 ## 3 · Nine disagreements with the frozen house documents
 
@@ -382,7 +429,7 @@ a different source.*
 
 | # | Question | Why it blocks | Working assumption |
 |---|---|---|---|
-| **Q-1** | The source's **§04 decision matrix** — five rows (toast · inline field error · modal · side panel · full page) × *use when* / *do not use if* — is unreadable in the supplied copy | It is the document's whole point: which surface carries which message. Everything else is measurements | **THE GATE. No assumption, and none is permitted** — product owner, 2026-08-31: *"لا يجوز تخمينه… جزء جوهري من المصدر، وليس مجرد content يمكن إعادة بنائه من الـLatin anchors."* `10-shared-patterns.md` already carries two of the five rules — *a decision opens in a modal, secondary detail opens in a drawer*, and *forbidden goes inline beside the control, never a toast*. The other three stay unknown. Closed by reading §04 against the vendored file, never by a working assumption. Blocks AC-1 and blocks implementation |
+| **Q-1** | The source's **§04 decision matrix** — five rows (toast · inline field error · modal · side panel · full page) × *use when* / *do not use if* — is unreadable in the supplied copy | It is the document's whole point: which surface carries which message. Everything else is measurements | **THE GATE. No assumption, and none is permitted** — product owner, 2026-08-31: *"لا يجوز تخمينه… جزء جوهري من المصدر، وليس مجرد content يمكن إعادة بنائه من الـLatin anchors."* `10-shared-patterns.md` already carries two of the five rules — *a decision opens in a modal, secondary detail opens in a drawer*, and *forbidden goes inline beside the control, never a toast*. The other three stay unknown. Closed by reading §04 against the vendored file, never by a working assumption. Blocks AC-1 and blocks implementation.<br><br>**CLOSED 2026-09-05, by reading it — no assumption was used.** §04 was read from eight rendered screenshots and then re-supplied in the ASCII re-issue, which **expands** it: five rows became six subsections — results (7 rows), failures by scope (7), decisions (6), inspect-and-try (8), seven tie-breaks, six one-event-one-surface rules. It is §1 of `docs/sdd/design/feedback-layer.md`, placed first because it decides what §2–§5 only draw.<br><br>**The refusal to guess was correct and is worth keeping.** The two rules `10-shared-patterns.md` already carried both survived the real matrix — a decision opens in a modal, and a denial goes inline — **except that the second is now overturned by the document itself**: a permission denial is request-wide, so it is a toast error with no retry, and only a FIELD error goes inline. Guessing from the two known rules would have preserved exactly the one that was wrong |
 | ~~Q-2~~ | ~~`motion.md`'s scale names 250 for both modal and drawer enter; the source uses 180 and 220~~ | **CLOSED 2026-08-31 — source wins, 180 / 220ms.** Extracted values are not swapped for the more general document; `motion.md` gains the two scale entries rather than the feature losing fidelity | — |
 | Q-3 | The house confirm modal has a **48px state-tinted icon**; the source's has none | A confirm dialog for a destructive action reads differently with and without it, and `012` and `016` will both use it | **Keep the icon, as an option on the `sm` size.** The house document gives it a real job — *icon and confirm colour follow the action: green to resolve, amber to pend, red to close* — and the source simply does not draw a confirm at that fidelity. An omission is not a deletion |
 | ~~Q-4~~ | ~~Toast placement is a prop with three options in the source; `10-shared-patterns.md` says bottom inline-end~~ | **CLOSED 2026-08-31 — top inline-end, and not a prop.** The feature's own source is the nearer authority for the component it draws; placement is not made configurable to accommodate a conflict. `10-shared-patterns.md` is edited | — |

@@ -1,4 +1,9 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
@@ -31,6 +36,7 @@ import {
   IconWebform,
   IconWhatsapp,
 } from '../../icons/icons';
+import { useToast } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type {
   TicketResponse,
@@ -311,11 +317,13 @@ const SLOT_B = '\u0002';
 const SLOT_SPLIT = new RegExp('([' + SLOT_A + SLOT_B + '])');
 
 function withSlots(text: string, nodes: [React.ReactNode, React.ReactNode]) {
-  return text.split(SLOT_SPLIT).map((piece, index) => (
-    <Fragment key={index}>
-      {piece === SLOT_A ? nodes[0] : piece === SLOT_B ? nodes[1] : piece}
-    </Fragment>
-  ));
+  return text
+    .split(SLOT_SPLIT)
+    .map((piece, index) => (
+      <Fragment key={index}>
+        {piece === SLOT_A ? nodes[0] : piece === SLOT_B ? nodes[1] : piece}
+      </Fragment>
+    ));
 }
 
 /**
@@ -472,7 +480,9 @@ function HistoryRow({
            page already holds, so the feed costs no extra request. A GUID on
            screen is worse than a missing name. */
         const name = nameOf(entry.newValue);
-        return name ? t('detail.event.assigned', { name }) : t('detail.event.assignedUnknown');
+        return name
+          ? t('detail.event.assigned', { name })
+          : t('detail.event.assignedUnknown');
       }
 
       case 'Unassigned':
@@ -539,13 +549,16 @@ function FeedSkeleton() {
 export default function TicketDetailPage() {
   const { id = '' } = useParams();
   const { t, i18n } = useTranslation('tickets');
+  const { t: tCommon } = useTranslation('common');
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const [draft, setDraft] = useState('');
   const [internal, setInternal] = useState(false);
   const [conflict, setConflict] = useState(false);
-  const [forbidden, setForbidden] = useState(false);
+  /* `forbidden` was a boolean here and is gone — the `403` is a toast now, so
+     there is no banner whose visibility needs tracking. */
   const [clientBug, setClientBug] = useState<string | null>(null);
   const [sendFailed, setSendFailed] = useState(false);
 
@@ -621,7 +634,8 @@ export default function TicketDetailPage() {
         signal,
       ),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last) => (last.hasMore ? (last.nextCursor ?? undefined) : undefined),
+    getNextPageParam: (last) =>
+      last.hasMore ? (last.nextCursor ?? undefined) : undefined,
     enabled: id !== '',
   });
 
@@ -636,9 +650,16 @@ export default function TicketDetailPage() {
    * filtering after the fetch is what makes the count honest without a second
    * request. */
   const otherTickets = useQuery({
-    queryKey: ticketKeys.list({ page: 1, pageSize: 4, customerId: ticket?.customer?.id ?? '' }),
+    queryKey: ticketKeys.list({
+      page: 1,
+      pageSize: 4,
+      customerId: ticket?.customer?.id ?? '',
+    }),
     queryFn: ({ signal }) =>
-      listTickets({ page: 1, pageSize: 4, customerId: ticket?.customer?.id ?? '' }, signal),
+      listTickets(
+        { page: 1, pageSize: 4, customerId: ticket?.customer?.id ?? '' },
+        signal,
+      ),
     enabled: ticket?.customer?.id !== undefined,
     staleTime: 60_000,
   });
@@ -673,15 +694,31 @@ export default function TicketDetailPage() {
    *
    * Collapsing them into "it failed" throws away the only ones the reader can act
    * on: `027` AC-4 and AC-5. */
-  const onWriteError = (error: unknown) => {
-    if (error instanceof ApiError && error.problem?.type?.endsWith('errors/concurrency-conflict')) {
+  const onWriteError = (error: unknown, retry?: () => void) => {
+    if (
+      error instanceof ApiError &&
+      error.problem?.type?.endsWith('errors/concurrency-conflict')
+    ) {
       setConflict(true);
       void queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       return;
     }
 
+    /* A TOAST, AND NO RETRY ACTION — `feedback-layer.md` §1.2. Permission denied
+       is request-wide, so it has no field to sit beside; and it is the one
+       failure where a retry button would be a lie, because the identical request
+       will be refused identically. The message says who to ask instead.
+       `tone: 'error'` therefore never auto-dismisses. */
     if (error instanceof ApiError && error.status === 403) {
-      setForbidden(true);
+      toast.show({
+        tone: 'error',
+        title: t('detail.forbiddenTitle'),
+        body: t('detail.forbidden'),
+        /* One denial at a time. Without a stable key each refused write would be
+           its own card — three refusals fill the whole stack with one fact and
+           evict everything else. */
+        dedupeKey: 'ticket-forbidden',
+      });
       return;
     }
 
@@ -693,12 +730,34 @@ export default function TicketDetailPage() {
       return;
     }
 
+    /* EVERYTHING LEFT IS REQUEST-WIDE — `feedback-layer.md` §1.2. A dropped
+       connection, a `5xx`, a channel that is down: none of them belong to a
+       field, so none of them can be shown under one. This branch used to be
+       `setClientBug(null)`, which is to say NOTHING AT ALL — a write that failed
+       on the network left the screen exactly as it was, and the reader's next
+       move was to assume it had worked.
+
+       It carries a retry, and here the retry is honest: the same request may
+       well succeed. That is what separates it from the `403` above, where the
+       identical request is refused identically and a retry button would be a
+       lie. `tone: 'error'` never auto-dismisses either way. */
     setClientBug(null);
+    toast.show({
+      tone: 'error',
+      title: t('detail.writeFailedTitle'),
+      body: t('detail.writeFailedBody'),
+      dedupeKey: 'ticket-write-failed',
+      ...(retry === undefined
+        ? {}
+        : { action: { label: tCommon('retry'), onClick: retry } }),
+    });
   };
 
   const afterWrite = async () => {
     setConflict(false);
-    setForbidden(false);
+    /* No `setForbidden` — the `403`'s toast dismisses itself or is dismissed by
+       hand, and a later successful write must not silently retract a denial the
+       reader may not have read yet. */
     setClientBug(null);
     await queryClient.invalidateQueries({ queryKey: ticketKeys.detail(id) });
     await queryClient.invalidateQueries({ queryKey: ['tickets', 'timeline', id] });
@@ -714,11 +773,18 @@ export default function TicketDetailPage() {
          the write visible — posting from the history tab otherwise looks like
          nothing happened. */
       setTab('Comments');
+
+      /* §1.1's "reply sent". The tab switch above already makes the write
+         visible, so this is close to tie-break 5 — but §1.1 names this row
+         explicitly, and the document decides. The tab switch is also NOT
+         feedback for a reader who was already on the Comments tab: for them
+         nothing moved except a list they were not watching the end of. */
+      toast.show({ tone: 'success', title: t('detail.commentToastTitle') });
       await afterWrite();
     },
-    onError: (error) => {
+    onError: (error, body) => {
       setSendFailed(true);
-      onWriteError(error);
+      onWriteError(error, () => comment.mutate(body));
     },
   });
 
@@ -744,9 +810,17 @@ export default function TicketDetailPage() {
     onSuccess: async () => {
       setPending(null);
       setNote('');
+      /* §1.1 names this row: "ticket status changed → toast success 4s". */
+      toast.show({ tone: 'success', title: t('detail.statusToastTitle') });
       await afterWrite();
     },
-    onError: onWriteError,
+    /* NO RETRY THUNK. `expectedVersion` is read off the ticket the page is
+       holding, and by the time the reader presses retry the refetch behind this
+       error may have replaced it — so a retry would re-send a version that is no
+       longer current and turn a network failure into a `409`. The toast is
+       fired without an action; §1.2's retry is for requests that carry
+       everything they need, and a versioned write does not. */
+    onError: (error) => onWriteError(error),
   });
 
   const assignee = useMutation({
@@ -755,9 +829,16 @@ export default function TicketDetailPage() {
     onSuccess: async () => {
       setOpenPop(null);
       setAssigneeFilter('');
+
+      /* NO TOAST, and the absence is a reading of §1.5 rather than an omission.
+         Tie-break 5: "is the visible change its own feedback? → no surface at
+         all. Adding a toast is noise." The rail's assignee block is the thing
+         the reader was just looking at and it changes under them. §1.1 does not
+         list assignment, and the same argument covers the tag writes below. */
       await afterWrite();
     },
-    onError: onWriteError,
+    /* Versioned, like the status write — see its note. */
+    onError: (error) => onWriteError(error),
   });
 
   const tagWrite = useMutation({
@@ -773,8 +854,12 @@ export default function TicketDetailPage() {
      * attaching different tags do not conflict. So this is the one write on the
      * screen that cannot answer a 409 — and `onWriteError` still routes the rest,
      * which `034` Q-4 makes reachable: detaching is open to the assignee and any
-     * Manager, so an Agent who is neither gets a 403. */
-    onError: onWriteError,
+     * Manager, so an Agent who is neither gets a 403.
+     *
+     * AND IT IS THE ONE WRITE ON THIS SCREEN THAT CAN CARRY A RETRY, for the
+     * same reason: with no `expectedVersion` in the request, re-sending it later
+     * is the same request rather than a stale one. */
+    onError: (error, variables) => onWriteError(error, () => tagWrite.mutate(variables)),
   });
 
   /* Sorted for the DISPLAY language, which is what `getSupportUsers` declines to
@@ -784,7 +869,10 @@ export default function TicketDetailPage() {
    * without a refetch. */
   const collator = useMemo(() => new Intl.Collator(lang), [lang]);
   const users = useMemo(
-    () => [...(supportUsers.data ?? [])].sort((a, b) => collator.compare(a.fullName, b.fullName)),
+    () =>
+      [...(supportUsers.data ?? [])].sort((a, b) =>
+        collator.compare(a.fullName, b.fullName),
+      ),
     [supportUsers.data, collator],
   );
 
@@ -800,7 +888,10 @@ export default function TicketDetailPage() {
               <Skeleton width="130px" />
             </aside>
             <div className={cx(styles.main, styles.mainGap)}>
-              <div className={cx(styles.subjectCard, styles.skSubject)} aria-hidden="true">
+              <div
+                className={cx(styles.subjectCard, styles.skSubject)}
+                aria-hidden="true"
+              >
                 <Skeleton width="62%" height="15px" />
                 <Skeleton width="100%" />
                 <Skeleton width="88%" />
@@ -816,7 +907,8 @@ export default function TicketDetailPage() {
   }
 
   if (ticketQuery.isError || !ticket) {
-    const notFound = ticketQuery.error instanceof ApiError && ticketQuery.error.status === 404;
+    const notFound =
+      ticketQuery.error instanceof ApiError && ticketQuery.error.status === 404;
 
     return (
       <main className={styles.page}>
@@ -930,7 +1022,11 @@ export default function TicketDetailPage() {
             <div className={styles.popWrap} data-pop="status">
               <button
                 type="button"
-                className={cx(styles.statusPill, styles.statusButton, STATUS_CLASS[ticket.status])}
+                className={cx(
+                  styles.statusPill,
+                  styles.statusButton,
+                  STATUS_CLASS[ticket.status],
+                )}
                 aria-haspopup="menu"
                 aria-expanded={openPop === 'status'}
                 onClick={() => setOpenPop((at) => (at === 'status' ? null : 'status'))}
@@ -1051,7 +1147,8 @@ export default function TicketDetailPage() {
                       setOpenPop(null);
                       setPending('Closed');
                       setNote('');
-                      if (!noteRequiredFor('Closed')) status.mutate({ next: 'Closed', note: '' });
+                      if (!noteRequiredFor('Closed'))
+                        status.mutate({ next: 'Closed', note: '' });
                     }}
                   >
                     <IconClose size={15} aria-hidden="true" />
@@ -1101,14 +1198,22 @@ export default function TicketDetailPage() {
           </div>
         ) : null}
 
-        {forbidden ? (
-          <div className={cx(styles.noticeBar, styles.noticeMuted)} role="alert">
-            <div className={styles.noticeText}>
-              <strong>{t('detail.forbiddenTitle')}</strong>
-              <span>{t('detail.forbidden')}</span>
-            </div>
-          </div>
-        ) : null}
+        {/* THE `403` IS A TOAST NOW, not a banner — `design/feedback-layer.md`
+            §1.2, ruled 2026-09-05. It is fired from `onWriteError`; nothing is
+            rendered here.
+
+            The scope of the failure is what decides the surface, and a denial is
+            REQUEST-WIDE: there is no field the reader can correct, so an inline
+            message sits beside controls that are not the problem. The `409`
+            directly above stays inline for the same rule read the other way — it
+            is about this record, it offers a reload, and the reader has to see
+            it next to what changed.
+
+            `10-shared-patterns.md` said the opposite — "forbidden goes inline
+            beside the control, never a toast" — and it was one of only two rules
+            recoverable before §04 arrived. The matrix overturned it. Guessing
+            from the two known rules would have preserved exactly the wrong
+            one. */}
 
         {/* A `400` on `expectedVersion` is a defect in THIS client. Shown as one —
             not as a recoverable error with a retry — because a reader cannot cause
@@ -1176,7 +1281,9 @@ export default function TicketDetailPage() {
                     className={styles.iconButton}
                     aria-label={t('detail.changeAssignee')}
                     aria-expanded={openPop === 'assignee'}
-                    onClick={() => setOpenPop((at) => (at === 'assignee' ? null : 'assignee'))}
+                    onClick={() =>
+                      setOpenPop((at) => (at === 'assignee' ? null : 'assignee'))
+                    }
                   >
                     <IconEdit size={15} aria-hidden="true" />
                   </button>
@@ -1199,7 +1306,9 @@ export default function TicketDetailPage() {
                     type="button"
                     className={styles.selfAssign}
                     aria-expanded={openPop === 'assignee'}
-                    onClick={() => setOpenPop((at) => (at === 'assignee' ? null : 'assignee'))}
+                    onClick={() =>
+                      setOpenPop((at) => (at === 'assignee' ? null : 'assignee'))
+                    }
                   >
                     {t('detail.assign')}
                   </button>
@@ -1228,7 +1337,11 @@ export default function TicketDetailPage() {
               <div className={styles.customerBlock}>
                 {/* `032` built the profile, so this is a link rather than the text
                     `026` Q-3 settled for. */}
-                <Link className={styles.customerName} to={`/customers/${ticket.customer.id}`} dir="auto">
+                <Link
+                  className={styles.customerName}
+                  to={`/customers/${ticket.customer.id}`}
+                  dir="auto"
+                >
                   {ticket.customer.fullName}
                 </Link>
                 {ticket.customer.companyName ? (
@@ -1242,7 +1355,11 @@ export default function TicketDetailPage() {
                 <div className={styles.siblings}>
                   <span className={styles.groupLabel}>{t('detail.otherTickets')}</span>
                   {siblingsShown.map((row) => (
-                    <Link key={row.id} className={styles.siblingRow} to={`/tickets/${row.id}`}>
+                    <Link
+                      key={row.id}
+                      className={styles.siblingRow}
+                      to={`/tickets/${row.id}`}
+                    >
                       <span
                         className={cx(styles.siblingDot, STATUS_CLASS[row.status])}
                         aria-hidden="true"
@@ -1288,7 +1405,9 @@ export default function TicketDetailPage() {
               </div>
               <div className={styles.factRow}>
                 <span className={styles.factLabel}>{t('field.category')}</span>
-                <span className={styles.factValue}>{t(`category.${ticket.category}`)}</span>
+                <span className={styles.factValue}>
+                  {t(`category.${ticket.category}`)}
+                </span>
               </div>
               <div className={styles.factRow}>
                 <span className={styles.factLabel}>{t('list.column.created')}</span>
@@ -1374,7 +1493,9 @@ export default function TicketDetailPage() {
                             role="menuitem"
                             className={styles.tagMenuItem}
                             disabled={tagWrite.isPending}
-                            onClick={() => tagWrite.mutate({ tagId: tag.id, attach: true })}
+                            onClick={() =>
+                              tagWrite.mutate({ tagId: tag.id, attach: true })
+                            }
                             dir="auto"
                           >
                             {tag.name}
@@ -1398,19 +1519,26 @@ export default function TicketDetailPage() {
                 </div>
               ) : (
                 <div className={styles.composeBox}>
-                  {sendFailed && !conflict && !forbidden && !clientBug ? (
+                  {sendFailed && !conflict && !clientBug ? (
                     <div className={styles.sendError} role="alert">
                       <strong>{t('detail.sendFailedTitle')}</strong>
                       <span>{t('detail.sendFailedBody')}</span>
                     </div>
                   ) : null}
 
-                  <div className={cx(styles.composeShell, sendFailed && styles.composeShellBad)}>
+                  <div
+                    className={cx(
+                      styles.composeShell,
+                      sendFailed && styles.composeShellBad,
+                    )}
+                  >
                     <Textarea
                       label={t('detail.comment')}
                       labelHidden
                       placeholder={t(
-                        internal ? 'detail.internalPlaceholder' : 'detail.commentPlaceholder',
+                        internal
+                          ? 'detail.internalPlaceholder'
+                          : 'detail.commentPlaceholder',
                       )}
                       value={draft}
                       onChange={setDraft}
@@ -1480,7 +1608,9 @@ export default function TicketDetailPage() {
                         className={styles.switchWrap}
                         onClick={() => setInternal((on) => !on)}
                       >
-                        <span className={cx(styles.switchTrack, internal && styles.switchOn)}>
+                        <span
+                          className={cx(styles.switchTrack, internal && styles.switchOn)}
+                        >
                           <span className={styles.switchKnob} />
                         </span>
                         {t('detail.markInternal')}
@@ -1490,7 +1620,10 @@ export default function TicketDetailPage() {
                         /* AMBER WHEN THE COMMENT IS INTERNAL — the product
                            owner's frame, and it is the switch's own colour: the
                            button that sends it says which kind it is sending. */
-                        className={cx(styles.composeSend, internal && styles.composeSendInternal)}
+                        className={cx(
+                          styles.composeSend,
+                          internal && styles.composeSendInternal,
+                        )}
                       >
                         <Button
                           text={t('detail.send')}
@@ -1501,7 +1634,12 @@ export default function TicketDetailPage() {
                       </span>
                     </div>
 
-                    <span className={cx(styles.internalNote, internal && styles.internalNoteOn)}>
+                    <span
+                      className={cx(
+                        styles.internalNote,
+                        internal && styles.internalNoteOn,
+                      )}
+                    >
                       {t(internal ? 'detail.internalHintOn' : 'detail.internalHint')}
                     </span>
                   </div>
@@ -1525,13 +1663,17 @@ export default function TicketDetailPage() {
                         setShown(FEED_STEP);
                       }}
                     >
-                      {t(which === 'Comments' ? 'detail.tabComments' : 'detail.tabHistory')}
+                      {t(
+                        which === 'Comments' ? 'detail.tabComments' : 'detail.tabHistory',
+                      )}
                       {/* BOTH counts come back on EITHER request (`034` says so
                           in the DTO), so the inactive tab is labelled without a
                           second fetch. Absent until the first page lands —
                           rendering a 0 that becomes 12 is worse than a gap. */}
                       {count === undefined ? null : (
-                        <span className={styles.tabCount}>{formatNumber(count, lang)}</span>
+                        <span className={styles.tabCount}>
+                          {formatNumber(count, lang)}
+                        </span>
                       )}
                     </button>
                   );
@@ -1582,13 +1724,15 @@ export default function TicketDetailPage() {
                       of `027` Q-2. The flip happens where `entries` is built, per
                       page; see the block there for the measurement and for why
                       one reverse over the flattened list is wrong. */}
-                  {entries.slice(0, shown).map((entry) =>
-                    entry.type === 'Comment' ? (
-                      <CommentRow key={entry.id} entry={entry} />
-                    ) : (
-                      <HistoryRow key={entry.id} entry={entry} nameOf={nameOf} />
-                    ),
-                  )}
+                  {entries
+                    .slice(0, shown)
+                    .map((entry) =>
+                      entry.type === 'Comment' ? (
+                        <CommentRow key={entry.id} entry={entry} />
+                      ) : (
+                        <HistoryRow key={entry.id} entry={entry} nameOf={nameOf} />
+                      ),
+                    )}
 
                   {/* AT THE FOOT, because the feed reads newest-first: older is
                       further down. Not a page number — `013` measured a comment
@@ -1658,7 +1802,10 @@ function AssigneePanel({
 }) {
   const { t } = useTranslation('tickets');
   const needle = filter.trim().toLocaleLowerCase();
-  const shown = needle === '' ? users : users.filter((u) => u.fullName.toLocaleLowerCase().includes(needle));
+  const shown =
+    needle === ''
+      ? users
+      : users.filter((u) => u.fullName.toLocaleLowerCase().includes(needle));
 
   return (
     <div className={styles.assignPanel} data-pop="assignee">
@@ -1684,7 +1831,10 @@ function AssigneePanel({
             <button
               key={user.id}
               type="button"
-              className={cx(styles.assignRow, user.id === currentId && styles.assignRowCurrent)}
+              className={cx(
+                styles.assignRow,
+                user.id === currentId && styles.assignRowCurrent,
+              )}
               disabled={busy}
               onClick={() => onPick(user.id)}
             >

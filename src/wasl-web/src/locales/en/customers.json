@@ -65,7 +65,12 @@
     "namePlaceholder": "Full name",
     "companyPlaceholder": "Optional",
     "emailPlaceholder": "name@company.sa",
-    "notesPlaceholder": "Contact preferences, contract details, anything the team will need later"
+    "notesPlaceholder": "Contact preferences, contract details, anything the team will need later",
+    "createdToast": "The customer was added.",
+    "discardTitle": "Discard this customer?",
+    "discardBody": "What you have typed will be lost. Nothing has been saved yet.",
+    "discardConfirm": "Discard",
+    "keepEditing": "Keep editing"
   },
   "profile": {
     "unknownCustomer": "Unknown customer",
@@ -100,6 +105,7 @@
     "title": "Edit customer",
     "submit": "Save changes",
     "reload": "Load the current copy",
-    "staleBody": "Somebody else changed this customer while you were editing. Load the current copy and apply your changes again."
+    "staleBody": "Somebody else changed this customer while you were editing. Load the current copy and apply your changes again.",
+    "savedToast": "The changes were saved."
   }
 }

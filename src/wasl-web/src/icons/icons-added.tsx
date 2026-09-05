@@ -297,3 +297,41 @@ export const IconEdit = ({ size = 20, ...rest }: IconProps) => (
     <path d="M14 6l4 4" />
   </svg>
 );
+
+/**
+ * (D) Triangle alert — the toast's WARNING tone.
+ *
+ * `design/feedback-layer.md` §2 gives each of the four tones its own glyph, and
+ * a warning is a triangle with a bang. The set has `IconAlert`, which is the
+ * same bang inside a CIRCLE — and the shape is the tone: a circle is neutral
+ * furniture that success, error and info all share, so reusing it for warning
+ * would leave the four tones distinguishable by colour alone. Colour alone is
+ * not a distinction for the readers who most need one.
+ *
+ * The source draws it on a 20 box; redrawn here on the house 24 keyline rather
+ * than scaled, so the stroke stays 1.5 like every other icon in the set.
+ */
+export const IconTriangleAlert = ({ size = 18, ...rest }: IconProps) => (
+  <svg {...base(size)} {...rest}>
+    <path d="M12 4L3.5 19h17L12 4z" />
+    <path d="M12 9.5v4.2" />
+    <path d="M12 16.2v.4" />
+  </svg>
+);
+
+/**
+ * (D) Circle info — the toast's INFORMATION tone.
+ *
+ * The mirror of `IconAlert`, and the mirroring is the whole content: a bang is a
+ * stem above a dot, an `i` is a dot above a stem. Same circle, same two strokes,
+ * reversed — which is why they must not be the same component with a flag. Two
+ * glyphs that differ only in the order of two paths are still two glyphs, and a
+ * caller that passes the wrong one gets a warning where it meant a note.
+ */
+export const IconCircleInfo = ({ size = 18, ...rest }: IconProps) => (
+  <svg {...base(size)} {...rest}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5" />
+    <path d="M12 7.5v.5" />
+  </svg>
+);

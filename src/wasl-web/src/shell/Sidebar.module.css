@@ -103,7 +103,7 @@
   position: fixed;
   inset: 0;
   z-index: calc(var(--z-drawer) - 1);
-  background-color: rgb(13 38 38 / 40%);
+  background-color: var(--scrim);
   border: 0;
 }
 

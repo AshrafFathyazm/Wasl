@@ -1,3 +1,4 @@
+import { ToastProvider } from '../../components/Toast/ToastHost';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -59,10 +60,16 @@ const mounted = (url = '/customers') => {
   return render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[url]}>
-          <CustomersListPage />
-          <LocationProbe />
-        </MemoryRouter>
+        {/* THE TOAST PROVIDER IS PART OF THE HARNESS. `AppShell` mounts it around
+          every authenticated route, and `useToast` THROWS rather than returning a
+          no-op when it is missing — a silent no-op is a failure the user never
+          sees, so the throw is deliberate and so is this wrapper. */}
+        <ToastProvider>
+          <MemoryRouter initialEntries={[url]}>
+            <CustomersListPage />
+            <LocationProbe />
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </I18nextProvider>,
   );

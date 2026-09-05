@@ -8,6 +8,7 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ToastProvider } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type {
   CannedReplySummary,
@@ -128,20 +129,35 @@ const TAGS: TagSummary[] = [
  * returns the matching templates PLUS the general ones, measured. A fixture with
  * only categorised templates cannot show that. */
 const REPLIES: CannedReplySummary[] = [
-  { id: 'r-1', title: 'طلب كشف حساب', body: 'نحتاج صورة من كشف الحساب.', category: 'Billing' },
+  {
+    id: 'r-1',
+    title: 'طلب كشف حساب',
+    body: 'نحتاج صورة من كشف الحساب.',
+    category: 'Billing',
+  },
   { id: 'r-2', title: 'تأكيد استلام الشكوى', body: 'وصلتنا شكواك.', category: null },
 ];
 
+/* THE TOAST PROVIDER IS PART OF THE HARNESS, not a convenience.
+ *
+ * `AppShell` mounts it around every authenticated route, so a page that fires a
+ * toast always has one in production. `useToast` THROWS rather than returning a
+ * no-op when it is missing — twelve tests here went red on that the moment the
+ * `403` moved from a banner to a toast, which is the behaviour the throw is for:
+ * a silent no-op is a failure the user never sees, because the write succeeded,
+ * the toast was requested, and nothing appeared. */
 const mounted = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={[`/tickets/${ID}`]}>
-          <Routes>
-            <Route path="/tickets/:id" element={<TicketDetailPage />} />
-          </Routes>
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={[`/tickets/${ID}`]}>
+            <Routes>
+              <Route path="/tickets/:id" element={<TicketDetailPage />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
       </QueryClientProvider>
     </I18nextProvider>,
   );
@@ -195,13 +211,23 @@ beforeEach(() => {
   vi.mocked(getTicket).mockReset().mockResolvedValue(ticket());
   vi.mocked(getTicketTimeline).mockReset().mockResolvedValue(timeline());
   vi.mocked(getSupportUsers).mockReset().mockResolvedValue(USERS);
-  vi.mocked(addTicketComment).mockReset().mockResolvedValue({} as never);
-  vi.mocked(changeTicketStatus).mockReset().mockResolvedValue({} as never);
-  vi.mocked(changeTicketAssignee).mockReset().mockResolvedValue({} as never);
+  vi.mocked(addTicketComment)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  vi.mocked(changeTicketStatus)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  vi.mocked(changeTicketAssignee)
+    .mockReset()
+    .mockResolvedValue({} as never);
   vi.mocked(getTags).mockReset().mockResolvedValue(TAGS);
   vi.mocked(getCannedReplies).mockReset().mockResolvedValue(REPLIES);
-  vi.mocked(attachTicketTag).mockReset().mockResolvedValue({} as never);
-  vi.mocked(detachTicketTag).mockReset().mockResolvedValue({} as never);
+  vi.mocked(attachTicketTag)
+    .mockReset()
+    .mockResolvedValue({} as never);
+  vi.mocked(detachTicketTag)
+    .mockReset()
+    .mockResolvedValue({} as never);
 
   /* An EMPTY page by default, so the rail's sibling block is absent unless a test
    * puts something in it — a fixture that always returned rows would make "leaves
@@ -251,13 +277,17 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
 
     await openActions();
 
-    expect(screen.getByRole('menuitem', { name: moveTo('InProgress') })).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: moveTo('InProgress') }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: moveTo('Closed') })).toBeInTheDocument();
 
     /* The decoy. `Open` is a real status and is NOT in allowedTransitions, so a
      * control for it would be a control whose only outcome is a 409. Without
      * this line the test passes on a page that renders all six. */
-    expect(screen.queryByRole('menuitem', { name: moveTo('Open') })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: moveTo('Open') }),
+    ).not.toBeInTheDocument();
   });
 
   /* THE CURRENT STATUS IS SHOWN AND IS NOT ACTIONABLE — the v3 canvas draws it
@@ -280,7 +310,9 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
   /* Asserted with `[]`, not only with a populated array — `027` AC-2 says so, and
    * it is the `Closed` case: terminal, BR-1.5. */
   it('renders no status control at all for a Closed ticket', async () => {
-    vi.mocked(getTicket).mockResolvedValue(ticket({ status: 'Closed', allowedTransitions: [] }));
+    vi.mocked(getTicket).mockResolvedValue(
+      ticket({ status: 'Closed', allowedTransitions: [] }),
+    );
 
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
@@ -298,12 +330,16 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
   /* Closed is terminal for comments too, so the composer is ABSENT rather than
    * disabled: a disabled box invites a reader to hunt for what would enable it. */
   it('renders no composer for a Closed ticket', async () => {
-    vi.mocked(getTicket).mockResolvedValue(ticket({ status: 'Closed', allowedTransitions: [] }));
+    vi.mocked(getTicket).mockResolvedValue(
+      ticket({ status: 'Closed', allowedTransitions: [] }),
+    );
 
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    expect(screen.queryByLabelText(i18n.t('tickets:detail.comment'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(i18n.t('tickets:detail.comment')),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -322,7 +358,9 @@ describe('BR-1.2 — closing work that was never started asks for a reason first
 
     const note = screen.getByLabelText(i18n.t('tickets:detail.note'));
     await userEvent.type(note, 'مكرر');
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.confirm') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.confirm') }),
+    );
 
     await waitFor(() =>
       expect(changeTicketStatus).toHaveBeenCalledWith(
@@ -345,7 +383,9 @@ describe('BR-1.2 — closing work that was never started asks for a reason first
     await chooseTransition('Closed');
 
     await waitFor(() => expect(changeTicketStatus).toHaveBeenCalled());
-    expect(screen.queryByLabelText(i18n.t('tickets:detail.note'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(i18n.t('tickets:detail.note')),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -380,7 +420,9 @@ describe('AC-6 — expectedVersion comes from the read, and AC-4/AC-5 keep the a
     await chooseTransition('InProgress');
 
     await waitFor(() =>
-      expect(screen.getByText(i18n.t('tickets:detail.conflictTitle'))).toBeInTheDocument(),
+      expect(
+        screen.getByText(i18n.t('tickets:detail.conflictTitle')),
+      ).toBeInTheDocument(),
     );
 
     expect(changeTicketStatus).toHaveBeenCalledTimes(1);
@@ -410,7 +452,9 @@ describe('AC-6 — expectedVersion comes from the read, and AC-4/AC-5 keep the a
 
     /* The two must not share a message. Collapsing them throws away the only one
      * the reader can act on. */
-    expect(screen.queryByText(i18n.t('tickets:detail.conflictTitle'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tickets:detail.conflictTitle')),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -433,7 +477,11 @@ describe('AC-3 — the timeline is a cursor', () => {
    * server sent, never one derived from an entry. */
   it('loads older entries with the cursor it was given, never a derived one', async () => {
     vi.mocked(getTicketTimeline).mockResolvedValueOnce(
-      timeline({ items: [entry({ id: 'e-2', cursor: 'c-2' })], hasMore: true, nextCursor: 'CURSOR-B' }),
+      timeline({
+        items: [entry({ id: 'e-2', cursor: 'c-2' })],
+        hasMore: true,
+        nextCursor: 'CURSOR-B',
+      }),
     );
 
     mounted();
@@ -454,7 +502,9 @@ describe('AC-3 — the timeline is a cursor', () => {
     mounted();
     await waitFor(() => expect(getTicketTimeline).toHaveBeenCalled());
 
-    expect(screen.queryByText(i18n.t('tickets:detail.loadOlder'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tickets:detail.loadOlder')),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -471,7 +521,9 @@ describe('the comment composer', () => {
     await userEvent.click(
       screen.getByRole('switch', { name: i18n.t('tickets:detail.markInternal') }),
     );
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.send') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.send') }),
+    );
 
     await waitFor(() =>
       expect(addTicketComment).toHaveBeenCalledWith(ID, {
@@ -487,7 +539,9 @@ describe('the comment composer', () => {
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: i18n.t('tickets:detail.send') })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.send') }),
+    ).toBeDisabled();
   });
 });
 
@@ -504,7 +558,9 @@ describe('AC-7 — the assignee picker lists the server’s users and the server
     /* A PANEL, not a Dropdown — the v3 canvas gives it a title, a search box and
        a footer note, and the rows carry an avatar and the role. The rows are
        buttons; there is no listbox and no option role. */
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }),
+    );
 
     expect(screen.getByRole('button', { name: /منى العتيبي/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Omar Khalid/ })).toBeInTheDocument();
@@ -522,7 +578,9 @@ describe('AC-7 — the assignee picker lists the server’s users and the server
     /* A PANEL, not a Dropdown — the v3 canvas gives it a title, a search box and
        a footer note, and the rows carry an avatar and the role. The rows are
        buttons; there is no listbox and no option role. */
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }),
+    );
     await userEvent.click(screen.getByRole('button', { name: /Omar Khalid/ }));
 
     await waitFor(() =>
@@ -541,7 +599,9 @@ describe('the states a reader can actually reach', () => {
     mounted();
 
     await waitFor(() =>
-      expect(screen.getByText(i18n.t('tickets:detail.notFoundTitle'))).toBeInTheDocument(),
+      expect(
+        screen.getByText(i18n.t('tickets:detail.notFoundTitle')),
+      ).toBeInTheDocument(),
     );
     expect(screen.getByText(i18n.t('tickets:detail.backToList'))).toBeInTheDocument();
     expect(screen.queryByText(i18n.t('tickets:detail.retry'))).not.toBeInTheDocument();
@@ -573,7 +633,9 @@ describe("`034`'s tags — the read half it shipped without", () => {
     mounted();
     await rendered();
 
-    expect(screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') }),
+    ).toBeInTheDocument();
     expect(screen.queryByText('استرداد')).not.toBeInTheDocument();
     expect(screen.queryByText('خصم مزدوج')).not.toBeInTheDocument();
   });
@@ -596,7 +658,9 @@ describe("`034`'s tags — the read half it shipped without", () => {
     mounted();
     await rendered();
 
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') }),
+    );
 
     expect(screen.getByRole('menuitem', { name: 'خصم مزدوج' })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'استرداد' })).not.toBeInTheDocument();
@@ -607,7 +671,9 @@ describe("`034`'s tags — the read half it shipped without", () => {
     await rendered();
     expect(getTicket).toHaveBeenCalledTimes(1);
 
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.addTag') }),
+    );
     await userEvent.click(screen.getByRole('menuitem', { name: 'استرداد' }));
 
     await waitFor(() => expect(attachTicketTag).toHaveBeenCalledWith(ID, 't-1'));
@@ -701,11 +767,11 @@ describe("`034`'s reply templates", () => {
 
     const menu = screen.getByRole('menu');
     expect(
-      within(menu).getByText(
-        new RegExp(i18n.t('tickets:category.Technical')),
-      ),
+      within(menu).getByText(new RegExp(i18n.t('tickets:category.Technical'))),
     ).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /تأكيد استلام الشكوى/ })).toBeInTheDocument();
+    expect(
+      within(menu).getByRole('menuitem', { name: /تأكيد استلام الشكوى/ }),
+    ).toBeInTheDocument();
   });
 
   it('renders no picker at all when the server offers nothing', async () => {
@@ -721,7 +787,6 @@ describe("`034`'s reply templates", () => {
     ).not.toBeInTheDocument();
   });
 });
-
 
 /*
  * =============================================================================
@@ -908,7 +973,12 @@ describe('the rail: the customer, their company, and their other tickets', () =>
   it('leaves THIS ticket out of their other tickets', async () => {
     vi.mocked(listTickets).mockResolvedValue({
       items: [
-        { id: ID, ticketNumber: 'TCK-2026-000042', subject: 'نفس التذكرة', status: 'Open' },
+        {
+          id: ID,
+          ticketNumber: 'TCK-2026-000042',
+          subject: 'نفس التذكرة',
+          status: 'Open',
+        },
         {
           id: 'other',
           ticketNumber: 'TCK-2026-000038',
@@ -946,9 +1016,13 @@ describe('a 403 is its own answer, not a failure', () => {
        defect. Three answers, three sentences; collapsing them into "it failed"
        throws away the only ones a reader can act on. */
     await waitFor(() =>
-      expect(screen.getByText(i18n.t('tickets:detail.forbiddenTitle'))).toBeInTheDocument(),
+      expect(
+        screen.getByText(i18n.t('tickets:detail.forbiddenTitle')),
+      ).toBeInTheDocument(),
     );
-    expect(screen.queryByText(i18n.t('tickets:detail.conflictTitle'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tickets:detail.conflictTitle')),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(i18n.t('tickets:detail.versionRejectedTitle')),
     ).not.toBeInTheDocument();
@@ -977,20 +1051,27 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
     waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
   const openMenu = async () => {
-    await userEvent.click(screen.getByRole('button', { name: i18n.t('tickets:detail.takeAction') }));
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.takeAction') }),
+    );
   };
 
-  it.each(['escalate', 'merge', 'extendDue'])('%s is present and disabled', async (key) => {
-    mounted();
-    await rendered();
-    await openMenu();
+  it.each(['escalate', 'merge', 'extendDue'])(
+    '%s is present and disabled',
+    async (key) => {
+      mounted();
+      await rendered();
+      await openMenu();
 
-    const item = screen.getByRole('menuitem', { name: i18n.t(`tickets:detail.action.${key}`) });
-    expect(item).toBeDisabled();
-    /* AND IT SAYS WHY. A control that refuses without a reason is the defect this
+      const item = screen.getByRole('menuitem', {
+        name: i18n.t(`tickets:detail.action.${key}`),
+      });
+      expect(item).toBeDisabled();
+      /* AND IT SAYS WHY. A control that refuses without a reason is the defect this
        screen was rebuilt to avoid, and `disabled` alone is exactly that. */
-    expect(item).toHaveAttribute('title', i18n.t('tickets:detail.actionUnavailable'));
-  });
+      expect(item).toHaveAttribute('title', i18n.t('tickets:detail.actionUnavailable'));
+    },
+  );
 
   it('offers Close as a live item when BR-1 allows it', async () => {
     mounted();
@@ -998,7 +1079,9 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
     await openMenu();
 
     /* The fixture's `allowedTransitions` carries `Closed`. */
-    const close = screen.getByRole('menuitem', { name: i18n.t('tickets:detail.action.close') });
+    const close = screen.getByRole('menuitem', {
+      name: i18n.t('tickets:detail.action.close'),
+    });
     expect(close).not.toBeDisabled();
 
     await userEvent.click(close);
@@ -1019,7 +1102,9 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
 
     /* BR-1: PendingCustomer → Closed is not permitted. The row stays, so the menu
        does not change shape per status, and it refuses with its own reason. */
-    const close = screen.getByRole('menuitem', { name: i18n.t('tickets:detail.action.close') });
+    const close = screen.getByRole('menuitem', {
+      name: i18n.t('tickets:detail.action.close'),
+    });
     expect(close).toBeDisabled();
     expect(close).toHaveAttribute('title', i18n.t('tickets:detail.closeNotAllowed'));
   });
@@ -1081,8 +1166,14 @@ describe('the unbuilt facts and endpoints are absent from the code', () => {
    * `translation` does not. The boundary is only on the left, deliberately —
    * `\bsla\b` would miss the identifier this exists to refuse. */
   it.each([
-    [/\bsla/i, 'no service level agreement exists in the domain: no field, no table, no setting'],
-    [/\bdueAt|\bdueIn|\bdueDate/i, 'nothing carries a due date, so nothing can render one'],
+    [
+      /\bsla/i,
+      'no service level agreement exists in the domain: no field, no table, no setting',
+    ],
+    [
+      /\bdueAt|\bdueIn|\bdueDate/i,
+      'nothing carries a due date, so nothing can render one',
+    ],
     [/firstResponse/i, 'first-response time does not exist'],
     [/\bmention/i, 'a comment has no mentions and there is no notification'],
     [/\bbreach/i, 'nothing can be breached without an SLA to breach'],
@@ -1116,7 +1207,8 @@ describe('the unbuilt facts and endpoints are absent from the code', () => {
        DATA those actions would produce is not exempt, and that is the
        distinction this test encodes rather than a blanket ban. */
     const offenders = Object.keys(en).filter(
-      (key) => !key.startsWith('detail.action.') && /sla|dueAt|dueIn|mention|breach/i.test(key),
+      (key) =>
+        !key.startsWith('detail.action.') && /sla|dueAt|dueIn|mention|breach/i.test(key),
     );
     expect(offenders).toEqual([]);
   });

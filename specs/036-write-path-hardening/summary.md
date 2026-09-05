@@ -100,10 +100,13 @@ by the API and missing from the table (§4).
 
 ## 7 · Known limitations, stated
 
-- **A deadlock on a READ is not translated.** `036` translates at `SaveChangesAsync`, so a
-  victim chosen while executing a `SELECT` still surfaces as an unmapped exception. Measured
-  directly — the first version of the deadlock test hit exactly this. The write path is the
-  common case and the one a transaction holds locks for; the read path is open.
+- ~~**A deadlock on a READ is not translated.**~~ **CLOSED the same day by
+  [`036b`](../036b-transient-read-path/summary.md).** `036` translates at `SaveChangesAsync`, so
+  a victim chosen while executing a `SELECT` surfaced as an unmapped exception — measured
+  directly, because the first version of the deadlock test hit exactly this. `036b` adds an
+  outermost MediatR behaviour that covers every path through the pipeline, which is every HTTP
+  request. **Still open for the seeders**, which call `SaveChangesAsync` directly and never
+  touch MediatR.
 - **The rate limiter is in-process**, like `004b`'s throttle. Two instances behind a load
   balancer each permit the full budget, and a restart forgets every window. Same honest framing:
   *it stops a loop, it does not stop a distributed client.*

@@ -192,5 +192,9 @@
   "detail.action.close": "Close the ticket",
   "detail.actionUnavailable": "Not available yet — the server has no endpoint for this action.",
   "detail.closeNotAllowed": "Closing is not one of this ticket’s permitted transitions.",
-  "list.rangeInverted": "The end of the range is before its start. Swap the two dates to apply."
+  "list.rangeInverted": "The end of the range is before its start. Swap the two dates to apply.",
+  "detail.statusToastTitle": "The ticket status was updated.",
+  "detail.commentToastTitle": "Your reply was sent.",
+  "detail.writeFailedTitle": "The change could not be sent.",
+  "detail.writeFailedBody": "We could not reach the server. Nothing was saved."
 }

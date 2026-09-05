@@ -1,3 +1,5 @@
+import { Modal } from '../../components/Modal/Modal';
+import { useToast } from '../../components/Toast/ToastHost';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -67,6 +69,7 @@ function readInt(raw: string | null, fallback: number): number {
 
 export default function CustomersListPage() {
   const { t, i18n } = useTranslation('customers');
+  const toast = useToast();
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
   const [params, setParams] = useSearchParams();
 
@@ -118,7 +121,9 @@ export default function CustomersListPage() {
    * request (`026` Q-T-3). The column ids ARE the wire values, so there is no
    * map to fall out of step. */
   const sort: TableSort | null =
-    filters.sort === '' ? null : { columnId: filters.sort, direction: filters.dir || 'asc' };
+    filters.sort === ''
+      ? null
+      : { columnId: filters.sort, direction: filters.dir || 'asc' };
 
   const onSortChange = (next: TableSort | null) =>
     setFilters({
@@ -166,7 +171,8 @@ export default function CustomersListPage() {
              * "open in new tab" all work. Only the unmodified left click is
              * taken over — the one case where the app has a better answer. */
             onClick={(event) => {
-              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+                return;
               event.preventDefault();
               setOpenId(row.id);
             }}
@@ -236,7 +242,9 @@ export default function CustomersListPage() {
       header: t('list.column.created'),
       width: 132,
       sortable: true,
-      cell: (row) => <span className={styles.created}>{formatDate(row.createdAtUtc, lang)}</span>,
+      cell: (row) => (
+        <span className={styles.created}>{formatDate(row.createdAtUtc, lang)}</span>
+      ),
       skeleton: 'text',
     },
   ];
@@ -264,6 +272,35 @@ export default function CustomersListPage() {
    * leaves the page takes its sheet with it. */
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+
+  /* THE TWO HALVES OF §3's "closes on a scrim click, EXCEPT over unsaved input".
+   *
+   * `addDirty` is reported up by the form — only the form knows whether anything
+   * was typed, and only this component knows the sheet is being closed.
+   * `discarding` is the confirmation, and it is the Modal's first consumer in the
+   * product: `030` built the component and had nowhere honest to use it, because
+   * the three rows of §1.3 that need one — session expired, delete, unsaved
+   * input — were flows that did not exist. This one does. */
+  const [addDirty, setAddDirty] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+
+  /* One place that actually closes it, so the sheet's ×, its Escape, its scrim,
+     its own «إلغاء» and the modal's «تجاهل» cannot disagree about what closing
+     means — and so the dirty flag is cleared exactly once. */
+  const closeAdd = () => {
+    setDiscarding(false);
+    setAddDirty(false);
+    setAddOpen(false);
+  };
+
+  /* Asked, not done. Every exit from the sheet routes here first. */
+  const requestCloseAdd = () => {
+    if (addDirty) {
+      setDiscarding(true);
+      return;
+    }
+    closeAdd();
+  };
   const openRow = items.find((row) => row.id === openId) ?? null;
 
   /* ERROR FIRST, and the order matters: a failed request also has zero items, so
@@ -287,7 +324,10 @@ export default function CustomersListPage() {
           <>
             <h1 className={styles.title}>{t('list.title')}</h1>
             <p className={styles.subtitle}>
-              {t('list.count', { count: totalCount, formatted: formatNumber(totalCount, lang) })}
+              {t('list.count', {
+                count: totalCount,
+                formatted: formatNumber(totalCount, lang),
+              })}
             </p>
           </>
         }
@@ -309,92 +349,100 @@ export default function CustomersListPage() {
           nothing on screen said what the reader had been looking at. The notice
           sits under the header now, and both its copy and its shape belong to
           the primitive — one failed request looks the same on every table. */}
-        <Table
-          columns={columns}
-          rows={items}
-          rowKey={(row) => row.id}
-          label={t('list.title')}
-          state={state}
-          /* 62px rows. `06-customers-list.md` specifies 61 and the default is 70
+      <Table
+        columns={columns}
+        rows={items}
+        rowKey={(row) => row.id}
+        label={t('list.title')}
+        state={state}
+        /* 62px rows. `06-customers-list.md` specifies 61 and the default is 70
              — that default is right for the ticket list, whose subject cell is
              two lines. Every cell here is one. */
-          density="dense"
-          sort={sort}
-          onSortChange={onSortChange}
-          sortLabel={t('list.sortBy')}
-          /* IT OPENS THE QUICK VIEW NOW. `033` chose "no panel — the row click
+        density="dense"
+        sort={sort}
+        onSortChange={onSortChange}
+        sortLabel={t('list.sortBy')}
+        /* IT OPENS THE QUICK VIEW NOW. `033` chose "no panel — the row click
              navigates", and the frame supplied 2026-09-03 reversed it: the sheet
              opens, and its «فتح الملف الكامل» is what navigates. The anchor in
              the name cell is unchanged, so a keyboard and a screen reader still
              reach the profile directly — this is the mouse path. */
-          onRowClick={(row) => setOpenId(row.id)}
-          selectedRowKey={openId}
-          empty={
-            <div className={styles.pane}>
-              <span className={styles.mark} aria-hidden="true">
-                <Mark size={44} />
-              </span>
-              <p className={styles.paneTitle}>{t(`list.${emptyKey}Title`)}</p>
-              <p className={styles.paneBody}>{t(`list.${emptyKey}Body`)}</p>
+        onRowClick={(row) => setOpenId(row.id)}
+        selectedRowKey={openId}
+        empty={
+          <div className={styles.pane}>
+            <span className={styles.mark} aria-hidden="true">
+              <Mark size={44} />
+            </span>
+            <p className={styles.paneTitle}>{t(`list.${emptyKey}Title`)}</p>
+            <p className={styles.paneBody}>{t(`list.${emptyKey}Body`)}</p>
 
-              {pastEnd ? (
-                <button
-                  type="button"
-                  className={styles.paneCta}
-                  onClick={() => setPage(Math.max(totalPages, 1))}
-                >
-                  {t('list.pastEndCta')}
-                </button>
-              ) : noMatches ? (
-                /* BR-4's preventive half, and the reason this state is its own
+            {pastEnd ? (
+              <button
+                type="button"
+                className={styles.paneCta}
+                onClick={() => setPage(Math.max(totalPages, 1))}
+              >
+                {t('list.pastEndCta')}
+              </button>
+            ) : noMatches ? (
+              /* BR-4's preventive half, and the reason this state is its own
                    component: the term the reader could not find is the name they
                    are about to create, so it is carried into the form rather
                    than retyped. */
-                <Link
-                  className={styles.paneCta}
-                  to={
-                    filters.search
-                      ? `/customers/new?name=${encodeURIComponent(filters.search)}`
-                      : '/customers/new'
-                  }
-                >
-                  {filters.search
-                    ? t('list.noMatchCta', { term: filters.search })
-                    : t('new.link')}
-                </Link>
-              ) : (
-                <Link className={styles.paneCta} to="/customers/new">
-                  {t('new.link')}
-                </Link>
-              )}
-            </div>
-          }
-          footer={
-            <TablePager
-              lang={lang}
-              page={effectivePage}
-              pageSize={effectivePageSize}
-              totalPages={totalPages}
-              totalCount={totalCount}
-              /* COUNTED, not computed: the last page is short. */
-              rowsOnPage={items.length}
-              onPage={setPage}
-              onPageSize={setPageSize}
-            />
-          }
-          onRetry={() => void query.refetch()}
-          traceId={
-            query.error instanceof ApiError ? query.error.problem?.traceId : undefined
-          }
-        />
+              <Link
+                className={styles.paneCta}
+                to={
+                  filters.search
+                    ? `/customers/new?name=${encodeURIComponent(filters.search)}`
+                    : '/customers/new'
+                }
+              >
+                {filters.search
+                  ? t('list.noMatchCta', { term: filters.search })
+                  : t('new.link')}
+              </Link>
+            ) : (
+              <Link className={styles.paneCta} to="/customers/new">
+                {t('new.link')}
+              </Link>
+            )}
+          </div>
+        }
+        footer={
+          <TablePager
+            lang={lang}
+            page={effectivePage}
+            pageSize={effectivePageSize}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            /* COUNTED, not computed: the last page is short. */
+            rowsOnPage={items.length}
+            onPage={setPage}
+            onPageSize={setPageSize}
+          />
+        }
+        onRetry={() => void query.refetch()}
+        traceId={
+          query.error instanceof ApiError ? query.error.problem?.traceId : undefined
+        }
+      />
 
       {/* ── the row's quick view ─────────────────────────────────────────── */}
+      {/* NO SCRIM, which is the default and is the point of the variant:
+          `feedback-layer.md` §1.4 puts "open a customer profile" on a panel with
+          none, because the reader is comparing this customer to the rows they
+          just scanned. The list stays scrollable and clickable behind it. Both
+          sheets on this screen used to block; only the one below should. */}
       <SideSheet
         open={openRow !== null}
         onClose={() => setOpenId(null)}
         label={openRow?.fullName ?? ''}
         badge={
-          <span className={styles.sheetAvatar} data-tint={avatarBucket(openRow?.fullName ?? '')}>
+          <span
+            className={styles.sheetAvatar}
+            data-tint={avatarBucket(openRow?.fullName ?? '')}
+          >
             {avatarInitial(openRow?.fullName ?? '')}
           </span>
         }
@@ -415,9 +463,14 @@ export default function CustomersListPage() {
       </SideSheet>
 
       {/* ── «عميل جديد» ─────────────────────────────────────────────────── */}
+      {/* SCRIM, and this is the one row of §1.4 that has one: it holds input
+          that must not be lost. That single prop also turns on the body-scroll
+          lock, the Tab trap and `aria-modal` — the three claims that only hold
+          when the page behind really is unreachable. */}
       <SideSheet
+        scrim
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={requestCloseAdd}
         label={t('new.title')}
         badge={<IconAdd size={20} />}
         title={t('new.title')}
@@ -429,9 +482,22 @@ export default function CustomersListPage() {
              the frame has one. Seen on the screen, not in a test: jsdom finds
              both headings and neither assertion cared which. */
           chrome={false}
-          onCancel={() => setAddOpen(false)}
+          onCancel={requestCloseAdd}
+          onDirtyChange={setAddDirty}
           onCreated={() => {
-            setAddOpen(false);
+            /* `closeAdd`, not `requestCloseAdd`. The input is not unsaved any
+               more — it is saved, which is the whole point — and asking to
+               discard a customer that was just created would be absurd. */
+            closeAdd();
+
+            /* CLOSE FIRST, THEN THE TOAST — `feedback-layer.md` §1.1 states the
+               order, and the order is the whole content of that row: a success
+               message rendered INSIDE the panel that is about to close is a
+               message that appears and disappears in the same instant. §1.6 says
+               the same thing twice, for the sheet and for the modal.
+               The close is above; this is after it. */
+            toast.show({ tone: 'success', title: t('new.createdToast') });
+
             /* REFETCHED, never seeded from the write response — `026` §5 and
                `032` AC-1. A list that trusts a create's body shows a row the
                server has not been asked about, and it sorts and pages by rules
@@ -440,6 +506,42 @@ export default function CustomersListPage() {
           }}
         />
       </SideSheet>
+
+      {/* ── §1.3: "close a form with unsaved input → modal sm, asked BEFORE the
+             close completes" ───────────────────────────────────────────────── */}
+      <Modal
+        open={discarding}
+        /* Closing the QUESTION is not answering it. Escape here dismisses the
+           confirmation and leaves the sheet open with everything still typed —
+           the safe answer, and the same one «متابعة التحرير» gives. */
+        onClose={() => setDiscarding(false)}
+        title={t('new.discardTitle')}
+        /* DESTRUCTIVE, and the word buys exactly one thing here: the opening
+           focus goes to «متابعة التحرير» and not to «تجاهل». A dialog asking
+           whether to throw away a half-typed form, with Discard under the Return
+           key, is one keystroke from doing the thing it exists to prevent. */
+        destructive
+        footer={
+          <>
+            {/* CANCEL FIRST in reading order — §3's destructive ordering, the
+                reverse of an ordinary modal's. */}
+            <Button
+              buttonType="secondary-outline"
+              withText
+              text={t('new.keepEditing')}
+              onClick={() => setDiscarding(false)}
+            />
+            <Button
+              buttonType="danger"
+              withText
+              text={t('new.discardConfirm')}
+              onClick={closeAdd}
+            />
+          </>
+        }
+      >
+        {t('new.discardBody')}
+      </Modal>
     </main>
   );
 }

@@ -1,0 +1,173 @@
+/* ============================================================================
+ * Modal — `design/feedback-layer.md` §3.
+ * ========================================================================= */
+
+.host {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  /* THE TOKEN. This colour had four values across the product before `030`;
+     see `design/feedback-layer.md` §7 and the note in `SideSheet.module.css`. */
+  background-color: var(--scrim);
+  cursor: pointer;
+  animation: modal-scrim var(--duration-instant) linear;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+
+  inline-size: var(--modal-w-sm);
+  max-inline-size: 100%;
+
+  /* 70vh, AND THE BODY IS WHAT SCROLLS (§3). `max-block-size` on the panel with
+     `min-block-size: 0` on the body is the pair that does it: without the
+     second, the body's `min-height: auto` refuses to shrink and the panel grows
+     past the cap instead. */
+  max-block-size: 70vh;
+
+  /* `--radius-md` 8, not `--radius-lg` 12. Disagreement #3, ruled to the
+     source. */
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-lg);
+
+  /* 180ms, not `motion.md`'s 250. Disagreements #6 and #7 were ruled to the
+     source and `motion.md`'s drawer/modal row is amended rather than kept
+     alongside — the two values are perceptibly different, which is exactly why
+     this one is NOT treated like the scrim's `.4`/`.45` near-match. */
+  animation: modal-in 180ms var(--ease-out);
+}
+
+.sm {
+  inline-size: var(--modal-w-sm);
+}
+
+.md {
+  inline-size: var(--modal-w-md);
+}
+
+.lg {
+  inline-size: var(--modal-w-lg);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-scrim {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .scrim {
+    animation: none;
+  }
+}
+
+/* ---- header -------------------------------------------------------------- */
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex: none;
+  padding: 20px var(--space-6);
+  border-block-end: var(--border-width) solid var(--border-divider);
+}
+
+.title {
+  margin: 0;
+  flex: 1;
+  min-inline-size: 0;
+  font-size: var(--type-card-title);
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-ar-heading);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  margin-block-start: 2px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background-color: var(--surface-chip);
+  color: var(--text-primary);
+}
+
+/* ---- body ---------------------------------------------------------------- */
+
+.body {
+  flex: 1;
+  /* See `.panel`: this is the half that makes the 70vh cap real. */
+  min-block-size: 0;
+  padding: var(--space-6);
+  overflow: hidden auto;
+  scrollbar-width: thin;
+  /* The layout must not shift by the scrollbar's width the moment content grows
+     past the cap — the same reservation the sheet's scroller makes. */
+  scrollbar-gutter: stable;
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  line-height: 1.65;
+}
+
+/* ---- footer -------------------------------------------------------------- */
+
+/* JUSTIFIED TO THE START OF THE READING DIRECTION (§3), which `flex-start` is,
+   logically, in both languages.
+ *
+ * THE ORDER OF THE BUTTONS IS THE CALLER'S, and §3 gives two rules rather than
+ * one: an ordinary modal puts the primary first and cancel after it; a
+ * DESTRUCTIVE one puts cancel first and the red action after. The source
+ * document's prose said "cancel first" for both and both of its own drawn
+ * examples did the opposite — ruled 2026-09-05 as an over-generalisation, not a
+ * contradiction. This file cannot enforce it; `Modal`'s `destructive` prop
+ * enforces the half that matters, which is that the red button never holds the
+ * opening focus. */
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex: none;
+  padding: var(--space-4) var(--space-6);
+  border-block-start: var(--border-width) solid var(--border-divider);
+}

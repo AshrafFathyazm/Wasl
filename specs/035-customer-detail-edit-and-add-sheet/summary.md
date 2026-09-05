@@ -115,8 +115,10 @@ literals — one inside a `calc()` — and caught all three.
   outside one screen, and both of its consumers are on `/customers`.
 - The quick view does not show notes, because `GET /api/customers` does not return them.
   Recorded in the component rather than filled with an empty region.
-- No keyboard trap in the sheet: focus moves in, Escape closes, but focus is not cycled
-  within the panel and is not restored to the opener on close.
+- ~~No keyboard trap in the sheet~~ — **closed 2026-09-03.** Tab cycles within the panel,
+  focus returns to whatever opened it, and the scrim stopped being a second labelled
+  dismiss control. See `tests.md`, «The focus trap, and the control that caught a false
+  green».
 
 ---
 
@@ -126,7 +128,12 @@ literals — one inside a `calc()` — and caught all three.
 verification pass after Docker returned, and the save round trip through the real UI
 (`PUT 200` → refetch → the profile showing the new name).
 
-Suites at delivery: **604 frontend tests in 34 files**, **665 backend** (189 + 26 + 450),
-`tsc` · `eslint` · `stylelint` · locale parity (381 keys) all clean. Four backend failures
-in `Resilience.*` belong to `036-write-path-hardening`, another lane's in-progress work in
-the same tree.
+Suites at delivery: **613 frontend tests in 35 files**, **669 backend** (189 + 26 + 454),
+`tsc` · `eslint` · `stylelint` · locale parity (381 keys) all clean.
+
+**A correction to what this file said first.** It recorded "four backend failures in
+`Resilience.*`" belonging to `036`. They are not failures — they are **flaky**: the same
+`dotnet test` command produced 4 red on one run and 454 green on the next, and the class
+passes 16/16 under `--filter`. The suite shares one database, so this is order or shared
+state, and it is `036`'s to look at. *A test that passes alone and fails in company is
+worse than one that fails, because the first green run closes the feature.*

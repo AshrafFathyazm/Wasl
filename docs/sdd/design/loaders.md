@@ -7,11 +7,25 @@ Nine shapes, one geometry, and the rule for which goes where.
 translation of it, and the repository language rule (`CLAUDE.md`) makes **this** file the
 one the code is measured against.
 
-> **The HTML source is not in the repository.** It reached the build through a channel
-> that damaged its encoding, and a vendored copy with corrupted Arabic is worse than
-> none — it would be read as the source and it would be wrong. The design owner commits
-> it to `docs/sdd/design/loaders/`. Until then this document is the whole source of
-> truth, which is why every number below is written down rather than referenced.
+> **CLOSED 2026-09-05 — the source is vendored, in a different format.**
+>
+> The HTML never made it in. It reached the build through a channel that reads UTF-8 as
+> Latin-1 and drops every byte in `0x80–0x9F`, and a vendored copy with corrupted Arabic
+> is worse than none: it would be read as the source and it would be wrong.
+>
+> **The fix was the format, not the channel.** `loaders/wasl-loaders-spec.ascii.md` is
+> the same document re-issued as pure 7-bit ASCII — measured at 15,709 bytes, maximum
+> byte `0x7d`, zero above `0x7F` — with the Arabic copy carried as `\uXXXX` escapes. It
+> cannot be damaged by that channel, or by any other one.
+>
+> **This file stays the design of record**, per the repository language rule. The ASCII
+> file is the vendored source it was translated from, and the two were compared before
+> this note was written: the nine loaders agree on every size, duration, use and time
+> range, and its §7 and §8 are this document's §7 and §8. `030` supplied it alongside
+> the feedback layer's; `design/feedback-layer.md` records the same delivery.
+>
+> **Nothing was rebuilt.** `029` is delivered, and this closes a documentation gap, not
+> a build one.
 
 Everything here derives from the mark in `brand.md`: **three threads arriving at one
 node**. Nothing new is invented. A loader that does not come from the mark is a second

@@ -41,10 +41,12 @@ public sealed class PipelineOrderTests(WaslApiFactory factory)
             .ToArray();
 
         names.Should().Equal(
-            ["ValidationBehaviour", "TransactionBehaviour", "AuditBehaviour"],
-            "outermost first. Validation before the transaction, or an invalid request opens "
-            + "one; the transaction before the audit, or BR-9.3 inverts and the audit row "
-            + "commits while the change rolls back");
+            ["TransientFailureBehaviour", "ValidationBehaviour", "TransactionBehaviour", "AuditBehaviour"],
+            "outermost first. TransientFailure before the audit, or a deadlock is translated "
+            + "before BR-9 classifies it and the failure row records the wrong outcome; "
+            + "validation before the transaction, or an invalid request opens one; the "
+            + "transaction before the audit, or BR-9.3 inverts and the audit row commits "
+            + "while the change rolls back");
     }
 
     /// <summary>
@@ -95,7 +97,14 @@ public sealed class PipelineOrderTests(WaslApiFactory factory)
             .Select(behaviour => behaviour.GetType().Name.Split('`')[0])
             .ToArray();
 
-        names.Should().Equal(["ValidationBehaviour"],
+        // `036b` added TransientFailureBehaviour and it is DELIBERATELY unconstrained, so it
+        // appears here where the other two do not. A query can be a deadlock victim against a
+        // concurrent write, and constraining it to ICommand would have left exactly the read path
+        // `036b` exists to close.
+        //
+        // AC-7: the rest of the sentence below is unchanged, and still asserted. An unconstrained
+        // behaviour must not drag a transaction in with it.
+        names.Should().Equal(["TransientFailureBehaviour", "ValidationBehaviour"],
             "the constraints keep queries out of the transaction and out of the audit path — "
             + "not an `if` at the top of each behaviour, which is a thing that can be deleted");
     }

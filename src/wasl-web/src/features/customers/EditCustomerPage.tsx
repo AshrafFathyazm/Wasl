@@ -1,3 +1,4 @@
+import { useToast } from '../../components/Toast/ToastHost';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -41,6 +42,7 @@ import styles from './CreateCustomer.module.css';
 
 export default function EditCustomerPage() {
   const { t } = useTranslation();
+  const toast = useToast();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -78,7 +80,13 @@ export default function EditCustomerPage() {
       notes: query.data?.notes ?? '',
     },
     resolver: zodResolver(createCustomerSchema),
-    mode: 'onBlur',
+
+    /* Same change as the create form, and for the same reason — see the long
+       note there. It matters slightly less here because the fields arrive
+       pre-filled from the read, but a reader who CLEARS a field and tabs on
+       would have been accused mid-edit. */
+    mode: 'onSubmit',
+    reValidateMode: 'onBlur',
   });
 
   const mutation = useMutation({
@@ -116,6 +124,14 @@ export default function EditCustomerPage() {
          page and every other filter showing the old name. */
       void queryClient.invalidateQueries({ queryKey: ['customers', 'list'] });
       void navigate(`/customers/${id}`);
+
+      /* §1.1: "customer created or edited → close the panel, THEN toast". Here
+         the equivalent of closing is the navigation above, and the toast follows
+         it for the same reason — the host is mounted in `AppShell`, above the
+         route, so the message survives the page change and lands on the profile
+         the reader is now looking at. A toast fired from a component that is
+         about to unmount would go with it. */
+      toast.show({ tone: 'success', title: t('customers:edit.savedToast') });
     },
     onError: (error: unknown) => {
       setStale(false);
@@ -144,8 +160,13 @@ export default function EditCustomerPage() {
       for (const [field, messages] of Object.entries(fields)) {
         const message = messages[0];
         if (message === undefined) continue;
-        if (field === 'fullName' || field === 'email' || field === 'phone'
-          || field === 'companyName' || field === 'notes') {
+        if (
+          field === 'fullName' ||
+          field === 'email' ||
+          field === 'phone' ||
+          field === 'companyName' ||
+          field === 'notes'
+        ) {
           form.setError(field, { message });
           attached = true;
         }
@@ -276,11 +297,12 @@ export default function EditCustomerPage() {
 
           <hr className={styles.rule} />
 
-          {/* ABOVE THE TWO FIELDS IT GOVERNS. BR-4.1 is a cross-field rule, and
-              one explained under the second field is explained too late. It is
-              a HINT, not an error: a form that has not been submitted has failed
-              nothing. */}
-          <p className={styles.hint}>{t('customers:new.contactRequired')}</p>
+          {/* THE STANDING HINT IS GONE — see the same removal in
+              `CreateCustomerPage.tsx` for the reason. The schema emits this key
+              on both contact fields, so the hint made one sentence appear three
+              times the moment the rule was broken. Removed from BOTH forms in
+              one change: leaving it here would be the same duplicate on the
+              screen next door. */}
 
           <Controller
             control={form.control}

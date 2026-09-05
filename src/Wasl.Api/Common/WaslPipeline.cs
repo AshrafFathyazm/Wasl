@@ -34,6 +34,25 @@ internal static class WaslPipeline
     /// </summary>
     /// <remarks>
     /// <list type="number">
+    /// <item><b>TransientFailure</b> — `036b`. Outermost, so it sees a deadlock raised by the
+    /// handler's reads, by its writes, by a named query class, and by the transaction's own
+    /// <c>COMMIT</c> — that last one is what the position buys, because a behaviour registered
+    /// inside <c>Transaction</c> has already returned by the time the commit runs.
+    /// <para>
+    /// <b>An earlier version of this comment gave a second reason and it was WRONG.</b> It
+    /// claimed that registering this inside <c>Audit</c> would make BR-9's failure row record
+    /// <c>transient-conflict</c> instead of the fault. Measured: it does not.
+    /// <c>AuditOutcomeClassifier</c> maps any non-denial <c>DomainException</c> to
+    /// <c>Failed</c>, exactly as it maps the raw engine exception, so the row is identical from
+    /// either position. The control was run — `036b` `tests.md` §4.2 — and **nothing went red**.
+    /// </para>
+    /// <para>
+    /// So the position rests on the commit alone, and <b>no test proves it</b>: a deadlock
+    /// resolved on <c>COMMIT</c> could not be induced. Recorded as unproven rather than defended
+    /// by a claim that measurement disproved.
+    /// </para>
+    /// It is also the one behaviour with <b>no</b> request constraint — a query can be a
+    /// deadlock victim too.</item>
     /// <item><b>Validation</b> — reject before anything else happens. Outside the transaction,
     /// so an invalid request never opens one, and outside the audit behaviour, so a `400`
     /// writes no row (`spec.md` Q-3).</item>
@@ -46,6 +65,7 @@ internal static class WaslPipeline
     /// </remarks>
     public static readonly IReadOnlyList<Type> DeclaredOrder =
     [
+        WaslPipelineBehaviours.TransientFailure,
         typeof(ValidationBehaviour<,>),
         WaslPipelineBehaviours.Transaction,
         WaslPipelineBehaviours.Audit,

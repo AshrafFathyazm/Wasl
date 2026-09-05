@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 
+import { ToastProvider } from '../components/Toast/ToastHost';
 import styles from './AppShell.module.css';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -17,33 +18,46 @@ import sidebarStyles from './Sidebar.module.css';
 export function AppShell() {
   const { mode, drawerOpen, toggle, closeDrawer } = useSidebarState();
 
+  /* THE PROVIDER WRAPS THE SHELL, not `main.tsx`'s tree.
+   *
+   * Every surface that fires a toast is an authenticated route, and this is the
+   * component every one of them renders inside — so the provider spans exactly
+   * the tree that needs it and nothing more. Putting it above the router would
+   * put it above the login screen too, where §1.2 already rules a failed
+   * sign-in to be a FIELD error rather than a toast.
+   *
+   * It renders the stack after `<Outlet />`, which matters for one reason: a
+   * toast is announced by an accessibility tree that reads in document order,
+   * and a live region ahead of the page content interrupts differently. */
   return (
-    <div className={styles.shell}>
-      {mode === 'drawer' && drawerOpen ? (
-        <button
-          type="button"
-          className={sidebarStyles.backdrop}
-          onClick={closeDrawer}
-          aria-hidden="true"
-          tabIndex={-1}
+    <ToastProvider>
+      <div className={styles.shell}>
+        {mode === 'drawer' && drawerOpen ? (
+          <button
+            type="button"
+            className={sidebarStyles.backdrop}
+            onClick={closeDrawer}
+            aria-hidden="true"
+            tabIndex={-1}
+          />
+        ) : null}
+
+        <Sidebar
+          mode={mode}
+          drawerOpen={drawerOpen}
+          onToggle={toggle}
+          /* Following a link inside the drawer must close it, or the overlay
+             covers the page the user just asked for. */
+          onNavigate={closeDrawer}
         />
-      ) : null}
 
-      <Sidebar
-        mode={mode}
-        drawerOpen={drawerOpen}
-        onToggle={toggle}
-        /* Following a link inside the drawer must close it, or the overlay
-           covers the page the user just asked for. */
-        onNavigate={closeDrawer}
-      />
-
-      <div className={styles.main}>
-        <Header showMenuButton={mode === 'drawer'} onMenuClick={toggle} />
-        <main className={styles.content}>
-          <Outlet />
-        </main>
+        <div className={styles.main}>
+          <Header showMenuButton={mode === 'drawer'} onMenuClick={toggle} />
+          <main className={styles.content}>
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }

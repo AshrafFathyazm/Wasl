@@ -115,33 +115,16 @@ public sealed class WaslDbContext(
     }
 
     /// <summary>
-    /// SQL Server error 1205 — this session was chosen as the deadlock victim.
+    /// Whether this exception, or anything it wraps, is a deadlock victim.
     /// </summary>
     /// <remarks>
-    /// <para>
-    /// <b>1205 and nothing else.</b> 1222 (lock request timeout) is deliberately excluded: a
-    /// timeout means the work may still be in progress somewhere, so telling the client to retry
-    /// could double a write that eventually committed. A 1205 victim's batch is already rolled
-    /// back by the engine, which is what makes the retry advice safe to give.
-    /// </para>
-    /// <para>
-    /// Walks the inner chain, because EF wraps and the provider sometimes wraps again.
-    /// </para>
+    /// <b>Moved to <see cref="TransientFailure"/> by `036b`</b>, which added a second caller —
+    /// the pipeline behaviour that covers the read path. Two private copies of one predicate is
+    /// how the write path and the read path come to disagree about what a deadlock is. The
+    /// reasoning that used to live here lives there.
     /// </remarks>
-    internal const int DeadlockVictimErrorNumber = 1205;
-
-    private static bool IsDeadlockVictim(Exception? exception)
-    {
-        for (var candidate = exception; candidate is not null; candidate = candidate.InnerException)
-        {
-            if (candidate is SqlException sql && sql.Number == DeadlockVictimErrorNumber)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    private static bool IsDeadlockVictim(Exception? exception) =>
+        TransientFailure.IsDeadlockVictim(exception);
 
     /// <inheritdoc cref="SaveChangesAsync(CancellationToken)"/>
     public override int SaveChanges()
