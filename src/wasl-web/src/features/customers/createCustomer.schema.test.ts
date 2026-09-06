@@ -45,10 +45,12 @@ describe('BR-4.1 — at least one contact method', () => {
   });
 
   it('accepts an email alone, and a phone alone', () => {
-    expect(createCustomerSchema.safeParse({ ...base, email: 'a@b.co' }).success).toBe(true);
-    expect(createCustomerSchema.safeParse({ ...base, phone: '+966501234567' }).success).toBe(
+    expect(createCustomerSchema.safeParse({ ...base, email: 'a@b.co' }).success).toBe(
       true,
     );
+    expect(
+      createCustomerSchema.safeParse({ ...base, phone: '+966501234567' }).success,
+    ).toBe(true);
   });
 
   it('treats a whitespace-only contact method as absent', () => {
@@ -117,7 +119,12 @@ describe('the phone rule — a light check, deliberately', () => {
     /* Each of these is a shape `007`'s contract or its tests show the server
      * accepting. A stricter client pattern would refuse input the API accepts —
      * a client narrowing its own API (spec Q-3). */
-    for (const good of ['+966501234567', '+966 50 123 4567', '0501234567', '(050) 123-4567']) {
+    for (const good of [
+      '+966501234567',
+      '+966 50 123 4567',
+      '0501234567',
+      '(050) 123-4567',
+    ]) {
       expect(createCustomerSchema.safeParse({ ...base, phone: good }).success).toBe(true);
     }
   });
@@ -156,13 +163,14 @@ describe('the length limits', () => {
             : 'ن'.repeat(max);
 
       expect(
-        createCustomerSchema.safeParse({ ...base, email: 'a@b.co', [field]: atLimit }).success,
+        createCustomerSchema.safeParse({ ...base, email: 'a@b.co', [field]: atLimit })
+          .success,
       ).toBe(true);
 
       const overLimit = field === 'phone' ? `+${'9'.repeat(max)}` : `${atLimit}x`;
-      expect(
-        issuesFor({ email: 'a@b.co', [field]: overLimit })[field],
-      ).toContain('customers:new.tooLong');
+      expect(issuesFor({ email: 'a@b.co', [field]: overLimit })[field]).toContain(
+        'customers:new.tooLong',
+      );
     }
   });
 

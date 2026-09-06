@@ -170,13 +170,10 @@ export function useMenuSurface(options: MenuSurfaceOptions = {}): MenuSurface {
     });
   }, [align]);
 
-  const setOpen = useCallback(
-    (next: boolean) => {
-      setOpenState(next);
-      if (!next) setPosition(null);
-    },
-    [],
-  );
+  const setOpen = useCallback((next: boolean) => {
+    setOpenState(next);
+    if (!next) setPosition(null);
+  }, []);
 
   const toggle = useCallback(() => setOpen(!open), [open, setOpen]);
 

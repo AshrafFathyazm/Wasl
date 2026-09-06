@@ -142,7 +142,9 @@ describe('AC-3 — every animated shape has an explicit static frame', () => {
     '.satOrbitInner': 'as .satOrbitOuter',
   };
 
-  const animated = new Set(selectorsIn(mediaBlock(loaderCss, 'prefers-reduced-motion: no-preference')));
+  const animated = new Set(
+    selectorsIn(mediaBlock(loaderCss, 'prefers-reduced-motion: no-preference')),
+  );
   const still = new Set(
     selectorsIn(mediaBlock(loaderCss, 'prefers-reduced-motion: reduce')).map((s) =>
       /* `.dot:nth-child(1)` in the reduce block satisfies `.dot` above it. */
@@ -243,7 +245,8 @@ describe('AC-12 — no shipped component declares its own waiting animation', ()
    * are recorded in 029/summary.md as follow-up rather than rewritten from
    * this lane. Narrowing the scope with the exclusion named is honest; letting
    * the test cover them and marking it skipped would not be. */
-  const WAITING = /@keyframes\s+[\w-]*(pulse|skel|shimmer|spin|sweep|load|dash|converge|orbit)/i;
+  const WAITING =
+    /@keyframes\s+[\w-]*(pulse|skel|shimmer|spin|sweep|load|dash|converge|orbit)/i;
   const OWNER = join('components', 'Loader');
 
   function cssFilesUnder(dir: string): string[] {

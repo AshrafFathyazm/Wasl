@@ -71,12 +71,15 @@ describe('the loader preview', () => {
 });
 
 describe('the loader contract, exercised directly', () => {
-  it.each(VARIANTS)('%s renders decorative and hidden when it has no label', (variant) => {
-    const { container } = render(<Loader variant={variant} />);
-    const root = container.firstElementChild;
-    expect(root?.getAttribute('aria-hidden')).toBe('true');
-    expect(root?.getAttribute('role')).toBeNull();
-  });
+  it.each(VARIANTS)(
+    '%s renders decorative and hidden when it has no label',
+    (variant) => {
+      const { container } = render(<Loader variant={variant} />);
+      const root = container.firstElementChild;
+      expect(root?.getAttribute('aria-hidden')).toBe('true');
+      expect(root?.getAttribute('role')).toBeNull();
+    },
+  );
 
   it.each(VARIANTS)('%s announces itself when given a label', (variant) => {
     render(<Loader variant={variant} label="جارٍ التحميل" />);

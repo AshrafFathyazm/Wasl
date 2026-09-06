@@ -91,7 +91,8 @@ class ArgReader {
   readNumber(): number {
     this.skip();
     const token = NUMBER.exec(this.s.slice(this.i))?.[0];
-    if (token === undefined) throw new Error(`unparseable number at ${this.i} in "${this.s}"`);
+    if (token === undefined)
+      throw new Error(`unparseable number at ${this.i} in "${this.s}"`);
     this.i += token.length;
     return Number.parseFloat(token);
   }
@@ -296,9 +297,19 @@ export function pathPoints(d: string): Array<[number, number]> {
         const y1 = relative ? cy + b : b;
         const x2 = relative ? cx + a2 : a2;
         const y2 = relative ? cy + b2 : b2;
-        for (const v of cubicExtrema(cx, cx + (2 / 3) * (x1 - cx), x2 + (2 / 3) * (x1 - x2), x2))
+        for (const v of cubicExtrema(
+          cx,
+          cx + (2 / 3) * (x1 - cx),
+          x2 + (2 / 3) * (x1 - x2),
+          x2,
+        ))
           pts.push([v, cy]);
-        for (const v of cubicExtrema(cy, cy + (2 / 3) * (y1 - cy), y2 + (2 / 3) * (y1 - y2), y2))
+        for (const v of cubicExtrema(
+          cy,
+          cy + (2 / 3) * (y1 - cy),
+          y2 + (2 / 3) * (y1 - y2),
+          y2,
+        ))
           pts.push([cx, v]);
         pts.push([x2, y2]);
         prevCtrlX = x1;
@@ -315,7 +326,8 @@ export function pathPoints(d: string): Array<[number, number]> {
         const b = args.readNumber();
         const x2 = relative ? cx + a : a;
         const y2 = relative ? cy + b : b;
-        for (const p of arcSamples(cx, cy, rx, ry, rot, largeArc, sweep, x2, y2)) pts.push(p);
+        for (const p of arcSamples(cx, cy, rx, ry, rot, largeArc, sweep, x2, y2))
+          pts.push(p);
         cx = x2;
         cy = y2;
         prevCtrlX = null;
@@ -348,8 +360,14 @@ export function bboxOf(icon: Pick<IconShapes, 'circles' | 'rects' | 'paths'>): B
       ys.push(y);
     }
   }
-  if (xs.length === 0) throw new Error('icon has no circle, rect or path — nothing to measure');
-  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  if (xs.length === 0)
+    throw new Error('icon has no circle, rect or path — nothing to measure');
+  return {
+    x0: Math.min(...xs),
+    x1: Math.max(...xs),
+    y0: Math.min(...ys),
+    y1: Math.max(...ys),
+  };
 }
 
 /** How far outside the keyline an icon reaches. Negative means it is inside. */
@@ -364,7 +382,8 @@ export function overhang(box: Box): number {
 
 /* -- reading the module --------------------------------------------------- */
 
-const EXPORT = /export const (Icon\w+)\s*=\s*\(\{([^}]*)\}\s*:\s*IconProps\)\s*=>\s*\(([\s\S]*?)\n\);/g;
+const EXPORT =
+  /export const (Icon\w+)\s*=\s*\(\{([^}]*)\}\s*:\s*IconProps\)\s*=>\s*\(([\s\S]*?)\n\);/g;
 const ATTR = (name: string) => new RegExp(`\\b${name}="([^"]+)"`);
 
 function attrNumber(tag: string, name: string): number {
@@ -398,7 +417,11 @@ export function extractIcons(source: string): Map<string, IconShapes> {
       defaultSize: sizeValue === undefined ? null : Number.parseFloat(sizeValue),
     };
     for (const tag of body.match(/<circle[^>]*>/g) ?? [])
-      icon.circles.push([attrNumber(tag, 'cx'), attrNumber(tag, 'cy'), attrNumber(tag, 'r')]);
+      icon.circles.push([
+        attrNumber(tag, 'cx'),
+        attrNumber(tag, 'cy'),
+        attrNumber(tag, 'r'),
+      ]);
     for (const tag of body.match(/<rect[^>]*>/g) ?? [])
       icon.rects.push([
         attrNumber(tag, 'x'),
@@ -414,7 +437,8 @@ export function extractIcons(source: string): Map<string, IconShapes> {
     for (const f of body.match(/\bfill="[^"]+"/g) ?? []) icon.fills.push(f.slice(6, -1));
     out.set(name, icon);
   }
-  if (out.size === 0) throw new Error('no Icon* exports found — the extractor matched nothing');
+  if (out.size === 0)
+    throw new Error('no Icon* exports found — the extractor matched nothing');
   return out;
 }
 

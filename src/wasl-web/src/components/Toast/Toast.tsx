@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { IconCircleInfo, IconCircleX, IconResolved, IconTriangleAlert } from '../../icons/icons';
+import {
+  IconCircleInfo,
+  IconCircleX,
+  IconResolved,
+  IconTriangleAlert,
+} from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import styles from './Toast.module.css';
 

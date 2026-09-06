@@ -28,7 +28,10 @@ const read = (file: string) => readFileSync(join(featureDir, file), 'utf8');
 
 const MODULES = ['Customers.module.css', 'CreateCustomer.module.css'] as const;
 
-const tokensCss = readFileSync(join(featureDir, '..', '..', 'styles', 'tokens.css'), 'utf8');
+const tokensCss = readFileSync(
+  join(featureDir, '..', '..', 'styles', 'tokens.css'),
+  'utf8',
+);
 
 /** Every `--name:` declared anywhere in the token sheet. */
 const declaredTokens = new Set(
@@ -56,9 +59,7 @@ describe('AC-12 — no colour, radius, or spacing literal', () => {
       /* `left`/`right` in a product whose primary language is RTL is a bug that
        * only appears in one language, which is the half nobody opens by default.
        * `text-align: start`, `margin-inline-start`, `border-inline-start`. */
-      expect(withoutComments(read(file))).not.toMatch(
-        /(^|[\s;{])(left|right)\s*:/m,
-      );
+      expect(withoutComments(read(file))).not.toMatch(/(^|[\s;{])(left|right)\s*:/m);
       expect(withoutComments(read(file))).not.toMatch(
         /(margin|padding|border)-(left|right)\b/,
       );
@@ -66,7 +67,9 @@ describe('AC-12 — no colour, radius, or spacing literal', () => {
     });
 
     it(`${file} takes every radius from a token`, () => {
-      const declarations = [...withoutComments(read(file)).matchAll(/border-radius:\s*([^;]+);/g)];
+      const declarations = [
+        ...withoutComments(read(file)).matchAll(/border-radius:\s*([^;]+);/g),
+      ];
       expect(declarations.length).toBeGreaterThan(0);
       for (const [, value] of declarations) {
         /* `--radius-*` OR a component token that resolves to one —
@@ -91,7 +94,9 @@ describe('AC-12 — no colour, radius, or spacing literal', () => {
        * intrinsic SIZE (a 52px avatar, a 900px breakpoint) is not spacing and is
        * not matched by these properties. */
       const declarations = [
-        ...withoutComments(read(file)).matchAll(/(?:^|[\s;{])(gap|padding|padding-inline|padding-block|margin-block|margin-inline):\s*([^;]+);/g),
+        ...withoutComments(read(file)).matchAll(
+          /(?:^|[\s;{])(gap|padding|padding-inline|padding-block|margin-block|margin-inline):\s*([^;]+);/g,
+        ),
       ];
       expect(declarations.length).toBeGreaterThan(0);
       for (const [, property, value] of declarations) {
@@ -151,7 +156,8 @@ describe('AC-8 — there is no duplicate pre-check anywhere in this feature', ()
     );
 
     const offenders = files.filter(
-      (file) => file !== 'customers.api.ts' && /\bapiFetch(Detailed)?\s*[<(]/.test(read(file)),
+      (file) =>
+        file !== 'customers.api.ts' && /\bapiFetch(Detailed)?\s*[<(]/.test(read(file)),
     );
 
     /* A screen that fetches from a component is the request-waterfall pattern
@@ -226,9 +232,14 @@ describe('AC-13 — the catalogues are in step', () => {
    *  Added 2026-09-01, when `033` introduced the namespace's first counted noun
    *  (`list.count`) and this guard went red on six legitimate Arabic forms. The
    *  fold is the fix; loosening the comparison to a subset would not be. */
-  const folded = (catalogue: unknown) => [
-    ...new Set(leaves(catalogue).map((key) => key.replace(/_(zero|one|two|few|many|other)$/, ''))),
-  ].sort();
+  const folded = (catalogue: unknown) =>
+    [
+      ...new Set(
+        leaves(catalogue).map((key) =>
+          key.replace(/_(zero|one|two|few|many|other)$/, ''),
+        ),
+      ),
+    ].sort();
 
   it('holds the same keys in en and ar', () => {
     /* BR-8.11's parity, for this namespace. A key present in one language falls

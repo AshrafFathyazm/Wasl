@@ -415,7 +415,11 @@ export function changeTicketAssignee(
  */
 export function getTicketTimeline(
   id: string,
-  params: { before?: string | undefined; limit?: number | undefined; type?: TimelineFilter | undefined } = {},
+  params: {
+    before?: string | undefined;
+    limit?: number | undefined;
+    type?: TimelineFilter | undefined;
+  } = {},
   signal?: AbortSignal,
 ): Promise<TimelinePage> {
   return apiFetch<TimelinePage>(`/api/tickets/${id}/timeline`, {

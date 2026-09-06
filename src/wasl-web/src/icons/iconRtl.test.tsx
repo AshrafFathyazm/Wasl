@@ -169,7 +169,10 @@ describe('AC-9 — the rule actually mirrors, and only the flipped ones', () => 
       return acc;
     })(join(__dirname, '..'));
 
-    expect(stylesheets.length, 'found no stylesheets — the scan measured nothing').toBeGreaterThan(5);
+    expect(
+      stylesheets.length,
+      'found no stylesheets — the scan measured nothing',
+    ).toBeGreaterThan(5);
 
     const offenders: string[] = [];
     for (const file of stylesheets) {
@@ -181,6 +184,9 @@ describe('AC-9 — the rule actually mirrors, and only the flipped ones', () => 
           offenders.push(`${relative(join(__dirname, '..'), file)} — ${selector.trim()}`);
       }
     }
-    expect(offenders, `icon transforms outside base.css: ${offenders.join(' | ')}`).toEqual([]);
+    expect(
+      offenders,
+      `icon transforms outside base.css: ${offenders.join(' | ')}`,
+    ).toEqual([]);
   });
 });

@@ -189,7 +189,9 @@ describe('the search box', () => {
     mounted('/tickets?search=gulf');
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    expect(screen.getByPlaceholderText(i18n.t('tickets:list.search'))).toHaveValue('gulf');
+    expect(screen.getByPlaceholderText(i18n.t('tickets:list.search'))).toHaveValue(
+      'gulf',
+    );
   });
 });
 
@@ -219,7 +221,9 @@ describe('no matches is not no tickets', () => {
     await waitFor(() =>
       expect(screen.getByText(i18n.t('tickets:list.emptyTitle'))).toBeInTheDocument(),
     );
-    expect(screen.queryByText(i18n.t('tickets:list.noMatchTitle'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tickets:list.noMatchTitle')),
+    ).not.toBeInTheDocument();
   });
 
   /* Past the end wins over no-matches: a filtered list CAN be paged past its
@@ -234,7 +238,9 @@ describe('no matches is not no tickets', () => {
     await waitFor(() =>
       expect(screen.getByText(i18n.t('tickets:list.pastEndTitle'))).toBeInTheDocument(),
     );
-    expect(screen.queryByText(i18n.t('tickets:list.noMatchTitle'))).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n.t('tickets:list.noMatchTitle')),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -243,7 +249,9 @@ describe('the panel', () => {
     mounted();
     await waitFor(() => expect(listTickets).toHaveBeenCalled());
 
-    const toggle = screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.filter'), 'i') });
+    const toggle = screen.getByRole('button', {
+      name: new RegExp(i18n.t('tickets:list.filter'), 'i'),
+    });
 
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
@@ -331,7 +339,9 @@ describe('the panel', () => {
     /* The trigger opens a DIALOG named after its field — two تطبيق buttons can
      * be on screen at once, and the name is what tells them apart. */
     await userEvent.click(
-      screen.getByRole('button', { name: new RegExp(i18n.t('tickets:list.createdFrom')) }),
+      screen.getByRole('button', {
+        name: new RegExp(i18n.t('tickets:list.createdFrom')),
+      }),
     );
     const dialog = screen.getByRole('dialog', {
       name: i18n.t('tickets:list.createdFrom'),
@@ -358,7 +368,6 @@ describe('the panel', () => {
     await waitFor(() => expect(lastParams()?.createdFrom).toBe(iso));
   });
 });
-
 
 /*
  * =============================================================================
@@ -515,8 +524,6 @@ describe('the path decides the assignee, and nothing on screen can undo it', () 
     ).not.toBeInTheDocument();
     /* And not the "nothing has arrived on any channel" copy either, which is
      * false while the team's queue holds work. */
-    expect(
-      screen.queryByText(i18n.t('tickets:list.emptyTitle')),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(i18n.t('tickets:list.emptyTitle'))).not.toBeInTheDocument();
   });
 });

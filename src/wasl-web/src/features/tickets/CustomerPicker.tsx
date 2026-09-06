@@ -233,11 +233,7 @@ export function CustomerPicker({
               the input's text as it appeared and again as it left.
 
               Gated, so a search answering in 90ms paints nothing at all. */}
-          {showSearching ? (
-            <Loader variant="bars" size="sm" />
-          ) : (
-            <IconSearch size={16} />
-          )}
+          {showSearching ? <Loader variant="bars" size="sm" /> : <IconSearch size={16} />}
         </span>
       </div>
 

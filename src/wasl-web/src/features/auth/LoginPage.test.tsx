@@ -29,7 +29,8 @@ if (!global.ResizeObserver) {
     disconnect() {}
   } as unknown as typeof ResizeObserver;
 }
-HTMLCanvasElement.prototype.getContext = (() => null) as unknown as HTMLCanvasElement['getContext'];
+HTMLCanvasElement.prototype.getContext = (() =>
+  null) as unknown as HTMLCanvasElement['getContext'];
 
 vi.mock('./auth.api', () => ({ signIn: vi.fn() }));
 
@@ -56,14 +57,14 @@ function renderPage(initialEntry = '/login') {
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
         <AuthProvider>
-        <MemoryRouter initialEntries={[initialEntry]}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            {/* A marker, not copy — queried by test id so the BR-8.8 rule keeps
+          <MemoryRouter initialEntries={[initialEntry]}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              {/* A marker, not copy — queried by test id so the BR-8.8 rule keeps
                 meaning what it says about USER-FACING strings. */}
-            <Route path="/tickets" element={<div data-testid="tickets-screen" />} />
-          </Routes>
-        </MemoryRouter>
+              <Route path="/tickets" element={<div data-testid="tickets-screen" />} />
+            </Routes>
+          </MemoryRouter>
         </AuthProvider>
       </I18nextProvider>
     </QueryClientProvider>,
@@ -120,10 +121,7 @@ describe('AC-27 — a 401 here is the form error, never a redirect', () => {
 describe('a transport failure says something different from a rejected credential', () => {
   it('tells the user to retry rather than to retype', async () => {
     vi.mocked(signIn).mockRejectedValue(
-      new ApiError(
-        { type: 'errors/network', title: 'Failed to fetch', status: 0 },
-        null,
-      ),
+      new ApiError({ type: 'errors/network', title: 'Failed to fetch', status: 0 }, null),
     );
     renderPage();
 

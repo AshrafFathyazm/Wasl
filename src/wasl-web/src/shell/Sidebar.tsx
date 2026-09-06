@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '../components/Button/Button';
-import { IconAdd, IconChevronDown, IconResolved, IconSettings, IconSignOut } from '../icons/icons';
+import {
+  IconAdd,
+  IconChevronDown,
+  IconResolved,
+  IconSettings,
+  IconSignOut,
+} from '../icons/icons';
 import { Mark } from '../brand/Mark';
 import { WORDMARK_AR, WORDMARK_LATIN } from '../brand/wordmark';
 import { cx } from '../lib/cx';

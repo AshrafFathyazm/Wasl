@@ -273,9 +273,7 @@ describe('TEST-031-03 — focus never leaves the trigger (AC-6)', () => {
     await user.keyboard('{ArrowDown}');
     await menu();
 
-    await waitFor(() =>
-      expect(document.activeElement).toBe(search()),
-    );
+    await waitFor(() => expect(document.activeElement).toBe(search()));
   });
 });
 

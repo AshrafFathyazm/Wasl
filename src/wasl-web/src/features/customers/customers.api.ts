@@ -3,6 +3,7 @@ import type {
   CreateCustomerRequest,
   CreateCustomerResponse,
   CustomerDetail,
+  CustomerCompanies,
   CustomerListItem,
   PagedResult,
   UpdateCustomerRequest,
@@ -88,7 +89,11 @@ export async function createCustomer(
  * drops blanks too (`CustomerFilters.Companies`), and sending nothing is
  * unambiguous against any server.
  */
-export interface CustomerListParams {
+/* NOT contract shapes — the request parameters this feature sends, and the object
+ * the query key is built from. Unprefixed for the reason `tickets.api.ts` records at
+ * its own `ListParams`: a domain prefix claims the type was transcribed from a
+ * frozen contract, and these two were not. */
+export interface ListParams {
   page?: number;
   pageSize?: number;
 
@@ -96,7 +101,7 @@ export interface CustomerListParams {
   search?: string;
 
   /** `fullName` | `createdAtUtc`. An unknown value is a `400`, not a fallback. */
-  sort?: CustomerSort;
+  sort?: SortField;
   dir?: SortDirection;
 
   /** EXACT company names, OR-ed. The server clamps to twenty. */
@@ -113,7 +118,7 @@ export interface CustomerListParams {
   calendar?: 'hijri' | 'gregorian';
 }
 
-export type CustomerSort = 'fullName' | 'createdAtUtc';
+export type SortField = 'fullName' | 'createdAtUtc';
 export type SortDirection = 'asc' | 'desc';
 
 /**
@@ -129,7 +134,7 @@ export type SortDirection = 'asc' | 'desc';
  * came back and never what was sent.
  */
 export function listCustomers(
-  params: CustomerListParams,
+  params: ListParams,
   signal?: AbortSignal,
 ): Promise<PagedResult<CustomerListItem>> {
   return apiFetch<PagedResult<CustomerListItem>>('/api/customers', {
@@ -152,21 +157,6 @@ export function listCustomers(
     },
     ...(signal ? { signal } : {}),
   });
-}
-
-/** `GET /api/customers/companies` — `033` §5.3. */
-export interface CustomerCompanies {
-  items: string[];
-
-  /**
-   * Whether ANY active customer has no company — a fact about the directory, not
-   * about this search.
-   *
-   * **It is not derivable from `items`.** The server caps the list, so an absent
-   * name may exist beyond the cap, and a null company is not in `items` by
-   * construction. The server answers it with its own `EXISTS`.
-   */
-  hasUncompanied: boolean;
 }
 
 /**
@@ -197,7 +187,7 @@ export function getCustomerCompanies(
  * and a filter added tomorrow needs no key change.
  */
 export const customerKeys = {
-  list: (params: CustomerListParams) => ['customers', 'list', params] as const,
+  list: (params: ListParams) => ['customers', 'list', params] as const,
   detail: (id: string) => ['customers', 'detail', id] as const,
 
   /** NOT under `['customers', …]`: the vocabulary is not a customer, and nesting

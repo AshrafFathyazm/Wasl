@@ -14,7 +14,27 @@ import { Textarea } from '../../components/Textarea/Textarea';
 /* ONE icon module since `037`. The warning that stood here — two files, and an
    import naming the wrong one renders the screen blank — no longer applies,
    because there is no second file to name. */
-import { IconAdd, IconArrowRight, IconAssign, IconCalendar, IconCheck, IconChevronDown, IconClose, IconComment, IconEdit, IconEmail, IconEscalate, IconEyeOff, IconLivechat, IconMerge, IconPriority, IconSms, IconTicket, IconWebform, IconWhatsapp } from '../../icons/icons';
+import {
+  IconAdd,
+  IconArrowRight,
+  IconAssign,
+  IconCalendar,
+  IconCheck,
+  IconChevronDown,
+  IconClose,
+  IconComment,
+  IconEdit,
+  IconEmail,
+  IconEscalate,
+  IconEyeOff,
+  IconLivechat,
+  IconMerge,
+  IconPriority,
+  IconSms,
+  IconTicket,
+  IconWebform,
+  IconWhatsapp,
+} from '../../icons/icons';
 import { useToast } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type {
@@ -820,7 +840,8 @@ export default function TicketDetailPage() {
             ? t('detail.unassignToastTitle')
             : t('detail.assignToastTitle', {
                 name:
-                  supportUsers.data?.find((user) => user.id === assigneeId)?.fullName ?? '',
+                  supportUsers.data?.find((user) => user.id === assigneeId)?.fullName ??
+                  '',
               }),
       });
       await afterWrite();
@@ -1805,4 +1826,3 @@ export default function TicketDetailPage() {
  * What it does NOT draw is unchanged and the reasoning moved with it: the
  * department (`SupportUser` is `(id, fullName, role)`) and any hint of who BR-2
  * would let take this ticket. */
-

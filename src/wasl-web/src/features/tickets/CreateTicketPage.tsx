@@ -14,7 +14,10 @@ import { Textarea } from '../../components/Textarea/Textarea';
 import { useToast } from '../../components/Toast/ToastHost';
 import { IconAddCustomer, IconChevron, IconCircleX } from '../../icons/icons';
 import { ApiError } from '../../lib/api';
-import { TICKET_CATEGORIES, type CustomerListItem } from '../../lib/api-types.provisional';
+import {
+  TICKET_CATEGORIES,
+  type CustomerListItem,
+} from '../../lib/api-types.provisional';
 import { formatNumber, type Lang } from '../../lib/formatters';
 import { CreateCustomerForm } from '../customers/CreateCustomerPage';
 import { getCustomer } from '../customers/customers.api';
@@ -689,7 +692,9 @@ export default function CreateTicketPage() {
                   {t('tickets:new.missing', {
                     count: missing.length,
                     formatted: formatNumber(missing.length, lang),
-                    fields: missing.map((field) => t(field.label)).join(t('common:listSeparator')),
+                    fields: missing
+                      .map((field) => t(field.label))
+                      .join(t('common:listSeparator')),
                   })}
                 </span>
               </div>

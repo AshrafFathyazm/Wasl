@@ -46,7 +46,9 @@ function stripComments(source: string): string {
 
 describe('the comment stripper works — the control for the two scans that use it', () => {
   it('removes a block comment and a line comment, and keeps the code', () => {
-    const stripped = stripComments('const a = 1; /* fill="currentColor" */\n// fill="red"\nconst b = 2;');
+    const stripped = stripComments(
+      'const a = 1; /* fill="currentColor" */\n// fill="red"\nconst b = 2;',
+    );
     expect(stripped).not.toContain('currentColor');
     expect(stripped).not.toContain('fill="red"');
     expect(stripped).toContain('const a = 1;');
@@ -87,7 +89,9 @@ describe('AC-6 — one module, one declaration per name', () => {
       (m) => m[1] as string,
     );
     const seen = new Set<string>();
-    const duplicates = declared.filter((n) => (seen.has(n) ? true : (seen.add(n), false)));
+    const duplicates = declared.filter((n) =>
+      seen.has(n) ? true : (seen.add(n), false),
+    );
     expect(duplicates, `declared more than once: ${duplicates.join(', ')}`).toEqual([]);
   });
 
@@ -98,7 +102,9 @@ describe('AC-6 — one module, one declaration per name', () => {
   it('declares no Icon component anywhere else under src/', () => {
     const strays = sourceFiles(SRC)
       .filter((f) => f !== MODULE_PATH)
-      .filter((f) => /^export const Icon[A-Z]/m.test(stripComments(readFileSync(f, 'utf8'))))
+      .filter((f) =>
+        /^export const Icon[A-Z]/m.test(stripComments(readFileSync(f, 'utf8'))),
+      )
       .map((f) => relative(SRC, f));
     expect(strays, `icons declared outside the module: ${strays.join(', ')}`).toEqual([]);
   });
@@ -113,7 +119,9 @@ describe('AC-6 — one module, one declaration per name', () => {
 describe('AC-5 — the 24 box and the 18 default', () => {
   it('sets the viewBox once, in base(), and nowhere else', () => {
     const code = stripComments(moduleSource);
-    expect([...code.matchAll(/viewBox:\s*'([^']+)'/g)].map((m) => m[1])).toEqual(['0 0 24 24']);
+    expect([...code.matchAll(/viewBox:\s*'([^']+)'/g)].map((m) => m[1])).toEqual([
+      '0 0 24 24',
+    ]);
     expect([...code.matchAll(/\bviewBox="[^"]*"/g)].map((m) => m[0])).toEqual([]);
   });
 

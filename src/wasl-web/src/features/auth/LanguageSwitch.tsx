@@ -59,7 +59,8 @@ export function LanguageSwitch() {
   const target: Language = current === 'ar' ? 'en' : 'ar';
 
   /* Shown: the CURRENT language. Announced: the language pressing it moves to. */
-  const currentCode = current === 'ar' ? t('common:lang.codeAr') : t('common:lang.codeEn');
+  const currentCode =
+    current === 'ar' ? t('common:lang.codeAr') : t('common:lang.codeEn');
   const targetName = target === 'ar' ? t('common:lang.arabic') : t('common:lang.english');
 
   return (

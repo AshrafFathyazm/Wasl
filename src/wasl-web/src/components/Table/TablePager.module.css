@@ -62,6 +62,8 @@
   unicode-bidi: isolate;
 }
 
+/* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
+   the correction is kept beside the reason it was made, not merged into the first. */
 .pager {
   display: flex;
   align-items: center;
@@ -181,8 +183,9 @@
 /* A disabled arrow sits in a quiet grey square — the frame draws the OFF state
    as a surface, not as faded ink alone, so "there is no previous page" is
    visible before it is tried. */
+/* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
+   the correction is kept beside the reason it was made, not merged into the first. */
 .pageArrow:disabled {
   background-color: var(--surface-sunken);
   border-radius: var(--radius-sm);
 }
-

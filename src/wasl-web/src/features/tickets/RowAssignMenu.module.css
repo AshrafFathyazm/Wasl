@@ -14,8 +14,10 @@
 /* Grows from the trigger in both directions. `useMenuSurface` reports which way
    it flipped precisely so this origin can follow it — an animation that always
    grows downward reads as the menu sliding away from a menu that opened up. */
+/* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
+   the correction is kept beside the reason it was made, not merged into the first. */
 .surface {
-  animation: menuIn 160ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  animation: menu-in 160ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
   transform-origin: top center;
 }
 
@@ -23,11 +25,12 @@
   transform-origin: bottom center;
 }
 
-@keyframes menuIn {
+@keyframes menu-in {
   from {
     opacity: 0;
     transform: translateY(-4px) scale(0.99);
   }
+
   to {
     opacity: 1;
     transform: none;

@@ -267,10 +267,7 @@ export function PriorTickets({ count, tickets, customerId, lang }: PriorTicketsP
 
           {count > tickets.length ? (
             <li>
-              <Link
-                className={styles.priorAll}
-                to={`/tickets?customerId=${customerId}`}
-              >
+              <Link className={styles.priorAll} to={`/tickets?customerId=${customerId}`}>
                 {t('tickets:new.openTicketsAll')}
               </Link>
             </li>

@@ -299,6 +299,8 @@
   background-image: var(--wasl-pattern);
   background-size: var(--wasl-pattern-size);
   /* The shared radial mask: transparent over the copy, tiles at the edges. */
+  /* stylelint-disable-next-line property-no-vendor-prefix -- no autoprefixer in this
+     build, and Safari below 15.4 paints nothing through the unprefixed property. */
   -webkit-mask-image: var(--wasl-pattern-mask);
   mask-image: var(--wasl-pattern-mask);
   opacity: var(--wasl-pattern-opacity);
@@ -428,7 +430,6 @@
 .rowMenuItem {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
 
   /* The item is as tall as a list row and as wide as the menu — the whole strip
      is the target, not the label. A menu that only responds on the text is a
@@ -490,7 +491,6 @@
   margin-inline: var(--space-3);
   background-color: var(--border-divider);
 }
-
 
 /* ============================================================================
  * The subject tooltip — the whole sentence, shown only when the cell cut it
@@ -566,9 +566,7 @@
   pointer-events: none;
 }
 
-
 /* The near-top flip: same pill, other side of the link. */
 .subjectTipBelow {
-  inset-block-end: auto;
-  inset-block-start: calc(100% + var(--space-1));
+  inset-block: calc(100% + var(--space-1)) auto;
 }

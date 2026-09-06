@@ -310,6 +310,9 @@
    * it by wheel or drag, but focus moving to a clipped label would scroll the
    * rail sideways. The real fix is for a collapsed item to stop reserving the
    * label's width; that is a change to how the rail renders, not to this line. */
+  /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties -- the
+     two axes are declared apart because each carries its own recorded reason, and the
+     `overflow-x` paragraph above is the 2026-09-06 ruling. A merged shorthand orphans it. */
   overflow-x: clip;
 }
 

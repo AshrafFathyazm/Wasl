@@ -6,7 +6,17 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mark } from '../../brand/Mark';
 import { Table, type TableColumn } from '../../components/Table/Table';
 import { TablePager } from '../../components/Table/TablePager';
-import { IconAssign, IconClosed, IconEmail, IconEscalate, IconEye, IconLivechat, IconSms, IconWebform, IconWhatsapp } from '../../icons/icons';
+import {
+  IconAssign,
+  IconClosed,
+  IconEmail,
+  IconEscalate,
+  IconEye,
+  IconLivechat,
+  IconSms,
+  IconWebform,
+  IconWhatsapp,
+} from '../../icons/icons';
 import { ApiError } from '../../lib/api';
 import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
@@ -160,7 +170,6 @@ function readInt(raw: string | null, fallback: number): number {
  * `common` for every table in the product.
  */
 
-
 /**
  * Whole minutes since a timestamp, floored at zero.
  *
@@ -199,7 +208,7 @@ function minutesSince(timestamp: number): number {
  *   - it does not count as filtering, so an empty personal queue reads "no
  *     tickets" rather than "no matches" under a Clear-filters button
  * ========================================================================== */
-export type TicketQueue = 'mine' | 'unassigned';
+export type QueueScope = 'mine' | 'unassigned';
 
 /** `039`. One row action at a time. `anchor` is the row's actions cell for the
  *  menu and `null` for the modal — a modal is centred on the page and has
@@ -208,7 +217,7 @@ type RowAction =
   | { kind: 'assign'; row: TicketListItem; anchor: HTMLElement }
   | { kind: 'close'; row: TicketListItem; anchor: null };
 
-export default function TicketListPage({ queue }: { queue?: TicketQueue | undefined }) {
+export default function TicketListPage({ queue }: { queue?: QueueScope | undefined }) {
   const { t, i18n } = useTranslation('tickets');
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
   const navigate = useNavigate();
@@ -577,17 +586,17 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
           meaning and the pager with it. The notice lives in the primitive now,
           under the header, and says the same words on every table. */}
       <Table
-          label={t('list.tableLabel')}
-          columns={columns}
-          rows={items}
-          rowKey={(row) => row.id}
-          /* 62px rows. `03-tickets-list.md` and `06-customers-list.md` both
+        label={t('list.tableLabel')}
+        columns={columns}
+        rows={items}
+        rowKey={(row) => row.id}
+        /* 62px rows. `03-tickets-list.md` and `06-customers-list.md` both
              specify 61 — the SAME number — and the 70px default was measured
              for this screen alone, before there was a second table for it to
              disagree with. The subject cell's two lines total 37px; dense
              leaves 46px of content box. */
-          density="dense"
-          /* THE ROW MENU IS BACK, and Q-7's ruling is the reason it looks like
+        density="dense"
+        /* THE ROW MENU IS BACK, and Q-7's ruling is the reason it looks like
              this rather than the reason it is absent.
 
              Q-7 turned one down when it held a single View item that duplicated
@@ -611,30 +620,30 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
 
              So two items act and two still navigate. `escalate` stays inert —
              `016` is unbuilt — and `view` is the row click's own shortcut. */
-          rowFlyout={{
-            header: t('list.column.actions'),
-            triggerLabel: t('list.rowActions'),
-            render: (row, close) => (
-              <div className={styles.rowMenu} role="menu">
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.rowMenuItem}
-                  onClick={() => {
-                    close();
-                    void navigate(`/tickets/${row.id}`);
-                  }}
-                >
-                  <IconEye size={16} aria-hidden="true" />
-                  {t('list.view')}
-                </button>
+        rowFlyout={{
+          header: t('list.column.actions'),
+          triggerLabel: t('list.rowActions'),
+          render: (row, close) => (
+            <div className={styles.rowMenu} role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.rowMenuItem}
+                onClick={() => {
+                  close();
+                  void navigate(`/tickets/${row.id}`);
+                }}
+              >
+                <IconEye size={16} aria-hidden="true" />
+                {t('list.view')}
+              </button>
 
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.rowMenuItem}
-                  onClick={(event) => {
-                    /* THE CELL IS CAPTURED BEFORE `close()`, and the order is
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.rowMenuItem}
+                onClick={(event) => {
+                  /* THE CELL IS CAPTURED BEFORE `close()`, and the order is
                        load-bearing: `close()` unmounts this button, so reading
                        `event.currentTarget` afterwards gives a detached node and
                        the menu opens against a rect of zeroes at the top-left
@@ -643,72 +652,72 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                        The CELL rather than the trigger inside it: the trigger is
                        `Table`'s own element and reaching for it by selector would
                        be this feature knowing another one's internals. */
-                    const anchor = event.currentTarget.closest('td');
-                    close();
-                    if (anchor !== null) setAction({ kind: 'assign', row, anchor });
-                  }}
-                >
-                  <IconAssign size={16} aria-hidden="true" />
-                  {t('list.action.reassign')}
-                </button>
+                  const anchor = event.currentTarget.closest('td');
+                  close();
+                  if (anchor !== null) setAction({ kind: 'assign', row, anchor });
+                }}
+              >
+                <IconAssign size={16} aria-hidden="true" />
+                {t('list.action.reassign')}
+              </button>
 
-                {/* DISABLED, WITH THE REASON IN ITS ACCESSIBLE NAME. `016` is
+              {/* DISABLED, WITH THE REASON IN ITS ACCESSIBLE NAME. `016` is
                     not built and there is no escalate endpoint in the API — the
                     design draws the item, so it is drawn, and it does not
                     pretend to work. This is the one place on this screen where a
                     disabled control is right: the item is part of a menu whose
                     shape the design fixes, and removing it would move the three
                     below it. */}
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.rowMenuItem}
-                  disabled
-                  aria-disabled="true"
-                  title={t('list.action.escalateUnavailable')}
-                >
-                  <IconEscalate size={16} aria-hidden="true" />
-                  {t('list.action.escalate')}
-                </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.rowMenuItem}
+                disabled
+                aria-disabled="true"
+                title={t('list.action.escalateUnavailable')}
+              >
+                <IconEscalate size={16} aria-hidden="true" />
+                {t('list.action.escalate')}
+              </button>
 
-                <span className={styles.rowMenuRule} role="separator" />
+              <span className={styles.rowMenuRule} role="separator" />
 
-                {/* NOT RED ANY MORE, and the reason is the product owner's:
+              {/* NOT RED ANY MORE, and the reason is the product owner's:
                     «الأحمر في النظام لفعل الذي لا يُستردّ، والإغلاق يُعاد فتحه
                     بنقرة». Red is left to delete, alone. `rowMenuItemDanger` is
                     deleted rather than left unused — an unused danger class is
                     one autocomplete away from coming back. */}
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={styles.rowMenuItem}
-                  onClick={(event) => {
-                    /* No anchor needed — a modal is centred on the page. The
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.rowMenuItem}
+                onClick={(event) => {
+                  /* No anchor needed — a modal is centred on the page. The
                        flyout still closes first, so focus is not stranded on a
                        button that is about to be unmounted behind a scrim. */
-                    close();
-                    setAction({ kind: 'close', row, anchor: null });
-                    event.stopPropagation();
-                  }}
-                >
-                  <IconClosed size={16} aria-hidden="true" />
-                  {t('list.action.close')}
-                </button>
-              </div>
-            ),
-          }}
-          state={state}
-          /* A refetch DIMS and keeps the rows. isPending is the FIRST load;
-           * isFetching is any load, so this is true only for a background one. */
-          /* isPlaceholderData: the rows on screen belong to the PREVIOUS page
-           * and the next one is in flight. isFetching-without-isPending: the
-           * same key is being refetched. Both are "these rows are not fresh",
-           * and neither is the first load. */
-          refreshing={query.isPlaceholderData || (query.isFetching && !query.isPending)}
-          skeletonRows={Math.min(effectivePageSize, 10)}
-          empty={
-            <div className={styles.empty}>
-              {/* THE MARK ON A PATTERNED GROUND — ruled by the product owner
+                  close();
+                  setAction({ kind: 'close', row, anchor: null });
+                  event.stopPropagation();
+                }}
+              >
+                <IconClosed size={16} aria-hidden="true" />
+                {t('list.action.close')}
+              </button>
+            </div>
+          ),
+        }}
+        state={state}
+        /* A refetch DIMS and keeps the rows. isPending is the FIRST load;
+         * isFetching is any load, so this is true only for a background one. */
+        /* isPlaceholderData: the rows on screen belong to the PREVIOUS page
+         * and the next one is in flight. isFetching-without-isPending: the
+         * same key is being refetched. Both are "these rows are not fresh",
+         * and neither is the first load. */
+        refreshing={query.isPlaceholderData || (query.isFetching && !query.isPending)}
+        skeletonRows={Math.min(effectivePageSize, 10)}
+        empty={
+          <div className={styles.empty}>
+            {/* THE MARK ON A PATTERNED GROUND — ruled by the product owner
                   2026-08-31: an empty surface in this product carries the Wasl
                   mark. The tokens are shared (`tokens.css`), so this card and
                   the customer profile's two blank states use one asset.
@@ -716,66 +725,66 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                   The glyph is `aria-hidden`: the heading under it already says
                   what happened, and a screen reader announcing "Wasl" before
                   "no matching results" adds a brand name to a failure. */}
-              <span className={styles.emptyMark} aria-hidden="true">
-                <Mark size={44} />
-              </span>
-              <p className={styles.emptyTitle}>{t(`list.${emptyKey}Title`)}</p>
-              <p className={styles.emptyBody}>{t(`list.${emptyKey}Body`)}</p>
-              {pastEnd ? (
-                <button
-                  type="button"
-                  className={styles.retry}
-                  onClick={() => setPage(Math.max(totalPages, 1))}
-                >
-                  {t('list.pastEndCta')}
-                </button>
-              ) : noMatches ? (
-                /* Clears the FACETS and keeps the search term, matching the bar's
+            <span className={styles.emptyMark} aria-hidden="true">
+              <Mark size={44} />
+            </span>
+            <p className={styles.emptyTitle}>{t(`list.${emptyKey}Title`)}</p>
+            <p className={styles.emptyBody}>{t(`list.${emptyKey}Body`)}</p>
+            {pastEnd ? (
+              <button
+                type="button"
+                className={styles.retry}
+                onClick={() => setPage(Math.max(totalPages, 1))}
+              >
+                {t('list.pastEndCta')}
+              </button>
+            ) : noMatches ? (
+              /* Clears the FACETS and keeps the search term, matching the bar's
                    own Clear all: the reader's typed question is the last thing to
                    throw away, and the search box has its own clear beside it. */
-                <button
-                  type="button"
-                  className={styles.retry}
-                  onClick={() =>
-                    setFilters({
-                      status: [],
-                      priority: [],
-                      category: [],
-                      channel: [],
-                      assignee: '',
-                      escalated: undefined,
-                      search: filters.search,
-                      createdFrom: '',
-                      createdTo: '',
-                    })
-                  }
-                >
-                  {t('list.noMatchCta')}
-                </button>
-              ) : null}
-            </div>
-          }
-          fill
-          onRowClick={openTicket}
-          footer={
-            <TablePager
-              lang={lang}
-              page={effectivePage}
-              pageSize={effectivePageSize}
-              totalPages={totalPages}
-              totalCount={query.data?.totalCount ?? 0}
-              /* COUNTED, not computed: the last page is short, and
+              <button
+                type="button"
+                className={styles.retry}
+                onClick={() =>
+                  setFilters({
+                    status: [],
+                    priority: [],
+                    category: [],
+                    channel: [],
+                    assignee: '',
+                    escalated: undefined,
+                    search: filters.search,
+                    createdFrom: '',
+                    createdTo: '',
+                  })
+                }
+              >
+                {t('list.noMatchCta')}
+              </button>
+            ) : null}
+          </div>
+        }
+        fill
+        onRowClick={openTicket}
+        footer={
+          <TablePager
+            lang={lang}
+            page={effectivePage}
+            pageSize={effectivePageSize}
+            totalPages={totalPages}
+            totalCount={query.data?.totalCount ?? 0}
+            /* COUNTED, not computed: the last page is short, and
                  `page * pageSize` would claim rows that are not there. */
-              rowsOnPage={items.length}
-              onPage={setPage}
-              onPageSize={setPageSize}
-            />
-          }
-          onRetry={() => void query.refetch()}
-          traceId={
-            query.error instanceof ApiError ? query.error.problem?.traceId : undefined
-          }
-        />
+            rowsOnPage={items.length}
+            onPage={setPage}
+            onPageSize={setPageSize}
+          />
+        }
+        onRetry={() => void query.refetch()}
+        traceId={
+          query.error instanceof ApiError ? query.error.problem?.traceId : undefined
+        }
+      />
 
       {/* `039`. The two surfaces the row menu opens. Both are mounted by the
           PAGE and not by the row: a menu rendered inside a `<td>` is clipped by

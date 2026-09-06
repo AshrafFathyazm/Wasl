@@ -72,9 +72,7 @@ const CAL_COLS = 7;
  * throws on CONSTRUCTION, and a locale gap must degrade to "no toggle", never
  * take the panel down. */
 const hijriLocale = (lang: Lang) =>
-  lang === 'ar'
-    ? 'ar-SA-u-ca-islamic-umalqura'
-    : 'en-u-ca-islamic-umalqura-nu-latn';
+  lang === 'ar' ? 'ar-SA-u-ca-islamic-umalqura' : 'en-u-ca-islamic-umalqura-nu-latn';
 
 function makeHijri(
   lang: Lang,
@@ -176,7 +174,11 @@ export function DateField({ label, value, onChange, lang }: DateFieldProps) {
   const [hijri, setHijri] = useState(false);
 
   const triggerText =
-    value === '' ? null : hijri ? hijriDay(value) ?? prettyDay(value) : prettyDay(value);
+    value === ''
+      ? null
+      : hijri
+        ? (hijriDay(value) ?? prettyDay(value))
+        : prettyDay(value);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -213,9 +215,7 @@ export function DateField({ label, value, onChange, lang }: DateFieldProps) {
             defect the list's date column had, avoided rather than re-measured. */}
         <span className={styles.dateBtnValue} dir="ltr">
           {triggerText === null ? (
-            <span className={styles.dateBtnPlaceholder}>
-              {t('cal.placeholder')}
-            </span>
+            <span className={styles.dateBtnPlaceholder}>{t('cal.placeholder')}</span>
           ) : (
             triggerText
           )}
@@ -286,7 +286,10 @@ function Calendar({
   );
   /* The toggle only renders when the engine can honour it — a switch that
    * flips and changes nothing is a broken control, not a degradation. */
-  const hijriAvailable = useMemo(() => makeHijri(lang, { day: 'numeric' }) !== null, [lang]);
+  const hijriAvailable = useMemo(
+    () => makeHijri(lang, { day: 'numeric' }) !== null,
+    [lang],
+  );
 
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
@@ -403,9 +406,7 @@ function Calendar({
                     )}
                     onClick={() => {
                       setMonth(
-                        years
-                          ? new Date(base + i, monthIndex, 1)
-                          : new Date(year, i, 1),
+                        years ? new Date(base + i, monthIndex, 1) : new Date(year, i, 1),
                       );
                       setMode(years ? 'months' : 'days');
                     }}
@@ -439,11 +440,7 @@ function Calendar({
         >
           {tc('cancel')}
         </button>
-        <button
-          type="button"
-          className={styles.calSolidBtn}
-          onClick={() => onApply(sel)}
-        >
+        <button type="button" className={styles.calSolidBtn} onClick={() => onApply(sel)}>
           {t('cal.apply')}
         </button>
       </div>

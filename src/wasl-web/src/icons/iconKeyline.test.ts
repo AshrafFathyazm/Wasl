@@ -36,10 +36,15 @@ function iconModules(): Array<{ file: string; source: string }> {
     .map((file) => ({ file, source: readFileSync(join(ICONS_DIR, file), 'utf8') }));
 }
 
-function allIcons(): Array<{ file: string; name: string; icon: ReturnType<typeof extractIcons> extends Map<string, infer V> ? V : never }> {
+function allIcons(): Array<{
+  file: string;
+  name: string;
+  icon: ReturnType<typeof extractIcons> extends Map<string, infer V> ? V : never;
+}> {
   const out: Array<{ file: string; name: string; icon: never }> = [];
   for (const { file, source } of iconModules())
-    for (const [name, icon] of extractIcons(source)) out.push({ file, name, icon: icon as never });
+    for (const [name, icon] of extractIcons(source))
+      out.push({ file, name, icon: icon as never });
   return out;
 }
 
@@ -63,8 +68,12 @@ describe('AC-2 — the tool is verified before it is believed', () => {
    * "must be under N" assertion ever written. So it throws instead. */
   it('throws rather than measuring nothing', () => {
     expect(() => pathPoints('')).toThrow(/no points/);
-    expect(() => bboxOf({ circles: [], rects: [], paths: [] })).toThrow(/nothing to measure/);
-    expect(() => extractIcons('// a file with no icons in it')).toThrow(/matched nothing/);
+    expect(() => bboxOf({ circles: [], rects: [], paths: [] })).toThrow(
+      /nothing to measure/,
+    );
+    expect(() => extractIcons('// a file with no icons in it')).toThrow(
+      /matched nothing/,
+    );
   });
 
   it('refuses an arc flag that is not 0 or 1 instead of guessing', () => {

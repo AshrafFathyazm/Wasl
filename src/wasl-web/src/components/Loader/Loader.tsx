@@ -71,9 +71,15 @@ function MarkThreads({ dash }: { dash: boolean }) {
         strokeLinejoin="round"
         {...(dash ? { strokeDasharray: 46 } : {})}
       >
-        <path className={dash ? styles.markThread : undefined} d="M8 9h12c10 0 12 5 17 11" />
+        <path
+          className={dash ? styles.markThread : undefined}
+          d="M8 9h12c10 0 12 5 17 11"
+        />
         <path className={dash ? styles.markThread : undefined} d="M8 20h29" />
-        <path className={dash ? styles.markThread : undefined} d="M8 31h12c10 0 12-5 17-11" />
+        <path
+          className={dash ? styles.markThread : undefined}
+          d="M8 31h12c10 0 12-5 17-11"
+        />
       </g>
       <circle
         className={dash ? styles.markNode : undefined}
@@ -94,12 +100,7 @@ export function Loader({ variant = 'converge', size = 'md', label }: LoaderProps
    * announce "image" in the middle of a form. */
   const frame = (body: ReactNode, extra?: string) => (
     <span
-      className={cx(
-        styles.loader,
-        styles[variant],
-        size === 'sm' && styles.sm,
-        extra,
-      )}
+      className={cx(styles.loader, styles[variant], size === 'sm' && styles.sm, extra)}
       role={announced ? 'status' : undefined}
       aria-label={announced ? label : undefined}
       aria-hidden={announced ? undefined : true}

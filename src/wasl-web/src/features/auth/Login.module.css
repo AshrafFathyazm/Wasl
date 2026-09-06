@@ -329,7 +329,11 @@
   position: absolute;
   inset: 0;
   z-index: 5;
-  background: radial-gradient(126% 74% at 50% 34%, transparent 42%, rgb(11 11 22 / 78%) 100%);
+  background: radial-gradient(
+    126% 74% at 50% 34%,
+    transparent 42%,
+    rgb(11 11 22 / 78%) 100%
+  );
   pointer-events: none;
 }
 
@@ -594,7 +598,12 @@
   inset: 0;
   pointer-events: none;
   mix-blend-mode: overlay;
-  background: linear-gradient(104deg, transparent 42%, rgb(255 255 255 / 50%) 50%, transparent 58%);
+  background: linear-gradient(
+    104deg,
+    transparent 42%,
+    rgb(255 255 255 / 50%) 50%,
+    transparent 58%
+  );
   /* Constraint 9, with the light. */
   display: none;
 }

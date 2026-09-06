@@ -147,6 +147,8 @@ button:not([class]) {
  * of inline padding on EVERY button turned a 28px icon control into a 40px pill
  * and set a toast's height from its dismiss glyph. Both were reported as size
  * defects and neither was one. */
+/* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
+   the correction is kept beside the reason it was made, not merged into the first. */
 button:not([class]) {
   block-size: var(--button-height-md);
   padding-inline: var(--button-padding);

@@ -47,7 +47,8 @@ const NOT_YET_CONSUMED: Record<string, string> = {
   IconExternal: 'no feature — no outbound link in any screen today',
 
   /* §02, the primary family. */
-  IconMobile: 'no feature — the handset lost its channel slot to the document’s sms bubble',
+  IconMobile:
+    'no feature — the handset lost its channel slot to the document’s sms bubble',
   IconAttachment: 'out of scope — attachments, 00-project-context.md',
 
   /* §05. `027` drew escalate, merge and extend-due as INERT rows with no client
@@ -96,7 +97,8 @@ const NOT_YET_CONSUMED: Record<string, string> = {
    * and action menus were moved onto the document's vocabulary. Kept, not
    * deleted: 037 Q-2 rules IconReassign a different act from the document's
    * handoff, and IconArrowUp is the bare primitive the branded swoosh is not. */
-  IconArrowUp: "no feature — the document's escalate swoosh took every place this stood in for",
+  IconArrowUp:
+    "no feature — the document's escalate swoosh took every place this stood in for",
   IconReassign: "no feature — the row menu uses the document's assign now; see 037 Q-2",
 };
 
@@ -110,7 +112,9 @@ function walk(dir: string, acc: string[] = []): string[] {
 }
 
 const moduleSource = readFileSync(join(ICONS_DIR, 'icons.tsx'), 'utf8');
-const exported = [...moduleSource.matchAll(/^export const (Icon\w+)/gm)].map((m) => m[1] as string);
+const exported = [...moduleSource.matchAll(/^export const (Icon\w+)/gm)].map(
+  (m) => m[1] as string,
+);
 
 /* Consumers are every source file OUTSIDE the icons folder. A test importing an
  * icon does not make a screen render it, and every test that does so lives in
@@ -120,14 +124,19 @@ const consumerFiles = walk(SRC).filter((f) => !f.startsWith(ICONS_DIR));
 const consumerSources = consumerFiles.map((f) => readFileSync(f, 'utf8'));
 
 const consumed = new Set(
-  exported.filter((name) => consumerSources.some((s) => new RegExp(`\\b${name}\\b`).test(s))),
+  exported.filter((name) =>
+    consumerSources.some((s) => new RegExp(`\\b${name}\\b`).test(s)),
+  ),
 );
 
 describe('AC-10 — the coverage list is exact in both directions', () => {
   it('measured something — consumers and exports were both found', () => {
     expect(consumerFiles.length, 'no consumer files were read').toBeGreaterThan(50);
     expect(exported.length, 'no exports were found').toBeGreaterThanOrEqual(70);
-    expect(consumed.size, 'not one export was found in use — the scan is broken').toBeGreaterThan(20);
+    expect(
+      consumed.size,
+      'not one export was found in use — the scan is broken',
+    ).toBeGreaterThan(20);
   });
 
   it('names every unconsumed export', () => {

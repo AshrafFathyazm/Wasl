@@ -297,7 +297,7 @@
 
 /* One breakpoint, and it is where the record card stops having room for a date
  * on one line rather than at a device width. */
-@media (max-width: 900px) {
+@media (width <= 900px) {
   .columns {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -462,6 +462,8 @@
   background-size: var(--wasl-pattern-size);
   /* Fades out under the heading and the icon, so the copy sits on clean ground
      and the mark only fills what would otherwise be blank. */
+  /* stylelint-disable-next-line property-no-vendor-prefix -- no autoprefixer in this
+     build, and Safari below 15.4 paints nothing through the unprefixed property. */
   -webkit-mask-image: var(--wasl-pattern-mask);
   mask-image: var(--wasl-pattern-mask);
   opacity: var(--wasl-pattern-opacity);

@@ -478,7 +478,10 @@ export default function CustomersListPage() {
               <IconCustomerProfile size={20} aria-hidden="true" />
             </span>
           ) : (
-            <span className={styles.sheetAvatar} data-tint={avatarBucket(openRow.fullName)}>
+            <span
+              className={styles.sheetAvatar}
+              data-tint={avatarBucket(openRow.fullName)}
+            >
               {avatarInitial(openRow.fullName)}
             </span>
           )

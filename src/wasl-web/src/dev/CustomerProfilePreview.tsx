@@ -102,7 +102,10 @@ const VARIANTS: Array<{ variant: Variant; note: string }> = [
     variant: 'inactive',
     note: 'isActive: false — the contract says the field is not there and the build sends it (spec Q-5)',
   },
-  { variant: 'loading', note: 'Loading — skeletons shaped like what is coming, ONE announcement' },
+  {
+    variant: 'loading',
+    note: 'Loading — skeletons shaped like what is coming, ONE announcement',
+  },
   {
     variant: 'notFound',
     note: '404 — an ANSWER. No trace id, no Retry: retrying a definite answer is how a state becomes a loop',
@@ -124,8 +127,12 @@ function customerFor(variant: Variant, lang: Lang): CustomerDetail {
   if (variant === 'longName') {
     return {
       ...base,
-      fullName: lang === 'ar' ? LONG_NAME : 'Abdullah bin Mohammed Al-Otaibi General Trading and Industrial Supplies Company',
-      companyName: lang === 'ar' ? LONG_NAME : 'Al-Otaibi General Trading and Industrial Supplies',
+      fullName:
+        lang === 'ar'
+          ? LONG_NAME
+          : 'Abdullah bin Mohammed Al-Otaibi General Trading and Industrial Supplies Company',
+      companyName:
+        lang === 'ar' ? LONG_NAME : 'Al-Otaibi General Trading and Industrial Supplies',
     };
   }
   return base;
@@ -168,8 +175,8 @@ function Frame({ variant, lang }: { variant: Variant; lang: Lang }) {
 
   return (
     <I18nextProvider i18n={instance}>
-    <div className={styles.frame} dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang}>
-      {/* NO ROUTER HERE, AND THE FIRST VERSION HAD ONE.
+      <div className={styles.frame} dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang}>
+        {/* NO ROUTER HERE, AND THE FIRST VERSION HAD ONE.
           The view holds three `Link`s — the breadcrumb and the two back-to-list
           controls — so I wrapped each frame in a `MemoryRouter`. This route is
           already inside the application's router (`routes.tsx` mounts it), and
@@ -183,16 +190,16 @@ function Frame({ variant, lang }: { variant: Variant; lang: Lang }) {
           same blind spot that let `/tickets` render a placeholder for a release.
           Found by opening the page in a browser, which is the only tool that
           sees it. */}
-      <CustomerProfileView
-        state={state}
-        customer={customerFor(variant, lang)}
-        traceId={variant === 'error' ? '0HN7QK3M9V2P1:0000000B' : undefined}
-        onRetry={() => {}}
-        onCopied={(field) => setCopied(field)}
-        lang={lang}
-      />
+        <CustomerProfileView
+          state={state}
+          customer={customerFor(variant, lang)}
+          traceId={variant === 'error' ? '0HN7QK3M9V2P1:0000000B' : undefined}
+          onRetry={() => {}}
+          onCopied={(field) => setCopied(field)}
+          lang={lang}
+        />
 
-      {/* THE REAL TOAST, and the first version of this page did not show it.
+        {/* THE REAL TOAST, and the first version of this page did not show it.
           It stood in with a line of text — `copy → toast` — on the grounds that
           eight fixed-position toasts would stack in one corner of the harness.
           True, and it made the confirmation unreviewable: the product owner
@@ -202,28 +209,28 @@ function Frame({ variant, lang }: { variant: Variant; lang: Lang }) {
           Fixed by rendering it INSIDE the frame rather than fixed to the
           viewport. The page still positions it at the bottom inline-start; this
           shows the pill itself — tone, tick, copy, dismiss control. */}
-      <div className={styles.toastSlot}>
-        {copied === null ? (
-          <p className={cx(styles.copyEcho, styles.copyEchoIdle)}>
-            {'press a copy control →'}
-          </p>
-        ) : (
-          <Toast
-            key={copied}
-            tone="inverse"
-            dismissLabel="Dismiss"
-            onDismiss={() => setCopied(null)}
-          >
-            <span className={styles.toastBody}>
-              <span className={styles.toastTick} aria-hidden="true">
-                <IconCheck size={14} />
+        <div className={styles.toastSlot}>
+          {copied === null ? (
+            <p className={cx(styles.copyEcho, styles.copyEchoIdle)}>
+              {'press a copy control →'}
+            </p>
+          ) : (
+            <Toast
+              key={copied}
+              tone="inverse"
+              dismissLabel="Dismiss"
+              onDismiss={() => setCopied(null)}
+            >
+              <span className={styles.toastBody}>
+                <span className={styles.toastTick} aria-hidden="true">
+                  <IconCheck size={14} />
+                </span>
+                {instance.t('customers:profile.copied', { field: copied })}
               </span>
-              {instance.t('customers:profile.copied', { field: copied })}
-            </span>
-          </Toast>
-        )}
+            </Toast>
+          )}
+        </div>
       </div>
-    </div>
     </I18nextProvider>
   );
 }
@@ -243,13 +250,12 @@ export default function CustomerProfilePreview() {
 
       <p className={cx(styles.pageNote, styles.finding)}>
         <strong>Two findings against the frozen contracts, measured not read.</strong>{' '}
-        <code>isActive</code> is in the built response and{' '}
-        <code>008</code>&apos;s contract says it is not — a deactivated customer answers{' '}
-        <code>200</code> and, without the badge below, renders identically to a live one.
-        And a malformed id answers <code>404</code>, not the contract&apos;s{' '}
-        <code>400</code>, because the action carries a <code>{'{id:guid}'}</code> route
-        constraint — so <em>one</em> not-found state serves both causes. Both are raised in
-        the spec, not normalised.
+        <code>isActive</code> is in the built response and <code>008</code>&apos;s
+        contract says it is not — a deactivated customer answers <code>200</code> and,
+        without the badge below, renders identically to a live one. And a malformed id
+        answers <code>404</code>, not the contract&apos;s <code>400</code>, because the
+        action carries a <code>{'{id:guid}'}</code> route constraint — so <em>one</em>{' '}
+        not-found state serves both causes. Both are raised in the spec, not normalised.
       </p>
 
       {VARIANTS.map(({ variant, note }) => (

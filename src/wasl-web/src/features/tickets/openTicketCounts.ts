@@ -38,12 +38,7 @@ import { countTickets, ticketKeys } from './tickets.api';
  * by however many tickets sit in the one status whose name says it. The two
  * lists look interchangeable and are not, which is why this one is declared
  * beside its use with the reason attached. */
-export const OPEN_STATUSES = [
-  'New',
-  'Open',
-  'InProgress',
-  'PendingCustomer',
-] as const;
+export const OPEN_STATUSES = ['New', 'Open', 'InProgress', 'PendingCustomer'] as const;
 
 /**
  * One `totalCount` per user id. A user whose request has not resolved is

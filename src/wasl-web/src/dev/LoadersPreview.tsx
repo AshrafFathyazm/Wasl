@@ -138,9 +138,9 @@ export default function LoadersPreview() {
 
         <p className={styles.note}>
           <b>حالة الحركة المخفّضة لا تُحاكى من هذه الصفحة، وهذا مقصود.</b> لا توجد طريقة
-          لضبطها من JavaScript؛ اضبطها من النظام، أو من DevTools ‹ Rendering ‹ «Emulate CSS
-          media feature prefers-reduced-motion». الشارة أعلاه تقرأ ما يقوله المتصفّح فعلاً
-          — فإن لم تتغيّر، لم تتغيّر الحالة.
+          لضبطها من JavaScript؛ اضبطها من النظام، أو من DevTools ‹ Rendering ‹ «Emulate
+          CSS media feature prefers-reduced-motion». الشارة أعلاه تقرأ ما يقوله المتصفّح
+          فعلاً — فإن لم تتغيّر، لم تتغيّر الحالة.
           <br />
           <b>ما يجب أن تراه عند التفعيل:</b> كل شكل يبقى مرئياً وساكناً. أي شكل يختفي هو
           عيب — لا تحسين.
@@ -215,8 +215,8 @@ export default function LoadersPreview() {
               <Loader variant="brand" />
             </div>
             <span className={styles.use}>
-              العلامة اتجاهية بالتصميم وتحتفظ باتجاهها في العربية (brand.md). الخيوط تصل من
-              بداية السطر، وهي في العربية اليمين.
+              العلامة اتجاهية بالتصميم وتحتفظ باتجاهها في العربية (brand.md). الخيوط تصل
+              من بداية السطر، وهي في العربية اليمين.
             </span>
           </div>
         </div>

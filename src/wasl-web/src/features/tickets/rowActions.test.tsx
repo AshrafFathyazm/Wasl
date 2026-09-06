@@ -173,7 +173,9 @@ describe('AC-1 / AC-3 — four items and a rule, and none of them is red', () =>
     expect(items).toHaveLength(4);
     expect(items[2]).toBeDisabled();
 
-    const close = within(menu).getByRole('menuitem', { name: label('list.action.close') });
+    const close = within(menu).getByRole('menuitem', {
+      name: label('list.action.close'),
+    });
     expect(close.className).not.toMatch(/danger/i);
   });
 });
@@ -200,7 +202,9 @@ describe('AC-2 — «إعادة الإسناد» acts in place and does not navi
       within(menu).getByRole('menuitem', { name: label('list.action.reassign') }),
     );
 
-    await waitFor(() => expect(getTicket).toHaveBeenCalledWith(ROW.id, expect.anything()));
+    await waitFor(() =>
+      expect(getTicket).toHaveBeenCalledWith(ROW.id, expect.anything()),
+    );
   });
 });
 
@@ -214,9 +218,7 @@ describe('AC-25 / AC-26 / AC-33 — assigning: one write, then the surface goes,
 
     const picker = await screen.findByRole('dialog', { name: label('assign.menuLabel') });
     await waitFor(() =>
-      expect(
-        within(picker).getByRole('button', { name: /سعد الدوسري/ }),
-      ).toBeEnabled(),
+      expect(within(picker).getByRole('button', { name: /سعد الدوسري/ })).toBeEnabled(),
     );
 
     await userEvent.click(within(picker).getByRole('button', { name: /سعد الدوسري/ }));
@@ -343,7 +345,9 @@ describe('AC-15 — the picker is dismissible without acting', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: label('assign.menuLabel') })).toBeNull(),
+      expect(
+        screen.queryByRole('dialog', { name: label('assign.menuLabel') }),
+      ).toBeNull(),
     );
     expect(changeTicketAssignee).not.toHaveBeenCalled();
   });

@@ -34,7 +34,11 @@ const TONES: BadgeTone[] = ['neutral', 'info', 'success', 'warning', 'danger'];
  * that reveal whether the menu is finished. A list of four plain strings looks
  * right in every state and proves neither. */
 const PREVIEW_OPTIONS: DropdownOption[] = [
-  { value: 'Billing', label: 'Billing', description: 'Invoices, refunds, payment methods' },
+  {
+    value: 'Billing',
+    label: 'Billing',
+    description: 'Invoices, refunds, payment methods',
+  },
   { value: 'Technical', label: 'Technical' },
   { value: 'Account', label: 'Account', disabled: true },
   { value: 'General', label: 'General' },

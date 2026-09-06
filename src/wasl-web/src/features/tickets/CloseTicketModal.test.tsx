@@ -51,7 +51,11 @@ function mount() {
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
         <ToastProvider>
-          <CloseTicketModal ticketId={TICKET_ID} ticketNumber={NUMBER} onClose={onClose} />
+          <CloseTicketModal
+            ticketId={TICKET_ID}
+            ticketNumber={NUMBER}
+            onClose={onClose}
+          />
         </ToastProvider>
       </QueryClientProvider>
     </I18nextProvider>,
@@ -96,7 +100,10 @@ describe('AC-16 — the row has no version, so opening fetches the ticket', () =
 describe('AC-17 — BR-1 is the server’s, and the client renders what it was given', () => {
   it('refuses in words and sends nothing when Closed is not allowed', async () => {
     vi.mocked(getTicket).mockResolvedValue(
-      ticket({ status: 'InProgress', allowedTransitions: ['Open', 'PendingCustomer', 'Resolved'] }),
+      ticket({
+        status: 'InProgress',
+        allowedTransitions: ['Open', 'PendingCustomer', 'Resolved'],
+      }),
     );
 
     mount();
@@ -261,7 +268,9 @@ describe('AC-21 / AC-22 — the composed note and the version that goes with it'
     await userEvent.click(confirm());
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent(label('close.error.transition')),
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        label('close.error.transition'),
+      ),
     );
   });
 });
@@ -305,7 +314,12 @@ describe('composeNote — the one place three fields become the contract’s one
     ).toBe('مكرّرة — التذكرة الأصلية TCK-1\nشرح');
 
     expect(
-      composeNote({ reason: 'تم الحل', duplicateOf: '', duplicateLabel: 'x', summary: '' }),
+      composeNote({
+        reason: 'تم الحل',
+        duplicateOf: '',
+        duplicateLabel: 'x',
+        summary: '',
+      }),
     ).toBe('تم الحل');
   });
 

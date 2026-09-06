@@ -323,57 +323,57 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           busyAtStart && styles.hasLead,
         )}
       >
-      <input
-        ref={ref}
-        id={controlId}
-        className={cx(
-          styles.control,
-          styles[sizeClass[size]],
-          hasError && styles.invalid,
-        )}
-        type={renderedType}
-        name={name}
-        autoComplete={autoComplete}
-        /* ALWAYS — EXCEPT on a password.
-         *
-         * `dir="auto"` decides direction from the first strong character, and a
-         * password field renders dots: there is no strong character to read, so
-         * the browser falls back to the paragraph direction and the caret jumps
-         * to the other end mid-entry under RTL. A password is also not language
-         * content — it is an opaque secret, and it has no direction to detect.
-         *
-         * Everything else keeps it: an Arabic name typed into an English form is
-         * normal, and without it the punctuation lands at the wrong end and reads
-         * as a typo (ADR-007 §8). */
-        dir={type === 'password' ? 'ltr' : dir}
-        value={value}
-        placeholder={placeholder}
-        disabled={disabled}
-        required={required}
-        inputMode={inputMode}
-        onKeyUp={onKeyUp}
-        maxLength={maxLength}
-        aria-invalid={hasError || undefined}
-        /* The FIELD is busy, not the document. A screen reader hearing
-         * aria-busy on the control it is sitting in knows the value it just
-         * read may change; the same attribute on a wrapper says nothing about
-         * which control to re-read. */
-        aria-busy={showBusy || undefined}
-        /* Points at whichever of helper or error is currently rendered, so a test
-         * can query the control by its accessible description rather than by a
-         * class name. No aria-live region: the error appears on blur, when the
-         * user is already moving to the next field, and a live region would
-         * interrupt them mid-field. */
-        aria-describedby={
-          [message === undefined ? null : messageId, showCounter ? counterId : null]
-            .filter(Boolean)
-            .join(' ') || undefined
-        }
-        onChange={(event) => onChange(event.target.value)}
-        onBlur={onBlur}
-      />
+        <input
+          ref={ref}
+          id={controlId}
+          className={cx(
+            styles.control,
+            styles[sizeClass[size]],
+            hasError && styles.invalid,
+          )}
+          type={renderedType}
+          name={name}
+          autoComplete={autoComplete}
+          /* ALWAYS — EXCEPT on a password.
+           *
+           * `dir="auto"` decides direction from the first strong character, and a
+           * password field renders dots: there is no strong character to read, so
+           * the browser falls back to the paragraph direction and the caret jumps
+           * to the other end mid-entry under RTL. A password is also not language
+           * content — it is an opaque secret, and it has no direction to detect.
+           *
+           * Everything else keeps it: an Arabic name typed into an English form is
+           * normal, and without it the punctuation lands at the wrong end and reads
+           * as a typo (ADR-007 §8). */
+          dir={type === 'password' ? 'ltr' : dir}
+          value={value}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          inputMode={inputMode}
+          onKeyUp={onKeyUp}
+          maxLength={maxLength}
+          aria-invalid={hasError || undefined}
+          /* The FIELD is busy, not the document. A screen reader hearing
+           * aria-busy on the control it is sitting in knows the value it just
+           * read may change; the same attribute on a wrapper says nothing about
+           * which control to re-read. */
+          aria-busy={showBusy || undefined}
+          /* Points at whichever of helper or error is currently rendered, so a test
+           * can query the control by its accessible description rather than by a
+           * class name. No aria-live region: the error appears on blur, when the
+           * user is already moving to the next field, and a live region would
+           * interrupt them mid-field. */
+          aria-describedby={
+            [message === undefined ? null : messageId, showCounter ? counterId : null]
+              .filter(Boolean)
+              .join(' ') || undefined
+          }
+          onChange={(event) => onChange(event.target.value)}
+          onBlur={onBlur}
+        />
 
-      {/* Both slots, and only ever one of them occupied — `busyPlacement` is a
+        {/* Both slots, and only ever one of them occupied — `busyPlacement` is a
           choice, not two independent flags. "One loader per field"
           (design/loaders.md §7) is a rule this shape cannot break.
 
@@ -381,37 +381,37 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           interchangeable: bars occupy the search icon's exact footprint so a
           search field does not reflow when the icon is replaced, and orbit is
           the affix shape. */}
-      {busyAtStart ? (
-        <span className={styles.lead}>
-          <Loader variant="bars" size="sm" />
-        </span>
-      ) : null}
+        {busyAtStart ? (
+          <span className={styles.lead}>
+            <Loader variant="bars" size="sm" />
+          </span>
+        ) : null}
 
-      {busyAtEnd ? (
-        <span className={styles.busyAffix}>
-          <Loader variant="orbit" size="sm" />
-        </span>
-      ) : null}
+        {busyAtEnd ? (
+          <span className={styles.busyAffix}>
+            <Loader variant="orbit" size="sm" />
+          </span>
+        ) : null}
 
-      {canReveal ? (
-        <button
-          type="button"
-          className={styles.reveal}
-          /* `aria-pressed` rather than two different labels for one control:
-           * the button IS the same control in both states, and its state is
-           * what changed. The label still swaps so the name says what the
-           * next press will do. */
-          aria-pressed={revealed}
-          aria-label={revealed ? hideLabel : revealLabel}
-          aria-controls={controlId}
-          /* Out of the tab order is WRONG here — a keyboard-only user has no
-           * other way to check what they typed. It is reachable, and it is
-           * the last stop in the field. */
-          onClick={() => setRevealed((current) => !current)}
-        >
-          {revealed ? <IconEyeOff size={16} /> : <IconEye size={16} />}
-        </button>
-      ) : null}
+        {canReveal ? (
+          <button
+            type="button"
+            className={styles.reveal}
+            /* `aria-pressed` rather than two different labels for one control:
+             * the button IS the same control in both states, and its state is
+             * what changed. The label still swaps so the name says what the
+             * next press will do. */
+            aria-pressed={revealed}
+            aria-label={revealed ? hideLabel : revealLabel}
+            aria-controls={controlId}
+            /* Out of the tab order is WRONG here — a keyboard-only user has no
+             * other way to check what they typed. It is reachable, and it is
+             * the last stop in the field. */
+            onClick={() => setRevealed((current) => !current)}
+          >
+            {revealed ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+          </button>
+        ) : null}
       </span>
 
       {message === undefined && !showCounter ? null : (

@@ -175,7 +175,6 @@ describe('sorting is a request, and the control belongs to Table', () => {
     );
   });
 
-
   it('drops a date that is not a real day', async () => {
     mounted('/customers?createdFrom=2026-02-31');
     await rendered();

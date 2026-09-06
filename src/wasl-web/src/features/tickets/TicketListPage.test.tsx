@@ -178,7 +178,9 @@ describe('the five states', () => {
     mounted();
 
     const alert = await screen.findByRole('alert');
-    expect(within(alert).getByText(i18n.t('common:table.errorTitle'))).toBeInTheDocument();
+    expect(
+      within(alert).getByText(i18n.t('common:table.errorTitle')),
+    ).toBeInTheDocument();
     expect(within(alert).getByText(i18n.t('common:table.errorBody'))).toBeInTheDocument();
 
     /* The server's own `detail` is NOT on screen. Asserted, because dropping it
@@ -199,7 +201,9 @@ describe('the five states', () => {
     expect(screen.queryAllByRole('row')).toHaveLength(1);
 
     vi.mocked(listTickets).mockResolvedValue(page());
-    await u.click(within(alert).getByRole('button', { name: i18n.t('common:table.retry') }));
+    await u.click(
+      within(alert).getByRole('button', { name: i18n.t('common:table.retry') }),
+    );
     expect(await screen.findByText('TCK-2026-000042')).toBeInTheDocument();
   });
 });

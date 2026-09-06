@@ -26,7 +26,8 @@ function renderForm(props: Partial<Parameters<typeof LoginForm>[0]> = {}) {
 }
 
 const email = () => screen.getByRole('textbox', { name: /email/i });
-const password = () => document.querySelector('input[name="password"]') as HTMLInputElement;
+const password = () =>
+  document.querySelector('input[name="password"]') as HTMLInputElement;
 const submit = () => screen.getByRole('button', { name: /sign in/i });
 
 describe('D-1 — focus returns to the email field after a rejected credential', () => {

@@ -78,7 +78,6 @@
   line-height: var(--leading-ar-normal);
 }
 
-
 .page:lang(ar) .entryBody {
   line-height: var(--leading-ar-normal);
 }
@@ -338,6 +337,8 @@
   color: var(--state-neutral-text);
 }
 
+/* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
+   the correction is kept beside the reason it was made, not merged into the first. */
 .prNormal,
 .prLow {
   font-weight: var(--weight-medium);
@@ -577,22 +578,8 @@
  * off the viewport in ltr, which is the kind of asymmetry that ships because the
  * product is developed in Arabic. */
 
-
-
-
-
-
-
-
-
-
-
 /* The ROLE, and only the role. `SupportUserOption` is `(id, fullName, role)` —
  * the canvas's «وكيل · الفوترة» has no department behind it. */
-
-
-
-
 
 /* ---- customer and their other tickets ------------------------------------ */
 
@@ -1344,6 +1331,8 @@
   inset: 0;
   background-image: var(--wasl-pattern);
   background-size: var(--wasl-pattern-size);
+  /* stylelint-disable-next-line property-no-vendor-prefix -- no autoprefixer in this
+     build, and Safari below 15.4 paints nothing through the unprefixed property. */
   -webkit-mask-image: var(--wasl-pattern-mask);
   mask-image: var(--wasl-pattern-mask);
   opacity: var(--wasl-pattern-opacity);
@@ -1461,7 +1450,7 @@
 
 /* ---- narrow ------------------------------------------------------------- */
 
-@media (max-width: 980px) {
+@media (width <= 980px) {
   .layoutWide {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1482,10 +1471,6 @@
  * ======================================================================== */
 
 /* ---- four people, four tints --------------------------------------------- */
-
-
-
-
 
 /* The fifth. Four buckets put two of the three seeded agents in one colour —
    measured — and five is the count the tag palette settled on for the same

@@ -175,7 +175,9 @@ export function RadioGroup({
             /* Icon-only cells have no text child, so the name comes from here.
                `Button`'s own rule — an icon-only control REQUIRES a label — is
                the same rule, enforced by a different component. */
-            {...(variant === 'icon' ? { 'aria-label': option.label, title: option.label } : {})}
+            {...(variant === 'icon'
+              ? { 'aria-label': option.label, title: option.label }
+              : {})}
             tabIndex={index === tabIndexAt ? 0 : -1}
             className={cx(styles.option, checked && styles.optionChecked)}
             onClick={() => onChange(option.value)}

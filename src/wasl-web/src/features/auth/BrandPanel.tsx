@@ -303,11 +303,7 @@ export function BrandPanel() {
        * resolve, the panel keeps its accent instead of losing the pulse to a
        * transparent stroke nobody would think to look for. */
       if (match === null) return [111, 191, 176];
-      return [
-        parseInt(match[1]!, 16),
-        parseInt(match[2]!, 16),
-        parseInt(match[3]!, 16),
-      ];
+      return [parseInt(match[1]!, 16), parseInt(match[2]!, 16), parseInt(match[3]!, 16)];
     })();
     const accent = (alpha: number) =>
       `rgba(${accentChannels[0]},${accentChannels[1]},${accentChannels[2]},${alpha})`;
@@ -330,7 +326,6 @@ export function BrandPanel() {
      * of the entrance rather than as the panel being alive. */
     let untilNextPulse = 1.9;
     let glow = 0;
-
 
     /* Which node the pointer is over, for positioning the label. A ref-like
      * local rather than the state above: the label's POSITION is written by the
@@ -479,9 +474,13 @@ export function BrandPanel() {
           const entrance = nodeEntrance(index);
 
           node.hx =
-            hub.x + node.ox * entrance + Math.sin(time * 0.5 + node.ph) * NODE_SWAY * sway;
+            hub.x +
+            node.ox * entrance +
+            Math.sin(time * 0.5 + node.ph) * NODE_SWAY * sway;
           node.hy =
-            hub.y + node.oy * entrance + Math.cos(time * 0.42 + node.ph) * NODE_SWAY * sway;
+            hub.y +
+            node.oy * entrance +
+            Math.cos(time * 0.42 + node.ph) * NODE_SWAY * sway;
 
           if (dragging === node) {
             node.vx = (pointerX - node.x) * 0.42;

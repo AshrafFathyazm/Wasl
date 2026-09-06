@@ -306,7 +306,9 @@ describe('AC-12, AC-13, AC-14 — the duplicate check', () => {
       Promise.resolve(
         params.status?.includes('Closed')
           ? {
-              items: [{ ...openTicket('9', 'Closed yesterday'), status: 'Closed' as const }],
+              items: [
+                { ...openTicket('9', 'Closed yesterday'), status: 'Closed' as const },
+              ],
               page: 1,
               pageSize: 3,
               totalCount: 1,
@@ -375,7 +377,10 @@ describe('AC-12, AC-13, AC-14 — the duplicate check', () => {
 describe('AC-27, AC-30, AC-39 — what actually goes on the wire', () => {
   it('sends ONE request when submit is clicked twice in a row', async () => {
     vi.mocked(createTicket).mockImplementation(
-      () => new Promise((resolve) => setTimeout(() => resolve({ ticket: TICKET, location: null }), 50)),
+      () =>
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ ticket: TICKET, location: null }), 50),
+        ),
     );
 
     const user = userEvent.setup();
@@ -497,7 +502,10 @@ describe('AC-35, AC-36 — «New customer» opens a sheet and selects what it cr
     const user = userEvent.setup();
     renderPage();
 
-    await user.type(screen.getByLabelText('Subject'), 'Typed before the customer existed');
+    await user.type(
+      screen.getByLabelText('Subject'),
+      'Typed before the customer existed',
+    );
     await user.click(screen.getByRole('button', { name: /New customer/i }));
 
     /* The sheet is `035`'s form. Driving it end to end is `035`'s test; what

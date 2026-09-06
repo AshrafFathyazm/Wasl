@@ -137,7 +137,8 @@ export function CloseTicketModal({
   });
 
   const reasonMissing = submitted && reason === null;
-  const duplicateMissing = submitted && reason === 'duplicate' && duplicateOf.trim() === '';
+  const duplicateMissing =
+    submitted && reason === 'duplicate' && duplicateOf.trim() === '';
 
   const note = composeNote({
     reason: reason === null ? '' : t(`close.reason.${reason}`),
@@ -201,7 +202,11 @@ export function CloseTicketModal({
 
         {ticket !== undefined && !allowed ? (
           <p className={cx(styles.notice, styles.noticeBlocked)}>
-            <IconTriangleAlert size={16} aria-hidden="true" className={styles.noticeIcon} />
+            <IconTriangleAlert
+              size={16}
+              aria-hidden="true"
+              className={styles.noticeIcon}
+            />
             {t('close.blocked', { status: t(`status.${ticket.status}`) })}
           </p>
         ) : null}
@@ -215,9 +220,16 @@ export function CloseTicketModal({
 
         <div className={styles.group}>
           <span className={styles.groupLabel} id={`${ticketId}-reason`}>
-            {t('close.reasonLabel')} <span className={styles.required}>*</span>
+            {t('close.reasonLabel')}{' '}
+            <span className={styles.required} aria-hidden="true">
+              {'*'}
+            </span>
           </span>
-          <div className={styles.reasons} role="group" aria-labelledby={`${ticketId}-reason`}>
+          <div
+            className={styles.reasons}
+            role="group"
+            aria-labelledby={`${ticketId}-reason`}
+          >
             {REASONS.map((option) => (
               <button
                 key={option.id}

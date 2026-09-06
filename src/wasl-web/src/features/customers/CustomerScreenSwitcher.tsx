@@ -40,7 +40,9 @@ export function CustomerScreenSwitcher({ id }: CustomerScreenSwitcherProps) {
       <NavLink
         end
         to={`/customers/${id}`}
-        className={({ isActive }) => (isActive ? `${styles.seg} ${styles.segOn}` : styles.seg)}
+        className={({ isActive }) =>
+          isActive ? `${styles.seg} ${styles.segOn}` : styles.seg
+        }
       >
         {t('switcher.details')}
       </NavLink>
@@ -48,7 +50,9 @@ export function CustomerScreenSwitcher({ id }: CustomerScreenSwitcherProps) {
       <NavLink
         end
         to={`/customers/${id}/edit`}
-        className={({ isActive }) => (isActive ? `${styles.seg} ${styles.segOn}` : styles.seg)}
+        className={({ isActive }) =>
+          isActive ? `${styles.seg} ${styles.segOn}` : styles.seg
+        }
       >
         {t('switcher.edit')}
       </NavLink>

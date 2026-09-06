@@ -177,9 +177,20 @@ describe('AC-2 — both id shapes reach the not-found state', () => {
    * Both are covered, so this screen is correct under either resolution of that
    * difference — which is the point of not branching on it. */
   const cases = [
-    { label: 'a well-formed id with no customer (404, what the server does)', error: problem(404, 'errors/not-found') },
-    { label: 'a malformed id (404 today, via the route constraint)', error: problem(404, 'errors/not-found') },
-    { label: 'a malformed id (400, what the contract promises)', error: problem(400, 'errors/validation', { errors: { id: ["'id' must be a valid identifier."] } }) },
+    {
+      label: 'a well-formed id with no customer (404, what the server does)',
+      error: problem(404, 'errors/not-found'),
+    },
+    {
+      label: 'a malformed id (404 today, via the route constraint)',
+      error: problem(404, 'errors/not-found'),
+    },
+    {
+      label: 'a malformed id (400, what the contract promises)',
+      error: problem(400, 'errors/validation', {
+        errors: { id: ["'id' must be a valid identifier."] },
+      }),
+    },
   ];
 
   for (const { label, error } of cases) {
@@ -188,14 +199,14 @@ describe('AC-2 — both id shapes reach the not-found state', () => {
 
       renderAt('not-a-guid');
 
-      expect(
-        await screen.findByText('That customer does not exist'),
-      ).toBeInTheDocument();
+      expect(await screen.findByText('That customer does not exist')).toBeInTheDocument();
 
       /* NOT the error state. The two are different states and the difference is
        * asserted here, not left to the eye: a 404 offers no Retry, because
        * retrying a definite answer is how a state becomes a loop. */
-      expect(screen.queryByText('The profile could not be loaded')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('The profile could not be loaded'),
+      ).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument();
     });
   }
@@ -208,7 +219,9 @@ describe('AC-3 — the error state carries the traceId', () => {
 
     renderAt(ID);
 
-    expect(await screen.findByText('The profile could not be loaded')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The profile could not be loaded'),
+    ).toBeInTheDocument();
 
     /* VERBATIM. Not truncated, not reformatted, not translated — it has to match
      * the server log character for character or it is worse than absent,
@@ -227,12 +240,17 @@ describe('AC-3 — the error state carries the traceId', () => {
     /* A transport failure has no `traceId` — nothing logged it. An invented one
      * would send someone hunting through logs for a string never written. */
     vi.mocked(getCustomer).mockRejectedValue(
-      new ApiError({ type: 'errors/network', title: 'Network request failed', status: 0 }, null),
+      new ApiError(
+        { type: 'errors/network', title: 'Network request failed', status: 0 },
+        null,
+      ),
     );
 
     renderAt(ID);
 
-    expect(await screen.findByText('The profile could not be loaded')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The profile could not be loaded'),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/^00-/)).not.toBeInTheDocument();
   });
 });
@@ -330,7 +348,9 @@ describe('AC-5 — three states that all show no notes are distinguishable', () 
     vi.mocked(getCustomer).mockRejectedValue(problem(500, 'errors/unknown'));
     renderAt(ID);
 
-    expect(await screen.findByText('The profile could not be loaded')).toBeInTheDocument();
+    expect(
+      await screen.findByText('The profile could not be loaded'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('No notes on this customer')).not.toBeInTheDocument();
   });
 });

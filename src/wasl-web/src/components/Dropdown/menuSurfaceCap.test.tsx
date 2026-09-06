@@ -207,9 +207,9 @@ describe('align — a menu wider than its trigger keeps the inline-END edge', ()
     const view = open({ top: 100, left: 900, align: 'end', dir: 'rtl', menuWidth: 900 });
 
     expect(view.result.current.position!.insetInlineStartPx).toBeGreaterThanOrEqual(12);
-    expect(
-      view.result.current.position!.insetInlineStartPx + 900,
-    ).toBeLessThanOrEqual(1100);
+    expect(view.result.current.position!.insetInlineStartPx + 900).toBeLessThanOrEqual(
+      1100,
+    );
   });
 });
 
@@ -258,7 +258,7 @@ describe('the menu is measured with ITS OWN size, not the trigger’s', () => {
           }}
           onClick={() => surface.setOpen(true)}
         >
-          open
+          {'open'}
         </button>
 
         {/* MOUNTED ONLY ONCE THERE IS A POSITION — exactly what `RowAssignMenu`
@@ -303,8 +303,7 @@ describe('the menu is measured with ITS OWN size, not the trigger’s', () => {
 });
 
 describe('AC-36 — the cap cannot make an existing Dropdown menu taller', () => {
-  const read = (file: string) =>
-    readFileSync(resolve(__dirname, file), 'utf8');
+  const read = (file: string) => readFileSync(resolve(__dirname, file), 'utf8');
 
   it('takes min() of the design token and the measurement', () => {
     const css = read('./Dropdown.module.css');

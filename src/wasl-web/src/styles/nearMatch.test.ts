@@ -119,7 +119,9 @@ describe('030 AC-3 — the near-match values cannot come back', () => {
   it('holds no copy of the source document’s easing', () => {
     /* `.2,.7,.3,1` in any spacing or zero-padding. `--ease-out` is
        `.22,.80,.30,1` and the two are indistinguishable on screen. */
-    expect(hits(/cubic-bezier\(\s*0?\.2\s*,\s*0?\.7\s*,\s*0?\.3\s*,\s*1\s*\)/)).toEqual([]);
+    expect(hits(/cubic-bezier\(\s*0?\.2\s*,\s*0?\.7\s*,\s*0?\.3\s*,\s*1\s*\)/)).toEqual(
+      [],
+    );
   });
 
   it('would CATCH both, which is what makes the two assertions above mean anything', () => {
@@ -134,7 +136,9 @@ describe('030 AC-3 — the near-match values cannot come back', () => {
       /(?:background|background-color)\s*:\s*rgba?\(\s*13[\s,]/.test(stripped(badScrim)),
     ).toBe(true);
     expect(
-      /cubic-bezier\(\s*0?\.2\s*,\s*0?\.7\s*,\s*0?\.3\s*,\s*1\s*\)/.test(stripped(badEase)),
+      /cubic-bezier\(\s*0?\.2\s*,\s*0?\.7\s*,\s*0?\.3\s*,\s*1\s*\)/.test(
+        stripped(badEase),
+      ),
     ).toBe(true);
 
     /* And it does NOT fire on the values that are correct — otherwise the guard

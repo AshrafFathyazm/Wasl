@@ -27,7 +27,8 @@ import { describe, expect, it } from 'vitest';
  * to prove `setQueryData` is absent: this is a claim about the code, and the code
  * is where it can be checked.
  */
-const read = (rel: string) => readFileSync(resolve(process.cwd(), 'src/shell', rel), 'utf8');
+const read = (rel: string) =>
+  readFileSync(resolve(process.cwd(), 'src/shell', rel), 'utf8');
 
 /** CSS comments removed. The rule that caused this defect is now EXPLAINED inside
  *  the rule that fixed it — "it was min-block-size: 100vh" — so a scan over the

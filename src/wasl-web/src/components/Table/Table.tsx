@@ -9,7 +9,13 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { Mark } from '../../brand/Mark';
-import { IconClose, IconMore, IconSort, IconSortAsc, IconSortDesc } from '../../icons/icons';
+import {
+  IconClose,
+  IconMore,
+  IconSort,
+  IconSortAsc,
+  IconSortDesc,
+} from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import { Loader } from '../Loader/Loader';
 import { Skeleton } from '../Loader/Skeleton';
@@ -418,7 +424,11 @@ function SortHeader({
     ) : direction === 'desc' ? (
       <IconSortDesc size={16} aria-hidden="true" className={styles.sortIcon} />
     ) : (
-      <IconSort size={16} aria-hidden="true" className={cx(styles.sortIcon, styles.sortIconIdle)} />
+      <IconSort
+        size={16}
+        aria-hidden="true"
+        className={cx(styles.sortIcon, styles.sortIconIdle)}
+      />
     );
 
   return (
@@ -426,7 +436,11 @@ function SortHeader({
       <button
         ref={triggerRef}
         type="button"
-        className={cx(styles.sortBtn, direction && styles.sortBtnOn, open && styles.sortBtnOpen)}
+        className={cx(
+          styles.sortBtn,
+          direction && styles.sortBtnOn,
+          open && styles.sortBtnOpen,
+        )}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -445,7 +459,10 @@ function SortHeader({
           <button
             type="button"
             role="menuitem"
-            className={cx(styles.sortMenuItem, direction === 'asc' && styles.sortMenuItemOn)}
+            className={cx(
+              styles.sortMenuItem,
+              direction === 'asc' && styles.sortMenuItemOn,
+            )}
             onClick={() => choose('asc')}
           >
             <IconSortAsc size={16} aria-hidden="true" />
@@ -454,7 +471,10 @@ function SortHeader({
           <button
             type="button"
             role="menuitem"
-            className={cx(styles.sortMenuItem, direction === 'desc' && styles.sortMenuItemOn)}
+            className={cx(
+              styles.sortMenuItem,
+              direction === 'desc' && styles.sortMenuItemOn,
+            )}
             onClick={() => choose('desc')}
           >
             <IconSortDesc size={16} aria-hidden="true" />
@@ -627,7 +647,9 @@ export function Table<TRow>({
                   direction={active}
                   labels={sortMenuLabels}
                   onSort={(next) =>
-                    onSortChange(next === null ? null : { columnId: col.id, direction: next })
+                    onSortChange(
+                      next === null ? null : { columnId: col.id, direction: next },
+                    )
                   }
                 />
               ) : (
@@ -685,7 +707,12 @@ export function Table<TRow>({
 
   return (
     <div
-      className={cx(styles.card, styles[density], fill && styles.cardFill, refreshing && styles.refreshing)}
+      className={cx(
+        styles.card,
+        styles[density],
+        fill && styles.cardFill,
+        refreshing && styles.refreshing,
+      )}
       aria-busy={refreshing || undefined}
     >
       {/* BAR, on a refetch only (design/loaders.md §2: background loading that
@@ -710,7 +737,11 @@ export function Table<TRow>({
           footer. Three separate `state === …` comparisons is how one of them
           ends up disagreeing with the others. */}
       <div
-        className={cx(styles.scroller, capped && styles.capped, fill && styles.scrollerFill)}
+        className={cx(
+          styles.scroller,
+          capped && styles.capped,
+          fill && styles.scrollerFill,
+        )}
         style={bodyStyle}
         data-table-scroller=""
       >

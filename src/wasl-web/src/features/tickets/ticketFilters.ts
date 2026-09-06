@@ -60,12 +60,7 @@ export const STATUS_VALUES = [
  * This list decides what the counts are fetched for: `TicketListPage` issues one
  * count query per entry plus one for `Closed`, and the labels come from
  * `status.*` in the catalogue. */
-export const TAB_STATUSES = [
-  'New',
-  'InProgress',
-  'PendingCustomer',
-  'Resolved',
-] as const;
+export const TAB_STATUSES = ['New', 'InProgress', 'PendingCustomer', 'Resolved'] as const;
 
 /** How many values one repeated filter may carry before the server clamps. */
 export const MAX_FILTER_VALUES = 20;
@@ -156,8 +151,7 @@ function knownEscalated(raw: string | null): boolean | undefined {
 function knownIsoDay(raw: string | null): string {
   if (raw === null || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
   const parsed = new Date(`${raw}T00:00:00Z`);
-  return Number.isNaN(parsed.getTime()) ||
-    parsed.toISOString().slice(0, 10) !== raw
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== raw
     ? ''
     : raw;
 }
@@ -215,10 +209,7 @@ export function readFilters(params: URLSearchParams): FilterState {
  * `pageSize` is deliberately kept — it is a preference about the viewport, not
  * a position in a result set.
  */
-export function withFilters(
-  params: URLSearchParams,
-  next: FilterState,
-): URLSearchParams {
+export function withFilters(params: URLSearchParams, next: FilterState): URLSearchParams {
   const out = new URLSearchParams();
 
   const pageSize = params.get('pageSize');

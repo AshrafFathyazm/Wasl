@@ -242,10 +242,7 @@
    * `Dropdown` publishes no `--menu-max-block-size`, so the fallback of `100vh`
    * leaves `min()` resolving to the token and every existing consumer unchanged.
    * That is asserted rather than argued — `menuSurfaceCap.test.ts`, AC-36. */
-  max-block-size: min(
-    var(--dropdown-menu-max-height),
-    var(--menu-max-block-size, 100vh)
-  );
+  max-block-size: min(var(--dropdown-menu-max-height), var(--menu-max-block-size, 100vh));
   overflow: hidden;
 
   /* THE TRIGGER'S WIDTH IS A FLOOR, NOT A CEILING.

@@ -153,7 +153,10 @@ describe('Q-T-3 — Table owns the sort control, 015 owns the query', () => {
     await u.click(screen.getByRole('button', { name: /الاسم/ }));
     items = screen.getAllByRole('menuitem');
     await u.click(items[1] as HTMLElement);
-    expect(onSortChange).toHaveBeenLastCalledWith({ columnId: 'name', direction: 'desc' });
+    expect(onSortChange).toHaveBeenLastCalledWith({
+      columnId: 'name',
+      direction: 'desc',
+    });
 
     rerender(draw({ columnId: 'name', direction: 'desc' }));
     await u.click(screen.getByRole('button', { name: /الاسم/ }));
@@ -194,7 +197,9 @@ describe('Q-T-3 — Table owns the sort control, 015 owns the query', () => {
     );
     const active = container.querySelector('thead svg');
     expect(active?.getAttribute('class')).not.toMatch(/sortIconIdle/);
-    expect(container.querySelector('thead button')?.getAttribute('class')).toMatch(/sortBtnOn/);
+    expect(container.querySelector('thead button')?.getAttribute('class')).toMatch(
+      /sortBtnOn/,
+    );
   });
 
   /* The old cycle test lived here and is DELETED, not skipped — 2026-09-06.

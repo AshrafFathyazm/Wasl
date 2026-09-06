@@ -29,8 +29,7 @@ import { describe, expect, it } from 'vitest';
  * this project yet and is not in `025`'s scope.
  * ============================================================================ */
 
-const read = (file: string) =>
-  readFileSync(join(__dirname, '..', '..', file), 'utf8');
+const read = (file: string) => readFileSync(join(__dirname, '..', '..', file), 'utf8');
 
 const loginCss = read('features/auth/Login.module.css');
 const checkboxCss = read('components/Checkbox/Checkbox.module.css');
@@ -85,15 +84,11 @@ describe('D-6 — the language button rendered blank', () => {
     const langRules = [...loginCss.matchAll(/\.lang\s*\{[^}]*\}/gs)].map(
       (match) => match[0],
     );
-    const painted = langRules.find((rule) =>
-      rule.includes('-webkit-text-fill-color'),
-    );
+    const painted = langRules.find((rule) => rule.includes('-webkit-text-fill-color'));
 
     expect(painted).toBeDefined();
     expect(painted).toContain('color: var(--text-primary) !important');
-    expect(painted).toContain(
-      '-webkit-text-fill-color: var(--text-primary) !important',
-    );
+    expect(painted).toContain('-webkit-text-fill-color: var(--text-primary) !important');
   });
 });
 
@@ -199,9 +194,7 @@ describe('the entrance motion cannot hide what it animates', () => {
     '@media (prefers-reduced-motion: no-preference)',
   );
   const gated =
-    noPreferenceAt < 0
-      ? ''
-      : blockBody(loginCss, loginCss.indexOf('{', noPreferenceAt));
+    noPreferenceAt < 0 ? '' : blockBody(loginCss, loginCss.indexOf('{', noPreferenceAt));
 
   it('declares the entrance behind no-preference', () => {
     expect(noPreferenceAt).toBeGreaterThan(-1);
@@ -283,8 +276,10 @@ describe('container-query overrides follow the rules they override', () => {
       const hits = [...loginCss.matchAll(indented)].map((hit) => hit.index ?? 0);
 
       for (const at of hits) {
-        expect(at, `${name}: override at ${at} precedes its base rule at ${base}`)
-          .toBeGreaterThan(base);
+        expect(
+          at,
+          `${name}: override at ${at} precedes its base rule at ${base}`,
+        ).toBeGreaterThan(base);
       }
     }
   });

@@ -793,3 +793,21 @@ export interface UpdateCustomerRequest {
 /** The `200` body — the same shape as the read, for the reason the create's
  *  alias records: the contract requires a `GET` to return an identical body. */
 export type UpdateCustomerResponse = CustomerDetail;
+
+// PROVISIONAL — hand-written against specs/008-customer-list-and-profile/
+// contracts/customers-read-api.md (frozen). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/**
+ * `GET /api/customers/companies` — the companies the filter panel may offer
+ * (`033` §5.3, contracted by `008`).
+ *
+ * **`hasUncompanied` is not `items.some((x) => x === null)`.** It answers whether
+ * ANY active customer has no company — a fact about the directory, not about this
+ * search. The server caps `items`, so an absent name may exist beyond the cap, and a
+ * null company is not in `items` by construction; the server answers it with its own
+ * `EXISTS`, which the contract records as the second of the request two commands.
+ */
+export interface CustomerCompanies {
+  items: string[];
+  hasUncompanied: boolean;
+}

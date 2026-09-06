@@ -44,9 +44,7 @@ const read = (file: string) => readFileSync(resolve(HERE, file), 'utf8');
  *  take a `//` inside a string literal with it, and every scan below is about
  *  identifiers and property names, none of which live in a URL. */
 export function stripComments(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, ' ')
-    .replace(/^\s*\/\/.*$/gm, ' ');
+  return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 }
 
 describe('the stripper itself — the control that makes every scan below mean something', () => {
@@ -120,10 +118,15 @@ describe('AC-28 — this feature fires toasts and configures nothing about them'
   it('imports only `useToast` from the toast module', () => {
     for (const file of FEATURE_TS) {
       const source = stripComments(read(file));
-      const imports = [...source.matchAll(/import\s*\{([^}]*)\}\s*from\s*'[^']*Toast[^']*'/g)];
+      const imports = [
+        ...source.matchAll(/import\s*\{([^}]*)\}\s*from\s*'[^']*Toast[^']*'/g),
+      ];
 
       for (const match of imports) {
-        const named = match[1]!.split(',').map((name) => name.trim()).filter(Boolean);
+        const named = match[1]!
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean);
         expect(named, file).toEqual(['useToast']);
       }
 
@@ -222,12 +225,16 @@ describe('AC-35 — one AssigneePanel, and both screens import it', () => {
   it('is imported by the detail rail and by the list menu', () => {
     for (const consumer of ['TicketDetailPage.tsx', 'RowAssignMenu.tsx']) {
       const source = stripComments(readFileSync(resolve(HERE, consumer), 'utf8'));
-      expect(source, consumer).toMatch(/import\s*\{[^}]*AssigneePanel[^}]*\}\s*from\s*'\.\/AssigneePanel'/);
+      expect(source, consumer).toMatch(
+        /import\s*\{[^}]*AssigneePanel[^}]*\}\s*from\s*'\.\/AssigneePanel'/,
+      );
     }
   });
 
   it('leaves no second Avatar in the two screens that used to declare one', () => {
-    const detail = stripComments(readFileSync(resolve(HERE, 'TicketDetailPage.tsx'), 'utf8'));
+    const detail = stripComments(
+      readFileSync(resolve(HERE, 'TicketDetailPage.tsx'), 'utf8'),
+    );
 
     expect(detail).not.toMatch(/function\s+Avatar\b/);
     expect(detail).toMatch(/import\s*\{[^}]*Avatar[^}]*\}\s*from\s*'\.\/Avatar'/);

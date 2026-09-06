@@ -243,7 +243,11 @@ export function CustomerProfileView({
                       content, and `unicode-bidi: isolate` in the stylesheet keeps
                       it from reordering the Arabic label beside it. A reversed
                       address is unusable rather than merely ugly. */}
-                  <a className={styles.cellLink} dir="ltr" href={`mailto:${customer.email}`}>
+                  <a
+                    className={styles.cellLink}
+                    dir="ltr"
+                    href={`mailto:${customer.email}`}
+                  >
                     {customer.email}
                   </a>
                 </CopyValue>
@@ -263,7 +267,11 @@ export function CustomerProfileView({
                   {/* GROUPED FOR READING, RAW FOR COPYING AND FOR `tel:`. The
                       href keeps the E.164 the dialler needs; only the text is
                       grouped, and `CopyValue` above was handed the raw value. */}
-                  <a className={styles.cellNumeric} dir="ltr" href={`tel:${customer.phone}`}>
+                  <a
+                    className={styles.cellNumeric}
+                    dir="ltr"
+                    href={`tel:${customer.phone}`}
+                  >
                     {formatPhone(customer.phone)}
                   </a>
                 </CopyValue>

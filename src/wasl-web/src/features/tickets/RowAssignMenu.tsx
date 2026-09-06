@@ -80,7 +80,7 @@ export function RowAssignMenu({
   useLayoutEffect(() => {
     surface.triggerRef.current = anchor;
     surface.setOpen(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchor]);
 
   /* The hook owns dismissal — an outside pointerdown, a scroll of anything that

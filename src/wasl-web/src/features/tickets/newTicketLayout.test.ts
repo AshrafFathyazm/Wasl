@@ -26,7 +26,9 @@ function stripComments(source: string): string {
 
 describe('the stripper runs — the control for every scan below', () => {
   it('removes a block comment and keeps the code beside it', () => {
-    const stripped = stripComments('const a = 1; /* grid-template-columns: 1fr */ const b = 2;');
+    const stripped = stripComments(
+      'const a = 1; /* grid-template-columns: 1fr */ const b = 2;',
+    );
     expect(stripped).toContain('const a = 1;');
     expect(stripped).toContain('const b = 2;');
     expect(stripped).not.toContain('grid-template-columns');
@@ -116,7 +118,9 @@ describe('AC-37 — the icon set is untouched by this feature', () => {
       'PriorityPicker.tsx',
       'RadioGroup.tsx',
     ]) {
-      expect(stripComments(read(file)), `${file} draws its own svg`).not.toContain('<svg');
+      expect(stripComments(read(file)), `${file} draws its own svg`).not.toContain(
+        '<svg',
+      );
     }
 
     expect(read('ChannelPicker.tsx')).toContain("from '../../icons/icons'");

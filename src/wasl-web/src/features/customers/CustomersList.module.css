@@ -508,27 +508,27 @@
   border-radius: var(--radius-pill);
 }
 
-.sheetAvatar[data-tint="0"] {
+.sheetAvatar[data-tint='0'] {
   background-color: var(--purple-50);
   color: var(--purple-700);
 }
 
-.sheetAvatar[data-tint="1"] {
+.sheetAvatar[data-tint='1'] {
   background-color: var(--blue-50);
   color: var(--blue-600);
 }
 
-.sheetAvatar[data-tint="2"] {
+.sheetAvatar[data-tint='2'] {
   background-color: var(--green-50);
   color: var(--green-700);
 }
 
-.sheetAvatar[data-tint="3"] {
+.sheetAvatar[data-tint='3'] {
   background-color: var(--amber-50);
   color: var(--amber-500);
 }
 
-.sheetAvatar[data-tint="4"] {
+.sheetAvatar[data-tint='4'] {
   background-color: var(--teal-100);
   color: var(--teal-600);
 }

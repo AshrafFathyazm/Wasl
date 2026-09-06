@@ -1,4 +1,4 @@
-import type { CustomerListParams, CustomerSort, SortDirection } from './customers.api';
+import type { ListParams, SortField, SortDirection } from './customers.api';
 
 /* ============================================================================
  * The URL is the filter state. `033` §10, ADR-011 §2.
@@ -19,7 +19,7 @@ export interface CustomerFilterState {
   search: string;
 
   /** `''` means "the server's default", which is `fullName` ascending. */
-  sort: CustomerSort | '';
+  sort: SortField | '';
   dir: SortDirection | '';
 
   /** EXACT company names. The server clamps to twenty; so does `withFilters`,
@@ -43,7 +43,7 @@ export const NO_CUSTOMER_FILTERS: CustomerFilterState = {
 };
 
 /** The server's two, read from the same place the request is built from. */
-const SORTS: readonly CustomerSort[] = ['fullName', 'createdAtUtc'];
+const SORTS: readonly SortField[] = ['fullName', 'createdAtUtc'];
 const DIRS: readonly SortDirection[] = ['asc', 'desc'];
 
 /** BR-7.2's clamp, mirrored so the URL cannot promise more than the server takes. */
@@ -97,15 +97,19 @@ export function readCustomerFilters(params: URLSearchParams): CustomerFilterStat
 
   return {
     search: params.get('search')?.trim() ?? '',
-    sort: SORTS.includes(sort as CustomerSort) ? (sort as CustomerSort) : '',
+    sort: SORTS.includes(sort as SortField) ? (sort as SortField) : '',
     dir: DIRS.includes(dir as SortDirection) ? (dir as SortDirection) : '',
 
     /* De-duplicated and clamped here as well as on the server: two identical
      * values in the URL would spend a clamp slot on nothing. */
-    company: [...new Set(params.getAll('company').map((v) => v.trim()).filter(Boolean))].slice(
-      0,
-      MAX_COMPANIES,
-    ),
+    company: [
+      ...new Set(
+        params
+          .getAll('company')
+          .map((v) => v.trim())
+          .filter(Boolean),
+      ),
+    ].slice(0, MAX_COMPANIES),
     noCompany: params.get('noCompany') === 'true',
     createdFrom: created.from,
     createdTo: created.to,
@@ -133,7 +137,8 @@ export function withCustomerFilters(
   if (next.search) out.set('search', next.search);
   if (next.sort) out.set('sort', next.sort);
   if (next.dir) out.set('dir', next.dir);
-  for (const company of next.company.slice(0, MAX_COMPANIES)) out.append('company', company);
+  for (const company of next.company.slice(0, MAX_COMPANIES))
+    out.append('company', company);
   if (next.noCompany) out.set('noCompany', 'true');
   if (next.createdFrom) out.set('createdFrom', next.createdFrom);
   if (next.createdTo) out.set('createdTo', next.createdTo);
@@ -174,7 +179,7 @@ export function toCustomerListParams(
   state: CustomerFilterState,
   page: number,
   pageSize: number,
-): CustomerListParams {
+): ListParams {
   return {
     page,
     pageSize,

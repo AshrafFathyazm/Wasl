@@ -4,7 +4,10 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { COMMUNICATION_CHANNELS, TICKET_PRIORITIES } from '../../lib/api-types.provisional';
+import {
+  COMMUNICATION_CHANNELS,
+  TICKET_PRIORITIES,
+} from '../../lib/api-types.provisional';
 import type { TicketListItem } from '../../lib/api-types.provisional';
 import i18n from '../../lib/i18n';
 import { ChannelPicker } from './ChannelPicker';
@@ -56,7 +59,9 @@ describe('AC-6, AC-7, AC-8 — the channel row', () => {
     wrap(<ChannelPicker value="Sms" onChange={() => undefined} />);
 
     const radios = screen.getAllByRole('radio');
-    expect(radios.filter((r) => r.getAttribute('aria-checked') === 'true')).toHaveLength(1);
+    expect(radios.filter((r) => r.getAttribute('aria-checked') === 'true')).toHaveLength(
+      1,
+    );
 
     /* ROVING TABINDEX. Five focusable buttons would make one control five tab
        stops — the defect this asserts against is the DEFAULT behaviour, which is
@@ -71,7 +76,9 @@ describe('AC-6, AC-7, AC-8 — the channel row', () => {
     wrap(<PriorityPicker value="" onChange={() => undefined} />);
 
     const radios = screen.getAllByRole('radio');
-    expect(radios.filter((r) => r.getAttribute('aria-checked') === 'true')).toHaveLength(0);
+    expect(radios.filter((r) => r.getAttribute('aria-checked') === 'true')).toHaveLength(
+      0,
+    );
     expect(radios.filter((r) => r.getAttribute('tabindex') === '0')).toHaveLength(1);
   });
 
@@ -80,7 +87,9 @@ describe('AC-6, AC-7, AC-8 — the channel row', () => {
 
     /* The row is five pictures, and two of them are message bubbles. This line
        is what makes the choice readable rather than recognisable. */
-    expect(screen.getByText('The channel the request arrived on: WhatsApp')).toBeInTheDocument();
+    expect(
+      screen.getByText('The channel the request arrived on: WhatsApp'),
+    ).toBeInTheDocument();
   });
 
   it('moves the SELECTION with the arrow keys, not just focus', async () => {
@@ -210,7 +219,11 @@ describe('AC-13, AC-14, AC-15, AC-16 — the duplicate banner', () => {
 
   it('renders an age per row, and today as a word', async () => {
     const user = userEvent.setup();
-    const today: TicketListItem = { ...rows[0]!, id: 'today', createdAtUtc: new Date().toISOString() };
+    const today: TicketListItem = {
+      ...rows[0]!,
+      id: 'today',
+      createdAtUtc: new Date().toISOString(),
+    };
     wrap(<DuplicateWarning count={1} tickets={[today]} customerId="c1" lang="en" />);
     await user.click(screen.getByRole('button', { name: 'Show them' }));
 

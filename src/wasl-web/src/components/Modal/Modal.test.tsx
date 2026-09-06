@@ -175,7 +175,9 @@ describe('§3 — the scrim', () => {
     const { container } = render(<Harness />);
     await openIt(u);
 
-    const scrim = container.querySelector<HTMLElement>('[aria-hidden="true"][tabindex="-1"]');
+    const scrim = container.querySelector<HTMLElement>(
+      '[aria-hidden="true"][tabindex="-1"]',
+    );
     expect(scrim).not.toBeNull();
 
     await u.click(scrim!);
@@ -187,7 +189,9 @@ describe('§3 — the scrim', () => {
     const { container } = render(<Harness unsavedInput />);
     await openIt(u);
 
-    const scrim = container.querySelector<HTMLElement>('[aria-hidden="true"][tabindex="-1"]');
+    const scrim = container.querySelector<HTMLElement>(
+      '[aria-hidden="true"][tabindex="-1"]',
+    );
     await u.click(scrim!);
 
     /* §3. A stray click outside a half-typed form is not consent to throw it
@@ -222,7 +226,9 @@ describe('§3 — the scrim', () => {
     await u.keyboard('{Escape}');
     expect(asked).toHaveBeenCalledTimes(1);
 
-    const scrim = container.querySelector<HTMLElement>('[aria-hidden="true"][tabindex="-1"]');
+    const scrim = container.querySelector<HTMLElement>(
+      '[aria-hidden="true"][tabindex="-1"]',
+    );
     await u.click(scrim!);
     expect(asked).toHaveBeenCalledTimes(2);
 

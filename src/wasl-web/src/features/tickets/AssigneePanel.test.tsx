@@ -135,8 +135,9 @@ describe('AC-9 — the count wears the ink its size earns', () => {
     mount({ counts: {} });
 
     const row = rowFor('سعد الدوسري');
-    expect(within(row).getByLabelText(i18n.t('assign.loadUnknown', { ns: 'tickets' })))
-      .toHaveTextContent('—');
+    expect(
+      within(row).getByLabelText(i18n.t('assign.loadUnknown', { ns: 'tickets' })),
+    ).toHaveTextContent('—');
     expect(within(row).queryByText('0')).not.toBeInTheDocument();
   });
 
