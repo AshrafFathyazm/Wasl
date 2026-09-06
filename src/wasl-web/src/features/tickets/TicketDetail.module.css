@@ -78,19 +78,6 @@
   line-height: var(--leading-ar-normal);
 }
 
-.avatar {
-  flex: none;
-  inline-size: var(--table-avatar-size);
-  block-size: var(--table-avatar-size);
-  border-radius: var(--radius-pill);
-  background-color: var(--avatar-fill);
-  color: var(--text-on-inverse);
-  font-size: var(--text-helper);
-  font-weight: var(--weight-bold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 .page:lang(ar) .entryBody {
   line-height: var(--leading-ar-normal);
@@ -589,145 +576,23 @@
  * in rtl, right in ltr. Anchoring the end edge is correct in rtl and pushes it
  * off the viewport in ltr, which is the kind of asymmetry that ships because the
  * product is developed in Arabic. */
-.assignPanel {
-  position: absolute;
 
-  /* Under the GROUP, so it opens where the frame puts it: start edge flush with
-     the rail's, growing over the content column. `inset-inline-start` is right
-     in both directions — right-then-leftwards in rtl, left-then-rightwards in
-     ltr. */
-  inset-block-start: calc(100% + 6px);
-  inset-inline-start: 0;
-  max-inline-size: calc(100vw - 2 * var(--space-4));
-  z-index: var(--z-flyout);
-  display: flex;
-  flex-direction: column;
-  inline-size: 316px;
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-  background-color: var(--surface-card);
-  box-shadow: var(--pop-xl);
-  overflow: hidden;
-}
 
-.assignHead {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  padding: 14px 14px 10px;
-  border-block-end: 1px solid var(--border-divider);
-}
 
-.assignTitle {
-  font-size: 12.5px;
-  font-weight: var(--weight-bold);
-}
 
-.assignSearch {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  block-size: 34px;
-  padding-inline: 10px;
-  border: 1px solid var(--border-default);
-  border-radius: 7px;
-  background-color: var(--surface-subtle);
-  color: var(--text-muted);
-}
 
-.assignSearch input {
-  all: unset;
-  flex: 1;
-  min-inline-size: 0;
-  font: inherit;
-  font-size: 12.5px;
-  color: var(--text-primary);
-}
 
-.assignList {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  max-block-size: 244px;
-  padding: 6px;
-  overflow-y: auto;
-}
 
-.assignRow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 7px;
-  background-color: transparent;
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
 
-.assignRow:hover:not(:disabled) {
-  background-color: var(--surface-row-hover);
-}
 
-.assignRowCurrent {
-  background-color: var(--surface-chip);
-}
 
-.assignWho {
-  flex: 1;
-  min-inline-size: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.assignName {
-  font-size: 12.5px;
-  font-weight: var(--weight-medium);
-  color: var(--text-primary);
-}
 
 /* The ROLE, and only the role. `SupportUserOption` is `(id, fullName, role)` —
  * the canvas's «وكيل · الفوترة» has no department behind it. */
-.assignRole {
-  font-size: 11.5px;
-  color: var(--text-muted);
-}
 
-.assignNone {
-  margin: 0;
-  padding: 14px;
-  color: var(--text-muted);
-  font-size: 12.5px;
-  text-align: center;
-}
 
-.assignClear {
-  margin: 0 6px 6px;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 7px;
-  background-color: transparent;
-  color: var(--state-danger-text);
-  font: inherit;
-  font-size: 12.5px;
-  text-align: start;
-  cursor: pointer;
-}
 
-.assignClear:hover:not(:disabled) {
-  background-color: var(--state-danger-bg);
-}
 
-.assignNote {
-  margin: 0;
-  padding: 10px 14px;
-  border-block-start: 1px solid var(--border-divider);
-  background-color: var(--surface-subtle);
-  color: var(--text-muted);
-  font-size: 11.5px;
-  line-height: 1.6;
-}
 
 /* ---- customer and their other tickets ------------------------------------ */
 
@@ -1618,43 +1483,16 @@
 
 /* ---- four people, four tints --------------------------------------------- */
 
-.av0 {
-  background-color: color-mix(in oklab, var(--teal-600) 16%, white);
-  color: var(--teal-600);
-}
 
-.av1 {
-  background-color: color-mix(in oklab, var(--blue-600) 14%, white);
-  color: var(--blue-600);
-}
 
-.av2 {
-  background-color: color-mix(in oklab, var(--amber-500) 22%, white);
-  color: var(--state-warning-text);
-}
 
-.av3 {
-  background-color: color-mix(in oklab, var(--navy-900) 12%, white);
-  color: var(--navy-900);
-}
 
 /* The fifth. Four buckets put two of the three seeded agents in one colour —
    measured — and five is the count the tag palette settled on for the same
    reason: it is how many hues this palette has that are not red. */
-.av4 {
-  background-color: color-mix(in oklab, var(--green-700) 12%, white);
-  color: var(--green-700);
-}
 
 /* The avatar's own rule sets an opaque navy ground and inverse ink, so the tint
  * has to win on BOTH. Same specificity, declared later — no `!important`. */
-.avatar.av0,
-.avatar.av1,
-.avatar.av2,
-.avatar.av3,
-.avatar.av4 {
-  border: 1px solid currentcolor;
-}
 
 /* ---- three tags, three tints --------------------------------------------- */
 
@@ -1831,4 +1669,29 @@
   block-size: 1px;
   margin: 5px 4px;
   background-color: var(--border-divider);
+}
+
+/* ===========================================================================
+ * MOVED OUT BY `039` — 2026-09-06
+ * ===========================================================================
+ * The avatar's ground and its five tints are `Avatar.module.css`; the assignee
+ * panel's own paint is `AssigneePanel.module.css`. Both had exactly one
+ * consumer each and that consumer left this file.
+ *
+ * The tints had to travel WITH `.avatar`: the last rule in that set is the
+ * compound `.avatar.av0`, and a compound only compiles when both halves are
+ * declared in one module. Splitting them is how the opaque ground silently wins
+ * over the tint on one screen and not the other.
+ *
+ * What stayed: `.assigneeRow`, `.assigneeName` and `.assigneeMuted` — the RAIL's
+ * own display of who holds the ticket, which is not the panel.
+ * ======================================================================== */
+
+/* The rail's anchor for the panel. Position only: the panel paints itself, and
+   the list screen hangs the same component off a fixed portal instead. */
+.assignAnchor {
+  position: absolute;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  z-index: var(--z-flyout);
 }

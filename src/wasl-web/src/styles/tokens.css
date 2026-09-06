@@ -238,6 +238,20 @@
      SHAPE rather than as a tinted panel; `lint:tokens` is what surfaced the gap,
      which is what it says it is for. */
   --state-warning-fill: var(--amber-500); /* (G) */
+
+  /* THE THIRD AMBER ROLE, and the same gap as the one above found one feature
+     later. `038`'s duplicate-ticket banner is the first warning that is a
+     BORDERED panel rather than a tinted one, and there was no border value: the
+     tinted panels above draw none, `--border-subtle` on amber reads as a grey
+     box that happens to be yellow inside, and `--state-warning-fill` as a
+     1px border is a solid amber rule that shouts louder than the text it
+     surrounds.
+
+     (D) — DERIVED, like `--state-warning-text` and for the same reason: the
+     source has no amber border. It is amber-500 lightened until it separates the
+     panel from the page without competing with the text, which is the job a
+     panel border has. */
+  --state-warning-border: #f2e2b4; /* (D) */
   --state-danger-bg: var(--red-50);
   --state-danger-text: var(--red-600);
   --state-info-bg: var(--blue-50);

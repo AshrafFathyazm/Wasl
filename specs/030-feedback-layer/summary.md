@@ -124,9 +124,7 @@ ladder and a conditional `scrim`.
 
 ## 6 · Known limitations
 
-- **AC-10 is half-met and needs a ruling.** A modal over unsaved input refuses the scrim;
-  `Escape` still closes it. The source contradicts itself — §3's behaviour line puts the
-  *except* on all three dismissal paths, §8 rule 6 names only the scrim. Not guessed.
+- ~~**AC-10 is half-met and needs a ruling.**~~ **Closed 2026-09-06.** A real consumer settled it: `039`'s `CloseTicketModal` holds a 500-character note and sets `unsavedInput`, so `Escape` was discarding it silently. Both ambient dismissals are guarded now and route through one function; the × and the footer stay open.
 - **The side panel's four variants are not built** — filter, loading, tabbed, empty. **AC-12 and AC-11 are closed** (see `tests.md` §7); **AC-13 stays unmet**, and it is unmet for a reason rather than for want of time: a loading panel has no consumer. The quick view renders from the row it was opened on and the add form has nothing to load, so building one would be building a component nothing uses — the thing `027` established a preview must never draw.
 - **Nothing in the suite has seen any of these three surfaces drawn.** jsdom has no layout
   and applies no media queries: the 70vh cap, the stack's placement, the stripe, every

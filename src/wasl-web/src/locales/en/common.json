@@ -65,5 +65,6 @@
   "table.sortMenu": "Sort",
   "table.sortAsc": "Sort ascending",
   "table.sortDesc": "Sort descending",
-  "table.sortClear": "Clear sort"
+  "table.sortClear": "Clear sort",
+  "listSeparator": ", "
 }

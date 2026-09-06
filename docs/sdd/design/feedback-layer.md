@@ -218,6 +218,21 @@ white with `--border-default`.
 
 - Closes on `Esc`, on the close button, and on scrim click — **except** when it holds
   unsaved input, which must ask first.
+
+  **The *except* covers `Esc` and the scrim, not the × — ruled 2026-09-06.** The source
+  contradicts itself here: this behaviour line puts it on all three paths, while §8 rule 6
+  names only the scrim. `030` shipped the narrow reading and recorded it as a gap.
+
+  **A real consumer settled it rather than an argument.** `039`'s `CloseTicketModal` holds
+  a 500-character close reason and sets the flag — so a reader typed a note, pressed
+  `Esc` by reflex, and lost it with no question asked. Guarding the scrim while leaving
+  `Esc` open is not partial protection, it is the wrong half: **`Esc` is the more
+  reflexive of the two.**
+
+  The × and the footer stay unguarded, deliberately. Those are controls the reader had to
+  aim at, and a modal that cannot be left at all is worse than one that loses a draft. The
+  component cannot ask — only the caller knows what is at stake — so it takes an
+  `onDismissAttempt`; without one the guarded dismissal is **inert, never a silent close**.
 - Focus is trapped inside and returns to the opening element on close.
 - `role="dialog"` `aria-modal="true"` `aria-labelledby=<title id>`.
 - **One modal on screen.** A modal never opens a modal — use steps inside the same window.

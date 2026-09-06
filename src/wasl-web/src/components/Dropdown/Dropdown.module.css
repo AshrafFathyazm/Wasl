@@ -230,7 +230,22 @@
   z-index: var(--z-flyout);
   display: flex;
   flex-direction: column;
-  max-block-size: var(--dropdown-menu-max-height);
+
+  /* `039`. TWO CEILINGS, AND THE SMALLER ONE WINS.
+   *
+   * The token is the design's opinion about how tall a menu should ever be; the
+   * custom property is what the viewport actually has room for, published by
+   * `useMenuSurface` per open. `min()` is what makes the second one incapable of
+   * making a menu TALLER than the design allows — which is the whole reason the
+   * measurement is not written to `max-block-size` directly.
+   *
+   * `Dropdown` publishes no `--menu-max-block-size`, so the fallback of `100vh`
+   * leaves `min()` resolving to the token and every existing consumer unchanged.
+   * That is asserted rather than argued — `menuSurfaceCap.test.ts`, AC-36. */
+  max-block-size: min(
+    var(--dropdown-menu-max-height),
+    var(--menu-max-block-size, 100vh)
+  );
   overflow: hidden;
 
   /* THE TRIGGER'S WIDTH IS A FLOOR, NOT A CEILING.

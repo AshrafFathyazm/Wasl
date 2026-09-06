@@ -75,7 +75,7 @@ run 5: Tests 653 passed (653)
 | AC-7 | *refreshes the existing card with ×2 instead of stacking a copy* | **Met** — one node, `×2`, then `×3` |
 | AC-8 | *pauses the countdown while the pointer is on the card* · *pauses on FOCUS too* | **Met** — both |
 | AC-9 | `Modal.test.tsx` *keeps Tab inside it* · *returns focus to whatever opened it* | **Met** |
-| AC-10 | *does NOT close on a scrim click over unsaved input* | **PARTIAL — see gaps** |
+| AC-10 | *does NOT close on a scrim click…* · *does NOT close on Escape either* · *asks, when the caller supplies the question* · *LEAVES A WAY OUT* | **Met** — 2026-09-06, see §8 |
 | AC-11 | `customerSheet.test.tsx` — *030 AC-11 — the quick view is deep-linkable* (4 tests) | **Met in part** — open/close round-trips; the tab half has no tabs to assert |
 | AC-12 | `SideSheet.test.tsx` — *030 AC-12* (3 tests, source scan) | **Met** |
 | AC-13 | — | **Not met** — no loading panel variant |
@@ -181,7 +181,7 @@ from the product owner's own captures of `/customers` with the add sheet open:
 |---|---|
 | The sheet renders at the **inline-end** edge under `dir="rtl"` — the left of the screen | Correct, and `035` records shipping it on the wrong side once |
 | The duplicated contact rule appeared **three times** on one failing form | Removed; §1.6, *never two surfaces for one event* |
-| A scrollbar on a form that fits | Traced to spacing, not to width. Header ~100px → 64, `--sheet-padding` 24 → 20, divider margins removed |
+| A scrollbar on a form that fits | Traced to spacing, not to width. Header ~100px → 64, `--sheet-padding` 24 → 20, divider margins removed. **The 64 is now 72** — see below |
 | «الاسم الكامل مطلوب» under an **untouched** empty field | `mode: 'onSubmit'` + `reValidateMode: 'onBlur'` |
 | Latin runs (`+966 5X XXX XXXX`, `#4821`) | Isolated `dir="ltr"`, as the primitives already did |
 
@@ -303,3 +303,77 @@ next to a 1.5 stroke; reading the path would not have found either.
 **`npm run build` is RED, and not on this feature's code.** `iconGeometry.ts` — untracked,
 `037`'s — carries 14 type errors. Counted: `tsc` reports 14, and **0** outside that file.
 Not fixed here; it is another lane's file mid-build.
+
+---
+
+## 8 · Third pass — 2026-09-06. What other lanes changed under this feature
+
+Four lanes are in the tree now: this one (committed at `4392790`), `037-icon-system`
+(committed at `0ea888f`), `038-new-ticket-redesign` and `039-ticket-row-actions` (both
+untracked). Re-measured against what they left:
+
+| Command | Result |
+|---|---|
+| `npm run test` | `Tests 1145 passed (1145)` on a clean run |
+| `npm run test -- nearMatch` | `4 passed` — AC-3's guard still holds |
+| `--scrim` · `--toast-width` · `--modal-w-*` · `--panel-w-*` · `--shadow-lg` · `--sheet-shadow` · `--type-card-title` · `--state-warning-fill` · `--sheet-padding` | all present, one declaration each |
+
+**One test fails across runs and it is not this feature's:** *renders view, reassign, a
+disabled escalate, a rule and close*, in `rowActions.test.tsx` — `039`'s untracked work in
+progress. `customerSheet.test.tsx` failed once under full-suite load and has not recurred
+in three subsequent runs; it passes 20/20 in isolation.
+
+### The badge is 40px again, and this file's 64 was stale
+
+`037` moved `.badge` from **32 back to 40** on 2026-09-06, with the reason written in
+`SideSheet.module.css`: the icon instruction specifies a 40px circle carrying a 20px
+glyph, and at 32 a 20px glyph leaves 6px of ring and stops reading as a badge.
+
+**That partly reverses this feature's own change and it is right.** The header complaint
+of 2026-09-05 was ~100px of chrome, and the badge was never the main cause — 36px of that
+came from `--space-4` block padding on both sides. `--sheet-head-padding-block` (18px) is
+what fixed it and is untouched; the badge buys back 8px, not the 36.
+
+So the recorded number moves: **~100 → 64 → 72.** Left as a correction rather than an edit,
+because the 64 was measured and true when written.
+
+**Nothing else of this feature's was disturbed.** `icons-added.tsx` was deleted and folded
+into `icons.tsx`; both icons this feature added came across, and `Toast.tsx`'s import was
+re-pointed by that lane rather than left broken.
+
+### AC-10 — closed 2026-09-06, and a consumer settled it rather than an argument
+
+The gap recorded as **G-1** is closed. It was left open because the source contradicts
+itself — §3's behaviour line puts the *except* on all three dismissal paths, §8 rule 6
+names only the scrim — and guessing between two readings of a design document is not a
+ruling.
+
+**What settled it was `039` building on the component.** `CloseTicketModal` holds a
+500-character close reason in a `Textarea` and sets `unsavedInput`, with a comment reading
+the flag exactly as shipped: *"it is exactly 'the scrim does not close it'"*. Their tests
+contain **zero** occurrences of `Escape`. So a reader typed a note, pressed Escape by
+reflex, and lost it with no question asked.
+
+That is not a partial protection, it is the wrong half: **Escape is the more reflexive of
+the two.** A stray click on a scrim takes aim; a reflex keypress does not.
+
+| | |
+|---|---|
+| Guarded | `Escape`, scrim click — the two a reader triggers without meaning to |
+| Not guarded | the ×, the footer — controls the reader had to aim at |
+| With no `onDismissAttempt` | **inert**, never a silent close |
+
+Both paths route through one function now, because the half-fix happened precisely by
+their being written in two places and only one getting the guard.
+
+**The old test asserted the defect.** *"still closes on Escape and on the × over unsaved
+input"* — with a comment arguing it separated *"the scrim does not close it"* from
+*"nothing does"*. The argument was sound and the test was pointed at the wrong path; the
+replacement keeps it by asserting the **×** still closes, which is the real "there is a way
+out" claim.
+
+| Control | Result |
+|---|---|
+| Escape allowed to close over unsaved input again | 2 red — *does NOT close on Escape either*, *asks, when the caller supplies the question* |
+| restored | `12 passed` |
+| `039`'s own suite, against the change | `14 passed` — nothing of theirs breaks |

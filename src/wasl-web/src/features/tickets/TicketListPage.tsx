@@ -11,6 +11,8 @@ import { ApiError } from '../../lib/api';
 import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
 import { formatDate, formatNumber, type Lang } from '../../lib/formatters';
+import { CloseTicketModal } from './CloseTicketModal';
+import { RowAssignMenu } from './RowAssignMenu';
 import { TicketFilterBar } from './TicketFilterBar';
 import {
   NO_FILTERS,
@@ -199,6 +201,13 @@ function minutesSince(timestamp: number): number {
  * ========================================================================== */
 export type TicketQueue = 'mine' | 'unassigned';
 
+/** `039`. One row action at a time. `anchor` is the row's actions cell for the
+ *  menu and `null` for the modal — a modal is centred on the page and has
+ *  nothing to hang from. */
+type RowAction =
+  | { kind: 'assign'; row: TicketListItem; anchor: HTMLElement }
+  | { kind: 'close'; row: TicketListItem; anchor: null };
+
 export default function TicketListPage({ queue }: { queue?: TicketQueue | undefined }) {
   const { t, i18n } = useTranslation('tickets');
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
@@ -207,6 +216,14 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
 
   const page = readInt(params.get('page'), 1);
   const pageSize = readInt(params.get('pageSize'), DEFAULT_PAGE_SIZE);
+
+  /* `039`. The row action in flight, and it is deliberately ONE slot rather than
+     a flag per action: two of these open at once would be two surfaces over one
+     row, and the state makes that unrepresentable instead of merely unlikely.
+     Not in the URL — unlike the filters and the page, an open menu is not a
+     place, and a pasted link that opens somebody's assignee picker is a link
+     that lies about where it goes (ADR-011 §1). */
+  const [action, setAction] = useState<RowAction | null>(null);
 
   /* `015` AC-14. The filters are READ FROM THE URL on every render — there is no
    * state and no mirror. A filtered list therefore survives a reload, the back
@@ -578,14 +595,22 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
              The design supplies four actions, and three of them are things the
              row click cannot do.
 
-             EVERY ITEM NAVIGATES. Reassign and Close are real operations with a
-             frozen contract each — `PUT /assignee` and `PUT /status`, both
-             taking `expectedVersion` and both answering three distinguishable
-             `409`s — and the controls that handle those answers live on the
-             detail screen. Firing either from a list row would mean a second
-             implementation of the concurrency handling, in a component that has
-             no version to send. So the menu takes the user to where the action
-             is, carrying its intent. */
+             ~~EVERY ITEM NAVIGATES.~~ REVERSED BY `039`, on the product owner's
+             ruling of 2026-09-06. What `026` wrote here was:
+
+               "Firing either from a list row would mean a second implementation
+                of the concurrency handling, in a component that has no version
+                to send. So the menu takes the user to where the action is."
+
+             The premise was right and the conclusion no longer follows. The row
+             still has no `version` and no `allowedTransitions` — `010` left both
+             out of `TicketListItem` on purpose — so opening either surface
+             FETCHES THE TICKET, under the same `ticketKeys.detail(id)` the detail
+             route uses. One request supplies both, no rule is implemented twice,
+             and BR-1 still lives only on the server.
+
+             So two items act and two still navigate. `escalate` stays inert —
+             `016` is unbuilt — and `view` is the row click's own shortcut. */
           rowFlyout={{
             header: t('list.column.actions'),
             triggerLabel: t('list.rowActions'),
@@ -608,9 +633,19 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
                   type="button"
                   role="menuitem"
                   className={styles.rowMenuItem}
-                  onClick={() => {
+                  onClick={(event) => {
+                    /* THE CELL IS CAPTURED BEFORE `close()`, and the order is
+                       load-bearing: `close()` unmounts this button, so reading
+                       `event.currentTarget` afterwards gives a detached node and
+                       the menu opens against a rect of zeroes at the top-left
+                       corner of the page.
+
+                       The CELL rather than the trigger inside it: the trigger is
+                       `Table`'s own element and reaching for it by selector would
+                       be this feature knowing another one's internals. */
+                    const anchor = event.currentTarget.closest('td');
                     close();
-                    void navigate(`/tickets/${row.id}`, { state: { intent: 'assign' } });
+                    if (anchor !== null) setAction({ kind: 'assign', row, anchor });
                   }}
                 >
                   <IconAssign size={16} aria-hidden="true" />
@@ -638,13 +673,22 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
 
                 <span className={styles.rowMenuRule} role="separator" />
 
+                {/* NOT RED ANY MORE, and the reason is the product owner's:
+                    «الأحمر في النظام لفعل الذي لا يُستردّ، والإغلاق يُعاد فتحه
+                    بنقرة». Red is left to delete, alone. `rowMenuItemDanger` is
+                    deleted rather than left unused — an unused danger class is
+                    one autocomplete away from coming back. */}
                 <button
                   type="button"
                   role="menuitem"
-                  className={cx(styles.rowMenuItem, styles.rowMenuItemDanger)}
-                  onClick={() => {
+                  className={styles.rowMenuItem}
+                  onClick={(event) => {
+                    /* No anchor needed — a modal is centred on the page. The
+                       flyout still closes first, so focus is not stranded on a
+                       button that is about to be unmounted behind a scrim. */
                     close();
-                    void navigate(`/tickets/${row.id}`, { state: { intent: 'close' } });
+                    setAction({ kind: 'close', row, anchor: null });
+                    event.stopPropagation();
                   }}
                 >
                   <IconClosed size={16} aria-hidden="true" />
@@ -732,6 +776,30 @@ export default function TicketListPage({ queue }: { queue?: TicketQueue | undefi
             query.error instanceof ApiError ? query.error.problem?.traceId : undefined
           }
         />
+
+      {/* `039`. The two surfaces the row menu opens. Both are mounted by the
+          PAGE and not by the row: a menu rendered inside a `<td>` is clipped by
+          the table's own overflow, and a modal rendered there would put a scrim
+          inside a scrolling region. */}
+      {action?.kind === 'assign' ? (
+        <RowAssignMenu
+          key={action.row.id}
+          ticketId={action.row.id}
+          ticketNumber={action.row.ticketNumber}
+          anchor={action.anchor}
+          lang={lang}
+          onClose={() => setAction(null)}
+        />
+      ) : null}
+
+      {action?.kind === 'close' ? (
+        <CloseTicketModal
+          key={action.row.id}
+          ticketId={action.row.id}
+          ticketNumber={action.row.ticketNumber}
+          onClose={() => setAction(null)}
+        />
+      ) : null}
     </main>
   );
 }

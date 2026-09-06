@@ -1,27 +1,59 @@
 /* ============================================================================
- * CreateTicket.module.css
+ * CreateTicket.module.css — `038`
  * ============================================================================
  * FEATURE-LOCAL, including the section card. `component-inventory.md` does not
- * list a Card among the eight primitives, and two bordered sections on one
+ * list a Card among the eight primitives, and three bordered sections on one
  * screen do not justify taking a slot. If a second screen wants the same box it
  * is promoted then, with a written reason (ADR-011 §3).
  *
- * TODO — no motion or breakpoint token exists (tokens.css note 11). The 100ms
- * transitions and the 720px column are literals. Spec Q-8.
+ * ---------------------------------------------------------------------------
+ * NO DEAD VERTICAL SPACE — ruled 2026-09-06, from a screenshot
+ * ---------------------------------------------------------------------------
+ * «شيل كل المساحات الفاضية اللي في البيدج اللي ملهاش لازمة». Every gap on this
+ * screen is now one of three values and each one is doing a job:
+ *
+ *   --space-2   8   inside a field: label to control, control to helper
+ *   --space-4  16   between fields, and card padding
+ *   --space-4  16   between cards, and between the two columns
+ *
+ * There is no fourth. The screenshot that prompted the ruling had a 24px card
+ * padding, a 24px stack gap and a 16px card margin stacking into 64px of nothing
+ * between the subject field and the description — three separate rules, each
+ * defensible alone. THE FIX IS ONE SCALE, not smaller numbers: the way this
+ * comes back is somebody adding a `margin-block-end` to a section that "needs a
+ * little more room".
+ *
+ * ---------------------------------------------------------------------------
+ * THE GRID IS DECLARED HERE, AND ONLY HERE — spec M-1
+ * ---------------------------------------------------------------------------
+ * The supplied mock-up put `grid-template-columns` in the element's `style`
+ * attribute and its own `@media (min-width: 1100px)` rule therefore never
+ * applied: measured in Chrome, media query `true`, computed columns one track.
+ * `027` hit the identical thing in `Sidebar.tsx` (`style={{position:'relative'}}`
+ * against a stylesheet `sticky`). An inline style outranks every stylesheet rule
+ * that is not `!important`, and NOTHING GOES RED — the module says one thing,
+ * computed style says another. `newTicketLayout.test.ts` scans the source.
  * ============================================================================ */
 
-/* Single column, max 720. A form wider than that makes the eye travel between
- * label and field (05-create-ticket.md). */
+/* THE PAGE FILLS THE SHELL and does not scroll the window. `AppShell` was made
+ * a fixed-height box with the scroll moved inside (2026-09-06); a page that
+ * declares `block-size: 100%` fits it exactly, which is what lets the footer
+ * below be fixed without `position: fixed`. */
 .page {
-  max-inline-size: 720px;
-  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
   inline-size: 100%;
 }
+
+/* ---- Head ----------------------------------------------------------------- */
 
 .head {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex: none;
   margin-block-end: var(--space-4);
 }
 
@@ -32,121 +64,314 @@
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--text-muted);
   text-decoration: none;
   font-size: var(--text-ui);
+  white-space: nowrap;
 }
 
 .back:hover {
   color: var(--text-primary);
 }
 
-/* ---- Section card — feature-local, not a primitive ------------------------ */
+.crumbSep {
+  color: var(--neutral-400);
+  flex: none;
+}
+
+/* ---- The form is the scroller, the footer is not ------------------------- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-block-size: 0;
+}
+
+.scroll {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  /* Room for the footer's border only. Padding here would be dead space at the
+     bottom of every scroll, which is exactly what the ruling above removes. */
+  padding-block-end: var(--space-4);
+}
+
+/* ---- The two columns ----------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.main,
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+/* 1100px is the mock-up's own breakpoint and it is a literal: no breakpoint
+   token exists (tokens.css note 11). BELOW it the rail stacks, because a 316px
+   fixed track beside a shrinking main column crosses over and the "sidebar"
+   becomes the wider half. */
+/* `width >= 1100px`, which is `min-width: 1100px` written in range notation —
+   stylelint's `media-feature-range-notation` requires the modern form here. The
+   spec and the mock-up both say `min-width`; they are the same query. */
+@media (width >= 1100px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) 316px;
+  }
+
+  /* The rail follows a long description down. `sticky` needs `align-items:
+     start` on the grid, which is above — stretched, it is already full height
+     and has nothing to stick to. */
+  .rail {
+    position: sticky;
+    inset-block-start: 0;
+  }
+}
+
+/* ---- Cards --------------------------------------------------------------- */
 
 .card {
-  padding: var(--space-6);
-  margin-block-end: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
   background-color: var(--surface-card);
   border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  /* 10px, by value. `--radius-md` is 8 and `--radius-lg` is 12; the canvas asks
+     for 10 and `TicketDetail.module.css` already writes 10px by value for the
+     same reason — "the canvas's own numbers". A near-match would be a third
+     card radius in the product, which is what `nearMatch.test.ts` exists to
+     stop. */
+  border-radius: 10px;
 }
 
 .cardTitle {
-  margin: 0 0 var(--space-4);
+  margin: 0;
   font-size: var(--text-card-title);
   font-weight: var(--weight-medium);
 }
 
-/* A disabled SECTION, not a disabled control. `fieldset[disabled]` disables
- * every control inside it natively, so the state is in the accessibility tree
- * rather than only in the paint — and the reason is rendered as text, so a
- * screen reader gets the "why" and not just the "no". */
-.fieldset {
-  padding: 0;
-  margin: 0;
-  border: 0;
+/* A hairline INSIDE a card, between two fields that belong together — subject
+   and description. It replaces the gap that used to separate them, so it costs
+   1px instead of 24. */
+.rule {
+  block-size: 1px;
+  background-color: var(--border-subtle);
+}
+
+/* ---- A field, when the primitive is not doing the whole job -------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   min-inline-size: 0;
 }
 
-.fieldset:disabled .cardTitle {
-  color: var(--text-placeholder);
+.fieldLabel {
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
 }
 
-.disabledNote {
+.required {
+  color: var(--state-danger-text);
+  margin-inline-start: 2px;
+}
+
+.hint,
+.counter {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* The counter sits at the field's inline-END, under its own field. `--space-2`
+   negative pull, because `Input` already draws its helper line and two stacked
+   helper rows read as a paragraph. */
+.counter {
+  align-self: flex-end;
+  margin-block-start: calc(var(--space-2) * -1);
+  font-variant-numeric: tabular-nums;
+}
+
+.fieldError {
+  font-size: var(--text-helper);
+  color: var(--state-danger-text);
+}
+
+/* ---- Radio groups — channel and priority -------------------------------- */
+
+.groupIcons,
+.groupLabels {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+/* Five channels, one row. `minmax(0, 1fr)` and never `1fr`: a bare `1fr`
+   refuses to shrink below its content, so the row would push past the rail
+   instead of revealing that it does not fit. */
+.groupIcons {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.groupLabels {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.option {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3);
-  margin-block-end: var(--space-4);
-  background-color: var(--state-info-bg);
-  color: var(--state-info-text);
-  border-radius: var(--radius-sm);
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-2);
+  font: inherit;
   font-size: var(--text-helper);
+  color: var(--text-muted);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--field-radius);
+  cursor: pointer;
+  min-inline-size: 0;
 }
 
-/* ---- Fields --------------------------------------------------------------- */
+.groupLabels .option {
+  justify-content: flex-start;
+}
 
-.stack {
+.option:hover {
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.optionChecked,
+.optionChecked:hover {
+  color: var(--brand);
+  background-color: var(--brand-subtle);
+  border-color: var(--brand);
+  font-weight: var(--weight-medium);
+  /* The inset ring, not a 2px border. A border that thickens on selection
+     changes the cell's content box and nudges the icon by half a pixel — five
+     cells in a row, and only the selected one moves. */
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+.groupInvalid .option {
+  border-color: var(--state-danger-text);
+}
+
+.dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--radius-pill);
+  flex: none;
+}
+
+/* Four dots, four values, and the loud end agrees with the ticket list:
+   `--state-warning-fill` is the token `tokens.css` created for painting a
+   warning as a SHAPE rather than a panel, which is exactly a dot. */
+.dotLow {
+  background-color: var(--neutral-400);
+}
+
+.dotNormal {
+  background-color: var(--state-info-text);
+}
+
+.dotHigh {
+  background-color: var(--state-warning-fill);
+}
+
+.dotCritical {
+  background-color: var(--state-danger-text);
+}
+
+/* ---- Customer ----------------------------------------------------------- */
+
+.customerSection {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-2);
+  min-inline-size: 0;
 }
 
-/* Three selects on one row. `minmax(0, 1fr)` and not `1fr`: a bare `1fr` refuses
- * to shrink below its content, so an over-long option would push the row past
- * the frame instead of revealing that it does not fit. Measured in the preview
- * (FE-024-00): each cell 212.8px, the widest option needing 109.4 — 103px of
- * headroom, which is why this stayed one row. */
-.selectRow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
-/* ---- Customer picker ------------------------------------------------------ */
-
-.searchRow {
+.customerHead {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  align-items: flex-end;
 }
 
 .searchField {
-  flex: 1;
-  min-inline-size: 0;
   position: relative;
+  min-inline-size: 0;
 }
 
 .searchSpinner {
   position: absolute;
-  inset-block-end: var(--space-3);
+  inset-block-start: 50%;
   inset-inline-end: var(--space-3);
+  transform: translateY(-50%);
   color: var(--text-muted);
   pointer-events: none;
 }
 
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: var(--radius-pill);
+  background-color: var(--brand-subtle);
+  color: var(--brand);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  flex: none;
+}
+
 .results {
-  margin-block-start: var(--space-2);
-  padding: 0;
+  margin: 0;
+  padding: var(--space-1);
   list-style: none;
   background-color: var(--surface-card);
   border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--field-radius);
   overflow: hidden auto;
-  max-block-size: 240px;
+  max-block-size: 260px;
 }
 
 .result {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2) var(--space-3);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--field-radius);
   cursor: pointer;
+  min-inline-size: 0;
 }
 
 .result:hover,
 .resultActive {
-  background-color: var(--brand-subtle);
+  background-color: var(--surface-row-hover);
+}
+
+.resultBody {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  flex: 1;
 }
 
 .resultName {
@@ -154,32 +379,29 @@
   color: var(--text-primary);
 }
 
-.resultMeta {
+.resultMeta,
+.resultCompany {
   font-size: var(--text-helper);
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultCompany {
+  flex: none;
 }
 
 .empty {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-4);
-  margin-block-start: var(--space-2);
+  padding: var(--space-3);
   background-color: var(--surface-content);
   border: var(--border-width) dashed var(--border-default);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-ui);
+  border-radius: var(--field-radius);
+  font-size: var(--text-helper);
   color: var(--text-muted);
-}
-
-/* `/customers/new` does not exist yet (`007`, spec Q-3). A link to nowhere is
- * worse than no link, so it renders visibly unavailable with the reason beside
- * it — the same pattern as the disabled ticket section. */
-.linkDisabled {
-  color: var(--text-placeholder);
-  text-decoration: underline;
-  cursor: not-allowed;
 }
 
 .selected {
@@ -189,7 +411,8 @@
   padding: var(--space-3);
   background-color: var(--surface-content);
   border: var(--border-width) solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--field-radius);
+  min-inline-size: 0;
 }
 
 .selectedBody {
@@ -205,23 +428,157 @@
 }
 
 .selectedMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-helper);
   color: var(--text-muted);
+  min-inline-size: 0;
+}
+
+.selectedEmail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaDot {
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: var(--radius-pill);
+  background-color: var(--neutral-300);
+  flex: none;
+}
+
+/* ---- The duplicate warning ---------------------------------------------- */
+
+.duplicate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--state-warning-bg);
+  /* `--state-warning-border`, added by this feature. `--border-subtle` on amber
+     reads as a grey box that happens to be yellow inside, and
+     `--state-warning-fill` at 1px shouts louder than the text it surrounds. */
+  border: var(--border-width) solid var(--state-warning-border);
+  border-radius: var(--field-radius);
+  color: var(--state-warning-text);
+}
+
+.duplicateHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-helper);
+}
+
+.duplicateText {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.duplicateToggle {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.duplicateList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.duplicateRow,
+.duplicateAll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-helper);
+  color: var(--text-primary);
+  text-decoration: none;
+  min-inline-size: 0;
+}
+
+.duplicateRow:hover,
+.duplicateAll:hover {
+  /* White at 70% over amber, so the row lifts without introducing a second
+     amber. A solid surface token here would be a panel inside a panel. */
+  background-color: rgb(255 255 255 / 70%);
+  text-decoration: none;
+}
+
+.duplicateNumber {
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--state-warning-text);
+}
+
+.duplicateSubject {
+  flex: 1;
+  min-inline-size: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ---- Footer --------------------------------------------------------------- */
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  margin-block-start: var(--space-6);
+.duplicateAge {
+  flex: none;
+  color: var(--text-muted);
 }
 
-/* ---- Failures that are not field-level ------------------------------------ */
+.duplicateAll {
+  color: var(--state-warning-text);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+}
+
+/* ---- The fixed footer --------------------------------------------------- */
+
+.footer {
+  flex: none;
+  padding-block: var(--space-3);
+  background-color: var(--surface-card);
+  border-block-start: var(--border-width) solid var(--border-subtle);
+}
+
+.footerInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--state-danger-text);
+  min-inline-size: 0;
+}
+
+.footerActions {
+  /* LOGICAL. `margin-left: auto` would pin the actions to the wrong edge in
+     Arabic, and the stylelint rule in this repo refuses the physical property
+     outright. */
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/* ---- Failures that are not field-level ---------------------------------- */
 
 .notice {
   display: flex;
@@ -230,29 +587,71 @@
   margin-block-end: var(--space-4);
   background-color: var(--state-danger-bg);
   color: var(--state-danger-text);
-  border-radius: var(--radius-sm);
+  border-radius: var(--field-radius);
   font-size: var(--text-ui);
 }
 
-.fieldError {
-  font-size: var(--text-helper);
-  color: var(--state-danger-text);
+/* ---- The create-customer sheet's badge ---------------------------------- */
+
+.sheetBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: var(--radius-pill);
+  background-color: var(--brand-subtle);
+  color: var(--brand);
 }
 
-/* A <legend> is laid out by the UA as part of the fieldset's border, so it needs
- * resetting even though this fieldset has no border.
- *
- * `display: block`, NOT the old `float` trick. The float was tried first and
- * broke the form: a 100%-wide float is out of flow, so the following `.stack`
- * kept its own block position and only its LINE boxes wrapped — the subject
- * input measured 26px wide inside a 720px card. Modern engines honour `display`
- * on a legend, which keeps it in normal flow where the rest of the layout
- * expects it.
- *
- * On screen the result is what the <h3> and <p> rendered before — the change is
- * in the accessibility tree, not in the design. */
-.legend {
-  display: block;
-  inline-size: 100%;
+/* ---- Prior tickets — the quiet half of the customer's history ------------ */
+
+/* NEUTRAL, and deliberately not a second amber panel. An open ticket is a
+   duplicate RISK; a closed one is CONTEXT. A palette where context and warning
+   look alike is a palette that has stopped saying anything — which is the same
+   argument `TicketBadges` makes about red being severity and never status. */
+.prior {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--surface-content);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--field-radius);
+}
+
+.priorHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.priorToggle {
+  flex: none;
   padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--brand);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.priorNumber {
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.priorAll {
+  display: flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  color: var(--brand);
+  text-decoration: underline;
 }

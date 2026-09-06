@@ -1,0 +1,71 @@
+/* ============================================================================
+ * Avatar — `039`
+ * ============================================================================
+ * MOVED OUT OF `TicketDetail.module.css`, not copied. The tint classes and the
+ * `.avatar` ground have to live in ONE module, because the last rule in this
+ * file is a COMPOUND selector — `.avatar.av0` — and a compound only compiles
+ * when both halves are declared together. Splitting them is how the ground
+ * silently wins over the tint on one screen and not the other.
+ *
+ * `037` is the reason this is a move rather than a second declaration:
+ * `IconEye` was declared in two files with different geometry, and two screens
+ * rendered different drawings under one import name for four features. The same
+ * shape here would be two people wearing two different colours for the same
+ * name, on two screens, with nothing red.
+ * ========================================================================= */
+
+.avatar {
+  flex: none;
+  inline-size: var(--table-avatar-size);
+  block-size: var(--table-avatar-size);
+  border-radius: var(--radius-pill);
+  background-color: var(--avatar-fill);
+  color: var(--text-on-inverse);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- five tints ----------------------------------------------------------
+ * The count and the reason for it are in `Avatar.tsx` beside `AVATAR_TINT`.
+ * ------------------------------------------------------------------------- */
+
+.av0 {
+  background-color: color-mix(in oklab, var(--teal-600) 16%, white);
+  color: var(--teal-600);
+}
+
+.av1 {
+  background-color: color-mix(in oklab, var(--blue-600) 14%, white);
+  color: var(--blue-600);
+}
+
+.av2 {
+  background-color: color-mix(in oklab, var(--amber-500) 22%, white);
+  color: var(--state-warning-text);
+}
+
+.av3 {
+  background-color: color-mix(in oklab, var(--navy-900) 12%, white);
+  color: var(--navy-900);
+}
+
+/* The fifth. Four buckets put two of the three seeded agents in one colour —
+   measured — and five is the count the tag palette settled on for the same
+   reason: it is how many hues this palette has that are not red. */
+.av4 {
+  background-color: color-mix(in oklab, var(--green-700) 12%, white);
+  color: var(--green-700);
+}
+
+/* The avatar's own rule sets an opaque navy ground and inverse ink, so the tint
+ * has to win on BOTH. Same specificity, declared later — no `!important`. */
+.avatar.av0,
+.avatar.av1,
+.avatar.av2,
+.avatar.av3,
+.avatar.av4 {
+  border: 1px solid currentcolor;
+}

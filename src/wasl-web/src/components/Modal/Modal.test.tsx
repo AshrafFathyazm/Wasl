@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { I18nextProvider } from 'react-i18next';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import i18n from '../../lib/i18n';
 import { Modal } from './Modal';
@@ -26,10 +26,12 @@ function Harness({
   destructive = false,
   unsavedInput = false,
   withBody = true,
+  onDismissAttempt,
 }: {
   destructive?: boolean;
   unsavedInput?: boolean;
   withBody?: boolean;
+  onDismissAttempt?: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -49,6 +51,7 @@ function Harness({
         title="Delete the ticket?"
         destructive={destructive}
         unsavedInput={unsavedInput}
+        onDismissAttempt={onDismissAttempt}
         footer={
           <>
             {/* §3's DESTRUCTIVE order: cancel first in reading order, then the
@@ -193,16 +196,51 @@ describe('§3 — the scrim', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('still closes on Escape and on the × over unsaved input', async () => {
+  it('does NOT close on Escape either — reversed 2026-09-06', async () => {
     const u = userEvent.setup();
     render(<Harness unsavedInput />);
     await openIt(u);
 
-    /* THE OTHER HALF OF THE RULE, and the one that would make a bad fix look
-       right: disabling every exit path also stops the scrim closing it, and this
-       test is what separates "the scrim does not close it" from "nothing does".
-       A reader with unsaved input still has to be able to leave. */
+    /* THIS TEST ASSERTED THE OPPOSITE and it was the defect, written down and
+       guarded — the exact "likely half-fix" AC-10 warns about by name.
+     *
+     * A REAL CONSUMER SETTLED IT. `039`'s `CloseTicketModal` holds a
+     * 500-character close reason and sets `unsavedInput`, so a reader typed a
+     * note, pressed Escape by reflex, and lost it with no question. Guarding the
+     * scrim and leaving Escape open is not partial protection — it is the wrong
+     * half, because Escape is the more reflexive of the two. */
     await u.keyboard('{Escape}');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('asks, when the caller supplies the question', async () => {
+    const u = userEvent.setup();
+    const asked = vi.fn();
+    const { container } = render(<Harness unsavedInput onDismissAttempt={asked} />);
+    await openIt(u);
+
+    await u.keyboard('{Escape}');
+    expect(asked).toHaveBeenCalledTimes(1);
+
+    const scrim = container.querySelector<HTMLElement>('[aria-hidden="true"][tabindex="-1"]');
+    await u.click(scrim!);
+    expect(asked).toHaveBeenCalledTimes(2);
+
+    /* AND NEITHER CLOSED IT. The caller decides what happens next; the component
+       only guarantees it did not happen silently. */
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('LEAVES A WAY OUT — the × and the footer are never guarded', async () => {
+    const u = userEvent.setup();
+    render(<Harness unsavedInput />);
+    await openIt(u);
+
+    /* The half that makes the guard safe rather than a trap. A modal that cannot
+       be left at all is worse than one that loses a draft, and the two controls
+       a reader had to AIM at stay open — only the two they trigger by accident
+       are guarded. */
+    await u.click(screen.getByRole('button', { name: i18n.t('common:dismiss') }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 });

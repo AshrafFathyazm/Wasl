@@ -65,5 +65,6 @@
   "table.sortMenu": "فرز",
   "table.sortAsc": "فرز تصاعدي",
   "table.sortDesc": "فرز تنازلي",
-  "table.sortClear": "إزالة الفرز"
+  "table.sortClear": "إزالة الفرز",
+  "listSeparator": "، "
 }

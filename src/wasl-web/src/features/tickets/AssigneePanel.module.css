@@ -1,0 +1,245 @@
+/* ============================================================================
+ * AssigneePanel — `039`
+ * ============================================================================
+ * The panel's own geometry only. It does NOT position itself: the detail rail
+ * hangs it off a `position: relative` block and the list row hangs it off a
+ * `position: fixed` portal, and a component that decided its own placement
+ * could only serve one of them.
+ *
+ * `03-tickets-list.md` v4, the product owner's mock of 2026-09-06: 308px, a
+ * fixed head, a scrolling list, a pinned foot.
+ * ========================================================================= */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  /* 308 measured off the mock AFTER its entrance animation settled — during it
+     the panel reads 305, because the keyframe ends on `scale(.99)`. */
+  inline-size: 308px;
+  max-inline-size: calc(100vw - var(--space-6));
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+
+  /* TWO CEILINGS, AND THE SMALLER ONE WINS — the same contract
+     `Dropdown.module.css` keeps. `--menu-max-block-size` is published per open
+     by whatever floats this panel; the detail rail publishes none, so the
+     fallback leaves the design ceiling in charge and that screen is unchanged.
+
+     A measurement can therefore only ever make the panel SHORTER. Writing it
+     to `block-size` instead would stretch a two-row menu down the viewport. */
+  max-block-size: min(70vh, var(--menu-max-block-size, 100vh));
+}
+
+/* ---- head ---------------------------------------------------------------- */
+
+.head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-block-end: 1px solid var(--border-subtle);
+}
+
+.title {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ---- the list ------------------------------------------------------------
+ * THE ONLY SCROLLER IN THE PANEL. The head and the foot are `flex: none`, so
+ * when the cap shortens the panel this is the box that gives — which is what
+ * keeps «إلغاء الإسناد» reachable at every height (AC-14).
+ * ------------------------------------------------------------------------- */
+
+.list {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+  color: var(--text-primary);
+}
+
+.row:hover:not(:disabled) {
+  background-color: var(--surface-subtle);
+}
+
+.row:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.row:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The current assignee. `--surface-subtle` IS the mock's #F5F8F8, so the ground
+   is a token rather than the literal — and the tick is what carries the meaning
+   for anyone who cannot separate this ground from white. */
+.rowCurrent {
+  background-color: var(--surface-subtle);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+  flex: 1 1 auto;
+}
+
+.name {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* ---- the open-ticket count ----------------------------------------------
+ * Three tokens, no literals. `--state-danger-text` is #e54545 where the mock
+ * drew #c4362f — the house red wins, the same way `037` normalised a supplied
+ * icon set to the house keyline. Recorded in `summary.md`, not absorbed.
+ * ------------------------------------------------------------------------- */
+
+.load {
+  flex: none;
+  font-size: var(--text-helper);
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.loadBusy {
+  color: var(--state-warning-text);
+}
+
+.loadHeavy {
+  color: var(--state-danger-text);
+}
+
+/* The count is not known yet. A dash rather than a zero: a zero is a fact, and
+   "we have not counted yet" is not that fact. */
+.loadUnknown {
+  color: var(--text-placeholder);
+}
+
+.tick {
+  flex: none;
+  display: inline-flex;
+  color: var(--brand);
+}
+
+.none {
+  padding: var(--space-3) var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* ---- the pinned foot -----------------------------------------------------
+ * NOT RED, and that is the ruling rather than an oversight: red is for what
+ * cannot be taken back, and an unassign is one click from being undone. What
+ * separates it is the rule above it and the dashed circle.
+ * ------------------------------------------------------------------------- */
+
+.foot {
+  flex: none;
+  border-block-start: 1px solid var(--border-subtle);
+  padding: var(--space-1);
+}
+
+.clear {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+  padding: var(--space-2);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-helper);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: start;
+}
+
+.clear:hover:not(:disabled) {
+  background-color: var(--surface-subtle);
+  color: var(--text-primary);
+}
+
+.clear:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.clear:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.clearLabel {
+  flex: 1 1 auto;
+}
+
+.dashed {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-pill);
+  color: var(--text-placeholder);
+}
+
+.hint {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* A refusal from the server, rendered where the action was taken. NOT a toast —
+   `039` AC-27: a toast is dismissible, has no history, and this panel is still
+   open behind it. */
+.error {
+  flex: none;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-block-start: 1px solid var(--border-subtle);
+  background-color: var(--state-danger-bg);
+  font-size: var(--text-helper);
+  line-height: 1.5;
+  color: var(--state-danger-text);
+}

@@ -25,16 +25,33 @@ import type {
  * a fetcher that has to be re-decided per screen.
  * ============================================================================ */
 
-/** `POST /api/tickets`. Returns the body AND the `Location`, because the
- *  contract promises `Location: /api/tickets/{id}` and the client is told to
- *  navigate by reading it rather than by re-deriving the server's route. */
+/**
+ * `POST /api/tickets`. Returns the body AND the `Location`, because the contract
+ * promises `Location: /api/tickets/{id}` and the client is told to navigate by
+ * reading it rather than by re-deriving the server's route.
+ *
+ * `idempotencyKey` — `036` §3.5, and `038` is the first caller to send one. The
+ * endpoint is not idempotent without it and has no duplicate rule, so a request
+ * whose response was lost is indistinguishable from a second intent.
+ *
+ * OPTIONAL, because `036` AC-19 makes the header opt-in: a request without one
+ * behaves exactly as it did before. THE CALLER OWNS THE KEY'S LIFETIME and it
+ * is not minted here — `036` Q-5 rules that the same key with a DIFFERENT body
+ * answers `409`, so a key minted inside this function (one per request) would
+ * never collide and the header would be decorative, while a key minted once and
+ * held forever would trap a form the user has corrected after a `400`. Neither
+ * failure is visible from this file, which is exactly why the decision is the
+ * screen's.
+ */
 export async function createTicket(
   body: CreateTicketRequest,
+  idempotencyKey?: string,
   signal?: AbortSignal,
 ): Promise<{ ticket: TicketResponse; location: string | null }> {
   const result = await apiFetchDetailed<TicketResponse>('/api/tickets', {
     method: 'POST',
     body,
+    ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
     ...(signal ? { signal } : {}),
   });
   return { ticket: result.data, location: result.location };

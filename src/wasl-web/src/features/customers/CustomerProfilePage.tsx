@@ -1,15 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 
-import { Toast } from '../../components/Toast/Toast';
-import { IconCheck } from '../../icons/icons';
+import { useToast } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type { Lang } from '../../lib/formatters';
 import { CustomerProfileView, type ProfileState } from './CustomerProfileView';
 import { getCustomer } from './customers.api';
-import styles from './Customers.module.css';
 
 /* ============================================================================
  * CustomerProfilePage — the ROUTE (ADR-011 §4)
@@ -26,17 +23,31 @@ import styles from './Customers.module.css';
  * asserted by a test rather than left to the type.
  * ========================================================================== */
 
-/** How long the copy confirmation stays. Long enough to read, short enough that
- *  it is gone before the reader wonders whether it is a permanent state. */
-const TOAST_MS = 1800;
+/* THE COPY CONFIRMATION IS THE SYSTEM TOAST NOW — 2026-09-06.
+ *
+ * It used to render `<Toast tone="inverse">` into a slot of this page's own,
+ * with its own tick glyph and its own 1800ms: a dark pill twice the height of
+ * every other toast in the product, in a different corner, dismissing on a
+ * different clock. Reported as «غير توستر الكوبي دا بتوستر من الموجودين في
+ * السيستم وخلي حجمه اصغر ومتنساق».
+ *
+ * `useToast()` gives it the shared stack — one position, one size, one
+ * duration, the same dismiss affordance. THE DEDUPE COMES FREE AND IS BETTER
+ * THAN WHAT WAS HERE: this page keyed the element on the field name so a second
+ * copy would remount and re-announce; the host keys on the title, refreshes the
+ * card with a new id — which remounts and re-announces — and shows «×2».
+ *
+ * The `inverse` tone stays in `Toast.module.css` and keeps its own note. It is
+ * no longer used by this page, and whether anything else should use it is a
+ * question for whoever wants a dark toast next.
+ */
 
 export default function CustomerProfilePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { id = '' } = useParams<{ id: string }>();
   const lang: Lang = i18n.resolvedLanguage === 'ar' ? 'ar' : 'en';
-
-  const [copied, setCopied] = useState<string | null>(null);
+  const toast = useToast();
 
   const query = useQuery({
     queryKey: ['customer', id],
@@ -85,50 +96,22 @@ export default function CustomerProfilePage() {
     query.error instanceof ApiError ? query.error.problem.traceId : undefined;
 
   return (
-    <>
-      <CustomerProfileView
-        state={state}
-        customer={query.data}
-        traceId={traceId}
-        onRetry={() => void query.refetch()}
-        onCopied={(fieldLabel) => setCopied(fieldLabel)}
-        lang={lang}
-        onEdit={(customerId) => void navigate(`/customers/${customerId}/edit`)}
-      />
-
-      {/* ONE TOAST, NAMING WHAT WAS COPIED. Three copy controls share it, and the
-          message says which value it was — "Copied" alone leaves the reader
-          checking their clipboard to find out which of three buttons they hit.
-
-          Keyed on the field name so a second copy remounts the region and is
-          announced again; without the key, React reuses the node and a screen
-          reader stays silent on the second copy because the text did not change
-          when the same field is copied twice. */}
-      {copied === null ? null : (
-        <div className={styles.toastSlot}>
-          <Toast
-            key={copied}
-            /* THE DARK PILL WITH A TICK, which is what the design draws — and the
-               tone is new (`Toast.module.css` records why it is additive rather
-               than a change to the other three). A light-green panel at the
-               corner of a light page has no edge to sit against. */
-            tone="inverse"
-            dismissLabel={t('common:dismiss')}
-            onDismiss={() => setCopied(null)}
-            autoDismissMs={TOAST_MS}
-          >
-            <span className={styles.toastBody}>
-              {/* The tick is the design's, and it is decoration: the sentence
-                  beside it already says what happened, so announcing the glyph
-                  too would say it twice. */}
-              <span className={styles.toastTick} aria-hidden="true">
-                <IconCheck size={14} />
-              </span>
-              {t('customers:profile.copied', { field: copied })}
-            </span>
-          </Toast>
-        </div>
-      )}
-    </>
+    <CustomerProfileView
+      state={state}
+      customer={query.data}
+      traceId={traceId}
+      onRetry={() => void query.refetch()}
+      /* NAMES WHAT WAS COPIED, and that has not changed: three copy controls
+         share one toast, and "Copied" alone leaves the reader checking their
+         clipboard to find out which button they hit. */
+      onCopied={(fieldLabel) =>
+        toast.show({
+          tone: 'success',
+          title: t('customers:profile.copied', { field: fieldLabel }),
+        })
+      }
+      lang={lang}
+      onEdit={(customerId) => void navigate(`/customers/${customerId}/edit`)}
+    />
   );
 }

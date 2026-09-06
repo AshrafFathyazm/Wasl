@@ -94,6 +94,18 @@ export interface ApiRequest {
    *  05-api-conventions. `undefined` entries are dropped, so a caller can spread
    *  optional filters without building the object conditionally. */
   query?: Record<string, QueryValue>;
+
+  /** Extra request headers. Added by `038` for one header — `Idempotency-Key`
+   *  on `POST /api/tickets` (`036` §3.5).
+   *
+   *  MERGED UNDER the four this module owns, never over them. `Accept`,
+   *  `Accept-Language`, `Content-Type` and `Authorization` are decided here and
+   *  a caller must not be able to replace them: an `Authorization` supplied per
+   *  call site is how one screen ends up authenticating differently from the
+   *  rest, and an `Accept-Language` supplied per call site silently defeats
+   *  ADR-007 §4's resolution order. The spread order below is the enforcement,
+   *  and `apiHeaderPrecedence.test.ts` is what keeps it that way. */
+  headers?: Record<string, string>;
 }
 
 /** Types the wrapper synthesises when the server did not supply a real one. */
@@ -350,9 +362,14 @@ export async function apiFetchDetailed<T>(
   path: string,
   request: ApiRequest = {},
 ): Promise<{ data: T; location: string | null; contentLanguage: string | null }> {
-  const { method = 'GET', body, signal, query } = request;
+  const { method = 'GET', body, signal, query, headers: extra } = request;
 
   const headers: Record<string, string> = {
+    /* THE CALLER'S HEADERS GO FIRST so the four below overwrite them, not the
+     * reverse. Written this way rather than as a merge at the end because the
+     * order IS the rule, and a `{ ...headers, ...extra }` at the bottom of this
+     * function reads equally deliberate while meaning the opposite. */
+    ...extra,
     Accept: 'application/json',
     /* On EVERY request. This is the client half of ADR-007 §4's resolution
      * order — the server still outranks it with a stored PreferredLanguage. */

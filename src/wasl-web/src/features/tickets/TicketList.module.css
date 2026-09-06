@@ -469,17 +469,17 @@
   cursor: not-allowed;
 }
 
-/* THE DESTRUCTIVE ROW READS AS ONE BEFORE IT IS PRESSED — colour on the label
-   and the glyph, and a danger-tinted hover rather than the neutral one. Closing
-   a ticket is terminal in BR-1: no reopen, no reassign, no comment. */
-.rowMenuItemDanger {
-  color: var(--state-danger-text);
-}
-
-.rowMenuItemDanger:hover:not(:disabled) {
-  background-color: var(--state-danger-bg);
-  color: var(--state-danger-text);
-}
+/* `.rowMenuItemDanger` WAS HERE AND IS DELETED — `039`, 2026-09-06.
+ *
+ * It painted «إغلاق التذكرة» red on the argument that closing is terminal in
+ * BR-1. The product owner overruled the argument rather than the styling:
+ * «الأحمر في النظام لفعل الذي لا يُستردّ، والإغلاق يُعاد فتحه بنقرة» — red is
+ * for what cannot be taken back, and a closed ticket is reopened from its own
+ * history. Red is left to delete, alone.
+ *
+ * DELETED rather than left unused. An orphan danger class in the stylesheet of
+ * the menu it used to style is one autocomplete away from returning, and
+ * `rowActions.guards.test.ts` fails on the name in either file. */
 
 /* A hairline, inset from the menu's padding so it separates the group without
    touching the surface edge. */

@@ -552,78 +552,18 @@
 
 /* ---- the toast slot ----------------------------------------------------- */
 
-/* FIXED, at the bottom inline-start, which is the source document's placement.
- * `inset-inline-start` rather than `left`: in Arabic it sits at the right, where
- * the reader's eye already is.
+/* THE COPY-TOAST SLOT LIVED HERE and is DELETED — 2026-09-06.
  *
- * `Toast` renders inline where its caller puts it and is not portalled, so the
- * positioning belongs to the caller — this slot is that decision, made once for
- * this screen. `030` may move it product-wide later; it owns that rule and is
- * not approved for implementation. */
-.toastSlot {
-  position: fixed;
-  inset-inline-start: var(--space-6);
-  inset-block-end: var(--space-6);
-  z-index: 200;
-
-  /* HUGS ITS CONTENT. `Toast` is a block-level flex container with no width of
-     its own — by design, since it is rendered inline wherever a caller puts it —
-     so in a slot with no constraint it filled the whole line and the dismiss
-     control ended up an inch from the sentence. Measured after the product owner
-     flagged it: a full-width navy bar for a four-word acknowledgement.
-     `max-content` is the pill; the cap keeps a long field name from running off
-     a narrow window. */
-  inline-size: max-content;
-  max-inline-size: min(420px, calc(100vw - var(--space-12)));
-}
-
-/* `margin-block-end` on the primitive is for an INLINE toast with content under
-   it. This one floats, so the gap would push it off its own corner.
-
-   AND IT IS SMALLER HERE THAN THE PRIMITIVE'S DEFAULT — scoped to this slot on
-   purpose, not changed in `Toast.module.css`. The primitive's 12/16 padding and
-   14px text are right for an inline message that reports an outcome inside a
-   form; this is a floating acknowledgement that a value reached the clipboard,
-   and the design draws it noticeably tighter. Two callers, two sizes, one
-   component: the alternative is a `size` prop on a primitive `030` is about to
-   rule on anyway. */
-.toastSlot > * {
-  margin-block-end: 0;
-  padding-block: var(--space-2);
-  padding-inline: var(--space-3);
-  gap: var(--space-2);
-  font-size: var(--type-body-sm);
-}
-
-/* ---- the copy confirmation ---------------------------------------------- */
-
-.toastBody {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-/* The tick is the one green thing on a dark pill, and it is the design's own
- * accent rather than the success token: `--state-success-text` is a dark green
- * for a light panel and disappears against `--surface-inverse`. */
-.toastTick {
-  display: grid;
-  place-items: center;
-  color: var(--teal-400);
-}
-
-/* THE DISMISS CONTROL IS WHAT SET THE PILL'S HEIGHT, not the padding.
-   `base.css` gives every `button` `block-size: var(--button-height-md)` — 40px —
-   so an 8px-padded pill measured 58px tall while every padding value in this
-   file said otherwise. MEASURED: 139x58 before, and the paddings were already
-   8/12.
-   `block-size: auto` lets it be as tall as its glyph, and the pill collapses to
-   the size the design draws. */
-.toastSlot button {
-  block-size: auto;
-  padding-inline: var(--space-1);
-  line-height: 1;
-}
+ * Five selectors: a fixed corner slot, a size override that made the pill
+ * tighter than the primitive, a tick, a body row, and a reset that undid
+ * base.css giving the dismiss button a 40px height. Every one of them existed
+ * to make ONE page render a toast differently from the rest of the product.
+ *
+ * The page uses `useToast()` now, so the shared host owns the position, the
+ * size and the dismiss control, and none of this had a consumer left. Pruned
+ * rather than left behind: `027` paid for a preview that kept 86 selectors
+ * alive for a screen nobody was maintaining, and an orphaned class is the next
+ * person's evidence that a surface still exists. */
 
 /* «تعديل» at the header's inline-end, as the frame draws it. `margin-inline-start:
    auto` rather than an order change, so the DOM stays avatar → name → action and

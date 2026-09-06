@@ -64,10 +64,38 @@ export interface ModalProps {
    *  screen to the correct behaviour. */
   destructive?: boolean | undefined;
 
-  /** True while the modal holds input that would be lost. §3: it then does NOT
-   *  close on a scrim click — it asks first, which is the caller's job, so this
-   *  simply stops the scrim from closing and leaves Escape and the × alone. */
+  /** True while the modal holds input that would be lost.
+   *
+   *  IT GUARDS BOTH AMBIENT DISMISSALS — `Escape` and the scrim — and it did not
+   *  until 2026-09-06. `030` AC-10 says "asks before `Escape` or a scrim click
+   *  closes it… one guarded and one not is the likely half-fix", and the half-fix
+   *  is what shipped: the source contradicts itself (§3's behaviour line puts the
+   *  *except* on all three dismissal paths, §8 rule 6 names only the scrim), so
+   *  the narrow reading was taken and recorded as a gap needing a ruling.
+   *
+   *  **A real consumer settled it.** `039`'s `CloseTicketModal` holds a
+   *  500-character close reason and sets this flag — so a reader typed a note,
+   *  pressed Escape by reflex, and lost it with no question asked. A guard that
+   *  stops a stray click on the scrim and lets the Escape key wipe the same field
+   *  is not a partial protection, it is the wrong one: Escape is the more
+   *  reflexive of the two.
+   *
+   *  THE × AND THE FOOTER ARE NOT GUARDED, deliberately. Both are controls the
+   *  reader had to aim at, and a modal that cannot be left at all is worse than
+   *  one that loses a draft. Escape and a scrim click are the two a reader
+   *  triggers without meaning to. */
   unsavedInput?: boolean | undefined;
+
+  /** What to do when a guarded dismissal is attempted — the ask.
+   *
+   *  Only consulted while `unsavedInput` is true. THE COMPONENT CANNOT ASK: only
+   *  the caller knows what is at stake and what the question should say, which is
+   *  the same division `CustomersListPage` uses for its side sheet.
+   *
+   *  Omitting it is safe and is the sensible default: the guarded dismissal
+   *  becomes inert rather than destructive, and the reader still leaves through
+   *  the × or the footer. It is NOT a silent close. */
+  onDismissAttempt?: (() => void) | undefined;
 }
 
 /**
@@ -110,10 +138,25 @@ export function Modal({
   size = 'sm',
   destructive = false,
   unsavedInput = false,
+  onDismissAttempt,
 }: ModalProps) {
   const { t } = useTranslation('common');
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+
+  /* THE TWO AMBIENT DISMISSALS GO THROUGH ONE FUNCTION, so `Escape` and the
+     scrim cannot drift apart — which is exactly how the half-fix happened the
+     first time. One is a keypress and one is a click, they were written in two
+     places, and only one of them got the guard. */
+  const ambientDismiss = () => {
+    if (!unsavedInput) {
+      onClose();
+      return;
+    }
+    /* Guarded. The caller asks; with no `onDismissAttempt` this is inert, which
+       is the safe default — never a silent close. */
+    onDismissAttempt?.();
+  };
 
   /* Escape, on `document` with `capture: true`. The panel is not itself focused
      on open, and a nested control that stops propagation would otherwise swallow
@@ -122,12 +165,17 @@ export function Modal({
     if (!open) return;
 
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key !== 'Escape') return;
+      if (!unsavedInput) {
+        onClose();
+        return;
+      }
+      onDismissAttempt?.();
     };
 
     document.addEventListener('keydown', onKey, true);
     return () => document.removeEventListener('keydown', onKey, true);
-  }, [open, onClose]);
+  }, [open, onClose, unsavedInput, onDismissAttempt]);
 
   /* A modal always blocks, so this is unconditional — unlike `SideSheet`, where
      the lock follows the scrim. */
@@ -239,7 +287,7 @@ export function Modal({
         className={styles.scrim}
         aria-hidden="true"
         tabIndex={-1}
-        onClick={unsavedInput ? undefined : onClose}
+        onClick={ambientDismiss}
       />
 
       <div

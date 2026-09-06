@@ -5,6 +5,7 @@ import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ToastProvider } from '../../components/Toast/ToastHost';
 import { ApiError, type ProblemDetails } from '../../lib/api';
 import type { CustomerDetail } from '../../lib/api-types.provisional';
 import { formatDate } from '../../lib/formatters';
@@ -81,16 +82,23 @@ function renderAt(id: string) {
   const utils = render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
-        <MemoryRouter initialEntries={[`/customers/${id}`]}>
-          <Routes>
-            <Route path="/customers/:id" element={<CustomerProfilePage />} />
-            <Route path="/customers" element={<p>{'the list'}</p>} />
-            {/* A STUB, so `035`'s Edit control can be asserted to actually
-                navigate. Rendering the real page here would pull its query and
-                its form into a test about the profile. */}
-            <Route path="/customers/:id/edit" element={<p>{'the edit screen'}</p>} />
-          </Routes>
-        </MemoryRouter>
+        {/* THE TOAST HOST, added 2026-09-06 with the copy confirmation.
+            The page used to render its own `<Toast>` inline; it calls
+            `useToast()` now, which throws without a provider — so this is not
+            scaffolding, it is the dependency the page acquired. `AppShell`
+            supplies it in the real tree. */}
+        <ToastProvider>
+          <MemoryRouter initialEntries={[`/customers/${id}`]}>
+            <Routes>
+              <Route path="/customers/:id" element={<CustomerProfilePage />} />
+              <Route path="/customers" element={<p>{'the list'}</p>} />
+              {/* A STUB, so `035`'s Edit control can be asserted to actually
+                  navigate. Rendering the real page here would pull its query and
+                  its form into a test about the profile. */}
+              <Route path="/customers/:id/edit" element={<p>{'the edit screen'}</p>} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
       </I18nextProvider>
     </QueryClientProvider>,
   );

@@ -34,11 +34,13 @@ const SRC = join(ICONS_DIR, '..');
  */
 const NOT_YET_CONSUMED: Record<string, string> = {
   /* Interface primitives the document supplies and no screen has reached for.
-   * `IconChevron` is the rightward chevron; every current consumer wants the
-   * downward one. (`IconSort` was here until 2026-09-06 — the table header's
-   * sort menu renders it now, so it came off, which is what the second half of
-   * this test is for.) */
-  IconChevron: 'no feature — IconChevronDown covers all 33 current call sites',
+   *
+   * TWO HAVE COME OFF THIS LIST BY BEING RENDERED, which is what the second
+   * half of this test is for: `IconSort` on 2026-09-06 (the table header's
+   * sort menu) and `IconChevron` the same day (`038`'s «‹ التذاكر» back link —
+   * the horizontal chevron the list of 33 downward call sites never wanted).
+   * Neither removal was noticed by a person; the guard went red and named the
+   * icon. */
   IconTrash: 'no feature — nothing in the product deletes anything yet',
   IconDownload: 'no feature — no export exists (020 dashboard may want it)',
   IconUpload: 'out of scope — attachments, 00-project-context.md',
@@ -51,7 +53,10 @@ const NOT_YET_CONSUMED: Record<string, string> = {
   /* §05. `027` drew escalate, merge and extend-due as INERT rows with no client
    * fetcher at all, deliberately; these are the glyphs those rows will take. */
   IconStatus: 'no feature — the status column renders a text pill (026)',
-  IconHistory: 'no feature — the timeline is labelled, not iconified (027)',
+  /* `IconHistory` came off on 2026-09-06 — `038`'s «previous tickets» line marks
+     a customer's Resolved/Closed history on the create screen. Third icon to
+     come off this list in two days, and none of the three was noticed by a
+     person: the guard went red and named it each time. */
   IconReopen: 'no feature — BR-1 makes Closed terminal; there is no reopen',
   IconCompany: 'no feature — Customer has no organisation field (007)',
   IconNote: 'no feature — 013 comments are internal/public, not "notes"',

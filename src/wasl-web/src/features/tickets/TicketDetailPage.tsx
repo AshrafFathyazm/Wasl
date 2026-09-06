@@ -14,7 +14,7 @@ import { Textarea } from '../../components/Textarea/Textarea';
 /* ONE icon module since `037`. The warning that stood here — two files, and an
    import naming the wrong one renders the screen blank — no longer applies,
    because there is no second file to name. */
-import { IconAdd, IconArrowRight, IconAssign, IconCalendar, IconCheck, IconChevronDown, IconClose, IconComment, IconEdit, IconEmail, IconEscalate, IconEyeOff, IconLivechat, IconMerge, IconPriority, IconSearch, IconSms, IconTicket, IconWebform, IconWhatsapp } from '../../icons/icons';
+import { IconAdd, IconArrowRight, IconAssign, IconCalendar, IconCheck, IconChevronDown, IconClose, IconComment, IconEdit, IconEmail, IconEscalate, IconEyeOff, IconLivechat, IconMerge, IconPriority, IconSms, IconTicket, IconWebform, IconWhatsapp } from '../../icons/icons';
 import { useToast } from '../../components/Toast/ToastHost';
 import { ApiError } from '../../lib/api';
 import type {
@@ -25,6 +25,8 @@ import type {
 } from '../../lib/api-types.provisional';
 import { cx } from '../../lib/cx';
 import { tint } from '../../lib/tint';
+import { AssigneePanel } from './AssigneePanel';
+import { AVATAR_TINT, Avatar } from './Avatar';
 import { formatDateTime, formatNumber, type Lang } from '../../lib/formatters';
 import { Mark } from '../../brand/Mark';
 
@@ -198,7 +200,12 @@ export { tint };
  *
  * So: a better hash rather than a walk, and two people CAN still match. With
  * three seeded agents they do not (measured); with ten they must. */
-const AVATAR_TINT = [styles.av0, styles.av1, styles.av2, styles.av3, styles.av4];
+/* MOVED to `./Avatar.tsx` with the component, and imported back for the ONE
+ * other consumer: the timeline's event glyph takes the actor's tint, so a row
+ * about a person matches that person's own circle. The tint classes had to
+ * travel with `.avatar` because the stylesheet's last rule is a COMPOUND
+ * selector, and a compound only compiles when both halves are declared in one
+ * module. */
 
 const TAG_TINT = [styles.tagA, styles.tagB, styles.tagC, styles.tagD, styles.tagE];
 
@@ -255,28 +262,11 @@ const PRIORITY_CLASS: Record<string, string | undefined> = {
   Low: styles.prLow,
 };
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => [...part][0] ?? '')
-    .join('');
-}
-
-function Avatar({ name, size = 34 }: { name: string; size?: number }) {
-  return (
-    <span
-      /* THE TINT IS THE PERSON'S, not the row's — see `tint` above. Keyed on the
-         name rather than the id because a comment's actor carries a name and, on
-         a customer's reply, no id at all. */
-      className={cx(styles.avatar, AVATAR_TINT[tint(name, AVATAR_TINT.length)])}
-      style={{ inlineSize: size, blockSize: size }}
-      aria-hidden="true"
-    >
-      {initials(name)}
-    </span>
-  );
-}
+/* `Avatar` AND `initials` MOVED to `./Avatar.tsx` by `039`, so the ticket
+ * list's assignee menu renders the same circle for the same person. A move
+ * and not a copy: `037` found `IconEye` declared in two files with different
+ * geometry, rendering two drawings under one import name for four features,
+ * and two people wearing two colours for one name is that defect with a face. */
 
 /* Sentinels, and the reason they are here rather than two catalogue fragments.
  *
@@ -805,15 +795,34 @@ export default function TicketDetailPage() {
   const assignee = useMutation({
     mutationFn: (assigneeId: string | null) =>
       changeTicketAssignee(id, { assigneeId, expectedVersion: ticket?.version ?? '' }),
-    onSuccess: async () => {
+    onSuccess: async (_result, assigneeId) => {
       setOpenPop(null);
       setAssigneeFilter('');
 
-      /* NO TOAST, and the absence is a reading of §1.5 rather than an omission.
-         Tie-break 5: "is the visible change its own feedback? → no surface at
-         all. Adding a toast is noise." The rail's assignee block is the thing
-         the reader was just looking at and it changes under them. §1.1 does not
-         list assignment, and the same argument covers the tag writes below. */
+      /* A TOAST, AND IT OVERRIDES A RULING THIS FILE USED TO CARRY.
+         Asked for on 2026-09-06: «ضيف توسترز في صفحة التيكت ديتلز علي الاكشن
+         مثلا اضافة تاج او حذفه assign user، تغير الحالة، اضافة كومنت».
+
+         What stood here, kept because it is the argument that was overruled:
+         `feedback-layer.md` §1.5 tie-break 5 — "is the visible change its own
+         feedback? → no surface at all. Adding a toast is noise" — and §1.1 does
+         not list assignment. The rail's assignee block does change under the
+         reader, so the reasoning was sound as far as it went.
+
+         What it did not account for: the write is ASYNCHRONOUS and versioned.
+         The rail changes when the refetch lands, not when the button is
+         released, and until then nothing distinguishes "saved" from "still
+         going". The toast is the only thing that says the server agreed. */
+      toast.show({
+        tone: 'success',
+        title:
+          assigneeId === null
+            ? t('detail.unassignToastTitle')
+            : t('detail.assignToastTitle', {
+                name:
+                  supportUsers.data?.find((user) => user.id === assigneeId)?.fullName ?? '',
+              }),
+      });
       await afterWrite();
     },
     /* Versioned, like the status write — see its note. */
@@ -823,8 +832,18 @@ export default function TicketDetailPage() {
   const tagWrite = useMutation({
     mutationFn: ({ tagId, attach }: { tagId: string; attach: boolean }) =>
       attach ? attachTicketTag(id, tagId) : detachTicketTag(id, tagId),
-    onSuccess: async () => {
+    onSuccess: async (_result, { attach }) => {
       setOpenPop(null);
+
+      /* Same override as the assignee write above, same reason — and here the
+         gap it closes is wider. A tag chip appears or disappears in a row of
+         chips the reader may not be looking at, at whatever moment the refetch
+         returns; detaching in particular removes the thing that was just
+         clicked, which is indistinguishable from a click that missed. */
+      toast.show({
+        tone: 'success',
+        title: attach ? t('detail.tagAddedToastTitle') : t('detail.tagRemovedToastTitle'),
+      });
       await afterWrite();
     },
 
@@ -1303,14 +1322,23 @@ export default function TicketDetailPage() {
                   they had to agree about geometry, `currentId` and the busy flag;
                   only the stylesheet was keeping them looking alike. */}
               {openPop === 'assignee' ? (
-                <AssigneePanel
-                  users={users}
-                  currentId={ticket.assignee?.id ?? null}
-                  filter={assigneeFilter}
-                  onFilter={setAssigneeFilter}
-                  busy={assignee.isPending}
-                  onPick={(next) => assignee.mutate(next)}
-                />
+                /* THE WRAPPER POSITIONS, THE PANEL PAINTS. `039` moved the panel
+                   out so the list can hang the same one off a table row through a
+                   fixed portal — so placement could not stay inside it. */
+                <div className={styles.assignAnchor}>
+                  <AssigneePanel
+                    users={users}
+                    currentId={ticket.assignee?.id ?? null}
+                    filter={assigneeFilter}
+                    onFilter={setAssigneeFilter}
+                    busy={assignee.isPending}
+                    onPick={(next) => assignee.mutate(next)}
+                    /* NO `counts`, deliberately — `039` Q-5. The list menu passes
+                       the open-ticket fan-out; this screen renders exactly what it
+                       rendered before the move. */
+                    lang={lang}
+                  />
+                </div>
               ) : null}
             </div>
 
@@ -1760,97 +1788,21 @@ export default function TicketDetailPage() {
   );
 }
 
-/**
- * The assignee panel — a search box and the list, as the canvas draws it.
+/* `AssigneePanel` MOVED to `./AssigneePanel.tsx` by `039`.
  *
- * Two things it does NOT draw, because the data does not exist: the department
- * beside each role (`SupportUserOption` is `(id, fullName, role)`), and any
- * indication of who is *allowed* to take this ticket. The second is deliberate
- * as well as unavoidable: BR-2 is enforced in the handler off `ICurrentUser`, so
- * the only honest client is one that offers the list and reports the refusal.
- */
-function AssigneePanel({
-  users,
-  currentId,
-  filter,
-  onFilter,
-  busy,
-  onPick,
-}: {
-  users: { id: string; fullName: string; role: string }[];
-  currentId: string | null;
-  filter: string;
-  onFilter: (next: string) => void;
-  busy: boolean;
-  onPick: (next: string | null) => void;
-}) {
-  const { t } = useTranslation('tickets');
-  const needle = filter.trim().toLocaleLowerCase();
-  const shown =
-    needle === ''
-      ? users
-      : users.filter((u) => u.fullName.toLocaleLowerCase().includes(needle));
+ * It is the same panel the ticket LIST now hangs off a row, and one component
+ * is the whole point: the two would otherwise have to agree, by hand, about
+ * the filter, the tick, the disabled state and what an unassign looks like.
+ *
+ * TWO THINGS CHANGED IN THE MOVE and neither is behaviour:
+ *   - 316px became 308px, the width the list mock draws. One component, one
+ *     geometry; two widths for one panel is the drift being removed.
+ *   - the raw `<input>` became the system `Input`, which is what the product
+ *     owner's brief asks for. The magnifier glyph went with it — `Input` has
+ *     no icon slot, and adding one to a primitive eight screens depend on is
+ *     a wider change than this screen earns.
+ *
+ * What it does NOT draw is unchanged and the reasoning moved with it: the
+ * department (`SupportUser` is `(id, fullName, role)`) and any hint of who BR-2
+ * would let take this ticket. */
 
-  return (
-    <div className={styles.assignPanel} data-pop="assignee">
-      <div className={styles.assignHead}>
-        <span className={styles.assignTitle}>{t('detail.assigneePanelTitle')}</span>
-        <label className={styles.assignSearch}>
-          <IconSearch size={14} aria-hidden="true" />
-          <input
-            type="text"
-            value={filter}
-            onChange={(event) => onFilter(event.target.value)}
-            placeholder={t('detail.assigneeSearch')}
-            aria-label={t('detail.assigneeSearch')}
-          />
-        </label>
-      </div>
-
-      <div className={styles.assignList}>
-        {shown.length === 0 ? (
-          <p className={styles.assignNone}>{t('detail.assigneeNoMatch')}</p>
-        ) : (
-          shown.map((user) => (
-            <button
-              key={user.id}
-              type="button"
-              className={cx(
-                styles.assignRow,
-                user.id === currentId && styles.assignRowCurrent,
-              )}
-              disabled={busy}
-              onClick={() => onPick(user.id)}
-            >
-              <Avatar name={user.fullName} size={28} />
-              <span className={styles.assignWho}>
-                <span className={styles.assignName} dir="auto">
-                  {user.fullName}
-                </span>
-                <span className={styles.assignRole}>{t(`role.${user.role}`)}</span>
-              </span>
-              {user.id === currentId ? (
-                <span className={styles.statusTick} aria-hidden="true">
-                  <IconCheck size={15} />
-                </span>
-              ) : null}
-            </button>
-          ))
-        )}
-      </div>
-
-      {currentId ? (
-        <button
-          type="button"
-          className={styles.assignClear}
-          disabled={busy}
-          onClick={() => onPick(null)}
-        >
-          {t('detail.unassign')}
-        </button>
-      ) : null}
-
-      <p className={styles.assignNote}>{t('detail.pickerHint')}</p>
-    </div>
-  );
-}

@@ -1,0 +1,156 @@
+/* ============================================================================
+ * CloseTicketModal — `039`
+ * ============================================================================
+ * The BODY only. The scrim, the panel, the 70vh ceiling, the fixed head and
+ * foot, the focus trap and "a scrim click does not close a modal holding input"
+ * are all `components/Modal` — measured against the mock and identical, so
+ * nothing here re-declares them.
+ * ========================================================================= */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---- the reasons ---------------------------------------------------------- */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.groupLabel {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+.required {
+  color: var(--state-danger-text);
+}
+
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reason {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 42px;
+  padding-inline: var(--space-3);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-helper);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: start;
+}
+
+.reason:hover:not(:disabled) {
+  border-color: var(--border-default);
+}
+
+.reason:focus-visible {
+  outline: var(--focus-ring-width) solid transparent;
+  box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring);
+}
+
+.reason:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* THE SELECTED ONE IS NOT COLOUR ALONE. The border, the ground and the weight
+   all move together, so the state survives a monochrome screen and a reader who
+   cannot separate the two grounds — and `aria-pressed` carries it for everyone
+   else. */
+.reasonOn {
+  background-color: var(--surface-table-row-selected);
+  border-color: var(--brand);
+  color: var(--brand);
+  font-weight: var(--weight-semibold);
+}
+
+/* The dot is the reason's own severity, and it is decoration: the label beside
+   it says the same thing in words. */
+.dot {
+  flex: none;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--radius-pill);
+  background-color: var(--text-placeholder);
+}
+
+.dotSolved {
+  background-color: var(--state-success-text);
+}
+
+.dotNoReply {
+  background-color: var(--state-warning-fill);
+}
+
+/* ---- the inline refusal --------------------------------------------------- */
+
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-helper);
+  color: var(--state-danger-text);
+}
+
+/* A refusal the server gave, or one BR-1 gives before any request. Reported
+   here and never as a toast — `039` AC-27. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-helper);
+  line-height: 1.6;
+}
+
+.noticeBlocked {
+  background-color: var(--state-warning-bg);
+  border: 1px solid var(--state-warning-border);
+  color: var(--state-warning-text);
+}
+
+.noticeError {
+  background-color: var(--state-danger-bg);
+  border: 1px solid var(--state-danger-text);
+  color: var(--state-danger-text);
+}
+
+.noticeIcon {
+  flex: none;
+  margin-block-start: 1px;
+}
+
+/* ---- the foot ------------------------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The primary takes the remaining width, the way the mock draws it. It is NAVY,
+   from `Button`'s own `primary` — closing is reopenable, so it is not
+   destructive, and `danger` is left to delete alone. */
+.grow {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.grow > * {
+  flex: 1 1 auto;
+}
