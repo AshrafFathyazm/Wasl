@@ -12,12 +12,25 @@
   align-items: center;
   gap: var(--space-1);
 
-  /* CENTRED, which is the one thing the frames are unambiguous about — it sits
-     above the breadcrumb, not beside it. `margin-inline: auto` rather than a
-     `justify-content` on a parent, so the control centres itself wherever it is
-     placed and no page has to know. */
-  margin-inline: auto;
-  margin-block-end: var(--space-4);
+  /* IT SITS BESIDE THE BREADCRUMB NOW, NOT ABOVE IT — 2026-09-06.
+   *
+   * The frames put it on its own centred row and this file used to say that was
+   * "the one thing the frames are unambiguous about". That is still true of the
+   * frames; it was overruled deliberately, and the reason is measurable rather
+   * than aesthetic.
+   *
+   * A row of its own cost 88px — 42 for the control, 16 of its own block margin,
+   * 12 of page gap, and the 18px breadcrumb it pushed down. On the edit screen
+   * that was most of the reason the form did not fit: 19px of scroll remained
+   * after everything else had been tightened, and «الزاير تكون موجوده هي وباقي
+   * الانبوتس من غير احتياج ل scroll» is not satisfiable while 88px is spent on
+   * two tabs. Sharing the breadcrumb's row costs 42 and frees 46.
+   *
+   * `margin-inline-start: auto` rather than `justify-content` on the parent, for
+   * the reason the old note gave and which still holds: the control places
+   * itself at the far end of whatever row it is dropped into, and no page has to
+   * know. It is logical, so that end is the left in Arabic. */
+  margin-inline-start: auto;
   padding: var(--space-1);
   border-radius: var(--radius-pill);
   background-color: var(--surface-chip);

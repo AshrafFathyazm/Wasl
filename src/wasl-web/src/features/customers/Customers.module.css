@@ -42,6 +42,21 @@
 
 /* ---- breadcrumb ---------------------------------------------------------- */
 
+/* THE BREADCRUMB AND THE SWITCHER SHARE A ROW — 2026-09-06.
+ *
+ * The switcher used to have a centred row to itself, which cost 88px of page
+ * height for two tabs and was the last thing keeping the edit form from
+ * fitting. It pushes itself to the far end with `margin-inline-start: auto`;
+ * this only has to be a row. `min-block-size` matches the control so the row
+ * does not change height when the switcher is absent — on a 404 the profile
+ * renders the crumb alone, and the page below it must not jump. */
+.crumbRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 42px;
+}
+
 .crumbs {
   display: flex;
   align-items: center;

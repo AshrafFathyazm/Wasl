@@ -372,33 +372,231 @@
   pointer-events: none;
 }
 
-.panelChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
+/* ---- The brand badge — «الضوء الجاري» -------------------------------------
+ * REPLACES `.panelChip` outright (product owner, 2026-09-06), copied from the
+ * supplied `wasl-badge.html`. A 112×28 pill with five layers, in this order:
+ * the rail (an `<svg>` carrying the ground, the border and the three tail
+ * passes), the seat dot, the absorption ring, the word, and the sheen.
+ *
+ * NINE THINGS THAT ARE NOT ADJUSTABLE. Each one, changed alone, reads as the
+ * motion being random rather than as a number being wrong:
+ *
+ * 1. THE 2:1 RATIO. The light is 2.4s and the word is 4.8s — two laps per word
+ *    cycle. Change one duration without the other and the two rhythms slide
+ *    against each other.
+ * 2. `-250` IN `wl-comet-run` IS THE PATH'S PERIMETER, not an arbitrary number.
+ *    Any change to the badge's size means recomputing it, or the light jumps at
+ *    every lap.
+ * 3. `overflow: hidden` ON THE CONTAINER ONLY. The word enters from outside the
+ *    border and is clipped to the pill; clipping on an inner wrapper cuts the
+ *    absorption short before it reaches the dot.
+ * 4. DIRECTION IS TWO VARIABLES, NOT TWO COPIES. `--wl-s` flips the sign of the
+ *    travel, `--wl-o` moves the shrink point, and the container reads both from
+ *    the ancestor's `dir`. Offsets are `inset-inline-start` only — never `left`
+ *    and never `right`.
+ * 5. THE DOT LEADS THE READING DIRECTION: right in Arabic, left in English. On
+ *    the far side the word would shrink AWAY from it while the ring opens
+ *    around nothing.
+ * 6. THE 1.1s DELAY on the word, the ring and the sheen lets the badge finish
+ *    arriving first — it lands just after the `450ms + 550ms` entrance further
+ *    down this file. The light has no delay.
+ * 7. THREE TAIL PASSES at `.16 / .4 / 1`. One pass reads as a dot, not as a
+ *    running light.
+ * 8. THE SHEEN is `mix-blend-mode: overlay` at alpha `.5`, once per cycle, and
+ *    it fires while the word is AT REST rather than while it is absent.
+ * 9. `prefers-reduced-motion` hides the light and the sheen and stops the rest:
+ *    the word and the dot stay, still and visible. THE GATE IS INVERTED against
+ *    the supplied file — that state is what the base rules here declare, and
+ *    the `no-preference` block near the foot of this file is what switches the
+ *    badge on. `styleRegressions` refuses an `animation:` outside that block,
+ *    for the reason `023` records: a keyframe starting at `opacity: 0` and
+ *    merely cancelled under `reduce` leaves its element painted at 0 for
+ *    exactly the people who cannot ask the motion back. Same rendering in both
+ *    modes; the difference is which one is the default.
+ *
+ * TWO MECHANICAL DEPARTURES from the supplied file, and no others. `#6FBFB0` is
+ * `var(--teal-400)` — the identical value, read from the token for the reason
+ * `.hubDot` gives — and the class and keyframe names are camelCase because CSS
+ * Modules is what resolves them here.
+ *
+ * NO `isolation: isolate` ON THE CONTAINER, deliberately. It would make the
+ * sheen blend against a transparent group instead of against the panel, and
+ * `overlay` over transparency returns the source colour — a flat white wipe
+ * rather than the reference's lift.
+ * -------------------------------------------------------------------------- */
+
+@keyframes wl-comet-run {
+  to {
+    stroke-dashoffset: -250;
+  }
+}
+
+@keyframes wl-sheen-pass {
+  0%,
+  30% {
+    transform: translateX(-130%);
+  }
+
+  54%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+@keyframes wl-ring-out {
+  0%,
+  74% {
+    transform: scale(0.45);
+    opacity: 0;
+  }
+
+  86% {
+    opacity: 0.55;
+  }
+
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@keyframes wl-seat-beat {
+  0%,
+  74%,
+  100% {
+    transform: scale(1);
+  }
+
+  86% {
+    transform: scale(1.34);
+  }
+}
+
+@keyframes wl-word-cycle {
+  0% {
+    transform: translateX(calc(-38px * var(--wl-s, 1))) scale(0.94);
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.14, 0.8, 0.26, 1);
+  }
+
+  20% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+
+  58% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0.4);
+  }
+
+  84%,
+  100% {
+    transform: translateX(calc(7px * var(--wl-s, 1))) scale(0.22);
+    opacity: 0;
+  }
+}
+
+.wlBadge {
+  position: relative;
+  inline-size: 112px;
+  block-size: 28px;
   border-radius: var(--radius-pill);
+  overflow: hidden;
   margin-block-end: var(--space-4);
-  background: rgb(255 255 255 / 6%);
-  border: 1px solid rgb(255 255 255 / 12%);
   color: #b4b8ce;
   font-size: var(--text-helper);
   font-weight: var(--weight-medium);
 }
 
-.chipDot {
+/* The two variables, and the ONLY place direction is decided. `.panel` pins
+ * itself to `ltr` as a CSS property, which these attribute selectors do not
+ * see — they read the document's `dir`, which is what the badge should follow,
+ * and `.panelText` above has already restored that direction for this subtree. */
+[dir='rtl'] .wlBadge {
+  --wl-s: 1;
+  --wl-o: right;
+}
+
+[dir='ltr'] .wlBadge {
+  --wl-s: -1;
+  --wl-o: left;
+}
+
+.wlRail {
+  position: absolute;
+  inset: 0;
+}
+
+/* The stroke comes from the stylesheet rather than from a `stroke` attribute on
+ * the `<g>`, so the teal is the token once instead of a hex repeated in JSX —
+ * the same reason `.hubDot` carries its fill here. */
+.wlComet {
+  stroke: var(--teal-400);
+  /* Constraint 9. See the note on the gate near the foot of this file. */
+  display: none;
+}
+
+.wlSeat {
+  position: absolute;
+  inset-block-start: 11px;
+  inset-inline-start: 8px;
   inline-size: 6px;
   block-size: 6px;
   border-radius: var(--radius-pill);
-  background: #6fbfb0;
-  flex: none;
+  background: var(--teal-400);
 }
 
-.chipAr {
+.wlRing {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 3px;
+  inline-size: 16px;
+  block-size: 16px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--teal-400);
+  pointer-events: none;
+  /* THE ONE BASE VALUE THAT DIFFERS FROM THE SUPPLIED FILE, and inverting the
+   * gate is what forces it: the resting state has to be the reduced one, and
+   * under `reduce` the supplied file hides the ring.
+   *
+   * It also fixes something the supplied file does. There the ring is a full
+   * static circle for the first 1.1s and then snaps to `scale(.45); opacity: 0`
+   * when the delay expires — a pop on first paint, against the stated point of
+   * the delay, which is to let the badge finish arriving before anything moves.
+   * At 0 it simply is not there yet. */
+  opacity: 0;
+}
+
+.wlWord {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-start: 18px;
+  inline-size: 78px;
+  block-size: 18px;
+  line-height: 18px;
+  white-space: nowrap;
+  text-align: center;
+  transform-origin: var(--wl-o, right) center;
+  will-change: transform;
+}
+
+.wlWordAr {
   font-family: var(--font-ar);
   /* The reference sets 600 here. The scale has 400 / 500 / 700 and no 600, and
-   * DESIGN-BRIEF rule 3 forbids inventing a token — so this inherits the chip's
-   * own 500 rather than faking a weight. TODO, Q-6. */
+   * DESIGN-BRIEF rule 3 forbids inventing a token — so this inherits the badge's
+   * own 500 rather than faking a weight. Carried over from `.chipAr`, which this
+   * badge replaced. TODO, Q-6. */
+}
+
+.wlSheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background: linear-gradient(104deg, transparent 42%, rgb(255 255 255 / 50%) 50%, transparent 58%);
+  /* Constraint 9, with the light. */
+  display: none;
 }
 
 .panelHeadline {
@@ -673,7 +871,7 @@
   .formRow,
   .submit,
   .footer,
-  .panelChip,
+  .wlBadge,
   .panelHeadline,
   .panelBody {
     animation: fade-up 550ms cubic-bezier(0.22, 0.8, 0.28, 1) both;
@@ -710,8 +908,44 @@
     animation-delay: 460ms;
   }
 
-  .panelChip {
+  .wlBadge {
     animation-delay: 450ms;
+  }
+
+  /* ---- The badge switches on here ---------------------------------------
+   * Constraint 9, inverted into this file's gate — see the badge's own note
+   * above. The resting state is up there; these five declarations are the
+   * whole difference between a still badge and a running one.
+   *
+   * `display` on two of them because the light and the sheen have to be GONE
+   * rather than frozen: a stopped comet is three dashes parked on the rail,
+   * which reads as a rendering fault, and a stopped sheen is a diagonal white
+   * band across the pill.
+   *
+   * No `animation-delay` line for these — the 1.1s is in each shorthand, where
+   * it belongs with the duration it is offset against.
+   * ---------------------------------------------------------------------- */
+
+  .wlComet {
+    display: inline;
+    animation: wl-comet-run 2.4s linear infinite;
+  }
+
+  .wlSeat {
+    animation: wl-seat-beat 4.8s cubic-bezier(0.3, 0.7, 0.4, 1) infinite 1.1s;
+  }
+
+  .wlRing {
+    animation: wl-ring-out 4.8s cubic-bezier(0.2, 0.6, 0.3, 1) infinite 1.1s;
+  }
+
+  .wlWord {
+    animation: wl-word-cycle 4.8s infinite 1.1s;
+  }
+
+  .wlSheen {
+    display: block;
+    animation: wl-sheen-pass 4.8s cubic-bezier(0.4, 0, 0.5, 1) infinite 1.1s;
   }
 
   .panelHeadline {

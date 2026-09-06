@@ -95,10 +95,26 @@
  * when missing: a flex item's default "min-height: auto" refuses to shrink
  * below its content, so the card grows past the page instead of scrolling
  * inside it, the window gets its scrollbar back, and nothing errors. */
+/* `flex: 0 1 auto`, NOT `flex: 1` — 2026-09-06.
+ *
+ * `flex: 1` is `1 1 0%`: the card ignores its own content and always takes the
+ * whole frame. With twenty rows that is right, and with one row it left the
+ * pager stranded at the bottom of a mostly empty card — reported against a
+ * filtered list that matched a single ticket.
+ *
+ * `0 1 auto` sizes the card to its CONTENT and lets it shrink no further than
+ * the frame:
+ *
+ *   few rows   the card ends under the last one, pager directly beneath
+ *   many rows  flex-shrink pulls it back to the frame, and `.scrollerFill`
+ *              scrolls inside it exactly as before
+ *
+ * `min-block-size: 0` is what permits that shrink; without it a flex item
+ * refuses to go below its content and the card overflows the page instead. */
 .cardFill {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 0 1 auto;
   min-block-size: 0;
 }
 

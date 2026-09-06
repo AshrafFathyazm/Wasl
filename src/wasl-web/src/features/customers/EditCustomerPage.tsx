@@ -215,13 +215,18 @@ export default function EditCustomerPage() {
 
   return (
     <div className={styles.page} data-fills>
-      {id === '' ? null : <CustomerScreenSwitcher id={id} />}
+      {/* ONE ROW: the crumb at the reading edge, the switcher at the far one.
+          It had a centred row of its own until 2026-09-06 — see the note in
+          `CustomerScreenSwitcher.module.css` for what that cost. */}
+      <div className={styles.crumbRow}>
+        <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>
+          <Link className={styles.back} to="/customers">
+            {t('common:nav.customers')}
+          </Link>
+        </nav>
 
-      <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>
-        <Link className={styles.back} to="/customers">
-          {t('common:nav.customers')}
-        </Link>
-      </nav>
+        {id === '' ? null : <CustomerScreenSwitcher id={id} />}
+      </div>
 
       <div className={styles.head}>
         <h2 className={styles.title}>{t('customers:edit.title')}</h2>

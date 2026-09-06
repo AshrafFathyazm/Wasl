@@ -95,6 +95,13 @@ const SEPARATOR = '·';
 const WORDMARK_LATIN_TITLE =
   WORDMARK_LATIN.charAt(0) + WORDMARK_LATIN.slice(1).toLowerCase();
 
+/* The rail the light runs on: the pill's own outline, opened at the 3 o'clock
+ * point so the dash pattern has somewhere to start. ITS PERIMETER IS WHAT THE
+ * `-250` IN `wl-comet-run` COUNTS — change the badge away from 112×28 and the two
+ * have to be recomputed together, or the light jumps at every lap. */
+const BADGE_RAIL_PATH =
+  'M111,14 A13,13 0 0 1 98,27 H14 A13,13 0 0 1 1,14 A13,13 0 0 1 14,1 H98 A13,13 0 0 1 111,14';
+
 const NODE = 54;
 const HUB = 74;
 const PARTICLE_COUNT = 46;
@@ -858,17 +865,85 @@ export function BrandPanel() {
       <div className={styles.scrim} />
 
       <div className={styles.panelText}>
-        <span className={styles.panelChip}>
-          <span className={styles.chipDot} />
-          <span className={styles.chipAr}>{WORDMARK_AR}</span>
-          {/* A separator between the two halves of the MARK, not copy. Built as an
-              expression for the same reason `Input`s counter is: the BR-8.8 rule
-              forbids a literal in JSX and is right to, but a middot is identical
-              in both languages and putting it in a catalogue would invite
-              someone to translate it. */}
-          <span>{SEPARATOR}</span>
-          <span>{WORDMARK_LATIN_TITLE}</span>
-        </span>
+        {/* THE BRAND BADGE — five layers, and the ORDER is the whole reason this
+            is markup rather than one element: rail, dot, ring, word, sheen. The
+            sheen comes last because `mix-blend-mode: overlay` blends with what is
+            painted UNDER it, and it has to lift all four.
+
+            `dir="rtl"` ON THE WORD IS DELIBERATE AND DOES NOT FOLLOW THE
+            INTERFACE. The wordmark is a MARK, so its two halves keep their order
+            in both locales — the rule `.lockupText` states one column over. It is
+            also what pins the word box 18px from the physical right in BOTH
+            directions, because `inset-inline-start` resolves against the
+            ELEMENT's own direction and not the page's. Only the dot, the ring,
+            the travel sign and the shrink origin flip — which is constraint 4:
+            two variables, not two copies of the badge. */}
+        <div className={styles.wlBadge}>
+          <svg className={styles.wlRail} width="112" height="28" viewBox="0 0 112 28">
+            <rect
+              x="1"
+              y="1"
+              width="110"
+              height="26"
+              rx="13"
+              fill="rgba(255,255,255,.06)"
+              stroke="rgba(255,255,255,.14)"
+              strokeWidth="1"
+            />
+
+            {/* ONE path, drawn three times. Only the dash pattern, the offset, the
+                width and the opacity differ — the tail is three passes at
+                `.16 / .4 / 1`, because a single pass reads as a dot travelling
+                rather than as a light running. The stroke colour is in the
+                stylesheet, not on the `<g>`. */}
+            <g fill="none" strokeLinecap="round">
+              <path
+                className={styles.wlComet}
+                d={BADGE_RAIL_PATH}
+                strokeWidth="1.5"
+                strokeDasharray="4 246"
+                strokeDashoffset="0"
+                opacity="0.16"
+              />
+              <path
+                className={styles.wlComet}
+                d={BADGE_RAIL_PATH}
+                strokeWidth="1.5"
+                strokeDasharray="10 240"
+                strokeDashoffset="6"
+                opacity="0.4"
+              />
+              <path
+                className={styles.wlComet}
+                d={BADGE_RAIL_PATH}
+                strokeWidth="1.75"
+                strokeDasharray="5 245"
+                strokeDashoffset="15"
+                opacity="1"
+              />
+            </g>
+          </svg>
+
+          <span className={styles.wlSeat} />
+          <span className={styles.wlRing} />
+
+          <span className={styles.wlWord} dir="rtl">
+            <span className={styles.wlWordAr}>{WORDMARK_AR}</span>
+            {/* A separator between the two halves of the MARK, not copy. Built as
+                an expression for the same reason `Input`s counter is: the BR-8.8
+                rule forbids a literal in JSX and is right to, but a middot is
+                identical in both languages and putting it in a catalogue would
+                invite someone to translate it.
+
+                Its two spaces travel WITH it, in the one expression: JSX drops
+                the whitespace around a line break, so a bare `{SEPARATOR}` on its
+                own line would set the mark solid. */}
+            {` ${SEPARATOR} `}
+            {WORDMARK_LATIN_TITLE}
+          </span>
+
+          <span className={styles.wlSheen} />
+        </div>
 
         <p className={styles.panelHeadline}>{t('auth:panel.headline')}</p>
 

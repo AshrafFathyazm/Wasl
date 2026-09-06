@@ -42,6 +42,23 @@
   margin-inline: auto;
 }
 
+/* THE BREADCRUMB AND THE SWITCHER SHARE A ROW — 2026-09-06.
+ *
+ * The switcher used to have a centred row to itself, which cost 88px of page
+ * height for two tabs and was the last thing keeping this form from fitting
+ * without a scrollbar. It pushes itself to the far end with
+ * `margin-inline-start: auto`; this only has to be a row.
+ *
+ * `min-block-size` matches the control's height so the row does not collapse
+ * when the switcher is absent — it renders only once there is an id, and the
+ * page below it must not jump when one arrives. */
+.crumbRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-block-size: 42px;
+}
+
 .head {
   display: flex;
   align-items: center;
@@ -233,10 +250,32 @@
    `min-block-size: 0` is what lets this shrink below its content: a flex child
    defaults to `min-height: auto` and refuses, which is how the footer ended up
    with nowhere to go. */
+/* MADE TO FIT RATHER THAN MADE TO HIDE — 2026-09-06.
+ *
+ * Reported: the add-customer sheet showed a scrollbar and the quick-view sheet
+ * did not. Measured at a 674px window: the form was 555px in a 498px box, so it
+ * overflowed by 57 and the bar was real, not decorative.
+ *
+ * `SideSheet.module.css` already rules on the obvious shortcut, and the ruling
+ * stands: "A THIN scrollbar, not a hidden one … when a form is long enough to
+ * scroll, a reader has to be able to see that it does." Hiding it would have
+ * made the sheet match the quick view by concealing the difference instead of
+ * removing it — and the difference is that the quick view's content fits.
+ *
+ * So the 57px came out of the form: 12px of block padding, 20 off the five row
+ * gaps, and the notes box down from four rows to three. It fits now, and
+ * `overflow: auto` means the bar simply does not appear — which is the same
+ * mechanism that keeps the quick view clean, not a different one.
+ *
+ * THIS IS VIEWPORT-DEPENDENT AND THAT IS NOT HIDDEN: the sheet's height comes
+ * from the window. It fits from roughly 660px of window height upward; below
+ * that the bar comes back, correctly, because there genuinely is more below. */
 .cardBare {
   flex: 1;
   min-block-size: 0;
-  padding: var(--sheet-padding);
+  gap: var(--space-3);
+  padding-block: var(--space-3);
+  padding-inline: var(--sheet-padding);
   border: 0;
   border-radius: 0;
   overflow: hidden auto;
@@ -309,4 +348,18 @@
   font-weight: var(--weight-medium);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* THREE ROWS IN THE SHEET, FOUR ON THE PAGE. The notes box was 102px here —
+   the tallest single contributor to the 57px overflow above — and the sheet is
+   the one surface where the height is not ours to spend. The page keeps the
+   taller box: it has the room, and notes is where people write paragraphs.
+   Still resizable, so anyone who wants four rows drags for them. */
+.cardBare textarea {
+  /* `block-size`, NOT `min-block-size`. The box takes its height from the
+     element's `rows` attribute, which is an intrinsic size that a minimum
+     cannot pull down — measured: with `min-block-size` it stayed at 102px and
+     the overflow did not move. `resize` still works, so this is a starting
+     height rather than a ceiling. */
+  block-size: 78px;
 }

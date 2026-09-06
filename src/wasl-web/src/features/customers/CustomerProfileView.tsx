@@ -118,32 +118,44 @@ export function CustomerProfileView({
 
   return (
     <div className={styles.page}>
-      {/* ABOVE THE BREADCRUMB, which is where the frames put it — `035` Q-1,
-          answered after I had written it into the spec as the design canvas's
-          own artboard switcher. It renders only when there IS a customer: on a
-          `404` or a failed request both of its segments would point at an id
-          the product could not load. */}
-      {state === 'loaded' && customer ? (
-        <CustomerScreenSwitcher id={customer.id} />
-      ) : null}
+      {/* ONE ROW: the breadcrumb at the reading edge, the switcher at the far
+          one.
 
-      <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>
-        <Link className={styles.crumbLink} to="/customers">
-          {t('common:nav.customers')}
-        </Link>
-        <span className={styles.crumbSep} aria-hidden="true">
-          {'/'}
-        </span>
-        {/* The crumb says what is known. On a `404` the name is the one thing
-            that is not, so it says so rather than echoing an id. */}
-        <span className={styles.crumbCurrent}>
-          <bdi>
-            {state === 'loaded' && customer
-              ? customer.fullName
-              : t('customers:profile.unknownCustomer')}
-          </bdi>
-        </span>
-      </nav>
+          IT USED TO SIT ABOVE, CENTRED, which is where the frames put it —
+          `035` Q-1, answered after I had written it into the spec as the design
+          canvas's own artboard switcher. That placement was overruled on
+          2026-09-06 because a row of its own cost 88px of page height for two
+          tabs; the note in `CustomerScreenSwitcher.module.css` has the
+          measurement. The frames still say centred, and that is recorded rather
+          than quietly dropped.
+
+          It renders only when there IS a customer: on a `404` or a failed
+          request both of its segments would point at an id the product could
+          not load — and `.crumbRow` holds its height so the page does not jump
+          when one arrives. */}
+      <div className={styles.crumbRow}>
+        <nav className={styles.crumbs} aria-label={t('common:nav.customers')}>
+          <Link className={styles.crumbLink} to="/customers">
+            {t('common:nav.customers')}
+          </Link>
+          <span className={styles.crumbSep} aria-hidden="true">
+            {'/'}
+          </span>
+          {/* The crumb says what is known. On a `404` the name is the one thing
+              that is not, so it says so rather than echoing an id. */}
+          <span className={styles.crumbCurrent}>
+            <bdi>
+              {state === 'loaded' && customer
+                ? customer.fullName
+                : t('customers:profile.unknownCustomer')}
+            </bdi>
+          </span>
+        </nav>
+
+        {state === 'loaded' && customer ? (
+          <CustomerScreenSwitcher id={customer.id} />
+        ) : null}
+      </div>
 
       {state === 'loading' ? (
         <div className={styles.head} aria-busy="true">
