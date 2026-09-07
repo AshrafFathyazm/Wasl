@@ -79,7 +79,7 @@ public static class DemoSeeder
             return;
         }
 
-        var customers = await SeedCustomersAsync(context);
+        var customers = await SeedCustomersAsync(context, services.GetRequiredService<TimeProvider>());
 
         await SeedTicketAsync(sender, services, customers[0], TicketStatus.New,
             "Cannot sign in to the portal", "The password reset email never arrives.",
@@ -211,7 +211,7 @@ public static class DemoSeeder
         return Convert.ToBase64String(rowVersion);
     }
 
-    private static async Task<List<Guid>> SeedCustomersAsync(WaslDbContext context)
+    private static async Task<List<Guid>> SeedCustomersAsync(WaslDbContext context, TimeProvider clock)
     {
         var ids = new List<Guid>();
 
@@ -224,11 +224,23 @@ public static class DemoSeeder
         {
             var id = Guid.CreateVersion7();
 
-            // SQL because `Customer` has no factory until `007`, and adding reflection to
-            // production code to work around a missing factory would be worse than three INSERTs
-            // that `007` deletes. IsActive is set EXPLICITLY — the column no longer carries a
-            // default, for the reason in CustomerConfiguration.
-            var now = DateTime.UtcNow;
+            // SQL because `Customer` had no factory when this was written. `007` shipped one and
+            // this comment used to say "three INSERTs that `007` deletes" — IT DID NOT, and the
+            // shortcut is still here. Corrected in place rather than quietly, because CLAUDE.md
+            // already records what this exact shortcut cost once: `Customer` timestamps had never
+            // been stamped, and the first real `201` served `"createdAtUtc":"0001-01-01T00:00:00"`.
+            // Replacing it with `Customer.Create` is a real change to the seed path and belongs to
+            // whoever can run `--seed` against a database; what is fixed here is the clock.
+            //
+            // IsActive is set EXPLICITLY — the column no longer carries a default, for the reason
+            // in CustomerConfiguration.
+            //
+            // FROM THE INJECTED CLOCK. This was `DateTime.UtcNow`, the only inline call left in
+            // `src/`. Nothing in a seeder depends on the instant the way a request does, so the
+            // rule's own reason — two timestamps in one request that should be one — does not
+            // apply; the rule is kept anyway, because "the one place it does not matter" is how a
+            // rule stops being one.
+            var now = clock.GetUtcNow().UtcDateTime;
 
             await context.Database.ExecuteSqlAsync(
                 $"""

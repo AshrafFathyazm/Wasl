@@ -4,7 +4,40 @@ using Wasl.Domain.Tickets;
 
 namespace Wasl.Application.Features.Tickets.Tags;
 
+/* ============================================================================
+ * WHY THIS FOLDER HOLDS THREE USE CASES, WHEN THE RULE IS ONE PER FOLDER
+ * ============================================================================
+ * `CLAUDE.md`: "one folder per USE CASE, not per technical type". Every other
+ * feature obeys it — `Customers/CreateCustomer/`, `Tickets/ChangeStatus/`. This
+ * folder holds `GetTags`, `AttachTicketTag` and `DetachTicketTag`, and it is the
+ * only place in `Features/` that does. Recorded 2026-09-07 during an
+ * architecture audit, because an undocumented deviation is the thing the working
+ * agreement forbids — not a deviation.
+ *
+ * THE REASON IS MEASURED, NOT PREFERRED. `TagSummary` is not one use case's DTO:
+ * `Features/Tickets/CreateTicket/CreateTicketResult.cs:108` returns
+ * `IReadOnlyList<TagSummary>` on the ticket body, and `TagsController` and
+ * `TicketsController` both name it. It is the tag VOCABULARY, shared across
+ * features — so this folder is a shared-contract folder that also happens to
+ * hold its three use cases, rather than a use-case folder holding three.
+ *
+ * WHICH MEANS SPLITTING DOES NOT REMOVE THE EXCEPTION, IT ADDS TO IT. Moving the
+ * three handlers into `AttachTag/`, `DetachTag/` and `GetTags/` leaves this
+ * folder standing anyway — something has to own `TagSummary` — so the result is
+ * one shared folder plus three thin ones, and a cross-feature `using` from every
+ * consumer either way. That is more structure for the same coupling.
+ *
+ * SO IT STAYS, AND THE COST IS STATED: a reader looking for "where is detach
+ * handled" does not find a folder named for it. `TicketTagHandlers.cs` is named
+ * for the pair on purpose — the two commands are symmetric over one table and
+ * return one shared result type, and `034` wrote them together for that reason.
+ * ========================================================================= */
+
 /// <summary>One tag as the client sees it. `034`.</summary>
+/// <remarks>
+/// <b>Shared vocabulary, not this feature's DTO</b> — <c>CreateTicketResult</c> carries a list of
+/// these on the ticket body. That is what the block above turns on.
+/// </remarks>
 public sealed record TagSummary(Guid Id, string Name);
 
 /// <summary>

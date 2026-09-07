@@ -128,12 +128,12 @@ public static class DependencyInjection
         // `020`. SINGLETON, resolved ONCE at startup — an unrecognised IANA id must refuse to
         // start rather than fall back to UTC, which would move every dashboard day boundary by
         // three hours while leaving every bucket populated and every response a 200.
-        services.AddSingleton(OrganizationTimeZone.From(configuration));
+        services.AddSingleton(Queries.OrganizationTimeZone.From(configuration));
 
         // `020`, revised canvas 2026-09-07. Two org-wide numbers the medians are compared against,
         // read once at startup and validated there — a non-positive target would paint the card
         // amber forever from a typo. NOT an SLA: see the type's remarks.
-        services.AddSingleton(DashboardTargets.From(configuration));
+        services.AddSingleton(Queries.DashboardTargets.From(configuration));
 
         // `004b`. SINGLETON — the counts must outlive a request, which is the whole point.
         // In-memory and per-process: two instances behind a load balancer each count to ten, and a

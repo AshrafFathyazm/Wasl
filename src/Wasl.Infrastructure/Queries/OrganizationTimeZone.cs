@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Wasl.Infrastructure;
+namespace Wasl.Infrastructure.Queries;
 
 /// <summary>
 /// The organisation's timezone, resolved once at startup. <c>Wasl:OrganizationTimeZone</c>.
@@ -22,6 +22,13 @@ namespace Wasl.Infrastructure;
 /// so <c>Asia/Riyadh</c> works on the developer's Windows machine and in a Linux container without
 /// a second name in configuration. A Windows id (<c>Arab Standard Time</c>) also resolves, and is
 /// not what this file documents — one spelling in one place.
+/// </para>
+/// <para>
+/// <b>Moved from the project root into <c>Queries/</c> on 2026-09-07</b>, beside its only
+/// consumer (<c>DashboardAggregatesQuery</c>). It sat loose at the root while every other options type in this
+/// layer sits with the code that reads it — <c>Auth/JwtOptions.cs</c>,
+/// <c>Persistence/Seed/SeedOptions.cs</c> — and the "Placement cleanup" of 2026-08-29 is the same
+/// move for the same reason. No behaviour changed; the namespace did.
 /// </para>
 /// </remarks>
 public sealed class OrganizationTimeZone

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Wasl.Infrastructure;
+namespace Wasl.Infrastructure.Queries;
 
 /// <summary>
 /// The two numbers the dashboard's medians are measured against. <c>Wasl:Targets:*</c>.
@@ -24,6 +24,13 @@ namespace Wasl.Infrastructure;
 /// decision that changes without a deployment — but unlike a signing key there is nothing unsafe
 /// about a default, and a dashboard that refused to start because nobody had set a target would be
 /// the wrong trade. The defaults are the canvas's own values.
+/// </para>
+/// <para>
+/// <b>Moved from the project root into <c>Queries/</c> on 2026-09-07</b>, beside its only
+/// consumer (<c>DashboardAggregatesQuery</c>). It sat loose at the root while every other options type in this
+/// layer sits with the code that reads it — <c>Auth/JwtOptions.cs</c>,
+/// <c>Persistence/Seed/SeedOptions.cs</c> — and the "Placement cleanup" of 2026-08-29 is the same
+/// move for the same reason. No behaviour changed; the namespace did.
 /// </para>
 /// </remarks>
 public sealed class DashboardTargets

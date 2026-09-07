@@ -8,8 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Wasl.Api.IntegrationTests.Audit;
 using Wasl.Domain.Communications;
 using Wasl.Domain.Tickets;
-using Wasl.Infrastructure;
 using Wasl.Infrastructure.Persistence;
+using Wasl.Infrastructure.Queries;
 
 namespace Wasl.Api.IntegrationTests.Dashboard;
 
