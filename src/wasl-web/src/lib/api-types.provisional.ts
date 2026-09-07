@@ -811,3 +811,173 @@ export interface CustomerCompanies {
   items: string[];
   hasUncompanied: boolean;
 }
+
+// PROVISIONAL — hand-written against specs/020-dashboard/
+// contracts/dashboard-api.md (frozen 2026-08-23, plus the one contract change
+// recorded in specs/020-dashboard/plan.md on 2026-09-07). Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `Mine` for an Agent, `Team` for a Manager. Selected by the token, never by a
+ *  query parameter — so this is read, never sent. */
+export type DashboardScope = 'Mine' | 'Team';
+
+/** The three accepted values of `?range=`. Anything else is a `400` naming all
+ *  three, so this union is the whole surface. */
+export type DashboardRange = '7d' | '14d' | '30d';
+
+/**
+ * A ticket named on a tile.
+ *
+ * `ageHours` is computed SERVER-side from the request's clock. Recomputing it
+ * from `createdAtUtc` in the browser would make the number depend on the
+ * reader's machine clock, which is the one input neither lane controls.
+ */
+export interface DashboardTicketRef {
+  ticketId: string;
+  ticketNumber: string;
+  subject: string;
+  createdAtUtc: string;
+  ageHours: number;
+}
+
+/**
+ * The four tiles.
+ *
+ * `unassignedCount` is GLOBAL in both scopes and that is the contract, not a
+ * defect: an unassigned ticket has no owner, so there is no "mine" version of
+ * it, and scoping it would show every Agent zero forever.
+ *
+ * `escalatedOverdueCount` is the contract change of 2026-09-07 — the design's
+ * tile says "2 older than 24h" and nothing in the frozen body could produce it.
+ * Counting `needsAttention` client-side would answer a different question and be
+ * wrong from the eleventh escalation onward, because that list is capped at ten
+ * rows of two mixed kinds.
+ */
+export interface DashboardAttention {
+  unassignedCount: number;
+  escalatedOpenCount: number;
+  escalatedOverdueCount: number;
+  waitingOnCustomerCount: number;
+  assignedToMeCount: number;
+  oldestUntouched: DashboardTicketRef | null;
+  myOldest: DashboardTicketRef | null;
+
+  /** How many tickets are in the attention SET. `needsAttention` is capped at ten, so
+   *  "View all 15 →" cannot be counted from the list — added 2026-09-07 with the
+   *  revised canvas, as a sixth subquery in the same command. */
+  needsAttentionTotal: number;
+}
+
+/**
+ * One local day of the trend.
+ *
+ * **`localDate` is a BARE CALENDAR DATE — `"2026-08-10"`, no time, no offset —
+ * and it must never go through `new Date()`.** A browser west of Riyadh parses
+ * a bare date as UTC midnight and renders the day before, so the whole chart
+ * shifts one column with nothing throwing. `formatLocalDate.ts` is the only
+ * place this string is formatted, and its test carries the `new Date()`
+ * implementation as the failing case.
+ */
+export interface DashboardDay {
+  localDate: string;
+  created: number;
+  resolved: number;
+}
+
+/** Every status except `Closed`, zeros included, in the state machine's order.
+ *  The server sends `Resolved` too; the card draws what is OPEN. */
+export interface DashboardStatusCount {
+  status: TicketStatus;
+  count: number;
+}
+
+/** All five channels, zeros included, in the enum's declaration order. The
+ *  screen sorts by count — see `Dashboard.module.css` for why that is the
+ *  client's decision and not the server's. */
+export interface DashboardChannelCount {
+  channel: CommunicationChannel;
+  count: number;
+}
+
+/**
+ * The two medians.
+ *
+ * **`null` is not `0`.** Branch on the sample size: zero minutes to first reply
+ * is a claim, and an empty system does not make it. The minutes are `null`
+ * exactly when their sample size is `0`.
+ */
+export interface DashboardMedians {
+  firstReplyMinutes: number | null;
+  firstReplySampleSize: number;
+  resolutionMinutes: number | null;
+  resolutionSampleSize: number;
+
+  /**
+   * The organisation's targets, in minutes — CONFIGURATION, not measurement.
+   *
+   * Added 2026-09-07: the canvas prints "target 2h" beside the median and shades
+   * the bar amber when the median is over it. **Not an SLA** — one org-wide number
+   * against one aggregate, with nothing said about any individual ticket. `027`
+   * left every per-ticket SLA region unbuilt and that has not changed.
+   */
+  firstReplyTargetMinutes: number;
+  resolutionTargetMinutes: number;
+}
+
+/** One row of the attention list. Both membership reasons can be true at once. */
+export interface DashboardAttentionItem {
+  ticketId: string;
+  ticketNumber: string;
+  subject: string;
+  customerName: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  isEscalated: boolean;
+  isUnassigned: boolean;
+  createdAtUtc: string;
+  ageHours: number;
+}
+
+/** One support user's open load. `isActive: false` still appears while they hold
+ *  open tickets — hiding them hides work. */
+export interface DashboardTeamMember {
+  userId: string;
+  fullName: string;
+  isActive: boolean;
+  assignedOpenCount: number;
+
+  /**
+   * How many of this person's open tickets are escalated — the agent card's
+   * "3 escalated" footnote, added 2026-09-07.
+   *
+   * **The canvas's second footnote, "2 breaching", is NOT available and is not
+   * missing by accident.** Breaching needs a per-ticket SLA and this product has
+   * none; a breach count computed from nothing is indistinguishable from a working
+   * one, which is why `027` left the SLA regions unbuilt rather than approximating
+   * them.
+   */
+  escalatedOpenCount: number;
+}
+
+/**
+ * `GET /api/dashboard` — the whole screen in one response.
+ *
+ * **`teamLoad` is ABSENT from the document for an Agent** — not `null`, not
+ * `[]`. Hence `?:` rather than `| null`: `teamLoad !== undefined` is the test
+ * for whether to render the block, and an empty array would mean "the team holds
+ * nothing", which is a different claim.
+ */
+export interface DashboardSnapshot {
+  range: DashboardRange;
+  scope: DashboardScope;
+  timeZoneId: string;
+  fromLocalDate: string;
+  toLocalDate: string;
+  generatedAtUtc: string;
+  attention: DashboardAttention;
+  dailySeries: DashboardDay[];
+  openByStatus: DashboardStatusCount[];
+  medians: DashboardMedians;
+  channelMix: DashboardChannelCount[];
+  needsAttention: DashboardAttentionItem[];
+  teamLoad?: DashboardTeamMember[];
+}

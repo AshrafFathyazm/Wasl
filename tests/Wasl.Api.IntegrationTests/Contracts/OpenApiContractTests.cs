@@ -48,7 +48,12 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
     private static readonly Dictionary<string, string> NotBuiltYet = new(StringComparer.Ordinal)
     {
         ["GET /api/audit"] = "019-audit-log-access",
-        ["GET /api/dashboard"] = "020-dashboard",
+
+        /* `GET /api/dashboard` WAS HERE AND IS DELETED, by `020` on 2026-09-07 — which is exactly
+         * the hand edit this dictionary's remarks describe. The gate went red on the first full run
+         * after the endpoint was built, naming it, and that is the mechanism working rather than a
+         * nuisance: an entry left behind would have kept the endpoint out of the comparison for
+         * every release after the one that built it. */
         ["GET /api/settings/branding"] = "022-tenant-theming-settings",
         ["PUT /api/settings/branding"] = "022-tenant-theming-settings",
         ["GET /api/locales"] = "014-language-preference-and-rtl",

@@ -1,0 +1,915 @@
+/* ============================================================================
+ * Dashboard.module.css — `020`, the canvas of 2026-09-07
+ * ============================================================================
+ * EVERY COLOUR IS A TOKEN. The canvas's twelve chart values are declared in
+ * `styles/tokens.css` under "The dashboard's chart palette"; seven of them alias
+ * a primitive that already held the exact value, and the five that did not are
+ * the only new colours in the product. Nothing in this file is a hex.
+ *
+ * LOGICAL PROPERTIES THROUGHOUT — `margin-inline`, `inset-inline-start`,
+ * `text-align: end`. The screen is read right-to-left in Arabic, and a
+ * stylesheet with a `left` in it has one region that does not turn around.
+ *
+ * THE PAGE SCROLLS, unlike the ticket list. Six cards at these heights do not
+ * fit 672px of viewport, and the list's `fill` treatment exists because a TABLE
+ * has a body that can scroll inside a fixed frame. There is no equivalent here:
+ * a chart that scrolls inside a card is a chart with a hidden half.
+ * ========================================================================== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+
+  /* No padding of its own. `.content` already pads 56px, and `026` recorded what
+     happens when a page adds its own on top: 88px from the rail against roughly
+     50 in the reference the product owner supplied. */
+  padding: 0;
+}
+
+/* ── The header ───────────────────────────────────────────────────────────── */
+
+.head {
+  display: flex;
+
+  /* `flex-end`, so the segmented control sits on the subtitle's baseline rather
+     than floating level with the 25px heading. */
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-block-end: var(--space-4);
+}
+
+.title {
+  margin-block: 0 var(--space-1);
+  font-size: 25px;
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.4px;
+  line-height: 1.3;
+}
+
+.subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--type-body-sm);
+}
+
+/* The converge loader sits INLINE with the subtitle, not over the page: the
+   numbers on screen are still the last true ones, so an overlay would claim they
+   are unavailable. */
+.headLoader {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── The range control ───────────────────────────────────────────────────── */
+
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-card);
+}
+
+/* EVERY BUTTON HERE CARRIES A CLASS, AND THAT IS LOAD-BEARING — MEASURED.
+ *
+ * The first version styled them as `.segmented button`, an element selector, and
+ * all three rendered as navy PRIMARY buttons with the pressed state invisible.
+ * `base.css` rule 17 fills `button:not([class])` with `--action-primary-bg` and
+ * `--surface-card`, both `!important`, as a dark-mode safety net for UNSTYLED
+ * controls — and a button with no `class` attribute is unstyled by that rule's
+ * definition, however much CSS points at its parent. So the module's
+ * `background-color` lost to an `!important` it never mentioned, and
+ * `[aria-pressed='true']` lost with it: three identical navy pills, no selected
+ * state, in both languages.
+ *
+ * `base.css` documents the escape hatch and this is it — a class on the control,
+ * not an `!important` in the module. Read there: "A component may still use
+ * !important. It no longer HAS to."
+ *
+ * INVISIBLE TO EVERY TEST. jsdom computes no cascade, so 1148 green tests said
+ * nothing, and the screenshot was ambiguous enough to read as correct. Found by
+ * asking the browser for `getComputedStyle(button).backgroundColor` and getting
+ * `rgb(29, 23, 77)` on all three — which is `026`'s status-tab defect and
+ * `032`'s navy copy buttons arriving a third time. */
+.rangeButton {
+  block-size: 32px;
+  padding-inline: 13px;
+  border: 0;
+
+  /* LOGICAL, so the dividers land between the buttons in both directions. With
+     `border-right` the first button in Arabic would carry a stray edge against
+     the group's own border. */
+  border-inline-end: var(--border-width) solid var(--border-subtle);
+  background-color: var(--surface-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.rangeButton:last-child {
+  border-inline-end: 0;
+}
+
+.rangeButton:hover {
+  background-color: var(--surface-subtle);
+}
+
+/* THE PRESSED STATE IS DRIVEN BY `aria-pressed`, not by a class. The attribute
+   is what a screen reader reads, so styling from it makes the two impossible to
+   disagree — a class-driven highlight with a stale attribute is a control that
+   looks selected and announces that it is not. */
+.rangeButton[aria-pressed='true'] {
+  background-color: var(--brand);
+  color: var(--on-brand);
+}
+
+.rangeButton:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+/* ── The three rows ──────────────────────────────────────────────────────── */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  transition: opacity var(--duration-enter) var(--ease-out);
+}
+
+/* Dimmed while the next range loads, and the previous one stays readable. Not a
+   skeleton: `keepPreviousData` means there IS data, and replacing true numbers
+   with grey blocks on every tab press is a flash rather than a state. */
+.bodyBusy {
+  opacity: 0.45;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.split {
+  display: grid;
+
+  /* 1.6 : 1 — the canvas's ratio. The wide column carries the chart and the
+     attention list; the narrow one carries two stacks of bars. */
+  grid-template-columns: 1.6fr 1fr;
+  gap: 13px;
+}
+
+/* ── The card ────────────────────────────────────────────────────────────── */
+
+.card {
+  padding: 15px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  min-inline-size: 0;
+}
+
+.cardTitle {
+  margin: 0 0 3px;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+}
+
+/* A card whose header carries something on the far side — a link, or a pair of
+   totals. Added 2026-09-07 with the revised canvas. `align-items: flex-start` so
+   the link sits on the TITLE's line rather than centred against a two-line
+   heading block. */
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.cardLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-link);
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cardLink:hover {
+  text-decoration: underline;
+}
+
+.cardMeta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+.cardSubtitle {
+  margin: 0 0 13px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.sectionLabel {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.emptyLine {
+  margin: 0;
+  padding-block: var(--space-2);
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.rule {
+  block-size: 1px;
+  margin-block: 12px 11px;
+  background-color: var(--border-divider);
+}
+
+/* ── Row 1 · the tiles ───────────────────────────────────────────────────── */
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 15px;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-card);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    border-color var(--duration-enter) var(--ease-out),
+    box-shadow var(--duration-enter) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.tile:hover {
+  border-color: var(--neutral-300);
+  box-shadow: var(--shadow-md);
+
+  /* One pixel. Enough to say "this is pressable" without the row of four
+     appearing to wobble as the pointer crosses it. */
+  transform: translateY(-1px);
+}
+
+.tile:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.tileHead {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+}
+
+.tileValue {
+  font-size: 29px;
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.8px;
+  line-height: 1;
+
+  /* The four numbers sit in a row and change on every range switch. Without
+     tabular figures they change WIDTH as they change value, and the labels
+     underneath shift with them. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* A ZERO IS MUTED, NEVER RED. Zero unassigned is the good outcome, and a red 0
+   teaches the reader to ignore the colour — after which a red 12 says nothing
+   either. */
+.tileValueZero {
+  color: var(--neutral-350);
+}
+
+.tileFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 11.5px;
+}
+
+.tileFootAct {
+  color: var(--state-danger-text);
+  font-weight: var(--weight-medium);
+}
+
+.tileFootMuted {
+  color: var(--text-muted);
+}
+
+.arrow {
+  opacity: 0;
+  transition:
+    opacity var(--duration-enter) var(--ease-out),
+    transform var(--duration-enter) var(--ease-out);
+  transform: translateX(-3px);
+}
+
+.tile:hover .arrow,
+.tile:focus-visible .arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* The arrow's approach is a DIRECTION, so it comes from the reading side. The
+   glyph itself is mirrored by `037`'s one rule (`data-flip`); this is the
+   motion, which that rule cannot see. */
+[dir='rtl'] .arrow {
+  transform: translateX(3px);
+}
+
+[dir='rtl'] .tile:hover .arrow,
+[dir='rtl'] .tile:focus-visible .arrow {
+  transform: translateX(0);
+}
+
+.dot {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: var(--radius-pill);
+  flex: 0 0 auto;
+}
+
+.dotDanger {
+  background-color: var(--red-600);
+}
+
+.dotWarning {
+  background-color: var(--amber-500);
+}
+
+/* ── Row 2 left · the paired bar chart ───────────────────────────────────── */
+
+.chartWrap {
+  position: relative;
+}
+
+/* ── The axis, behind the bars ────────────────────────────────────────────── */
+
+/* ABSOLUTE, SO THE GRIDLINES SIT BEHIND THE COLUMNS RATHER THAN BESIDE THEM.
+   The alternative — a grid column for the labels — would inset the bars by the
+   label width and the 1.6fr card would lose 28px of chart to three numbers. The
+   labels overhang into the card's own padding instead, which is what the canvas
+   draws. */
+.axis {
+  position: absolute;
+  inset-block: 0 17px;
+  inset-inline: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.axisRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.axisLabel {
+  flex: 0 0 14px;
+  text-align: end;
+  color: var(--chart-axis-label);
+  font-size: 8.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gridline {
+  flex: 1;
+  block-size: 1px;
+  background-color: var(--chart-grid);
+}
+
+.chart {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+
+  /* 124px of bars plus 17px of axis. Fixed, because the bars are percentages of
+     it: a chart that grows with its container would make "the tallest bar" a
+     different height on every card width.
+
+     NO BLOCK PADDING FOR THE AXIS, and the canvas had 17px here. The tick is a
+     real child of the column now rather than an absolutely-positioned box at
+     `inset-block-end: 0` — which is what the canvas does, and it puts the label
+     INSIDE the bars: a full-height column covers the strip the padding reserved,
+     so the tallest days render their date over the navy. Visible in the canvas's
+     own screenshot, and it survived because a 8.5px digit on a dark bar reads as
+     a texture rather than as text. */
+  block-size: 124px;
+
+  /* The axis's label column plus its gap, so a bar never starts on top of a
+     number. The two values are paired with `.axisLabel`'s flex-basis and the
+     `.axisRow` gap — one changes with the other. */
+  padding-inline-start: 20px;
+}
+
+.column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  block-size: 100%;
+  border-radius: 3px;
+
+  /* The whole column is the hover target, not the bars — a 4px-wide bar is not
+     something a pointer can be asked to find, and the tooltip is about the DAY. */
+  cursor: crosshair;
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.column:hover {
+  background-color: var(--brand-subtle);
+}
+
+/* The bars take whatever the tick leaves — so the 124px is bars plus axis, as
+   the canvas intends, without the two overlapping. */
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 1;
+  min-block-size: 0;
+  padding-inline: 1px;
+}
+
+.barCreated,
+.barResolved {
+  flex: 1;
+
+  /* Square at the base, rounded at the top: the bar grows out of the axis. */
+  border-radius: 2px 2px 0 0;
+  transition: block-size var(--duration-enter) var(--ease-out);
+}
+
+.barCreated {
+  background-color: var(--chart-created);
+}
+
+.barResolved {
+  background-color: var(--chart-resolved);
+}
+
+/* 17px of axis, reserved by the tick itself. `min-block-size` rather than a
+   fixed height so a blank tick on the 30-day chart still holds the row open —
+   otherwise the columns with a label would be shorter than the ones without,
+   and the bars would sit at four different baselines. */
+.tick {
+  min-block-size: 17px;
+  padding-block-start: 4px;
+  text-align: center;
+  color: var(--text-placeholder);
+  font-size: 8.5px;
+  line-height: 1;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: var(--z-tooltip);
+  display: flex;
+  flex-direction: column;
+  padding: 7px 10px;
+  border-radius: 5px;
+  background-color: var(--ink);
+  color: var(--text-on-inverse);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: nowrap;
+  pointer-events: none;
+
+  /* Centred over the column and lifted clear of the bar. The vertical anchor is
+     the chart's top rather than the bar's: a tooltip that tracks a bar's height
+     jumps between neighbouring days. */
+  inset-block-start: -6px;
+  transform: translate(-50%, -100%);
+}
+
+/* `inset-inline-start` resolves to the RIGHT edge in Arabic, so the horizontal
+   half of the centring transform has to turn around with it. Without this the
+   tooltip sits a full box away from the column it describes. */
+[dir='rtl'] .tooltip {
+  transform: translate(50%, -100%);
+}
+
+.legend {
+  display: flex;
+  gap: 14px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatchCreated,
+.swatchResolved {
+  inline-size: 9px;
+  block-size: 9px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+.swatchCreated {
+  background-color: var(--chart-created);
+}
+
+.swatchResolved {
+  background-color: var(--chart-resolved);
+}
+
+/* ── The bar row · three cards are built from it ─────────────────────────── */
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-block-end: var(--space-2);
+
+  /* Negative inline margin against the padding, so the hover fill reaches past
+     the text to the card's own padding edge — the row highlights as a row rather
+     than as a floating strip. */
+  margin-inline: -5px;
+  padding: 3px 5px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font-size: 12.5px;
+  text-decoration: none;
+}
+
+.barRowLink {
+  cursor: pointer;
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.barRowLink:hover {
+  background-color: var(--brand-subtle);
+}
+
+.barRowLink:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 0;
+}
+
+.barLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  /* Fixed, so the four tracks start at the same inline offset. A label column
+     sized to its content would step the bars in and out and destroy the
+     comparison the card exists for. */
+  flex: 0 0 92px;
+  min-inline-size: 0;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track {
+  flex: 1;
+  block-size: 7px;
+  border-radius: var(--radius-pill);
+  background-color: var(--chart-track);
+  overflow: hidden;
+}
+
+/* THE SAME TRACK IN A COLUMN, AND `flex: 1` ABOVE IS WHY THIS RULE EXISTS.
+ *
+ * `.barRow` is a flex ROW, so `flex: 1` grows the track horizontally and
+ * `block-size: 7px` is its height. `.median` and `.agent` are flex COLUMNS —
+ * `flex: 1` there resolves against the VERTICAL axis, so `flex-basis: 0%` wins
+ * over the 7px and the track collapses to a hairline.
+ *
+ * MEASURED IN THE BROWSER, and it is what the first screenshot of the revised
+ * canvas showed: the median bars were absent entirely and the agent bars rendered
+ * as a 1px red underline that read as a text decoration. jsdom computes no flex,
+ * so no test could have seen it — the third defect on this screen found only by
+ * looking at it. */
+.median .track,
+.agent .track {
+  flex: 0 0 7px;
+  inline-size: 100%;
+}
+
+.fill {
+  display: block;
+  block-size: 100%;
+  border-radius: var(--radius-pill);
+  transition: inline-size var(--duration-enter) var(--ease-out);
+}
+
+.barValue {
+  flex: 0 0 30px;
+  text-align: end;
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The share, after the count and muted — the count is the fact and the
+   percentage is the context. Same width for both so two rows' numbers line up
+   whatever their digits. */
+.barShare {
+  flex: 0 0 32px;
+  text-align: end;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Team load · one card per agent ──────────────────────────────────────── */
+
+.agents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 13px;
+}
+
+.agent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  min-inline-size: 0;
+}
+
+.agentHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.agentAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: var(--radius-pill);
+  background-color: var(--avatar-fill);
+  color: var(--on-brand);
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+}
+
+.agentName {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.agentCount {
+  flex: 0 0 auto;
+  font-size: var(--type-title-3);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The card's own subtitle says "red above 8", so the colour is explained on the
+   screen rather than being a convention the reader has to learn. */
+.agentCountOver {
+  color: var(--chart-team-over);
+}
+
+.agentFoot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.agentInactive {
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--state-neutral-bg);
+  color: var(--state-neutral-text);
+  font-weight: var(--weight-medium);
+}
+
+/* ── Row 2 right · the medians, against their targets ────────────────────── */
+
+/* ONE STACKED ROW EACH, not two side-by-side figures — the revised canvas gives
+   each median a target, an overshoot and a full-width bar, and two of those in a
+   1fr column would leave the bars 90px wide. */
+.median {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block-end: var(--space-3);
+}
+
+.median:last-child {
+  margin-block-end: 0;
+}
+
+.medianHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.medianLabel {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+}
+
+/* The target sits on the far side of the label's line: it is the thing the value
+   is measured against, so it belongs beside the label rather than beside the
+   number, where it would read as a second measurement. */
+.medianTarget {
+  color: var(--text-placeholder);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.medianValue {
+  font-size: var(--type-title-2);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* AMBER, NOT RED — a median over its target is a trend, and red on this screen
+   is reserved for work nobody owns. Using the same red for both is how a red
+   tile stops being read. */
+.medianOver {
+  color: var(--chart-over-target);
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+}
+
+/* ── Row 3 left · the attention list ─────────────────────────────────────── */
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-inline: -5px;
+  padding: var(--space-2) 5px;
+  border-block-end: var(--border-width) solid var(--border-divider);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: background-color var(--duration-instant) var(--ease-out);
+}
+
+.row:hover {
+  background-color: var(--brand-subtle);
+}
+
+.row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: 0;
+}
+
+.rows li:last-child .row {
+  border-block-end: 0;
+}
+
+.rowNumber {
+  flex: 0 0 116px;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+
+  /* Tabular, and never through a number formatter: a ticket number is an
+     identifier (BR-8.13) and stays Latin in Arabic. Tabular figures are what
+     make a column of them scan. */
+  font-variant-numeric: tabular-nums;
+}
+
+.rowSubject {
+  flex: 1;
+
+  /* `min-inline-size: 0` is what lets the ellipsis happen at all — a flex item
+     defaults to `min-width: auto` and refuses to shrink below its content, so
+     without this the badge and the age get pushed out of the card. */
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowBadge {
+  flex: 0 0 auto;
+}
+
+.rowAge {
+  flex: 0 0 40px;
+  text-align: end;
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── The error state ─────────────────────────────────────────────────────── */
+
+.errorCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border: var(--border-width) solid var(--state-warning-border);
+  border-radius: var(--radius-md);
+  background-color: var(--state-warning-bg);
+}
+
+.errorTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+}
+
+.errorBody {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.trace {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+/* SELECTABLE, and `dir="ltr"` by nature of being a code element — the trace id
+   is an identifier and reads left to right in both languages. */
+.trace code {
+  user-select: all;
+  font-family: ui-monospace, monospace;
+}
+
+.retry {
+  block-size: var(--button-height-md);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--action-secondary-border);
+  border-radius: var(--button-radius);
+  background-color: var(--action-secondary-bg);
+  color: var(--action-secondary-text);
+  font: inherit;
+  font-size: var(--type-body-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background-color: var(--surface-subtle);
+}
+
+/* ── Narrow ──────────────────────────────────────────────────────────────── */
+
+/* The four tiles become two by two, and the 1.6:1 split stacks. Below roughly
+   this width the narrow column's 92px label plus a track is no longer a bar
+   chart — it is a label with a smear beside it. */
+@media (max-width: 900px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

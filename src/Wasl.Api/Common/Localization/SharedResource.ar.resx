@@ -148,6 +148,12 @@
   <data name="Validation.Ticket.DescriptionTooLong" xml:space="preserve">
     <value>الوصف طويل جدًا.</value>
   </data>
+  <data name="Validation.Dashboard.RangeInvalid" xml:space="preserve">
+    <value>مدة غير مقبولة. القيم المقبولة: 7d, 14d, 30d.</value>
+  </data>
+  <data name="Validation.Dashboard.RangeRepeated" xml:space="preserve">
+    <value>أرسل المدة مرة واحدة.</value>
+  </data>
   <data name="Validation.TicketFilter.StatusInvalid" xml:space="preserve">
     <value>حالة غير مقبولة. القيم المقبولة: New, Open, InProgress, PendingCustomer, Resolved, Closed.</value>
   </data>

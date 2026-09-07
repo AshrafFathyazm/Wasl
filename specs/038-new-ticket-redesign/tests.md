@@ -142,9 +142,9 @@ None new. `POST /api/tickets` still returns an absolute `Location`
 (`http://localhost:5272/api/tickets/{id}`) where the contract promises a relative one —
 `024` recorded it and `toAppPath` still parses both. Unresolved, and not resolved here.
 
-## What has not been seen yet
+## What had not been seen yet — CLOSED, see *The visual walk* below
 
-**The running screen has not been walked, in either language.** The dev server started and
+~~**The running screen has not been walked, in either language.**~~ **Walked 2026-09-06.** The dev server started and
 the browser session used to measure the mock-up was gone by then, so every paint criterion
 in the *NOT MET* table above is owed. This is stated rather than glossed: the last thing
 this repository learned about measurement is that **a well-formed report about nothing is
@@ -188,3 +188,218 @@ times over.
 files: `src/components/Dropdown/menuSurfaceCap.test.tsx:240` and
 `src/features/tickets/CloseTicketModal.tsx:218`. Running `eslint` over this feature's own
 files is clean. Recorded rather than fixed — they belong to the lane that wrote them.
+
+---
+
+## The visual walk — performed 2026-09-06, against the running app
+
+Chrome over CDP, dev server on `:5181`, API on `:5272`, signed in as
+`manager@wasl.local`, real seeded data (99 customers). **This closes the seven criteria
+recorded NOT MET above.** Every figure below was read out of the live DOM, not from a
+screenshot.
+
+### Layout — AC-4, AC-5, AC-22
+
+| At 1443px (Arabic, `dir=rtl`) | Observed |
+|---|---|
+| `gridTemplateColumns` | **`696px 316px`** — two tracks, rail exactly 316 |
+| Rail physical position | `left: 71`, main `left: 403` → **rail is on the physical LEFT**, which is inline-start under RTL |
+| `position` of the rail | `sticky` |
+| Rail block order | «التوجيه» → القناة → التصنيف → الأولوية → الإسناد — **channel, category, priority, assignment** |
+| Footer | `footer.top === scroller.bottom` and the scroller scrolls → **the form scrolls under a fixed footer** |
+
+| At 1002px | Observed |
+|---|---|
+| `gridTemplateColumns` | **`806.4px`** — one track |
+| Rail | `position: static`, `top: 850` against main's `152` → **stacked below** |
+| `document.body.scrollWidth > innerWidth` | **false** — no horizontal overflow |
+
+**A worry that measurement dismissed.** The rail is 544px against a 458px visible
+scroller — taller than the viewport, which is the classic broken sticky sidebar whose
+bottom can never be scrolled to. Measured rather than assumed: at `scrollTop = max` the
+rail's bottom is 595 against the scroller's 611, so **it is reachable**. The clipping
+visible in a mid-scroll screenshot is a scroll position, not a defect.
+
+### Content — AC-9, AC-10, AC-11, AC-21, AC-32
+
+| Claim | Observed |
+|---|---|
+| Result row carries company | `LLina Farah ec7 · cec7d05d8@example.com · Northwind Logistics` |
+| A customer with **no email** | `ahmed · +201092940946` — the phone fills in, and **no empty separator** |
+| A customer with **no company** | renders without a trailing dot |
+| Selected card | name · email · company · «Change» |
+| `<bdi>` in the card | **3** — name, email, company each isolated |
+| Counter and cap | `0/200`, `maxlength="200"` |
+
+### The two history regions — AC-13, AC-14, AC-34, AC-40, AC-41
+
+Driven against real data rather than fixtures.
+
+| Customer | open / prior | Rendered |
+|---|---|---|
+| **Layla Hassan** | 28 / 4 | Amber banner «لدى هذا العميل **28** تذكرة مفتوحة…», 5 rows + «عرض الكل»; quiet line «**4** تذاكر سابقة», 3 rows + «عرض الكل» |
+| **ahmed** | 0 / 2 | **No banner at all**, quiet line only: «لدى هذا العميل **تذكرتان سابقتان** — راجعهما قبل إنشاء ثالثة» |
+
+**The second row is the whole reason R-4b exists**, seen working: a customer with nothing
+open and two closed tickets. Before the amendment this screen showed that customer
+nothing at all.
+
+`28` renders the Arabic `_many` form («تذكرة»), `4` the `_few` («تذاكر»), `2` the **dual**
+(«تذكرتان»). Three different plural categories, all correct, which is what
+`lint:i18n`'s parity check cannot tell you.
+
+### The failed submit — AC-18, AC-19, AC-20, AC-24
+
+Submitted empty, in Arabic:
+
+```
+summary  «5 حقول ناقصة: العميل، الموضوع، الوصف، القناة، التصنيف»
+focus    document.activeElement.id === "nt-customer-search"   ✅
+```
+
+**AC-19 confirmed on the real screen**, in the language it matters most in: the summary
+names the customer first and the caret goes there. The mock-up names it first and focuses
+the subject.
+
+### Result
+
+| Was | Now |
+|---|---|
+| AC-5, AC-9, AC-10, AC-11, AC-21, AC-22, AC-24 — **NOT MET** | **MET**, by the walk above |
+
+**AC-10 was RE-OPENED the same day** — see *A second, independent walk* at the foot of
+this file. Only its first clause (the card shows name, email, company and «تغيير») was
+exercised; the second («تغيير» returns to the search **with the term empty**) is false,
+measured and confirmed at the source. The row above is left as written, with the
+disproof beside it.
+| AC-25, AC-26, AC-32 — *proven only in the negative* | **MET** — five channel icons render, `Dropdown` renders for category and assignment, counter reads `0/200` |
+
+Still not met: **AC-36** (the `getCustomer` read-back after a sheet create is still not
+driven end to end — unchanged).
+
+**AC-36 was CLOSED the same day**, by the second walk — `POST /api/customers` followed
+by `GET /api/customers/{id}`, read off the network.
+
+### One weakness found, and it is copy rather than code
+
+With no channel chosen the hint line reads **«اختر…» / "Choose…"** — it reuses
+`tickets:new.choose`, the generic dropdown placeholder. It is not wrong, but the line's
+job is to name the channel, and before a choice is made it says nothing specific. A key of
+its own would read better. Not fixed here: it is a copy decision, and the product owner
+writes the Arabic (Q-8).
+
+## A second, independent walk — 2026-09-06, later the same day
+
+Run without knowledge of the section above, which was written into this file by
+another session while this one was working in the same tree. It reproduces that walk
+almost exactly, which is worth having: two instruments, two operators, one screen. It
+also **closes AC-36** and **reopens AC-10**.
+
+Playwright over Chrome, dev server on `:5182`, API on `:5272` (already running,
+`/health` `200`, database `Healthy`), signed in through the real login form as
+`manager@wasl.local`, real seeded data. `preferredLanguage` for that user is `ar`, so
+the screen came up in Arabic and RTL without any switch — `014`'s rule that the login
+switcher does not survive sign-in is why that matters.
+
+### The instrument had to be fixed before it measured anything
+
+The first version selected on `[class*="CreateTicket_"]` — the production CSS-Modules
+shape. **Vite in dev emits `_name_hash_line`**, so every selector matched zero elements
+and every geometry came back `null` while the script ran green to completion. It would
+have produced a well-formed report about nothing, which is the failure this repository
+has recorded five times.
+
+The hash is derived at runtime now, and the run **throws** if it cannot be found rather
+than continuing with empty selectors — `008`'s query-counter rule. Four further
+controls, each answering a question the claim beside it cannot answer alone:
+
+| Control | Why it exists | Observed |
+|---|---|---|
+| **A** — a selector that must not resolve | the tool must be able to report absence | `null` |
+| **B** — the stylesheet's own hash | see above; the run aborts without it | `1xv97` |
+| **C** — no `CreateTicketPreview` class on the page | `/_preview/create-ticket` is `024`'s hand-written copy, own `COPY_AR`, native `<select>`, untouched since `c5c7376`. Walking it would measure the superseded design — the defect `027` deleted its v2 preview for | `previewModulePresent: false` |
+| **D** — the counter must **change** | «renders `0/200`» is satisfied by a hard-coded string | `0/200` → `200/200` |
+| **E** — the scroller must **move** | «the footer did not move» is trivially true on a page that never scrolled | `scrollTop` `0` → `303` |
+
+### What it measured
+
+| AC | Observed | Verdict |
+|---|---|---|
+| **AC-5** | rail, in document order: القناة → التصنيف → الأولوية → الإسناد, the last one's control `disabled` («بلا إسناد») | agrees |
+| **AC-9** | with company `أ · أروى الدوسري 344 · c344591bb@example.com · مجموعة النخيل`; without company `K · Karim Fouad 90a · c90ae7713@example.com` — **no dangling separator on either** | agrees |
+| **AC-11** | 3 `<bdi>`; the Latin address computes `direction: ltr`, `unicode-bidi: isolate` inside the RTL line | agrees |
+| **AC-21 / AC-32** | `0/200` → `200/200`, exactly **200** characters accepted from a 250-character paste | agrees |
+| **AC-22** | footer `top` **499 before and 499 after** while the scroller moved 0 → 303 | agrees |
+| **AC-24** | `dir=rtl`, `lang=ar`, **zero** key-shaped strings in the rendered text, **zero** console errors across the whole walk | agrees |
+| **AC-25** | 5 cells, 5 `aria-label`s (بريد إلكتروني · واتساب · محادثة مباشرة · رسالة نصية · نموذج ويب), 5 icons, **5 distinct geometries** | agrees |
+| **AC-26** | `document.querySelectorAll('select').length === 0`; 2 dropdowns, 2 radiogroups | agrees |
+| layout | 1440 → `708px 316px`, main and rail tops within 40px → side by side; 1024 → `844px`, stacked. **`grid.getAttribute('style')` is `null` at both** | agrees |
+
+The `708` against the other walk's `696` is the viewport: 1440 here, 1443 there.
+
+**One mechanism is described differently and both descriptions are right.** The footer's
+computed `position` is **`static`**, not `fixed`. It does not scroll because it sits
+outside `.scroll` and `AppShell` moves the scrolling inside — which is what the code
+comment says. The behaviour AC-22 asks for is present; the word *fixed* describes the
+result, not the property.
+
+### AC-36 — CLOSED
+
+Left open by the earlier walk. Driven end to end, with a CSPRNG discriminator rather
+than a slice of a time-ordered id (`008` matched the wrong row and `007` collided on a
+unique index doing the latter).
+
+Created `مقياس cec69ff7` / `walk-cec69ff7@example.com` / `شركة cec69ff7` through
+«عميل جديد» → «حفظ العميل». **The proof is the network, not the card** — a card showing
+the right email is equally consistent with the create response being reused:
+
+```
+POST /api/customers
+GET  /api/customers/01a076b2-b176-7d8a-8e33-7183362f130b
+GET  /api/tickets?…&customerId=01a076b2-…&status=New&status=Open&…
+GET  /api/tickets?…&customerId=01a076b2-…&status=Resolved&status=Closed
+```
+
+The `GET` by id follows the `POST`, and the card then renders the three values as three
+`<bdi>`s. **AC-36 is met.** (This wrote one customer row to the local demo database.)
+
+### AC-10 — REOPENED, and it is a real defect
+
+The section above records AC-10 as **MET** on this evidence:
+
+> Selected card | name · email · company · «Change»
+
+That is the criterion's **first clause**. The whole of AC-10 is:
+
+> The selected card shows name, email, company and «تغيير»; **«تغيير» returns to the
+> search with the term empty**
+
+The second clause was not exercised. Driven here — clicking the button **by its text**,
+because the first attempt clicked `customerHead button` and hit «عميل جديد», opened the
+create sheet, and reported the search box missing, which is what a covering sheet looks
+like:
+
+| After «تغيير» | Observed | Expected |
+|---|---|---|
+| search returns | `true` | `true` |
+| `#nt-customer-search` value | **`أروى الدوسري 344`** | empty |
+
+Confirmed at the source, so it is not an artefact of the driver:
+
+- `CustomerPicker.tsx:157` — «تغيير» is `onClick={onClear}`.
+- `CreateTicketPage.tsx:488` — `onClear` runs `setSelected(null)` and
+  `form.setValue('customerId', '')`. **It never calls `setTerm('')`.**
+- `CustomerPicker.tsx:189` — `onTermChange('')` exists and is wired to **Escape only**.
+
+So the mechanism is built and one path does not call it. **No test covers this**: a grep
+for «تغيير», `AC-10` and `onClear` across `CreateTicketPage.test.tsx` and
+`newTicketControls.test.tsx` returns nothing.
+
+**This is the repository's own recorded failure mode, one level up.** `CLAUDE.md` puts it
+as *«`errors[field]` with one entry is not a content assertion — it is a shape
+assertion»*: counting the entry proves the envelope, only reading the string proves the
+message. Here a criterion with two clauses was marked met on the first, and the first is
+the one a screenshot answers.
+
+AC-10 is **NOT MET**. The fix is one line in `onClear`, and it needs a test in the same
+change, or the next walk finds it again.

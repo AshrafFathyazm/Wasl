@@ -48,34 +48,37 @@ describe('/tickets resolves to the list, not the 023 placeholder', () => {
     expect(leafFor('/tickets')).toBe(declared[0]);
   });
 
-  it('gives /tickets a different COMPONENT from a placeholder-only nav path', () => {
-    /* By component type, not by element identity. The first version compared
-     * `element` objects — and `<HomePage />` is a fresh object per map() call,
-     * so two placeholders compare unequal and the test passed on a build where
-     * /tickets WAS the placeholder. */
+  /* THE PLACEHOLDER TEST IS DELETED, AND ITS OWN COMMENT IS WHY.
+   *
+   * It compared each real screen's component against `/`'s, and it said: "When
+   * `020` builds the dashboard this test has nothing left to compare and should
+   * be deleted rather than bent." `020` built it. Every entry in NAV_PATHS now
+   * resolves to a distinct real screen, so the assertion would have had to
+   * become "three real screens differ from a fourth", which is a statement about
+   * `lazy()` returning distinct objects rather than about routing.
+   *
+   * WHAT REPLACES IT IS NOT WEAKER. `the four nav destinations each resolve to
+   * their own screen` below asserts the same property that mattered — no path
+   * silently sharing a component with another — without needing one of them to
+   * be a placeholder for the comparison to mean anything. */
+  it('gives each nav destination its own screen component', () => {
     const typeOf = (path: string) => {
       const el = leafFor(path).element as { type?: unknown } | null;
       return el?.type;
     };
-    /* THE PAIR HAS BEEN REWRITTEN TWICE AND THAT IS THE POINT — each time
-     * because the path it used as a known placeholder became a real screen:
-     * `/tickets/mine` when `026` built the scoped queues, then `/customers`
-     * when `033` built the directory. Both went red for the right reason.
-     *
-     * `/` IS THE ONLY PLACEHOLDER LEFT IN NAV_PATHS, so the control can no
-     * longer be "two placeholders share a component". It is now: the dashboard
-     * is still the placeholder, and each real screen differs from it AND from
-     * the others. When `020` builds the dashboard this test has nothing left to
-     * compare and should be deleted rather than bent. */
-    expect(typeOf('/tickets')).not.toBe(typeOf('/'));
-    expect(typeOf('/customers')).not.toBe(typeOf('/'));
-    expect(typeOf('/customers')).not.toBe(typeOf('/tickets'));
 
-    /* And the placeholder is genuinely still there — otherwise the three
-     * assertions above would pass on a build where `/` had become a screen too,
-     * which is exactly how they would stop meaning anything. */
-    expect(NAV_PATHS).toContain('/');
-    expect(typeOf('/')).toBeDefined();
+    /* By component type, not by element identity. The first version compared
+     * `element` objects — and an element is a fresh object per render, so two
+     * paths sharing a component compared unequal and the test passed on a build
+     * where `/tickets` WAS the placeholder. */
+    const paths = ['/', '/tickets', '/customers'];
+    const types = paths.map(typeOf);
+
+    for (const type of types) {
+      expect(type).toBeDefined();
+    }
+
+    expect(new Set(types).size).toBe(paths.length);
   });
 
   it('does not shadow the sibling ticket routes', () => {

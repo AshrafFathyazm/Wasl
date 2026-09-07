@@ -223,7 +223,7 @@ artifacts for it live.*
 | | `017-update-customer` | **US-003** | |
 | | `018-customer-overview` | **US-004** | |
 | | `019-audit-log-access` | **US-015** | |
-| | `020-dashboard` | **US-016** | |
+| ✅ | `020-dashboard` | **US-016** | **DONE 2026-09-07**, both lanes. 711 backend / 1212 frontend tests  |
 | | `021-communication-provider-abstraction` | **US-012** | Promoted from Deferred — see below |
 | | `022-tenant-theming-settings` | — | ADR-012, settings screen only. The token architecture ships in `006` |
 

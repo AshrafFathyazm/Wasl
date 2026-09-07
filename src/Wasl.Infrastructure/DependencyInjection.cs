@@ -116,6 +116,25 @@ public static class DependencyInjection
                 Wasl.Application.Features.Tickets.GetTimeline.TimelinePage>,
             Queries.TicketTimelineQuery>();
 
+        // `020`. The second — and, per `CLAUDE.md`, the last sanctioned — named query class, on
+        // the same terms as the one above: seven aggregate commands, none of them expressible
+        // over IApplicationDbContext, three of the tables they read not on that interface at all.
+        services.AddScoped<
+            MediatR.IRequestHandler<
+                Wasl.Application.Features.Dashboard.GetDashboard.GetDashboardQuery,
+                Wasl.Application.Features.Dashboard.GetDashboard.DashboardSnapshot>,
+            Queries.DashboardAggregatesQuery>();
+
+        // `020`. SINGLETON, resolved ONCE at startup — an unrecognised IANA id must refuse to
+        // start rather than fall back to UTC, which would move every dashboard day boundary by
+        // three hours while leaving every bucket populated and every response a 200.
+        services.AddSingleton(OrganizationTimeZone.From(configuration));
+
+        // `020`, revised canvas 2026-09-07. Two org-wide numbers the medians are compared against,
+        // read once at startup and validated there — a non-positive target would paint the card
+        // amber forever from a typo. NOT an SLA: see the type's remarks.
+        services.AddSingleton(DashboardTargets.From(configuration));
+
         // `004b`. SINGLETON — the counts must outlive a request, which is the whole point.
         // In-memory and per-process: two instances behind a load balancer each count to ten, and a
         // restart forgets everything. Stated in the type's own remarks rather than implied, because

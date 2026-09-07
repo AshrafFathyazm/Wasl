@@ -20,7 +20,19 @@ import { NAV_PATHS } from './shell/navItems';
  * The feature that owns each screen replaces its element. Nothing else changes.
  */
 
-const HomePage = lazy(() => import('./features/home/HomePage'));
+/* `020`. THE LAST PLACEHOLDER IS GONE, and `HomePage` went with it.
+ *
+ * `023` mounted every nav destination on one placeholder component so that the
+ * shell's active state, breadcrumb and open-group behaviour were verifiable. Each
+ * feature has replaced its own since: `026` the ticket list and the two scoped
+ * queues, `033` the customer directory, and this one `/`.
+ *
+ * DELETED RATHER THAN LEFT UNROUTED. A placeholder that still compiles is the
+ * thing that comes back — it survives a merge and the next person to see a blank
+ * screen has no reason to suspect the route table. `features/home/` is removed in
+ * the same change, and `NAV_PATHS` is untouched: it is still the one source the
+ * nav renders from, and every path in it now has a screen. */
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
 const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
@@ -71,6 +83,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
       const LoadersPreview = lazy(() => import('./dev/LoadersPreview'));
       const CustomerProfilePreview = lazy(() => import('./dev/CustomerProfilePreview'));
       const FeedbackPreview = lazy(() => import('./dev/FeedbackPreview'));
+      const DashboardPreview = lazy(() => import('./dev/DashboardPreview'));
       return [
         { path: '/_preview', element: <PreviewPage /> },
         /* FE-024-00. A screen preview, not a component harness — it sits beside
@@ -109,6 +122,11 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
          * jsdom paints nothing and 655 green tests have not seen a stripe, a
          * counter or a modal in either direction. */
         { path: '/_preview/feedback', element: <FeedbackPreview /> },
+        /* FE-020-00. The Phase 3b gate for `/` — five states across two
+         * languages, including the three a wired screen can only reach by
+         * breaking something (loading, a failed request, an empty system) and
+         * the fourth that needs somebody else's token (an Agent's four tiles). */
+        { path: '/_preview/dashboard', element: <DashboardPreview /> },
       ];
     })()
   : [];
@@ -116,6 +134,7 @@ const devRoutes: RouteObject[] = import.meta.env.DEV
 /** Paths that now have a real screen. Listed once so the placeholder spread and
  *  the real routes cannot disagree about which is which. */
 const OWNED_PATHS = new Set([
+  '/',
   '/tickets',
   '/tickets/mine',
   '/tickets/unassigned',
@@ -162,10 +181,27 @@ export const routes: RouteObject[] = [
            *
            * NAV_PATHS is not edited: the nav item has to keep pointing at
            * `/tickets`, and deleting the path there would delete the link. */
+          /* THE SPREAD IS NOW EMPTY, AND IT IS KEPT DELIBERATELY.
+           *
+           * `OWNED_PATHS` covers every entry in `NAV_PATHS` as of `020`, so this
+           * maps nothing today. Deleting it would remove the guarantee it
+           * carries rather than the code it runs: the next nav item added
+           * without a screen would 404 inside the shell, and the shell's active
+           * state and breadcrumb for it would be unverifiable — which is the
+           * situation `023` built this for. It costs one iteration over a
+           * five-element array. */
           ...NAV_PATHS.filter((path) => !OWNED_PATHS.has(path)).map((path) => ({
             path,
-            element: <HomePage />,
+            element: <DashboardPage />,
           })),
+
+          /* `020`. The dashboard, replacing `023`'s placeholder. `/` and not
+           * `/dashboard`: `11-dashboard.md` writes the route as `/dashboard`,
+           * and `navItems.ts` has pointed the item at `/` since `023` — moving
+           * the path would change the nav, the breadcrumb, every bookmark and
+           * the post-sign-in landing for a screen nobody has ever reached at the
+           * other address. The design's route line is the one corrected. */
+          { path: '/', element: <DashboardPage /> },
 
           { path: '/tickets', element: <TicketListPage /> },
 

@@ -82,11 +82,12 @@ Rule 2 had for three releases before `037` measured it.
 
 ## Known limitations
 
-1. **The running screen has not been walked, in either language.** Every paint criterion —
-   rail order, `<bdi>` isolation, the counter, the fixed footer, the Arabic RTL pass — is
-   recorded **NOT MET** in `tests.md` rather than assumed from a green suite. jsdom
-   computes no layout; a unit test asserting these would be a well-formed report about
-   nothing.
+1. ~~**The running screen has not been walked.**~~ **CLOSED 2026-09-06** — walked in both
+   languages against the running app with real seeded data. AC-5, AC-9, AC-10, AC-11,
+   AC-21, AC-22, AC-24, AC-25, AC-26 and AC-32 are all **MET**; the figures are in
+   `tests.md`. Two things the walk settled that no unit test could: the grid computes to
+   `696px 316px` with the rail on the physical LEFT under RTL, and a rail TALLER than the
+   viewport (544 against 458) still has a reachable bottom — measured, not reasoned.
 2. **AC-36 is half met.** The sheet opens and the ticket fields survive it. The
    `getCustomer` read-back is not driven end to end, because reaching `onCreated` means
    submitting `035`'s form inside the sheet — `035`'s test. The callback is read, not run.
@@ -158,3 +159,26 @@ the guard rather than by a person.
 
 **Still owed, unchanged:** the running screen has not been walked in either language, and
 this amendment adds a region to that debt.
+
+---
+
+## The visual walk closed the last gap (2026-09-06)
+
+Walked in Arabic and English against the running app, signed in, on real seeded data.
+Full figures in `tests.md`; three things worth carrying forward:
+
+1. **R-4b was seen doing its job.** Customer `ahmed` — 0 open, 2 closed — renders **no
+   amber banner and only the quiet line**. That customer showed nothing at all before the
+   amendment, and it is the exact case the duplicate banner was built for.
+2. **Three Arabic plural categories, all correct in one screen**: 28 → `_many`
+   («تذكرة»), 4 → `_few` («تذاكر»), 2 → the dual («تذكرتان»). Catalogue parity cannot tell
+   you this; only rendering it can.
+3. **A defect I expected and did not find.** The rail is 544px inside a 458px scroller —
+   taller than the viewport, which is the classic sticky sidebar whose bottom is
+   unreachable. Measured at maximum scroll: the rail's bottom sits 16px above the
+   scroller's. Reachable. A screenshot mid-scroll shows it clipped and reads like the bug.
+
+**One weakness found, left unfixed on purpose:** with no channel chosen the hint line
+reuses `tickets:new.choose` and reads «اختر…» / "Choose…". Its job is to name the channel,
+and before a choice it says nothing specific. That is a copy decision and the Arabic is the
+product owner's (Q-8).

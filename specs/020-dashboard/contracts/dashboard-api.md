@@ -402,3 +402,73 @@ that its request for `fr` produced English (BR-8.3).
 | `Cache-Control: no-store`, and two calls differ | `TEST-020-14` |
 | Arabic response: sentences translated, `type` / property names / digits identical | `TEST-020-15` |
 | This contract matches what was built | Generated OpenAPI compared before the feature closes — `REV-020-02` |
+
+---
+
+## Contract changes
+
+The body above is the frozen contract of **2026-08-23**. It is kept unedited, and every change
+since is recorded here rather than folded in — a frozen contract that is edited in place is a
+contract nobody can diff.
+
+### 2026-09-07 — four additive fields
+
+From the two design canvases the product owner supplied that day, both ruled *design wins,
+exactly as drawn*. All four are **additive**: no property above changed name, type or meaning,
+so a client written against the frozen body still parses the response.
+
+```jsonc
+{
+  "attention": {
+    // ...every field above, plus:
+    "escalatedOverdueCount": 2,   // of `escalatedOpenCount`, how many are older than 24h
+    "needsAttentionTotal": 15     // the SIZE of the attention set; `needsAttention` is capped at 10
+  },
+  "medians": {
+    // ...every field above, plus:
+    "firstReplyTargetMinutes": 120,   // configuration, `Wasl:Targets:FirstReplyMinutes`
+    "resolutionTargetMinutes": 1440   // configuration, `Wasl:Targets:ResolutionMinutes`
+  },
+  "teamLoad": [
+    { "userId": "…", "fullName": "…", "isActive": true,
+      "assignedOpenCount": 9,
+      "escalatedOpenCount": 3 }     // of those, how many are escalated
+  ]
+}
+```
+
+**Why each is server-side rather than computed by the client:** the two counts on `attention`
+are shares of a set the client only ever sees ten rows of, so counting `needsAttention` answers
+a different question and is silently wrong past the cap; the per-agent escalation is not
+derivable from a per-agent total; and the targets are organisation configuration, not data.
+
+**None of them costs a command.** The two attention counts are additional scalar subqueries in
+the existing attention statement, the per-agent count is a conditional aggregate over
+`teamLoad`'s existing `LEFT JOIN`, and the targets touch no SQL. **Seven commands for a
+Manager and six for an Agent still holds** and is asserted (TEST-020-02).
+
+**The targets are NOT an SLA.** An SLA is a per-ticket commitment with a deadline, a countdown
+and breach semantics. These are two organisation-wide numbers compared against two aggregates
+this endpoint already computes; nothing here says anything about an individual ticket. `027`
+left every per-ticket SLA region of the ticket screen unbuilt on purpose and that has not
+changed.
+
+### 2026-09-07 — two canvas elements deliberately NOT contracted
+
+| Element | Status |
+|---|---|
+| A previous-period delta per tile (`▲ 3 vs prev`) | **Not built.** The tiles are point-in-time counts and the product retains no daily snapshot, so the comparison is not computable from current state; reconstructing it from `dbo.TicketHistory` is a feature with a table and a job. Needs a product-owner decision |
+| A per-agent breach count (`2 breaching`) | **Not built.** Requires a per-ticket SLA, which this product does not have. Needs a product-owner decision |
+
+### 2026-09-07 — two behaviours clarified, no field affected
+
+- **`?range=` with an empty value** is treated as ABSENT and answers `200` with `14d` — not
+  `400`. Consistent with `015`'s ruling that `?status=` is no filter rather than a filter
+  matching nothing. Repetition is still refused.
+- **`?range=` sent twice** is `400`, as the *Query parameters* table above says. It answered
+  `200` with the first value until 2026-09-07, when it was measured against a running API: MVC
+  binds a repeated parameter's first value to a scalar parameter and discards the rest. The
+  parameter binds as a collection now, and the message is its own —
+  `Validation.Dashboard.RangeRepeated`, "Send range once." — rather than the accepted-values
+  one, because both values in `?range=7d&range=30d` are accepted and saying otherwise sends the
+  caller looking at the wrong thing.

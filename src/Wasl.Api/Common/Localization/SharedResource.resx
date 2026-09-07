@@ -148,6 +148,12 @@
   <data name="Validation.Ticket.DescriptionTooLong" xml:space="preserve">
     <value>The description is too long.</value>
   </data>
+  <data name="Validation.Dashboard.RangeInvalid" xml:space="preserve">
+    <value>Not an accepted range. Accepted values: 7d, 14d, 30d.</value>
+  </data>
+  <data name="Validation.Dashboard.RangeRepeated" xml:space="preserve">
+    <value>Send range once.</value>
+  </data>
   <data name="Validation.TicketFilter.StatusInvalid" xml:space="preserve">
     <value>Not an accepted status. Accepted values: New, Open, InProgress, PendingCustomer, Resolved, Closed.</value>
   </data>

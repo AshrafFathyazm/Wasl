@@ -193,6 +193,65 @@
   --channel-livechat-bg: #edf6f5;
   --channel-livechat-fg: #2a7a72;
 
+  /* ── The dashboard's chart palette — `020` ────────────────────────────────
+   * From the dashboard canvas the product owner supplied 2026-09-07.
+   *
+   * SEVEN of the twelve ALIAS a primitive that already carries the canvas value
+   * exactly; the five that do not are the only genuinely new colours, and they
+   * are here rather than in `Dashboard.module.css` for the reason the channel
+   * block above states — a hex loose in a stylesheet is a colour with no owner.
+   *
+   * WHY THE CHANNEL RAMP IS NOT `--channel-*-fg`. Those five are per-channel
+   * IDENTITY tints, so WhatsApp is the same purple in a table row and in a
+   * filter chip. This ramp is per-RANK: the tallest bar is the darkest, whatever
+   * channel is on top this fortnight. Reusing the identity tints would make the
+   * mix chart the one place where a channel's colour moves. */
+  --chart-created: var(--brand); /* = #1D174D, exact */
+  --chart-resolved: #b9b5d6;
+  --chart-track: var(--surface-sunken); /* = #EDF1F2, exact */
+
+  /* Dark to light by rank, five steps. */
+  --chart-rank-1: var(--brand); /* = #1D174D, exact */
+  --chart-rank-2: #3b3577;
+  --chart-rank-3: #6e68a8;
+  --chart-rank-4: #9b96c4;
+  --chart-rank-5: #c3bfdc;
+
+  /* The queue's shape. Four of the five statuses are drawn, and each takes the
+   * colour it already has in a badge — a status that is amber on a ticket must
+   * not be blue on the chart of the same tickets. `Resolved` has no bar in the
+   * design and therefore no token: the card counts what is OPEN. */
+  --chart-status-new: var(--neutral-500); /* = #76818C, exact */
+  --chart-status-open: var(--blue-500); /* = #1570EF, exact */
+  --chart-status-inprogress: var(--amber-500); /* = #FFAF36, exact */
+
+  /* PendingCustomer is PURPLE, and it was a lighter amber for one afternoon.
+   *
+   * The first canvas drew it as a pale amber beside In progress, separating "we
+   * are working" from "we are waiting" by weight. The revised canvas of
+   * 2026-09-07 separates them by HUE instead — purple, dot included — which is
+   * the better call for the reason the amber version made visible: two amber bars
+   * of different lightness read as one bar rendered twice, and the lighter one
+   * looks like a hover state. */
+  --chart-status-pending: var(--purple-500); /* = #6469CD */
+
+  /* The axis furniture — gridlines and their labels. The revised canvas puts a
+   * 0/5/10 scale behind the bars, so "is this a big day" stops being a
+   * comparison against the tallest bar in the range. */
+  --chart-grid: var(--border-divider);
+  --chart-axis-label: var(--text-placeholder);
+
+  /* A median that is OVER its target. Amber, not red: a target is a target, and
+   * red on this screen is reserved for work nobody owns. */
+  --chart-over-target: var(--amber-500);
+  --chart-under-target: var(--brand);
+
+  /* An agent carrying more than the load threshold. The canvas says "red above
+   * 8" and colours the number and the bar, which is the one place on the screen
+   * where red is about a PERSON rather than a ticket — so it is the same red the
+   * tiles use, and the threshold is a prop rather than a token. */
+  --chart-team-over: var(--red-600);
+
   /* One ring intensity, everywhere. Two intensities in one interface is exactly
    * the inconsistency a token layer exists to remove. */
   --focus-ring: color-mix(in oklab, var(--action-primary-bg) 22%, transparent); /* (D) */

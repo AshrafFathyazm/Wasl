@@ -1,14 +1,14 @@
 # 020 — AI Usage and Audit
 
-**Phase:** Specification only · **Status:** Specification written; nothing implemented
+**Phase:** Delivered · **Status:** Both lanes built and verified 2026-09-07
 
 Be specific. "AI helped and I reviewed it" is worthless. Name the artifact, the suggestion,
 and what was wrong with it.
 
-The **Implementation** and **Testing** sections at the end of this file are headings with
-nothing under them. That is deliberate and it is the honest state: no code has been written,
-no test has been run, and Docker is not running on this machine. A pre-filled section would
-be a false statement (constitution II).
+The **Implementation** and **Testing** sections below were empty headings until 2026-09-07,
+with a note saying so — no code had been written and Docker was not running. That note was the
+honest state at the time and it is what this file replaces, rather than pretending the sections
+were always filled (constitution II).
 
 ---
 
@@ -125,15 +125,101 @@ Decisions made by a person, not by the model:
 
 ---
 
+
 ## Implementation
 
-*(Nothing implemented. `src/` does not exist. This section is filled in during
-`/speckit-implement`, from observed output.)*
+Written 2026-09-07, both lanes, against the two design canvases the product owner supplied
+that day. Every figure below is from a run; nothing is recalled.
+
+### What AI wrote, and what a person changed
+
+| Artifact | AI produced | Changed after review |
+|---|---|---|
+| `DashboardAggregatesQuery.cs` (7 SQL commands) | All of it | The class was **collapsed from `plan.md`'s seven types into one**, because `CLAUDE.md` sanctions two named query classes and seven would need five written reasons. The deviation is documented in the type itself, not just here |
+| `LocalDaySpine.cs` | All of it | The invalid-midnight walk was `AddHours(1)`; changed to quarter-hours, because not every zone's transition is 60 minutes (Lord Howe moves 30) and a hard-coded hour leaves the loop standing on an invalid instant |
+| `DashboardSnapshot.cs` DTOs | All of it | `localDate` was `DateOnly`; changed to `string`, so it cannot acquire a time component through a converter change made elsewhere |
+| `DashboardController.cs` | All of it | `range` bound as `string?` and was **wrong** — see Testing below |
+| `DashboardView.tsx` / `DashboardPage.tsx` | All of it | Split from one file into view + page after the preview was written, because five states cannot be reached from a wired screen |
+| `DashboardPreview.tsx` | All of it | `teamLoad: undefined` refused by `exactOptionalPropertyTypes`; the property is now deleted, which is also the truer model of the wire |
+| The four test suites | All of it | Four assertions were wrong and the runs corrected them; each is recorded in `tests.md` rather than quietly fixed |
+
+### Accepted, after verification against a source file
+
+| Claim | Verified against |
+|---|---|
+| Enums are stored as `nvarchar`, so raw SQL compares against `N'Closed'` | `TicketConfiguration.cs` lines 41–63 — `HasConversion<string>()` on Category, Priority, Channel, Status |
+| `TicketHistoryEntry` and `TicketComment` are not `IAuditableEntity`, so their timestamps are not stamped | Both types' declarations, and `WaslDbContext.Stamp()` |
+| `Ticket` IS `IAuditableEntity`, so a fixture's `CreatedAtUtc` is overwritten on insert | `WaslDbContext` lines 216–224 — the `Added` branch assigns unconditionally, unlike `Customer`'s which guards on `== default` |
+| `base.css` scopes its `!important` control fill to `:not([class])` and documents the escape hatch | `styles/base.css` lines 62–98, including the paragraph recording the four defects that produced the scoping |
+| `formatNumber` keeps Latin digits in Arabic | `lib/formatters.ts`, and `026`'s existing use of `{{formatted}}` beside `count` |
+| `OpenApiContractTests` names unbuilt contracted endpoints individually | `Contracts/OpenApiContractTests.cs` line 51, which is the row this feature deleted |
+
+### Rejected
+
+| Suggestion | Why |
+|---|---|
+| Compute the tiles' `vs prev` deltas from "created last period vs this period" | It is a different population from the one the tile shows. A plausible arrow pointing at the wrong thing is worse than no arrow — the rule `027` applied to its SLA regions |
+| Approximate `2 breaching` from tickets older than some threshold | That invents an SLA. `CLAUDE.md`: a countdown drawn from nothing is indistinguishable from a working one |
+| Serve the channel percentages from the server | A second number that can disagree with the first. The client already has the count and the total |
+| Add a `staleTime` so returning to a cached range issues no request | The endpoint is `Cache-Control: no-store` by decision; suppressing the revalidation is the caching this feature refused |
+| Abbreviate agent names to "Ashraf F." as the canvas shows | The canvas's sample data, not a rule. Abbreviating is lossy on user content and the first Arabic name would be shortened at the wrong end |
+| Use `[ResponseCache(NoStore = true)]` for the header | Its emitted directives depend on the interaction between `NoStore` and `Location`. The header is what the test asserts, so the code sets the header |
+
+### Hallucination risks caught during implementation
+
+| Risk | Caught by |
+|---|---|
+| `TicketComment.Create(ticketId, authorUserId, body, …)` — an `authorUserId` parameter that does not exist | Reading the factory: the signature is `(ticketId, body, createdAtUtc, isInternal, channel, authorCustomerId)` and the author is stamped by the context |
+| `AuditEntry.EntityName` — a column that does not exist (it is `EntityType`) | The compiler, on the first build of the test project |
+| `QueryCountProbe` being `IDisposable` and usable in a `using` | The compiler — CS1674. The house pattern reads `.Count` directly |
+| `factory.ManagerUserId` — a fixture property that does not exist | The compiler; the id is now read from `dbo.SupportUsers` by email |
 
 ---
 
 ## Testing
 
-*(No test has been run. Docker is not running on this machine — `docker info` reports the
-daemon unreachable — so the integration suite cannot execute. This section is filled in from
-real command output, with the commands themselves recorded, per constitution II.)*
+Every command and every figure is in [`tests.md`](tests.md). What belongs here is what the
+runs corrected, because a test that was written wrong and then fixed is the most useful thing
+this file can record.
+
+### Four assertions the AI wrote that were WRONG, and what each turned out to be
+
+| Assertion | What the run said | What it actually was |
+|---|---|---|
+| `?range=` (empty) is a `400` | `200` | **The test was wrong.** An empty parameter is an absent one — `015` ruled the same for `?status=`. Replaced with a test asserting the `200` and the reason |
+| A 22:00-local ticket proves AC-6 | Green **with the timezone offset deleted from the spine** | **The criterion's example cannot catch the criterion's defect** in a UTC+3 zone: 22:00 local is 19:00Z on the same date. Rewritten to 01:00 local, which is where local and UTC bucketing disagree |
+| Returning to a cached range issues no request | Three requests, not two | **The test was wrong.** React Query's default `staleTime` is 0, so a cached entry revalidates — correct for a `no-store` endpoint. Now asserts the three-request sequence and that the card never re-skeletons |
+| A 21-day-old ticket answered today moves the median | `firstReplySampleSize` unchanged | **The test was wrong.** The population is *tickets created in the range*, so a three-week-old ticket never enters a 14-day median. Changed to 13 days, and the reason is in the test |
+
+### One defect the runs found in the PRODUCT
+
+`?range=7d&range=30d` answered **`200` with a seven-day body** — first-wins, which the contract
+forbids. Found by measuring the running API, not by reading the code: MVC hands a repeated
+parameter's first value to a scalar parameter and discards the rest, so nothing downstream could
+see the second one. The parameter binds as `string[]?` now, with its own message key.
+
+### Negative controls
+
+Six, all run, all reported as observed in `tests.md` — including **one that did not fail** (the
+22:00 case above) and **one that fired for a reason other than the one it was written for** (the
+fixture's read-back guard, which found that `datetime2(3)` rounds rather than truncates).
+
+### Three defects that no test could have caught
+
+jsdom computes neither cascade nor flex layout, so 1148 green frontend tests said nothing about
+any of them. All three were found by opening the page in a browser and measuring computed style
+and bounding boxes — the range buttons losing their pressed state to `base.css` rule 17's
+`!important`, the chart's axis labels drawn inside the bars, and every progress track collapsing
+to a hairline in a flex column. Before-and-after figures are in `tests.md`.
+
+`dashboardGuards.test.ts` was written for the first of those, because a source scan is the only
+guard that can see it, and it was verified by deleting the real `className` and watching it name
+the offending tag.
+
+### Context provided
+
+Only files inside this repository, plus the two design canvases the product owner supplied in
+the session. **No secrets, no connection strings, no tokens, no customer data.** The Manager
+password needed to sign the browser session in was read from `dotnet user-secrets` into a file
+and never printed; the short-lived token it produced was written to a file under
+`src/wasl-web/public/` for the page to read and **deleted immediately afterwards**.

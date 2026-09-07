@@ -187,6 +187,46 @@ adding one later is a five-minute decision rather than a fresh investigation.
 The initial contract: [`contracts/dashboard-api.md`](contracts/dashboard-api.md), frozen
 2026-08-23. No prior contract exists, so nothing is broken.
 
+### 2026-09-07 — four additive fields, from the two design canvases
+
+The product owner supplied a dashboard canvas on 2026-09-07 and a revised one the same day.
+Both were ruled **design wins, exactly as drawn**. Four things on them could not be produced
+from the frozen body, and each is an **additive** field — no existing property changed type,
+name or meaning, so a client written against the frozen contract still parses the response.
+
+| Field | Canvas element | Why the client could not compute it |
+|---|---|---|
+| `attention.escalatedOverdueCount` | The escalated tile's *"2 older than 24h"* | `needsAttention` is capped at ten rows of two mixed kinds, so a client counting it answers a different question and is wrong from the eleventh escalation — silently |
+| `attention.needsAttentionTotal` | *"View all 15 →"* in the attention card's header | Same cap. A link reading *"View all 10"* beside ten rows says nothing |
+| `teamLoad[].escalatedOpenCount` | The agent card's *"3 escalated"* | Per-agent escalation is not derivable from a per-agent open count |
+| `medians.firstReplyTargetMinutes`, `medians.resolutionTargetMinutes` | *"target 2h"*, *"target 1d"*, and the amber over-target bar | Configuration (`Wasl:Targets:*`), defaulting to the canvas's own two values. **Not an SLA** — see below |
+
+**None of the four costs a command.** The first two are additional scalar subqueries inside
+the existing attention statement; the third is a conditional aggregate over `teamLoad`'s
+existing `LEFT JOIN`; the targets are configuration and touch no SQL. AC-17's *seven for a
+Manager, six for an Agent* is unchanged and is asserted.
+
+### Two canvas elements were NOT built, and they are raised rather than approximated
+
+| Element | Why not |
+|---|---|
+| `▲ 3 vs prev` on each tile | The tiles are point-in-time counts — *unassigned right now*. A delta needs the same count as it stood one period ago, and the product retains no daily snapshot; reconstructing it from `dbo.TicketHistory`'s `Assigned`/`Unassigned` rows is a feature of its own, with a table and a scheduled job. A delta computed from a **different** population — say, created-this-period against created-last — would be a plausible arrow pointing at the wrong thing |
+| `2 breaching` on the agent card | A breach needs a per-ticket SLA. This product has none: `027` left the SLA pill, the rail block and the breach banner unbuilt on purpose, and `CLAUDE.md` records the reason — a countdown drawn from nothing looks exactly like a working one. The escalated count beside it is real and ships |
+
+Both need a product-owner decision before they can be built, and neither blocks the screen.
+
+### Two behaviours the build settled, which the contract had left ambiguous
+
+- **`?range=` with an EMPTY value is treated as absent** and answers `200` with `14d`, rather
+  than `400`. `015` ruled the same question for its filters (`?status=` is no filter), and an
+  unset form field or a query-string builder that always emits its keys would otherwise turn a
+  working screen into an error the reader cannot act on. A test asserting `400` for it was
+  written, went red, and was corrected — the endpoint was right.
+- **`?range=` sent TWICE is `400`**, as the contract says — and it was **first-wins** until
+  the endpoint was measured against a running API. MVC hands a repeated parameter's first
+  value to a scalar and discards the rest, so `?range=7d&range=30d` answered `200` with a
+  seven-day body. The parameter binds as `string[]?` now and has its own message.
+
 Two things this contract settles that US-016 left open, recorded here because they are
 contract decisions rather than spec decisions:
 
