@@ -282,6 +282,55 @@
   font-weight: var(--weight-medium);
 }
 
+/* The number and its trend, on one baseline. `020b`. `align-items: baseline` so the
+   11.5px arrow sits on the 29px figure's baseline rather than being centred against
+   it, which is what the canvas draws. */
+.tileValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+/* ── The trend arrow — `020b` ────────────────────────────────────────────── */
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-weight: var(--weight-medium);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* THE GLYPH DOES NOT MIRROR IN ARABIC, and this is the rule that says so.
+ * `037` gave twenty directional glyphs one flip rule via `data-flip`, and the
+ * criterion for membership is whether the glyph points along the READING axis.
+ * ▲ and ▼ encode an increase and a decrease — vertical, and unaffected by the
+ * direction of the text. AC-11. */
+.trendGlyph {
+  font-size: 9px;
+  line-height: 1;
+}
+
+/* Amber, not red: a rise in unassigned work is a trend, and red on this screen is
+   reserved for the tile's own act-now footnote. Two reds of different meanings on
+   one tile is how the louder one stops being read. */
+.trendWorse {
+  color: var(--chart-over-target);
+}
+
+.trendBetter {
+  color: var(--state-success-text);
+}
+
+/* Unchanged is its own state and it is quiet — "▲ 0" would read as a rise that
+   happens to be nothing. */
+.trendFlat {
+  color: var(--text-muted);
+}
+
 .tileValue {
   font-size: 29px;
   font-weight: var(--weight-bold);

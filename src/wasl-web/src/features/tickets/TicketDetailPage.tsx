@@ -24,20 +24,17 @@ import {
   IconClose,
   IconComment,
   IconEdit,
-  IconEmail,
   IconEscalate,
   IconEyeOff,
-  IconLivechat,
   IconMerge,
   IconPriority,
-  IconSms,
   IconTicket,
-  IconWebform,
-  IconWhatsapp,
 } from '../../icons/icons';
 import { useToast } from '../../components/Toast/ToastHost';
+import { useAuth } from '../auth/AuthContext';
 import { ApiError } from '../../lib/api';
 import type {
+  CommunicationChannel,
   TicketResponse,
   TicketStatus,
   TimelineEntry,
@@ -46,7 +43,10 @@ import type {
 import { cx } from '../../lib/cx';
 import { tint } from '../../lib/tint';
 import { AssigneePanel } from './AssigneePanel';
+import { CHANNEL_ICON } from './channelIcons';
+import { TicketMessagesPanel } from './TicketMessagesPanel';
 import { AVATAR_TINT, Avatar } from './Avatar';
+import { EscalateTicketModal } from './EscalateTicketModal';
 import { formatDateTime, formatNumber, type Lang } from '../../lib/formatters';
 import { Mark } from '../../brand/Mark';
 
@@ -61,8 +61,11 @@ import {
   getSupportUsers,
   getTags,
   getTicket,
+  getSendableChannels,
+  getTicketInteractions,
   getTicketTimeline,
   listTickets,
+  sendTicketMessage,
   ticketKeys,
 } from './tickets.api';
 
@@ -156,14 +159,13 @@ const FEED_STEP = 4;
 const DOT = '\u00B7';
 
 /* One asset per channel, keyed on the WIRE value — the same map the list row
- * carries, and the canvas puts the glyph beside the rail's channel value too. */
-const CHANNEL_ICON = {
-  Email: IconEmail,
-  WhatsApp: IconWhatsapp,
-  LiveChat: IconLivechat,
-  Sms: IconSms,
-  WebForm: IconWebform,
-} as const;
+ * carries, and the canvas puts the glyph beside the rail's channel value too.
+ *
+ * MOVED to `./channelIcons.ts` by `021`, which became its second consumer: the
+ * Messages panel renders the same glyph for the same channel. One map, for the
+ * reason `037` found the hard way — `IconEye` was declared in two files with
+ * different geometry, so two screens drew different pictures under one import
+ * name, with a green build. */
 
 /* ==========================================================================
  * TINTS, AND WHY THEY ARE DERIVED RATHER THAN STORED
@@ -325,11 +327,28 @@ function withSlots(text: string, nodes: [React.ReactNode, React.ReactNode]) {
  * avatar of whoever did it — the canvas draws that ring in a different colour on
  * every row and this is what makes it the same colour as the same person.
  *
- * The canvas ALSO draws a priority-change row. There is no priority event in
- * `TicketHistoryEventType` and no change-priority endpoint, so that row cannot
- * arrive and nothing renders it.
+ * FIVE GLYPHS SINCE `016`, and this comment said there were four. It also said
+ * the canvas's priority-change row "cannot arrive and nothing renders it" —
+ * which was true when written and became false the moment `016` shipped, because
+ * BR-3.6's floor writes a `PriorityChanged` row whenever an escalation raises a
+ * `Low` or `Normal` ticket. There is STILL no change-priority endpoint, so
+ * escalation remains the only thing that produces one.
+ *
+ * It got its own glyph rather than falling through to the transition arrow: a
+ * priority row and a status row are different facts, and `037`'s icon document
+ * carries a priority glyph the header pill already uses. Corrected in place with
+ * the original reasoning kept, because "the canvas draws a row the product
+ * cannot produce" is the shape of several other regions on this screen.
  */
 function EventIcon({ type, actor }: { type: TimelineEntry['type']; actor: string }) {
+  if (type === 'PriorityChanged') {
+    return (
+      <span className={styles.eventIcon} aria-hidden="true">
+        <IconPriority size={13} />
+      </span>
+    );
+  }
+
   if (type === 'Escalated') {
     return (
       <span className={cx(styles.eventIcon, styles.eventIconDanger)} aria-hidden="true">
@@ -449,6 +468,17 @@ function HistoryRow({
       </span>
     ) : null;
 
+  /* `016`. The same shape for a PRIORITY value, and it reuses `.eventStatus`'s
+     chip geometry with `PRIORITY_CLASS`'s tones — the header pill already maps
+     the four priorities to their colours, so the chip in the feed and the pill
+     at the top of the page cannot disagree about what `High` looks like. */
+  const priorityNode = (value: string | null, tone: 'from' | 'to') =>
+    value ? (
+      <span className={cx(styles.eventStatus, PRIORITY_CLASS[value])} data-tone={tone}>
+        {t(`priority.${value}`)}
+      </span>
+    ) : null;
+
   const sentence = () => {
     switch (entry.type) {
       case 'Created':
@@ -479,6 +509,28 @@ function HistoryRow({
 
       case 'Escalated':
         return t('detail.event.escalated');
+
+      /* `016`. THIS CASE WAS MISSING AND THE ROW RENDERED BLANK — found by
+         escalating a Low ticket in the browser, not by a test.
+         ────────────────────────────────────────────────────────────────────────
+         Adding `PriorityChanged` to the server's `TimelineEntryType` was
+         MANDATORY: `Enum.Parse<TimelineEntryType>` throws on an unknown value,
+         so without it every later timeline read of an escalated ticket would
+         have been a `500`. That much had a test. What had no test is the client
+         reaching `default: return ''` — which produced an actor, a timestamp, an
+         arrow glyph and no sentence. Well-formed and useless, and it reads as a
+         rendering bug rather than a missing case.
+
+         Both values are shown through `statusNode`'s slot mechanism, the same
+         way `StatusChanged` shows its two: the row's `oldValue` and `newValue`
+         are `Normal` and `High` — enum values, never localized (BR-8) — so they
+         have to be translated at render or the Arabic screen reads
+         "غيّر الأولوية من Normal إلى High". */
+      case 'PriorityChanged':
+        return withSlots(t('detail.event.priorityChanged', { from: SLOT_A, to: SLOT_B }), [
+          priorityNode(entry.oldValue, 'from'),
+          priorityNode(entry.newValue, 'to'),
+        ]);
 
       case 'CommentAdded':
         /* Its `newValue` is the COMMENT'S id, and it was once printed raw. */
@@ -543,6 +595,21 @@ export default function TicketDetailPage() {
   const queryClient = useQueryClient();
   const toast = useToast();
 
+  /* `021`. THE FIRST TIME THIS SCREEN READS THE SIGNED-IN USER, and it is for
+     Q-A's rule: an Agent may send only on a ticket assigned to them or
+     unassigned. A mirror for UX — the server enforces it and audits the denial —
+     and `CLAUDE.md` permits exactly that: *"the frontend may mirror a rule for
+     UX but is never the authority."*
+     ────────────────────────────────────────────────────────────────────────────
+     WHY THIS IS MIRRORED WHILE `016`'s `canEscalate` IS NOT. BR-3.2 is a
+     role-only rule, so the server can answer it once with a boolean and the
+     client cannot recompute it without knowing the role — which is the whole
+     argument for `canEscalate`. Q-A's rule needs the ticket's assignee, which is
+     already on this response and already rendered three lines up the rail. A
+     `canSendMessage` field would be the server answering a question from data
+     the client is holding. */
+  const { user } = useAuth();
+
   const [draft, setDraft] = useState('');
   const [internal, setInternal] = useState(false);
   const [conflict, setConflict] = useState(false);
@@ -557,8 +624,28 @@ export default function TicketDetailPage() {
   const [pending, setPending] = useState<TicketStatus | null>(null);
   const [note, setNote] = useState('');
 
-  /* View state, all local: a reload should not restore a half-open popover. */
-  const [tab, setTab] = useState<TimelineFilter>('Comments');
+  /* `016`. Local for the same reason `pending` is: a step in one interaction,
+     and a reload should not reopen a half-typed escalation reason. */
+  const [escalating, setEscalating] = useState(false);
+
+  /* View state, all local: a reload should not restore a half-open popover.
+   *
+   * `021` WIDENED THIS BEYOND `TimelineFilter`, and the widening is the point.
+   * `Messages` is not a timeline filter — spec Q-C keeps interactions OUT of the
+   * timeline, because BR-5.7 defines it as comments ∪ history and a third source
+   * would change `013`'s frozen contract and its cursor-pagination boundary
+   * test. So the tab strip has three tabs over two data sources, and the
+   * timeline query runs for the first two only. */
+  const [tab, setTab] = useState<TimelineFilter | 'Messages'>('Comments');
+
+  /** Whether the current tab is one the timeline serves. */
+  const timelineTab: TimelineFilter | null = tab === 'Messages' ? null : tab;
+
+  /* `021`. The last refusal from a send, as a translated sentence. Inline beside
+     the composer and never a toast — `016`'s rule for the same reason: a refusal
+     is about the thing the reader is looking at, with their text still in the
+     field. */
+  const [sendFailure, setSendFailure] = useState<string | undefined>(undefined);
 
   /* HOW MANY ENTRIES ARE ON SCREEN, which is not how many were fetched.
    *
@@ -615,17 +702,55 @@ export default function TicketDetailPage() {
    * every scroll-back a cache entry nothing invalidates. `Comments` and
    * `History` genuinely are two lists, with two counts, so those are two keys. */
   const timelineQuery = useInfiniteQuery({
-    queryKey: ticketKeys.timeline(id, tab),
+    queryKey: ticketKeys.timeline(id, timelineTab ?? 'Comments'),
     queryFn: ({ pageParam, signal }) =>
       getTicketTimeline(
         id,
-        { limit: TIMELINE_LIMIT, type: tab, ...(pageParam ? { before: pageParam } : {}) },
+        {
+          limit: TIMELINE_LIMIT,
+          type: timelineTab ?? 'Comments',
+          ...(pageParam ? { before: pageParam } : {}),
+        },
         signal,
       ),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) =>
       last.hasMore ? (last.nextCursor ?? undefined) : undefined,
+
+    /* `021`. NOT disabled on the Messages tab, and that is deliberate: the tab
+       counts come back on either timeline request (`034`'s DTO carries both), so
+       switching to Messages must not blank the two counts beside it. The query
+       keeps its last key's data and nothing refetches. */
     enabled: id !== '',
+  });
+
+  /* ── `021`, the Messages tab's two reads ─────────────────────────────────────
+   *
+   * BOTH AT THE ROUTE LEVEL (ADR-011 §4), so the panel never introduces a
+   * waterfall by mounting and then fetching. Both are known when the route
+   * renders.
+   *
+   * `enabled` on the tab, unlike the timeline above: an interaction list is not
+   * a count anything else displays, so fetching it before the reader opens the
+   * tab would be a request for a screen they may never look at. */
+  const interactions = useQuery({
+    queryKey: ticketKeys.interactions(id),
+    queryFn: ({ signal }) => getTicketInteractions(id, { pageSize: 50 }, signal),
+    enabled: id !== '' && tab === 'Messages',
+  });
+
+  /* THE CHANNEL LIST, AND IT IS THE ONE THING HERE THAT IS NOT ABOUT THIS TICKET.
+   *
+   * A fact about the deployment: it changes only when the server is redeployed.
+   * So it is keyed outside `['tickets', …]` and given a long `staleTime` — the
+   * contract says a client may treat it as fresh for the page load and must not
+   * persist it beyond that, which is exactly what an in-memory cache with no
+   * storage layer does. */
+  const sendableChannels = useQuery({
+    queryKey: ticketKeys.sendableChannels(),
+    queryFn: ({ signal }) => getSendableChannels(signal),
+    enabled: tab === 'Messages',
+    staleTime: 5 * 60_000,
   });
 
   const supportUsers = useQuery({
@@ -848,6 +973,54 @@ export default function TicketDetailPage() {
     },
     /* Versioned, like the status write — see its note. */
     onError: (error) => onWriteError(error),
+  });
+
+  /* ── `021`. Sending a message ────────────────────────────────────────────────
+   *
+   * NO `expectedVersion` and no optimistic entry. Nothing on the ticket is
+   * mutated — an interaction is a new row — so there is nothing to be stale
+   * against, and the list is refetched rather than appended to because the
+   * server decides the delivery status.
+   *
+   * A `201` CARRYING `Failed` IS A SUCCESS HERE, and this is where that matters
+   * most. `onSuccess` runs for both outcomes; the toast says which. Treating a
+   * refused delivery as an error would put it in the inline banner and hide the
+   * row that was actually written — the opposite of the contract's whole design.
+   */
+  const sendMessage = useMutation({
+    mutationFn: ({ channel, body }: { channel: CommunicationChannel; body: string }) =>
+      sendTicketMessage(id, { channel, body }),
+    onSuccess: async (interaction) => {
+      setSendFailure(undefined);
+
+      await queryClient.invalidateQueries({ queryKey: ticketKeys.interactions(id) });
+
+      if (interaction.deliveryStatus === 'Failed') {
+        /* A WARNING TOAST, NOT AN ERROR ONE, and not the inline banner. The
+           message was recorded — the row exists with its reason on it — so the
+           feedback has to point at the list rather than at the composer, whose
+           field is now correctly empty. */
+        toast.show({
+          tone: 'warning',
+          title: t('messages.toast.failedTitle'),
+          body: t('messages.toast.failedBody'),
+          dedupeKey: `message-failed:${interaction.id}`,
+        });
+
+        return;
+      }
+
+      toast.show({
+        tone: 'success',
+        title: t('messages.toast.title'),
+        body: t('messages.toast.body', {
+          recipient: interaction.recipientAddress,
+          channel: t(`channel.${interaction.channel}`),
+        }),
+        dedupeKey: `message-sent:${interaction.id}`,
+      });
+    },
+    onError: (cause) => setSendFailure(refusalToSend(cause, t)),
   });
 
   const tagWrite = useMutation({
@@ -1126,19 +1299,62 @@ export default function TicketDetailPage() {
 
             {openPop === 'actions' ? (
               <div className={styles.actionMenu} role="menu">
-                {/* THE INERT THREE. `disabled` AND a title: a control that
+                {/* ESCALATE IS LIVE SINCE `016`, and it left the inert group —
+                    which is why that group is TWO rows now and not three.
+
+                    ITS ENABLED STATE IS `canEscalate` AND NOTHING ELSE. That
+                    field is computed by the server from the ticket's own state
+                    (BR-3.3, BR-3.4) and the caller's role (BR-3.2), exactly as
+                    `allowedTransitions` is (ADR-004). Reading `status`,
+                    `isEscalated` or a role here would be BR-3 re-implemented in
+                    TypeScript — correct until the day BR-3 changes, then wrong
+                    in one place nobody looks. `rowActions.guards` scans for it.
+
+                    DISABLED RATHER THAN ABSENT, and the title says which of the
+                    two reasons applies is not knowable from here — the server
+                    sends one boolean, deliberately, because the alternative is
+                    a reason string the client would have to branch on. */}
+                {ticket.canEscalate ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.actionItem}
+                    onClick={() => {
+                      setOpenPop(null);
+                      setEscalating(true);
+                    }}
+                  >
+                    <IconEscalate size={15} aria-hidden="true" />
+                    {t('detail.action.escalate')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={styles.actionItem}
+                    disabled
+                    title={
+                      ticket.isEscalated
+                        ? t('detail.escalateAlready')
+                        : t('detail.escalateNotAllowed')
+                    }
+                  >
+                    <IconEscalate size={15} aria-hidden="true" />
+                    {t('detail.action.escalate')}
+                  </button>
+                )}
+
+                {/* THE INERT TWO. `disabled` AND a title: a control that
                     refuses without saying why is the defect this whole screen was
                     rebuilt to avoid. `aria-disabled` is not used instead —
                     `disabled` is what keeps it out of the tab order, and there is
                     nothing here for a keyboard to reach. */}
                 {(
                   [
-                    /* Each of the three is the DOCUMENT's glyph for the act now.
-                       They were not: escalate drew a bare arrow, merge drew a
-                       ticket, and extendDue drew the escalate swoosh — three
-                       stand-ins from before the icon document existed, and the
-                       last one was actively wrong. */
-                    ['escalate', <IconEscalate size={15} aria-hidden="true" key="e" />],
+                    /* Each is the DOCUMENT's glyph for the act now. They were
+                       not: merge drew a ticket and extendDue drew the escalate
+                       swoosh — stand-ins from before the icon document existed,
+                       and the second was actively wrong. */
                     ['merge', <IconMerge size={15} aria-hidden="true" key="m" />],
                     ['extendDue', <IconCalendar size={15} aria-hidden="true" key="d" />],
                   ] as const
@@ -1195,8 +1411,12 @@ export default function TicketDetailPage() {
           </div>
 
           {ticket.isEscalated ? (
-            /* READ-ONLY too. `016` owns raising and clearing it; the flag is on
-               this response and nothing here can change it. */
+            /* STILL READ-ONLY, and now for a stronger reason than "no endpoint".
+               `016` built the raising — it is the menu item above — and it built
+               NO CLEARING, because BR-3.9 makes escalation one-way. So this pill
+               is a permanent marker rather than a toggle waiting for a feature,
+               and the comment that used to say escalation "is managed on another
+               screen" was true when written and is not now. */
             <span className={styles.escalatedPill}>
               <IconEscalate size={13} aria-hidden="true" />
               {t('detail.escalated')}
@@ -1418,6 +1638,58 @@ export default function TicketDetailPage() {
                 </div>
               ) : null}
             </div>
+
+            {/* ── the escalation callout ─────────────────────────────────────
+                `016`, and it is DATA rather than an action — which is the
+                distinction `027` drew and this is the first region on the rail
+                to be on the right side of it. Every value here is on the
+                response: `escalatedAtUtc`, `escalatedBy`, `escalationReason`.
+                Nothing is derived and nothing is drawn from an absent field, so
+                this is not the SLA block in another costume.
+
+                Rendered off `escalatedAtUtc` rather than `isEscalated`: the
+                three fields move together on the server (BR-3.7) and the
+                narrower check is what makes the non-null assertions below
+                honest rather than hopeful. `escalatedBy` can still be null in
+                one real case — a Manager whose row was deleted — so it falls
+                back to the label the assignee row uses for the same situation.
+
+                ICON PLUS LABEL, never colour alone. Same rule as the pill in
+                the header, and the same reason: the amber is not carrying the
+                meaning. */}
+            {ticket.escalatedAtUtc ? (
+              <>
+                <span className={styles.railRule} aria-hidden="true" />
+
+                <div className={cx(styles.railGroup, styles.escalatedBlock)}>
+                  <span className={styles.escalatedHead}>
+                    <IconEscalate size={14} aria-hidden="true" />
+                    {t('detail.escalated')}
+                  </span>
+
+                  <span className={styles.escalatedMeta}>
+                    {t('detail.escalatedNote', {
+                      when: formatDateTime(ticket.escalatedAtUtc, lang),
+                      name: ticket.escalatedBy?.fullName ?? t('detail.unassigned'),
+                    })}
+                  </span>
+
+                  {/* `dir="auto"` — the reason is the manager's own words and can
+                      be Arabic on an English screen, or the reverse. The same
+                      treatment the comment bodies and the subject get. */}
+                  {ticket.escalationReason ? (
+                    <>
+                      <span className={styles.escalatedReasonLabel}>
+                        {t('detail.escalatedReason')}
+                      </span>
+                      <span className={styles.escalatedReason} dir="auto">
+                        {ticket.escalationReason}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
 
             <span className={styles.railRule} aria-hidden="true" />
 
@@ -1679,11 +1951,26 @@ export default function TicketDetailPage() {
                 </div>
               )}
 
-              {/* ── the two tabs, each labelled with its own total ─────────── */}
+              {/* ── THREE tabs since `021`, over TWO data sources ─────────────
+                  `Messages` is not a timeline filter — spec Q-C keeps
+                  interactions out of the timeline, because BR-5.7 defines it as
+                  comments ∪ history and a third source would change `013`'s
+                  frozen contract and its cursor-pagination boundary test.
+
+                  So it has no count beside it. The two timeline counts arrive on
+                  either timeline request (`034`'s DTO carries both); an
+                  interaction count would need its own fetch before the reader
+                  opened the tab, and a tab labelled with a number nobody asked
+                  for is a request per page load for a screen most readers never
+                  visit. */}
               <div className={styles.tabs} role="tablist">
-                {(['Comments', 'History'] as const).map((which) => {
+                {(['Comments', 'History', 'Messages'] as const).map((which) => {
                   const count =
-                    which === 'Comments' ? counts?.commentCount : counts?.historyCount;
+                    which === 'Comments'
+                      ? counts?.commentCount
+                      : which === 'History'
+                        ? counts?.historyCount
+                        : undefined;
                   return (
                     <button
                       key={which}
@@ -1697,12 +1984,18 @@ export default function TicketDetailPage() {
                       }}
                     >
                       {t(
-                        which === 'Comments' ? 'detail.tabComments' : 'detail.tabHistory',
+                        which === 'Comments'
+                          ? 'detail.tabComments'
+                          : which === 'History'
+                            ? 'detail.tabHistory'
+                            : 'messages.tab',
                       )}
-                      {/* BOTH counts come back on EITHER request (`034` says so
-                          in the DTO), so the inactive tab is labelled without a
-                          second fetch. Absent until the first page lands —
-                          rendering a 0 that becomes 12 is worse than a gap. */}
+                      {/* BOTH TIMELINE counts come back on EITHER request (`034`
+                          says so in the DTO), so the inactive one is labelled
+                          without a second fetch. Absent until the first page
+                          lands — rendering a 0 that becomes 12 is worse than a
+                          gap — and absent on Messages entirely, which is `021`'s
+                          note above. */}
                       {count === undefined ? null : (
                         <span className={styles.tabCount}>
                           {formatNumber(count, lang)}
@@ -1711,11 +2004,49 @@ export default function TicketDetailPage() {
                     </button>
                   );
                 })}
-                <span className={styles.tabsNote}>{t('detail.newestFirst')}</span>
+
+                {/* «الأحدث أولاً» describes the TIMELINE's order and is wrong for
+                    Messages, which reads oldest-first — a conversation's order,
+                    and the same order BR-5.7 uses. Hidden rather than reworded:
+                    the Messages panel needs no note, because a conversation
+                    reading top to bottom is what a reader already expects. */}
+                {tab === 'Messages' ? null : (
+                  <span className={styles.tabsNote}>{t('detail.newestFirst')}</span>
+                )}
               </div>
 
-              {/* ── the feed ──────────────────────────────────────────────── */}
-              {timelineQuery.isPending ? (
+              {/* ── `021`, the Messages panel ─────────────────────────────────
+                  A SIBLING of the feed rather than an entry in it — spec Q-C.
+                  Returned early so the feed's four branches below stay about the
+                  timeline and nothing has to test for the third tab twice.
+
+                  `canSend` is Q-A's rule, and it is MIRRORED here rather than
+                  asked of the server: there is no `canSendMessage` field on the
+                  ticket. That is a deliberate difference from `016`'s
+                  `canEscalate` — BR-3.2 is a role-only rule the server can
+                  answer once, while Q-A's depends on the ticket's assignee,
+                  which the client already holds and is already rendering. The
+                  server still enforces it (a `403`, audited), and
+                  `refusalToSend` maps that answer; the mirror only decides
+                  whether to offer the composer, which `CLAUDE.md` explicitly
+                  permits: *"the frontend may mirror a rule for UX but is never
+                  the authority."* */}
+              {tab === 'Messages' ? (
+                <TicketMessagesPanel
+                  sendableChannels={sendableChannels.data?.sendableChannels ?? []}
+                  interactions={interactions.data?.items ?? []}
+                  loading={interactions.isPending || sendableChannels.isPending}
+                  canSend={
+                    user?.role === 'Manager' ||
+                    ticket.assignedToUserId === null ||
+                    ticket.assignedToUserId === user?.id
+                  }
+                  sending={sendMessage.isPending}
+                  failure={sendFailure}
+                  onSend={(channel, body) => sendMessage.mutate({ channel, body })}
+                  lang={lang}
+                />
+              ) : timelineQuery.isPending ? (
                 <FeedSkeleton />
               ) : timelineQuery.isError ? (
                 <div className={styles.pane}>
@@ -1805,6 +2136,25 @@ export default function TicketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* `016`. Mounted OUTSIDE the layout and only while open — the modal
+          primitive carries its own portal, scrim and focus trap, and an
+          always-mounted dialog with `open={false}` would keep a stale
+          `expectedVersion` alive across a refetch.
+
+          `expectedVersion` and `priority` are handed over from the ticket this
+          screen already holds. Not refetched inside the dialog: a second fetch
+          would be a second answer to "which version am I editing", and the one
+          the reader was looking at is the one the concurrency check is about. */}
+      {escalating ? (
+        <EscalateTicketModal
+          ticketId={ticket.id}
+          ticketNumber={ticket.ticketNumber}
+          expectedVersion={ticket.version}
+          priority={ticket.priority}
+          onClose={() => setEscalating(false)}
+        />
+      ) : null}
     </main>
   );
 }
@@ -1826,3 +2176,48 @@ export default function TicketDetailPage() {
  * What it does NOT draw is unchanged and the reasoning moved with it: the
  * department (`SupportUser` is `(id, fullName, role)`) and any hint of who BR-2
  * would let take this ticket. */
+
+/**
+ * What the server said about a refused send, in words. `021`.
+ *
+ * **Exported for its own test.** Five of the seven branches are cases the
+ * composer's own validation cannot prevent, so each has to be reachable and
+ * each has to say something a reader can act on.
+ *
+ * **Branching on the last path segment, never on the full URI** — `002` AC-25,
+ * and it is what makes `ProblemTypes.TypeBase` safe to change.
+ *
+ * **An unfamiliar `409` falls back to "reload", not to "something went wrong".**
+ * Every conflict in this product is a fact about the request's relationship to
+ * something else, and reloading is true for all of them — while a generic error
+ * tells the reader nothing they can do.
+ */
+export function refusalToSend(
+  cause: unknown,
+  t: (key: string) => string,
+): string {
+  if (!(cause instanceof ApiError)) return t('messages.error.unknown');
+
+  if (cause.status === 409) {
+    const type = cause.problem.type ?? '';
+    if (type.endsWith('ticket-closed')) return t('messages.error.closed');
+    if (type.endsWith('no-contact-for-channel')) return t('messages.error.noContact');
+    return t('messages.error.unknown');
+  }
+
+  /* Q-A. An Agent on somebody else's ticket. The composer normally says so
+     before the request — `canSend` is passed in — so reaching this means the
+     assignment changed under the reader, and reloading is the honest advice. */
+  if (cause.status === 403) return t('messages.error.forbidden');
+
+  if (cause.status === 404) return t('messages.error.notFound');
+
+  /* `036` §3.3 — a deadlock victim, and the one failure a retry should fix. */
+  if (cause.status === 503) return t('messages.error.transient');
+
+  /* Reachable despite the composer's own checks: a channel that stopped being
+     registered between the page load and the submit answers `400` here. */
+  if (cause.status === 400) return t('messages.error.invalid');
+
+  return t('messages.error.unknown');
+}

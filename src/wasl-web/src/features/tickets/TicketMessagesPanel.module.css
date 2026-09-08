@@ -1,0 +1,212 @@
+/* ============================================================================
+ * TicketMessagesPanel — `021`
+ * ============================================================================
+ * Semantic tokens only, and CSS logical properties throughout — `margin-inline`,
+ * `padding-inline`, `border-inline-start` — never `left`/`right`. AC-23 walks
+ * this panel in Arabic, and a physical property is the thing that survives the
+ * walk looking almost right.
+ *
+ * ONE PHYSICAL EXCEPTION AND IT IS NOT ONE: `.recipient` carries `dir="ltr"` in
+ * the markup rather than a CSS rule, because an email address and an E.164
+ * number are left-to-right *content*, not left-to-right *layout*. Direction of
+ * content belongs on the element.
+ * ========================================================================= */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ---- the record ----------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The leading edge marks each message as outbound. `border-inline-start`, so it
+   moves to the right in Arabic without a second rule. */
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-3);
+  background-color: var(--surface-subtle);
+  border: 1px solid var(--border-subtle);
+  border-inline-start: 3px solid var(--brand);
+  border-radius: var(--radius-sm);
+}
+
+.itemHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+}
+
+/* `overflow-wrap` rather than an ellipsis: the address is the one field a reader
+   checks character by character before believing a message went to the right
+   person, and a truncated one cannot be checked. */
+.recipient {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.time {
+  margin-inline-start: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* `pre-wrap` keeps the agent's own line breaks, the way the timeline renders a
+   comment. Up to 4000 characters, so it is not the thing to clamp. */
+.body {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.failure {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--state-danger-text);
+}
+
+/* ---- the delivery badge --------------------------------------------------- */
+
+/* Icon plus label, never colour alone — so the state survives a monochrome
+   screen and a reader who cannot separate green from red. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 7px;
+  block-size: 20px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+}
+
+.badgeAccepted {
+  background-color: var(--state-success-bg);
+  color: var(--state-success-text);
+}
+
+.badgeFailed {
+  background-color: var(--state-danger-bg);
+  color: var(--state-danger-text);
+}
+
+/* ---- empty and loading ---------------------------------------------------- */
+
+.state {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  background-color: var(--surface-subtle);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+/* NOTE WHAT THIS DOES NOT SAY. It does not say "no replies yet" or "waiting for
+   the customer" — US-013 is deferred, so a customer cannot reply through this
+   system at all, and implying a conversation would be a fact the product does
+   not have. `027`'s rule about unbacked data, applied to a sentence. */
+.emptyBody {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ---- the composer -------------------------------------------------------- */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--surface-default);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.composerFoot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sendHint {
+  flex: 1 1 auto;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.noticeInfo {
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+}
+
+/* The server's refusal, INLINE beside the composer and never a toast (AC-16's
+   rule, applied here for the same reason): it is about the thing the reader is
+   looking at, with the text they typed still in the field. */
+.noticeError {
+  background-color: var(--state-danger-bg);
+  border: 1px solid var(--state-danger-text);
+  color: var(--state-danger-text);
+}
+
+.noticeIcon {
+  flex: none;
+  margin-block-start: 1px;
+}

@@ -38,11 +38,18 @@ public sealed class ValidatorMessageKeyTests
     private static readonly Regex MessageKey =
         new(@"^(Validation|Error)\.[A-Za-z0-9]+(\.[A-Za-z0-9]+)+$", RegexOptions.Compiled);
 
-    private static IEnumerable<IValidator> Validators() =>
-        Application.GetTypes()
-            .Where(type => type is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false })
-            .Where(typeof(IValidator).IsAssignableFrom)
-            .Select(type => (IValidator)Activator.CreateInstance(type)!);
+    /// <summary>
+    /// Every concrete validator, built through <see cref="ValidatorFactory"/>.
+    /// </summary>
+    /// <remarks>
+    /// This was <c>Activator.CreateInstance(type)</c> until 2026-09-08, which worked while every
+    /// validator in the codebase was parameterless and threw
+    /// <c>MissingMethodException</c> the moment `021`'s took a <c>CommunicationProviderRegistry</c>.
+    /// The factory supplies constructor arguments and — importantly — <b>throws</b> rather than
+    /// skipping a validator it cannot build, so a validator can never fall silently outside this
+    /// guard.
+    /// </remarks>
+    private static IEnumerable<IValidator> Validators() => ValidatorFactory.All(Application);
 
     /// <summary>AC-8.</summary>
     [Fact]

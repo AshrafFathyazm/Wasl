@@ -1,6 +1,6 @@
 # 021 — Task Breakdown
 
-**Phase:** 5 · **Role:** Story Planner · **Skill:** `speckit-tasks`
+**Phase:** 5 · **Role:** Story Planner · **Skill:** `speckit-tasks` · **Layering corrected to ADR-002 on 2026-09-08** — `research.md` R-7
 
 Every task has one owner, one verification, and something it serves. A task that cannot
 be verified on its own is too big and is split.
@@ -26,7 +26,7 @@ becomes untestable. Everything else hardens it.
 |---|---|---|---|---|---|---|
 | BE-021-01 | `Interaction`, `InteractionDirection`, `InteractionDeliveryStatus` in `Wasl.Domain/Communications/`; `Interaction.Outbound(...)` enforces the body, recipient, and accepted/failed pairing | — | `dotnet test tests/Wasl.Domain.Tests` — TEST-021-01 red first, then green | AC-7, `data-model.md` | `voltagent-lang:dotnet-core-expert` | `speckit-implement` + `superpowers:test-driven-development` |
 | BE-021-02 | `ICommunicationProvider`, `OutboundMessage`, `SendResult` under `Features/Communications/Providers/`. `SendAsync` takes a `CancellationToken` | BE-021-01 | `dotnet build`; and the `001` architecture test still passes, proving the interface did **not** land in `Wasl.Domain` | AC-24, ADR-010 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
-| BE-021-03 | `MockCommunicationProvider` (one class, one channel per instance), `MockProviderOptions`, `SentMessageBuffer` — bounded, thread-safe, concrete, no interface | BE-021-02 | TEST-021-05 and TEST-021-12; plus `grep -rn "HttpClient\|SmtpClient\|Socket" src/Wasl.Api/Features/Communications/` returns nothing | AC-2, AC-17, AC-18 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` + `superpowers:test-driven-development` |
+| BE-021-03 | `MockCommunicationProvider` (one class, one channel per instance), `MockProviderOptions`, `SentMessageBuffer` — bounded, thread-safe, concrete, no interface | BE-021-02 | TEST-021-05 and TEST-021-12; plus `grep -rn "HttpClient\|SmtpClient\|Socket" src/Wasl.Infrastructure/Communications/ src/Wasl.Application/Features/Communications/` returns nothing | AC-2, AC-17, AC-18 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` + `superpowers:test-driven-development` |
 | BE-021-04 | `InteractionConfiguration`, `DbSet<Interaction>`, migration `AddInteractions` applied to a clean database | BE-021-01 | `dotnet ef database update` twice (second applies nothing), then the four queries in `data-model.md` § Verification run by hand | AC-9, AC-10 | `voltagent-lang:sql-pro` | — |
 | BE-021-05 | `CommunicationProviderRegistry` + `AddCommunicationProviders()`; resolved eagerly in `Program.cs` so a duplicate channel fails **startup** | BE-021-03 | TEST-021-02; and manually: register the mock twice for `Email`, watch the app refuse to start with both type names in the message | AC-3, AC-4, AC-5 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` |
 | BE-021-06 | `SendMessage` slice — endpoint, command, handler, validator, response — with the guard order in `plan.md` (404 → 403 → closed → recipient → send) | BE-021-04, BE-021-05 | TEST-021-04, TEST-021-06, TEST-021-07 | AC-1, AC-7, AC-11, AC-12, AC-13, AC-15 | `voltagent-lang:dotnet-core-expert` | `speckit-implement` + `superpowers:test-driven-development` |

@@ -11,6 +11,30 @@ public enum TicketHistoryEventType
     Unassigned,
     Escalated,
     CommentAdded,
+
+    /// <summary>
+    /// The priority moved. Written by `016` only when escalation actually raised it (BR-3.8).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Added by `016`, and it needed no migration</b> — <c>EventType</c> is stored as
+    /// <c>nvarchar(30)</c> through <c>HasConversion&lt;string&gt;()</c>, and this name is
+    /// fifteen characters. Checked before it was added rather than after.
+    /// </para>
+    /// <para>
+    /// <b>Appended, never inserted.</b> The column stores the NAME, so the ordinal is not
+    /// persisted and reordering would be harmless here — but `CLAUDE.md`'s rule about a reordered
+    /// enum rewriting the meaning of every row applies to any enum somebody later stores as an
+    /// int, and the habit is the point.
+    /// </para>
+    /// <para>
+    /// <b>`027` deliberately does not RENDER this row</b> — `CLAUDE.md` lists the priority-change
+    /// history row among the regions that screen left absent. That is a rendering decision; the
+    /// row still has to exist, because BR-3.8 requires it and a timeline that cannot parse its
+    /// own event type would throw rather than skip.
+    /// </para>
+    /// </remarks>
+    PriorityChanged,
 }
 
 /// <summary>
@@ -215,6 +239,68 @@ public sealed class TicketHistoryEntry
             EventType = TicketHistoryEventType.CommentAdded,
             OldValue = null,
             NewValue = commentId.ToString(),
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
+
+    /// <summary>
+    /// The row for an escalation. `016`, BR-3.8.
+    /// </summary>
+    /// <remarks>
+    /// <b>No <c>OldValue</c> and no <c>NewValue</c>, and that is the contract rather than an
+    /// omission.</b> BR-3.9 makes escalation one-way, so there is no from/to to record — the event
+    /// type IS the fact. The <c>Note</c> carries the trimmed reason, which is the only thing about
+    /// this event that varies.
+    /// </remarks>
+    /// <param name="reason">
+    /// Already trimmed by the caller. Stored verbatim and never translated (BR-8.10) — it may be
+    /// Arabic on an English screen.
+    /// </param>
+    public static TicketHistoryEntry Escalated(
+        Guid ticketId,
+        string reason,
+        DateTime performedAtUtc,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.Escalated,
+            OldValue = null,
+            NewValue = null,
+            Note = reason,
+            PerformedByUserId = performedByUserId,
+            PerformedAtUtc = performedAtUtc,
+        };
+
+    /// <summary>
+    /// The row for a priority move. `016`, BR-3.8.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Written only when the priority ACTUALLY changed.</b> Escalation applies a FLOOR of
+    /// <c>High</c>, so a ticket already at <c>High</c> or <c>Critical</c> keeps its priority and
+    /// gets no row — a row saying <c>Critical → Critical</c> would be a timeline entry recording
+    /// that nothing happened.
+    /// </para>
+    /// <para>
+    /// The values are the canonical untranslated enum names (BR-8.7), so a row written under
+    /// <c>ar</c> stays readable under <c>en</c>.
+    /// </para>
+    /// </remarks>
+    public static TicketHistoryEntry PriorityChanged(
+        Guid ticketId,
+        TicketPriority from,
+        TicketPriority to,
+        DateTime performedAtUtc,
+        Guid? performedByUserId = null) =>
+        new()
+        {
+            Id = Guid.CreateVersion7(),
+            TicketId = ticketId,
+            EventType = TicketHistoryEventType.PriorityChanged,
+            OldValue = from.ToString(),
+            NewValue = to.ToString(),
             PerformedByUserId = performedByUserId,
             PerformedAtUtc = performedAtUtc,
         };

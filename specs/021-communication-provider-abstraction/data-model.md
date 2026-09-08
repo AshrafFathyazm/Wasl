@@ -83,7 +83,8 @@ tables finds a reason rather than an inconsistency.
 
 | Index | Justified by |
 |---|---|
-| `IX_Interactions_Ticket_Time` on `(TicketId, CreatedAtUtc)` | `TicketInteractionsQuery` — the only query that reads this table (`GET /api/tickets/{ticketId}/interactions`, AC-19). Same shape and same reason as `IX_TicketComments_Ticket_Time` |
+| `IX_Interactions_Ticket_Time` on `(TicketId, CreatedAtUtc)` | The only query that reads this table (`GET /api/tickets/{ticketId}/interactions`, AC-19). Same shape and same reason as `IX_TicketComments_Ticket_Time` |
+| `IX_Interactions_SentByUserId` | **EF Core generated it, and it is kept.** Added to this table by `AddInteractions` on 2026-09-08 — EF indexes every foreign key by default, and this document named only one index, so the migration created one more than was promised. Kept rather than suppressed **because the precedent is identical**: `AddTicketComments` created `IX_TicketComments_AuthorUserId` the same way and it was accepted. Nothing queries interactions by sender today, so its justification is consistency with the rest of the schema plus the parent-delete check the FK will perform — not a reader. **Suppressing it would be the deviation**, and it would need its own note |
 
 Not filtered, so `filter_definition` is expected to be `NULL` here — worth stating,
 because `001` and `007` both verify the opposite for their filtered indexes and the

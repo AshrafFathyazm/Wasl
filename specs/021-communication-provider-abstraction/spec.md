@@ -1,6 +1,34 @@
 # 021 — Communication Provider Abstraction
 
-**Phase:** 5 · Release 2 · **Story:** US-012 · **Status:** Specified, awaiting review
+**Phase:** 5 · Release 2 · **Story:** US-012 · **Status:** **Approved 2026-09-08, with
+four corrections made before any code**
+
+## What was corrected at the approval gate
+
+The spec was written 2026-08-24 and read on 2026-09-08. Four of its premises had gone
+stale or were wrong when written; all four are corrected in place with the original
+reasoning kept beside them, and none of them changes the contract, an AC's intent, or the
+client.
+
+| # | Premise | Reality | Where |
+|---|---|---|---|
+| 1 | The structure targets **ADR-010** — minimal APIs, vertical slices, two projects — and `checklists/requirements.md` ticked three rows against it | **ADR-010 was evaluated and rejected.** ADR-002's four-project Clean stands. The provider seam moves to `Wasl.Application/Common/Abstractions` + `Wasl.Infrastructure/Communications`; R-7's *argument* survives unchanged, only its destination moves | `research.md` R-7, `checklists/requirements.md`, AC-17, `tasks.md` |
+| 2 | Q-B: *"`013` is unwritten; whichever lands first owns `errors/ticket-closed`"* | `013` shipped 2026-08-28 and the type is registered. `013` owns it, `021` matches — exactly as the working assumption predicted. **Nothing to decide** | Q-B |
+| 3 | AC-17 searches `src/Wasl.Api/Features/Communications/` | A directory that would never exist under ADR-002 — so the AC would have passed over an empty set, which is the vacuous-guard failure `001` recorded | AC-17 |
+| 4 | AC-12 needs `errors/no-contact-for-channel` | Zero matches in `src/`. It is a new `ProblemTypes` row, two catalogue keys, **and now a row in `documentation/api/error-handling.md`'s table**, which `016` put under test in both directions | `plan.md` |
+
+**Two product rulings were taken at the same gate**, both confirming the working
+assumption already in this file: **Q-A** — sending is assignment-sensitive (Manager any
+ticket, Agent own-or-unassigned), and **Q-C** — an interaction does **not** join the
+timeline; the Messages panel is separate.
+
+**Found while checking, and fixed outside this feature's scope:** `021` held two entries
+in `OpenApiContractTests.NotBuiltYet` — `POST /api/communications/inbound` and
+`GET /api/tickets/{id}/interactions/{interactionId}` — for endpoints **no contract
+declares** and which this spec explicitly refuses to build. The guard written to catch
+that then found two more of the same kind (`GET /api/locales`, from `005`'s *out of
+scope* table, and `GET /api/tickets/{id}/comments/{commentId}`, which `013`'s contract
+says *"there will not be one"* of). All four deleted.
 
 ## Understanding
 
@@ -181,7 +209,7 @@ reshape the table.
 | # | Question | Working assumption |
 |---|---|---|
 | Q-A | BR-6's authorization matrix has no row for "send a message to a customer". Who may? | **Mirror the status rows, not the comment row**: a Manager on any ticket; an Agent on a ticket assigned to themselves or unassigned. An outbound message is the only action in this system a *customer* sees, so it is treated as assignment-sensitive rather than as an internal note. If the product owner prefers the comment rule (any support user, any ticket), the change is one guard and one test — AC-13 flips from `403` to `201` |
-| Q-B | Is `errors/ticket-closed` the right `type`, and does `013` use the same one for a comment on a closed ticket (BR-5.2)? | Use `errors/ticket-closed`. `013` is unwritten; whichever lands first owns the name and the other matches it. Recorded as a **Contract changes** obligation in `plan.md` so the two cannot diverge silently |
+| Q-B | Is `errors/ticket-closed` the right `type`, and does `013` use the same one for a comment on a closed ticket (BR-5.2)? | **CLOSED 2026-09-08 by the code, not by a ruling.** `013` shipped 2026-08-28 and `errors/ticket-closed` is a registered row in `ProblemTypes` with `DomainErrorCodes.TicketClosed`. `013` landed first, so `013` owns the name and `021` matches it — which is what the working assumption said would happen. Nothing to decide and no contract change needed |
 | Q-C | Should an interaction appear in the ticket timeline (BR-5.7)? | **No, not in this feature.** BR-5.7 defines the timeline as the union of comments and history rows; adding a third source changes `013`'s contract and its pagination boundary test. The Messages panel is separate. If the product owner wants one merged conversation view, it is a `013` change, not a schema change |
 | Q-D | Should the failure mode be reachable in a demo, so a reviewer can see the `Failed` state? | Configuration only (`Communications:Mock:FailChannels`), never a request field. A demo sets the key in `appsettings.Development.json`. A body token or header that triggers a failure is a backdoor in production code, and AC-6 asserts none exists |
 | Q-E | Does `Interaction` need `DENY UPDATE` on the application role, the way `AuditLog` does (BR-9.5)? | **No.** `DeliveryStatus` is precisely the field a real provider's asynchronous callback would later update, so making the row immutable now is a grant that has to be revoked later. Append-only here is a property of the code path, and it is stated rather than enforced — `data-model.md` |
@@ -206,7 +234,7 @@ reshape the table.
 | AC-14 | An unauthenticated request returns `401` and never reaches the registry |
 | AC-15 | An unknown `ticketId` returns `404`, not `400` and not `409` |
 | AC-16 | `SendMessageCommand` implements `IAuditableCommand`; one audit row `Communication.MessageSent` is written **in the same transaction** as the interaction (BR-9.1, BR-9.3). Its `Changes` carries channel, recipient, delivery status, and interaction id, and **not the message body** (BR-9.7, by the same reasoning that excludes a comment body) |
-| AC-17 | No credential and no network: `src/Wasl.Api/Features/Communications/` contains no `HttpClient`, `Socket`, `SmtpClient`, or `WebSocket` usage, and no configuration key naming a secret, key, token, or account. Verified by search **and** by the security review |
+| AC-17 | No credential and no network: **`src/Wasl.Infrastructure/Communications/`** and `src/Wasl.Application/Features/Communications/` contain no `HttpClient`, `Socket`, `SmtpClient`, or `WebSocket` usage, and no configuration key naming a secret, key, token, or account. Verified by search **and** by the security review. **The path was `src/Wasl.Api/Features/Communications/` and was corrected 2026-09-08** — that directory targets ADR-010, which was rejected, so the search would have been over a folder that never exists and the AC would have passed vacuously. See `research.md` R-7 |
 | AC-18 | The mock honours `CancellationToken`: a pre-cancelled token produces `OperationCanceledException`, no row is written, and the cancellation is not swallowed into a `Failed` delivery status |
 | AC-19 | `GET /api/tickets/{ticketId}/interactions` is paginated per NFR-3 and BR-7.2 — default page size 20, a request above 100 clamped to 100, not rejected — and is ordered `CreatedAtUtc` ascending, the reading order BR-5.7 uses for a conversation |
 | AC-20 | A ticket with no interactions returns `200` with an empty `items` array, never `404` (BR-7.6) |

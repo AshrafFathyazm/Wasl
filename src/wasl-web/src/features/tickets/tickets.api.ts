@@ -5,6 +5,10 @@ import type {
   ChangeTicketStatusRequest,
   CreateTicketRequest,
   CustomerListItem,
+  EscalateTicketRequest,
+  InteractionResponse,
+  SendMessageRequest,
+  SendableChannelsResponse,
   PagedResult,
   SupportUser,
   TicketCommentResponse,
@@ -284,6 +288,27 @@ export const ticketKeys = {
    * `Comments` and `History` are different lists, and the counts differ. */
   timeline: (id: string, filter?: TimelineFilter) =>
     ['tickets', 'timeline', id, filter ?? 'all'] as const,
+
+  /** `021`. One ticket's outbound messages.
+   *
+   *  **Under `['tickets', …]`**, unlike `tags` and `supportUsers`: interactions
+   *  ARE part of a ticket, so invalidating the ticket should refetch them —
+   *  sending a message changes this list and nothing else about the ticket.
+   *
+   *  **NOT `timeline`.** Spec Q-C keeps interactions out of the timeline: BR-5.7
+   *  defines that as comments ∪ history, and a third source would change `013`'s
+   *  frozen contract and its cursor-pagination boundary test. Two keys, two
+   *  lists, two endpoints. */
+  interactions: (id: string, page?: number) =>
+    ['tickets', 'interactions', id, page ?? 1] as const,
+
+  /** `021`. What the deployment can send on.
+   *
+   *  **NOT under `['tickets', …]`**, for the reason `tags` is not: it is a fact
+   *  about the deployment rather than about a ticket, and nesting it there means
+   *  invalidating a ticket refetches something that changes only when the server
+   *  is redeployed. */
+  sendableChannels: () => ['communications', 'channels'] as const,
 };
 
 /* ---- `027`, the detail screen ---------------------------------------------
@@ -383,6 +408,108 @@ export function changeTicketAssignee(
   return apiFetch<TicketResponse>(`/api/tickets/${ticketId}/assignee`, {
     method: 'PUT',
     body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * `POST /api/tickets/{id}/escalate` — `016`. Returns the updated ticket.
+ *
+ * **This fetcher did not exist until `016`, and its absence was a test.**
+ * `027` drew the escalate row inert and `TicketDetailPage.test.tsx` asserted
+ * this module exported nothing matching `/escalate` — because a `disabled`
+ * attribute is one edit away from deletion while a function that does not exist
+ * cannot be called by one. That guard now names `merge` and `extendDue` only,
+ * which are still unbuilt; loosening it to a blanket exemption would have given
+ * up the mechanism for the two that still need it.
+ *
+ * **ONE-WAY (BR-3.9).** There is no counterpart — no `DELETE`, no
+ * `isEscalated: false`, no de-escalate. A ticket that was escalated stays
+ * escalated, and the screen must not offer an undo it cannot perform.
+ *
+ * The caller reads `version` and invalidates, like every other write here
+ * (`026` §5): a screen may not paint a ticket from a write response.
+ */
+export function escalateTicket(
+  ticketId: string,
+  body: EscalateTicketRequest,
+  signal?: AbortSignal,
+): Promise<TicketResponse> {
+  return apiFetch<TicketResponse>(`/api/tickets/${ticketId}/escalate`, {
+    method: 'POST',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/* ============================================================================
+ * `021` — communications. Three fetchers.
+ * ============================================================================ */
+
+/**
+ * `POST /api/tickets/{ticketId}/messages` — `021`. Returns the interaction.
+ *
+ * **A `201` carrying `deliveryStatus: "Failed"` is a SUCCESS at this layer**, and
+ * the caller must branch on the field rather than only on the status code. The
+ * request succeeded in recording an attempt and the attempt is the resource; a
+ * `5xx` would have rolled the record back and left the agent nothing to show.
+ *
+ * **NOT idempotent, deliberately** — unlike `036`'s `createTicket`, there is no
+ * `Idempotency-Key`. Two identical submissions are two messages. Deduplicating
+ * an outbound message means guessing whether the user meant to send it twice,
+ * and a swallowed second message is worse than a duplicate: the customer sees
+ * neither and the agent believes they sent it. The composer disables submit
+ * while the request is in flight, which is the honest mitigation.
+ */
+export function sendTicketMessage(
+  ticketId: string,
+  body: SendMessageRequest,
+  signal?: AbortSignal,
+): Promise<InteractionResponse> {
+  return apiFetch<InteractionResponse>(`/api/tickets/${ticketId}/messages`, {
+    method: 'POST',
+    body,
+    ...(signal ? { signal } : {}),
+  });
+}
+
+/**
+ * `GET /api/tickets/{ticketId}/interactions` — `021`. Oldest first.
+ *
+ * **The page envelope, not `013`'s cursor**, and `CLAUDE.md` records why both
+ * shapes exist: a list grows at the end the reader is not looking at, a feed
+ * grows at the end they are. A ticket's message history is short and read from
+ * the top, so page 2 stays page 2.
+ */
+export function getTicketInteractions(
+  ticketId: string,
+  params: { page?: number; pageSize?: number } = {},
+  signal?: AbortSignal,
+): Promise<PagedResult<InteractionResponse>> {
+  return apiFetch<PagedResult<InteractionResponse>>(
+    `/api/tickets/${ticketId}/interactions`,
+    {
+      query: { page: params.page, pageSize: params.pageSize },
+      ...(signal ? { signal } : {}),
+    },
+  );
+}
+
+/**
+ * `GET /api/communications/channels` — `021`, AC-22.
+ *
+ * **The composer's channel options come from HERE and never from a constant.**
+ * The sendable set is a projection of the server's provider registry, so a
+ * client-side list would be the same fact stated twice — and the copy that
+ * drifts is the one offering a channel the server refuses with a `400`.
+ *
+ * The contract says the value changes only when the deployment changes: treat it
+ * as fresh for the page load, and do not persist it beyond that.
+ */
+export function getSendableChannels(
+  signal?: AbortSignal,
+): Promise<SendableChannelsResponse> {
+  return apiFetch<SendableChannelsResponse>('/api/communications/channels', {
     ...(signal ? { signal } : {}),
   });
 }

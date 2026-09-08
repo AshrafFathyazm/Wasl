@@ -140,6 +140,81 @@ public sealed class ProblemRegistryTests
     }
 
     /// <summary>
+    /// `016`. Every registered <b>type</b> has a row in the documented table, and vice versa.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The status test above has existed since `002` and this one did not, and the gap cost
+    /// eight rows.</b> `016` added <c>ticket-not-escalatable</c> — a `409`, a status already in
+    /// the documented list — so nothing went red, and going to add the row by hand revealed that
+    /// <c>documentation/api/error-handling.md</c> listed ELEVEN of the registry's EIGHTEEN types.
+    /// <c>same-status-transition</c>, <c>assignee-required</c>, <c>assignee-unchanged</c>,
+    /// <c>tag-unchanged</c>, <c>assignee-not-found</c>, <c>rate-limited</c>,
+    /// <c>method-not-allowed</c>, <c>unsupported-media-type</c>, <c>transient-conflict</c> and
+    /// <c>idempotency-conflict</c> were all absent, some for four features.
+    /// </para>
+    /// <para>
+    /// This is precisely what `036` found in the STATUS table and recorded: a "second,
+    /// independent statement" becomes one statement plus a stale copy the moment nothing compares
+    /// them. The status list was made not to drift; the type list was not, and the reason is only
+    /// that nobody had written this test.
+    /// </para>
+    /// <para>
+    /// <b>Both directions.</b> A registry row with no documentation is a type a client cannot
+    /// learn about; a documented row with no registry entry is a type a client is told to branch
+    /// on that the server can never send — and the second is worse, because the branch is dead
+    /// code that looks maintained.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void Every_registered_type_is_in_the_documented_table()
+    {
+        var documented = DocumentedTypeSuffixes();
+
+        documented.Should().HaveCountGreaterThan(
+            10,
+            "the table must actually have been parsed. A regex that matched nothing would make "
+            + "both assertions below pass over an empty set, which is `001`'s false-negative "
+            + "architecture test arriving in a new file");
+
+        var registered = Registry().Keys.ToHashSet(StringComparer.Ordinal);
+
+        registered.Except(documented).Should().BeEmpty(
+            "every code in ProblemTypes needs a row in docs/sdd/documentation/api/"
+            + "error-handling.md. A type a client is never told about is a type it cannot "
+            + "branch on, so it lands in the generic-error path with a perfectly good `type` "
+            + "sitting in the body");
+
+        documented.Except(registered).Should().BeEmpty(
+            "a documented type nothing raises tells a client to write a branch that can never "
+            + "run — and unlike the reverse, it looks maintained. Delete the row, or add the "
+            + "registry entry; never leave the two disagreeing");
+    }
+
+    /// <summary>
+    /// The <c>errors/…</c> suffixes in the documented table's first column.
+    /// </summary>
+    /// <remarks>
+    /// Parses the markdown table rather than duplicating the list in C#. A second hand-written
+    /// list here would be a third copy, and the third copy is the one that drifts — which is the
+    /// exact defect this test exists to catch.
+    /// </remarks>
+    private static IReadOnlySet<string> DocumentedTypeSuffixes()
+    {
+        var path = Path.Combine(
+            RepositoryRoot(), "docs", "sdd", "documentation", "api", "error-handling.md");
+
+        File.Exists(path).Should().BeTrue(
+            $"the documented table must be at {path} — a path that silently resolves to nothing "
+            + "would make this test pass with an empty table");
+
+        return System.Text.RegularExpressions.Regex
+            .Matches(File.ReadAllText(path), @"^\|\s*`errors/([a-z-]+)`\s*\|", System.Text.RegularExpressions.RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
     /// AC-16. The base URI appears once in <c>src/</c>, as a compile-time constant.
     /// </summary>
     /// <remarks>

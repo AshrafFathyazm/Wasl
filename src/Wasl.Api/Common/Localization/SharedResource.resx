@@ -97,6 +97,48 @@
   <data name="Error.AlreadyEscalated.Title" xml:space="preserve">
     <value>This ticket is already escalated.</value>
   </data>
+  <data name="Error.Ticket.AlreadyEscalated" xml:space="preserve">
+    <value>This ticket has already been escalated, and escalation cannot be undone.</value>
+  </data>
+  <data name="Error.TicketNotEscalatable.Title" xml:space="preserve">
+    <value>This ticket cannot be escalated.</value>
+  </data>
+  <data name="Error.Ticket.NotEscalatable" xml:space="preserve">
+    <value>A ticket that is {0} cannot be escalated.</value>
+  </data>
+  <data name="Validation.Ticket.EscalationReasonRequired" xml:space="preserve">
+    <value>A reason of 1 to 500 characters is required.</value>
+  </data>
+  <data name="Validation.Ticket.EscalationReasonTooLong" xml:space="preserve">
+    <value>The reason must be 500 characters or fewer.</value>
+  </data>
+  <data name="Error.NoContactForChannel.Title" xml:space="preserve">
+    <value>This customer has no address for the selected channel.</value>
+  </data>
+  <data name="Error.Communication.NoEmailForChannel" xml:space="preserve">
+    <value>This customer has no email address, so email cannot be used. Choose a different channel, or add an email address to the customer.</value>
+  </data>
+  <data name="Error.Communication.NoPhoneForChannel" xml:space="preserve">
+    <value>This customer has no phone number, so that channel cannot be used. Choose a different channel, or add a phone number to the customer.</value>
+  </data>
+  <data name="Error.Communication.NoAddressForChannel" xml:space="preserve">
+    <value>This customer has no address for the selected channel. Choose a different channel.</value>
+  </data>
+  <data name="Error.Communication.SendNotPermitted" xml:space="preserve">
+    <value>You are not permitted to send a message on this ticket. An agent may send only on a ticket assigned to them or unassigned.</value>
+  </data>
+  <data name="Validation.Communication.BodyRequired" xml:space="preserve">
+    <value>A message of 1 to 4000 characters is required.</value>
+  </data>
+  <data name="Validation.Communication.BodyTooLong" xml:space="preserve">
+    <value>The message must be 4000 characters or fewer.</value>
+  </data>
+  <data name="Validation.Communication.ChannelInvalid" xml:space="preserve">
+    <value>Choose a valid channel.</value>
+  </data>
+  <data name="Validation.Communication.ChannelNotSendable" xml:space="preserve">
+    <value>No provider is registered for this channel.</value>
+  </data>
   <data name="Error.ConcurrencyConflict.Title" xml:space="preserve">
     <value>This record changed while you were editing it.</value>
   </data>

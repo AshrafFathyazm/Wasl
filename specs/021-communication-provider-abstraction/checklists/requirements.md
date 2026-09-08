@@ -38,9 +38,10 @@ and again before the feature closes.
 
 | ✓ | Item | Source |
 |---|---|---|
-| ☑ | Minimal APIs, vertical slices, two projects, no repository | ADR-010 |
-| ☑ | The interface is **not** in `Wasl.Domain`, and the `001` architecture test still proves the domain is clean | ADR-010, `research.md` R-7 |
-| ☑ | MediatR pipeline carries validation, the audit row, and the transaction — the handler does not | ADR-010, constitution V |
+| ☒ | ~~Minimal APIs, vertical slices, two projects, no repository — ADR-010~~ **STRUCK 2026-09-08. ADR-010 WAS REJECTED.** Four-project Clean stands (ADR-002): controllers not minimal APIs, feature folders inside `Wasl.Application`, four projects, and `IApplicationDbContext` rather than a repository. Three rows in this checklist were ticked against an architecture the product owner turned down — see `research.md` R-7 | ~~ADR-010~~ → **ADR-002** |
+| ☑ | Controllers bind, authorise, dispatch and map; one feature folder per use case under `Wasl.Application/Features/` | **ADR-002**, `CLAUDE.md` |
+| ☑ | The interface is **not** in `Wasl.Domain` — it is in `Wasl.Application/Common/Abstractions/` beside every other outbound port, implemented in `Wasl.Infrastructure`. The `001` architecture test still proves the domain is clean, and `LayerDependencyTests` proves Application sees no EF or ASP.NET | **ADR-002**, `research.md` R-7 |
+| ☑ | MediatR pipeline carries validation, the audit row, and the transaction — the handler does not | **ADR-008**, constitution V |
 | ☑ | SQL Server types only: `uniqueidentifier`, `nvarchar`, `datetime2(3)`, `ON DELETE NO ACTION`, check constraints verified against `sys.check_constraints` | ADR-013, `data-model.md` |
 | ☑ | No `rowversion` on an append-only table | ADR-006 as amended by ADR-013, `research.md` R-12 |
 | ☑ | `TimeProvider` injected; `CancellationToken` on every async path | Constitution V, AC-18 |

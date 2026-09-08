@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Wasl.Application.Common.Abstractions;
+using Wasl.Application.Common.Communications;
+using Wasl.Domain.Communications;
 using Wasl.Infrastructure.Persistence;
 using Wasl.Infrastructure.Auth;
 using Wasl.Infrastructure.Persistence.Audit;
@@ -135,11 +138,31 @@ public static class DependencyInjection
         // amber forever from a typo. NOT an SLA: see the type's remarks.
         services.AddSingleton(Queries.DashboardTargets.From(configuration));
 
+        // `020b`. The snapshot writer. SCOPED, because it takes the request-scoped WaslDbContext —
+        // the hosted service creates a scope per capture rather than holding one open, which is
+        // the standard answer for a singleton reaching scoped state (`research.md` R-5).
+        services.AddScoped<IDashboardSnapshotCapture, Queries.DashboardSnapshotCapture>();
+
+        /* `020b`. THE FIRST SCHEDULED WORK IN THIS PRODUCT, and it is registered by the layer that
+         * owns it rather than by Program.cs — the same rule the rest of this method follows.
+         *
+         * What happens when it does not run: the day has no snapshot row, the dashboard's trend
+         * arrows for any range spanning that day are ABSENT, and nothing else changes. The capture
+         * never back-fills, so a missed day stays missed rather than being filled with today's
+         * numbers under yesterday's date.
+         *
+         * It cannot take the host down. `HostOptions.BackgroundServiceExceptionBehavior` defaults
+         * to `StopHost` — measured — so `DailySnapshotService` catches inside its own loop rather
+         * than relying on that global being changed. */
+        services.AddHostedService<Scheduling.DailySnapshotService>();
+
         // `004b`. SINGLETON — the counts must outlive a request, which is the whole point.
         // In-memory and per-process: two instances behind a load balancer each count to ten, and a
         // restart forgets everything. Stated in the type's own remarks rather than implied, because
         // the honest claim is that it slows a script, not that it stops a determined attacker.
         services.AddSingleton<ISignInThrottle, Auth.InMemorySignInThrottle>();
+
+        AddCommunications(services, configuration);
 
         services.AddScoped<AuditDiffAccumulator>();
         services.AddScoped<AuditDiffInterceptor>();
@@ -232,5 +255,86 @@ public static class DependencyInjection
         services.AddHealthChecks().AddDbContextCheck<WaslDbContext>("database");
 
         return services;
+    }
+
+    /// <summary>
+    /// `021`. The provider seam: one mock per sendable channel, and the registry over them.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>AC-4 AND AC-24 ARE ABOUT THIS METHOD.</b> The claim the whole feature exists to make is
+    /// that adding a real provider is *a new class and one registration line*, with nothing else
+    /// changing — so this is the one place a reader should have to look, and the three lines below
+    /// are what that claim looks like. AC-24 proves it from a test project by registering a stub
+    /// for a fourth channel and asserting the diff is exactly one class and one line.
+    /// </para>
+    /// <para>
+    /// <b>Three registrations of one class rather than one instance serving three channels.</b>
+    /// <c>ICommunicationProvider.Channel</c> is singular, the registry indexes by it, and a
+    /// multi-channel instance would need the interface to change shape. It also makes the
+    /// registration read as what a real provider set will be: one line per channel.
+    /// </para>
+    /// <para>
+    /// <b><c>LiveChat</c> and <c>WebForm</c> are deliberately absent</b> (spec A-3). Both stay
+    /// valid values of <c>CommunicationChannel</c> — a ticket that *arrived* through a web form is
+    /// normal — but neither has an outbound address in this model, because a live-chat session and
+    /// a web form are things a customer initiates. Registering one is one line here plus a
+    /// recipient-resolution rule, and nothing else: that is AC-4.
+    /// </para>
+    /// <para>
+    /// <b>Singletons, and the registry is a singleton over singletons.</b> Nothing here holds
+    /// request state: the mock reads options and writes to a thread-safe buffer, and the registry
+    /// is immutable after construction. It also means the duplicate-channel check runs once, at
+    /// startup, which is what AC-5 asks for — see the note on it below.
+    /// </para>
+    /// </remarks>
+    private static void AddCommunications(IServiceCollection services, IConfiguration configuration)
+    {
+        /* THE ONLY WAY TO REACH THE FAILURE PATH — `research.md` R-6, AC-6.
+         *
+         * Bound from `Communications:Mock`, empty by default. No request field, header, query
+         * parameter or body token can influence it, and AC-6 asserts that absence by search
+         * rather than by asserting the default: stating the default is not enough, the criterion
+         * is that no other trigger exists. */
+        services.Configure<Communications.MockProviderOptions>(
+            configuration.GetSection(Communications.MockProviderOptions.SectionName));
+
+        // The diagnostic buffer. Shared by all three provider instances so a test can assert
+        // across channels, and never reachable over HTTP — see its own remarks.
+        services.AddSingleton<Communications.SentMessageBuffer>();
+
+        /* ONE LINE PER SENDABLE CHANNEL. This is the list AC-4 is about.
+         *
+         * `WhatsApp` and `Sms` both resolve to the customer's phone and both get their own
+         * provider instance — they are different channels to a real carrier, and collapsing them
+         * here would make adding a WhatsApp Business provider a change to two features. */
+        foreach (var channel in new[]
+        {
+            CommunicationChannel.Email,
+            CommunicationChannel.WhatsApp,
+            CommunicationChannel.Sms,
+        })
+        {
+            services.AddSingleton<ICommunicationProvider>(provider =>
+                new Communications.MockCommunicationProvider(
+                    channel,
+                    provider.GetRequiredService<IOptions<Communications.MockProviderOptions>>(),
+                    provider.GetRequiredService<Communications.SentMessageBuffer>(),
+                    provider.GetRequiredService<TimeProvider>()));
+        }
+
+        /* THE REGISTRY, AND AC-5's STARTUP FAILURE COMES FROM ITS CONSTRUCTOR.
+         *
+         * Registered as a singleton whose factory resolves every `ICommunicationProvider`, so the
+         * duplicate-channel check runs the first time anything asks for the registry — which the
+         * API does while building the request pipeline, not on the first send.
+         *
+         * `Program.cs` forces it explicitly after building the host, because a lazily-resolved
+         * singleton would otherwise defer the check until the first request that needed it: a
+         * process that started "successfully" and then failed one endpoint is exactly the
+         * outcome AC-5 rules out. */
+        services.AddSingleton(provider =>
+            new CommunicationProviderRegistry(
+                provider.GetServices<ICommunicationProvider>()));
     }
 }

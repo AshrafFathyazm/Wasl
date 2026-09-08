@@ -232,9 +232,13 @@ describe('the four tiles', () => {
       }),
     });
 
-    const zero = [...container.querySelectorAll('[class*="tileValue"]')].find(
-      (node) => node.textContent === '0',
-    );
+    /* `[class*="tileValue"]` also matches `tileValueRow` — the wrapper `020b` added
+     * to sit the trend arrow on the number's baseline — and with no baseline the
+     * arrow renders nothing, so the ROW's textContent is also "0". The selector
+     * excludes it rather than matching whichever came first. */
+    const zero = [...container.querySelectorAll('[class*="tileValue"]')]
+      .filter((node) => !/tileValueRow/.test(node.className))
+      .find((node) => node.textContent === '0');
 
     expect(zero?.className).toMatch(/tileValueZero/);
 

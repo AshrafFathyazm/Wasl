@@ -224,3 +224,60 @@ Arabic; one that branches on `title` was already broken.
 | Arabic text and Latin-digit `ticketNumber` under `Accept-Language: ar` | `TEST-009-12` |
 | The `404` body leaks nothing | `TEST-009-13` |
 | This contract matches what was built | `REV-009-03` — generated OpenAPI compared before the feature closes |
+
+---
+
+# Contract changes
+
+Appended, never edited into the frozen text above. Both lanes read this section.
+
+## `016-escalate-ticket`, 2026-09-08 — four ADDITIVE fields on the ticket read shape
+
+`016` adds four fields to the body this contract calls `TicketDetailResponse` — the body
+returned by `POST /api/tickets`, `GET /api/tickets/{id}`, `PUT /…/status`,
+`PUT /…/assignee` and `POST /…/escalate`:
+
+| Field | Type | On a ticket that was never escalated |
+|---|---|---|
+| `escalatedAtUtc` | `string \| null`, ISO-8601 UTC with `Z` | `null` |
+| `escalatedBy` | `TicketAssignee \| null` — `{ id, fullName, role }`, the same record `assignee` uses | `null` |
+| `escalationReason` | `string \| null`, 1–500 chars, server-trimmed | `null` |
+| `canEscalate` | `boolean` | `true` for a Manager on an escalatable ticket, `false` otherwise |
+
+**Additive, so no existing client breaks**: nothing was removed, nothing changed type, and
+`isEscalated` — already in the frozen text — keeps its meaning exactly.
+
+**`escalatedBy` is a nested object rather than a bare id**, matching `011`'s `assignee` and
+for the same reason: an id alone cannot produce a name, and a blank name reads as a
+rendering bug in the client rather than as a missing lookup on the server.
+
+**`canEscalate` is server-computed and must not be derived.** It is
+`IsEscalatable && caller is Manager` — one fact about the ticket (BR-3.3, BR-3.4) and one
+about the caller (BR-3.2), and the client can see only the first. It is the same rule
+`allowedTransitions` follows (ADR-004): the server says what is permitted, so BR-3 has one
+implementation. A client recomputing it from `status`, `isEscalated` and the role is BR-3
+re-implemented in TypeScript, and it drifts into a menu item that produces a `403` for
+something the interface offered.
+
+### The defect this change surfaced, recorded because it was live for three features
+
+The shared mapper had grown one optional parameter per feature, and **four of its five call
+sites were not passing all of them**. Measured before the fix:
+
+```text
+endpoint                            assignee   tags     escalatedBy  canEscalate
+POST   /api/tickets                 n/a        n/a      n/a          MISSING
+GET    /api/tickets/{id}            ok         ok       ok           ok
+PUT    /api/tickets/{id}/assignee   ok         MISSING  MISSING      MISSING
+PUT    /api/tickets/{id}/status     MISSING    MISSING  MISSING      MISSING
+POST   /api/tickets/{id}/escalate   ok         MISSING  ok           ok
+```
+
+So `PUT /status` on an assigned, tagged ticket answered `assignedToUserId` populated with
+`assignee: null` and `tags: []` — a contract violation standing since `011`, `012` and
+`034`, because this contract has always said the body *is* `TicketDetailResponse`.
+
+It stayed invisible because `026` §5 forbids a screen rendering a ticket from a write
+response: the client refetches, the wrong body is never displayed, and every test asserting
+the transition or the assignment passes. One assembler produces the shape now, and
+`TicketReadShapeTests` fails the build if a second direct caller of the mapper appears.

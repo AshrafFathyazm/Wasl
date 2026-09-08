@@ -145,7 +145,53 @@ public sealed record DashboardAttention(
     /// holds. A separate <c>COUNT</c> would have been an eighth.
     /// </para>
     /// </remarks>
-    int NeedsAttentionTotal);
+    int NeedsAttentionTotal,
+
+    /// <summary>
+    /// What these levels were on the day before the range began. `020b`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>null</c> when no snapshot exists for that day — and the client then renders NO
+    /// ARROW.</b> Not a dash, not a zero, not a grey arrow (ruled Q-2): the question *"what was
+    /// this level a fortnight ago"* has no answer before the capture has been running that long,
+    /// and a UI implying a comparison that does not exist is worse than one that simply looks like
+    /// today's.
+    /// </para>
+    /// <para>
+    /// <b>ONE nullable object, not five nullable numbers.</b> The values are true together or
+    /// absent together — they come from one row — and five independent nulls would invite a client
+    /// to render four arrows and a gap.
+    /// </para>
+    /// <para>
+    /// <b>The server sends the BASELINE, never a delta.</b> The tile needs the direction, the
+    /// magnitude and the number it is measured against; sending <c>+3</c> alone throws away the
+    /// baseline that makes the arrow checkable at a glance.
+    /// </para>
+    /// </remarks>
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    DashboardPrevious? Previous);
+
+/// <summary>
+/// One day's captured levels, for comparison against today's. `020b`.
+/// </summary>
+/// <param name="LocalDate">
+/// WHICH day this is measured against, echoed rather than left for the client to derive. A client
+/// re-computing "the range's first day minus one" would be re-implementing the spine, in a
+/// timezone it does not have.
+/// </param>
+/// <param name="OldestUntouchedHours">
+/// <c>null</c> when nothing was untouched that day.
+/// <b>A fall in this number does not mean the backlog improved</b> — the oldest ticket may have
+/// been answered, or simply closed and left the set. The client's copy says the age changed and
+/// claims nothing further (`spec.md` §3.5).
+/// </param>
+public sealed record DashboardPrevious(
+    string LocalDate,
+    int UnassignedCount,
+    int EscalatedOpenCount,
+    int WaitingOnCustomerCount,
+    int? OldestUntouchedHours);
 
 /// <summary>
 /// A ticket named on a tile: enough to render it and to link to it, and nothing more.

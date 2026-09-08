@@ -330,6 +330,52 @@ the change it describes.
 | `PerformedByUserId` | `Guid` | |
 | `PerformedAtUtc` | `DateTime` | |
 
+### Interaction
+
+**Added by `021`, 2026-09-08 — DOC-021-01.** This document calls itself the single source
+of truth for entities and contained no `Interaction` at all, while
+`02-architecture.md` listed `Wasl.Domain/Communications/Interaction.cs`. The two disagreed
+until the entity was built; the table is defined in
+[`specs/021-…/data-model.md`](../../specs/021-communication-provider-abstraction/data-model.md)
+and summarised here.
+
+One message the system **sent** to a customer, and what the provider said about it.
+
+| Field | Type | Notes |
+|---|---|---|
+| `Id` | `Guid` | Primary key |
+| `TicketId` | `Guid` | Required. **`ON DELETE NO ACTION`, unlike `TicketComment`** — see below |
+| `Direction` | `InteractionDirection` | Always `Outbound`. `CK_Interactions_Direction` refuses the other value |
+| `Channel` | `CommunicationChannel` | Same values as `Ticket.Channel` |
+| `RecipientAddress` | `string(320)` | Required. A **snapshot** of the customer's email or E.164 phone at send time |
+| `Body` | `string(4000)` | Required, non-whitespace. Sent verbatim, never translated |
+| `ProviderName` | `string(50)` | `Mock` today. Makes the seam legible in a data dump once a second provider exists |
+| `ProviderMessageId` | `string(100)?` | Null **exactly** when delivery failed |
+| `DeliveryStatus` | `DeliveryStatus` | `Accepted` or `Failed` |
+| `FailureCode` | `string(50)?` | Null **exactly** when delivery succeeded. A machine-readable code, never a sentence |
+| `SentByUserId` | `Guid` | Required. Who composed it |
+| `CreatedAtUtc` | `DateTime` | `datetime2(3)`, from the injected clock |
+
+**This is not a `TicketComment` with a channel, and the distinction has to stay crisp.** A
+comment is text a support user typed into a note. An interaction is text they composed and
+*the system sent*: it went through a provider, it has a delivery outcome, and it has a
+recipient. The three columns a comment has no equivalent for — `DeliveryStatus`,
+`ProviderMessageId`, `FailureCode` — are the difference.
+
+Append-only in the same way a comment is: no mutator, no edit, no delete. **But not by
+database permission**, unlike `AuditLog` (BR-9.5) — `DeliveryStatus` is precisely the
+column a real provider's asynchronous callback would later update, so a `DENY` now is a
+grant that has to be revoked (`021` spec Q-E).
+
+**`ON DELETE NO ACTION` diverges from `TicketComment`'s cascade deliberately.** An
+interaction records something that *left the system toward a customer*, which is closer to
+`AuditLog`'s reasoning (BR-9.12) than to a comment's. Nothing in the application deletes a
+ticket, so the effect is that a manual delete fails loudly instead of erasing the record of
+what was sent to whom.
+
+**An interaction does NOT appear in the ticket timeline.** BR-5.7 defines that as comments
+∪ history; `021` spec Q-C keeps this a separate panel and a separate endpoint.
+
 ### AuditLog
 
 The forensic record. Append-only, never deleted, and reachable only by a Manager.
@@ -375,6 +421,17 @@ TicketEventType        = Created | StatusChanged | Assigned | Unassigned
                        | PriorityChanged | Escalated | CommentAdded
 
 AuditOutcome           = Success | Denied | Failed
+
+InteractionDirection   = Outbound | Inbound        (`021`. Only Outbound is reachable —
+                       CK_Interactions_Direction refuses the other, so landing US-013 is a
+                       dropped constraint and not a migration of every row. The member is
+                       declared anyway: a single-member enum is a column carrying no
+                       information, and the first reader asks why it exists)
+
+DeliveryStatus         = Accepted | Failed         (`021`. `Accepted` is NOT "delivered" —
+                       what a provider reports synchronously is that it took the message.
+                       There is no `Pending`, because the send happens inside the request;
+                       a real provider with an outbox would need one)
 ```
 
 Enums are persisted as strings, not integers, so that a database dump is readable

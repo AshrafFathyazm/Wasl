@@ -137,10 +137,22 @@
 
 /* ---- the foot ------------------------------------------------------------- */
 
+/* `inline-size: 100%` ADDED BY `016` ON 2026-09-08, and it fixes a defect this
+   file's own next comment describes as working.
+
+   `components/Modal`'s `.foot` is `display: flex; justify-content: flex-start`,
+   so this single child is a flex item that shrinks to its content: measured in
+   the browser at 151px inside a 420px panel, which made `.grow` below grow the
+   primary to fill 151px instead of the dialog. `016`'s modal reproduced it
+   exactly, at 119px, which is what sent someone looking here.
+
+   Fixed HERE rather than in `.foot`: eight screens use that primitive and a
+   content-width footer is a legitimate shape for some of them. */
 .footer {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  inline-size: 100%;
 }
 
 /* The primary takes the remaining width, the way the mock draws it. It is NAVY,

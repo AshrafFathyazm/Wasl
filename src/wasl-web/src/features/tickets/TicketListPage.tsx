@@ -661,13 +661,25 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
                 {t('list.action.reassign')}
               </button>
 
-              {/* DISABLED, WITH THE REASON IN ITS ACCESSIBLE NAME. `016` is
-                    not built and there is no escalate endpoint in the API — the
-                    design draws the item, so it is drawn, and it does not
-                    pretend to work. This is the one place on this screen where a
-                    disabled control is right: the item is part of a menu whose
-                    shape the design fixes, and removing it would move the three
-                    below it. */}
+              {/* STILL DISABLED AFTER `016`, AND THE REASON CHANGED COMPLETELY.
+                    This comment said "`016` is not built and there is no
+                    escalate endpoint in the API". Both halves are false as of
+                    2026-09-08: the endpoint exists and the detail screen calls
+                    it. Corrected in place rather than deleted, because the new
+                    reason is narrower and worth stating.
+
+                    WHAT A ROW CANNOT DO is decide whether escalation is
+                    permitted. `canEscalate` is on the ticket DETAIL shape and
+                    not on `TicketListItem` — `010` froze that row without it,
+                    and BR-3.2's role half plus BR-3.3's status half would have
+                    to be recomputed here from `isEscalated` and `status`, which
+                    is BR-3 re-implemented in TypeScript on the one screen that
+                    renders fifty of them.
+
+                    AND ESCALATION NEEDS A REASON. BR-3.5 makes it required,
+                    1–500 characters, so a one-click row action could not
+                    satisfy the endpoint even with the permission answered. The
+                    title says where the act lives instead. */}
               <button
                 type="button"
                 role="menuitem"

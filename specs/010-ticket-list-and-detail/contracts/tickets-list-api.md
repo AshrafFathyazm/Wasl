@@ -420,3 +420,33 @@ product owner.
   where the refusal is produced.
 
 Evidence: [`015/tests.md`](../../015-ticket-filters-and-search/tests.md).
+
+## `016-escalate-ticket`, 2026-09-08
+
+### `TicketDetailResponse` — four additive fields
+
+`escalatedAtUtc`, `escalatedBy`, `escalationReason` and `canEscalate`. The full description
+is in [`009`'s contract](../../009-create-ticket/contracts/tickets-api.md#contract-changes),
+which owns that body; this entry exists so a reader of THIS file is not the last to know.
+
+### `TicketListItem` — NOT changed, and that is a decision
+
+**`canEscalate` is deliberately absent from the list row.** The row keeps `isEscalated`, and
+`?escalated=true` keeps working — both were already contracted.
+
+Adding it would have been cheap on the server (no extra query: the role is per-caller and
+the status is already selected). It was declined because the row is the wrong place for the
+answer:
+
+- **A row action cannot satisfy the endpoint.** BR-3.5 makes the reason required, 1–500
+  characters, so escalation needs a surface with a field. A one-click row action would send
+  nothing and get a `400`.
+- **`escalationReason` and `escalatedBy` would have to come too**, or an escalated row could
+  say *that* it was escalated and never *why* — and the list row exists to stay narrow.
+
+So the list row's Escalate menu item stays **disabled**, and its title now says where the
+act lives — *"Open the ticket to escalate it — the reason is required."* It previously said
+*"Escalation is not built yet"*, which was true when written and is not now.
+
+**What this means for a client:** to decide whether to offer escalation you need the detail
+response. The list cannot tell you, by design, and it does not pretend to.

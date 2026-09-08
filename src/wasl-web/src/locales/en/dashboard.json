@@ -32,6 +32,18 @@
   "tiles.noneValue": "—",
   "tiles.noneFoot": "Nothing waiting",
 
+  "trend.unchanged": "no change vs prev",
+  "trend.roseTitle": "Higher than the previous period",
+  "trend.fellTitle": "Lower than the previous period",
+  "trend.rose.count_one": "1 vs prev",
+  "trend.rose.count_other": "{{formatted}} vs prev",
+  "trend.fell.count_one": "1 vs prev",
+  "trend.fell.count_other": "{{formatted}} vs prev",
+  "trend.rose.hours_one": "1h older vs prev",
+  "trend.rose.hours_other": "{{formatted}}h older vs prev",
+  "trend.fell.hours_one": "1h newer vs prev",
+  "trend.fell.hours_other": "{{formatted}}h newer vs prev",
+
   "age.hours_zero": "0h",
   "age.hours_one": "1h",
   "age.hours_other": "{{formatted}}h",

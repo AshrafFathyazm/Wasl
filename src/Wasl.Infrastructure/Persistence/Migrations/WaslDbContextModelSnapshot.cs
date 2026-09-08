@@ -97,6 +97,74 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Wasl.Domain.Communications.Interaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("DeliveryStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("FailureCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ProviderMessageId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RecipientAddress")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<Guid>("SentByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SentByUserId");
+
+                    b.HasIndex("TicketId", "CreatedAtUtc")
+                        .HasDatabaseName("IX_Interactions_Ticket_Time");
+
+                    b.ToTable("Interactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Interactions_Direction", "Direction = N'Outbound'");
+
+                            t.HasCheckConstraint("CK_Interactions_Outcome", "(DeliveryStatus = N'Accepted' AND ProviderMessageId IS NOT NULL AND FailureCode IS NULL)\nOR (DeliveryStatus = N'Failed' AND ProviderMessageId IS NULL AND FailureCode IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Wasl.Domain.Customers.Customer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -520,6 +588,66 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                     b.ToTable("IdempotencyKeys", (string)null);
                 });
 
+            modelBuilder.Entity("Wasl.Infrastructure.Persistence.Snapshots.DashboardDailySnapshot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AssignedCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CapturedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("EscalatedOpenCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("LocalDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("OldestUntouchedHours")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ScopeUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("UnassignedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WaitingOnCustomerCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScopeUserId");
+
+                    b.HasIndex("LocalDate", "ScopeUserId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_DashboardDailySnapshot_Date_Scope");
+
+                    b.ToTable("DashboardDailySnapshot", (string)null);
+                });
+
+            modelBuilder.Entity("Wasl.Domain.Communications.Interaction", b =>
+                {
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("SentByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_Interactions_Sender");
+
+                    b.HasOne("Wasl.Domain.Tickets.Ticket", null)
+                        .WithMany()
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_Interactions_Tickets");
+                });
+
             modelBuilder.Entity("Wasl.Domain.Tickets.Ticket", b =>
                 {
                     b.HasOne("Wasl.Domain.Users.SupportUser", null)
@@ -603,6 +731,14 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_TicketTags_Ticket");
+                });
+
+            modelBuilder.Entity("Wasl.Infrastructure.Persistence.Snapshots.DashboardDailySnapshot", b =>
+                {
+                    b.HasOne("Wasl.Domain.Users.SupportUser", null)
+                        .WithMany()
+                        .HasForeignKey("ScopeUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

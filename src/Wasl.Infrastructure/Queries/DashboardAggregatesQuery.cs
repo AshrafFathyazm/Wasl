@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Common.Abstractions;
@@ -112,7 +113,7 @@ internal sealed class DashboardAggregatesQuery(
          * own": the role set can grow, and a new role defaulting to the TEAM view would be a
          * silent widening of what somebody sees. Defaulting to `Mine` is the failure that shows
          * up as an empty screen and gets reported, rather than the one nobody notices. */
-        var isManager = string.Equals(currentUser.Role, "Manager", StringComparison.Ordinal);
+        var isManager = currentUser.IsManager();
         var scope = isManager ? DashboardScope.Team : DashboardScope.Mine;
 
         /* Guid.Empty for a principal with no id, which after `004`'s fallback policy cannot reach
@@ -141,7 +142,12 @@ internal sealed class DashboardAggregatesQuery(
         // same way twice. Sequential rather than concurrent: one DbContext is not thread-safe,
         // and seven connections to save a few milliseconds on a screen nothing polls is a trade
         // in the wrong direction.
-        var attention = await AttentionAsync(team, userId, nowUtc, cancellationToken);
+        /* `020b`. The baseline day is the one BEFORE the range began — so a 14-day view compares
+         * against the level a fortnight ago, which is what the tile's "vs prev" says. Derived from
+         * the spine rather than re-computed, so the two can never disagree about the timezone. */
+        var previousDate = days[0].Date.AddDays(-1);
+
+        var attention = await AttentionAsync(team, userId, previousDate, nowUtc, cancellationToken);
         var dailySeries = await DailySeriesAsync(days, team, userId, cancellationToken);
         var openByStatus = await OpenByStatusAsync(team, userId, cancellationToken);
         var medians = await MediansAsync(from, toExclusive, team, userId, cancellationToken);
@@ -182,42 +188,59 @@ internal sealed class DashboardAggregatesQuery(
     private async Task<DashboardAttention> AttentionAsync(
         int team,
         Guid userId,
+        DateOnly previousDate,
         DateTime nowUtc,
         CancellationToken cancellationToken)
     {
         var overdueBefore = nowUtc - EscalationOverdueAfter;
 
-        var rows = await context.Database
-            .SqlQuery<AttentionRow>(
-                $"""
+        /* THE FORMAT IS BUILT HERE AND THE VALUES STAY PARAMETERS — AND THE TWO ATTEMPTS THAT DID
+         * NOT WORK ARE WORTH KNOWING ABOUT.
+         *
+         * `020b` extracted the four attention predicates into DashboardTrendPredicates so this
+         * read and the snapshot capture cannot drift apart. Getting a CONSTANT into the SQL while
+         * keeping the VALUES parameterised took three goes:
+         *
+         *   1. `SqlQuery($"… {Predicates.Unassigned} …")` — WRONG. A FormattableString turns every
+         *      hole into a parameter, so the predicate would ship as `WHERE @p0`: a comparison
+         *      against a string of SQL text, matching nothing, with no error anywhere.
+         *   2. `SqlQueryRaw($"…")` — REFUSED BY THE ANALYSER, EF1002, and correctly. `CLAUDE.md`
+         *      names that rule and its reason: the habit formed here moves to `015`, which builds
+         *      a query from user input. Suppressing it would have been the wrong lesson.
+         *   3. This. `$$"""…"""` makes `{{Constant}}` an interpolation hole and leaves `{0}`
+         *      literal, so the constants are baked into the FORMAT and the runtime values are the
+         *      FormattableString's arguments — parameters, exactly as before.
+         *
+         * Nothing user-supplied is concatenated: the predicates are compile-time constants, and
+         * the scope flag, the user id and the threshold are `{0}`, `{1}`, `{2}`. */
+        var scope = DashboardTrendPredicates.ScopedBy("{0}", "{1}");
+
+        var sql = $$"""
                 SELECT
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.AssignedToUserId IS NULL
-                        AND t.Status <> N'Closed')                                AS UnassignedCount,
+                      WHERE {{DashboardTrendPredicates.Unassigned}})               AS UnassignedCount,
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.IsEscalated = 1
-                        AND t.Status NOT IN (N'Resolved', N'Closed')
-                        AND ({team} = 1 OR t.AssignedToUserId = {userId}))        AS EscalatedOpenCount,
+                      WHERE {{DashboardTrendPredicates.EscalatedOpen}}
+                        AND {{scope}})                                             AS EscalatedOpenCount,
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.IsEscalated = 1
-                        AND t.Status NOT IN (N'Resolved', N'Closed')
-                        AND t.CreatedAtUtc < {overdueBefore}
-                        AND ({team} = 1 OR t.AssignedToUserId = {userId}))        AS EscalatedOverdueCount,
+                      WHERE {{DashboardTrendPredicates.EscalatedOpen}}
+                        AND t.CreatedAtUtc < {2}
+                        AND {{scope}})                                             AS EscalatedOverdueCount,
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.Status = N'PendingCustomer'
-                        AND ({team} = 1 OR t.AssignedToUserId = {userId}))        AS WaitingOnCustomerCount,
+                      WHERE {{DashboardTrendPredicates.WaitingOnCustomer}}
+                        AND {{scope}})                                             AS WaitingOnCustomerCount,
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.AssignedToUserId = {userId}
-                        AND t.Status <> N'Closed')                                AS AssignedToMeCount,
+                      WHERE t.AssignedToUserId = {1}
+                        AND t.Status <> N'Closed')                                 AS AssignedToMeCount,
                     -- The attention SET's size, not the list's length. The predicate is the one
                     -- NeedsAttentionAsync uses, kept beside it here rather than in an eighth
                     -- command — the card's header says "View all 15" and the list holds ten.
                     (SELECT COUNT(*) FROM dbo.Tickets t
                       WHERE t.Status <> N'Closed'
                         AND (t.AssignedToUserId IS NULL OR t.IsEscalated = 1)
-                        AND ({team} = 1
-                             OR t.AssignedToUserId = {userId}
-                             OR t.AssignedToUserId IS NULL))                      AS NeedsAttentionTotal,
+                        AND ({0} = 1
+                             OR t.AssignedToUserId = {1}
+                             OR t.AssignedToUserId IS NULL))                       AS NeedsAttentionTotal,
                     untouched.Id            AS UntouchedId,
                     untouched.TicketNumber  AS UntouchedTicketNumber,
                     untouched.Subject       AS UntouchedSubject,
@@ -225,24 +248,41 @@ internal sealed class DashboardAggregatesQuery(
                     mine.Id                 AS MineId,
                     mine.TicketNumber       AS MineTicketNumber,
                     mine.Subject            AS MineSubject,
-                    mine.CreatedAtUtc       AS MineCreatedAtUtc
+                    mine.CreatedAtUtc       AS MineCreatedAtUtc,
+                    -- `020b`. The baseline, LEFT JOINed rather than fetched — an eighth command
+                    -- would break AC-17, and the whole point of the snapshot table is that this
+                    -- costs a join. Absent row → every column NULL → `previous: null` → no arrow,
+                    -- with no branch anywhere.
+                    prev.UnassignedCount        AS PrevUnassignedCount,
+                    prev.EscalatedOpenCount     AS PrevEscalatedOpenCount,
+                    prev.WaitingOnCustomerCount AS PrevWaitingOnCustomerCount,
+                    prev.OldestUntouchedHours   AS PrevOldestUntouchedHours
                 FROM (SELECT 1 AS Anchor) AS anchor
                 OUTER APPLY (
                     SELECT TOP (1) t.Id, t.TicketNumber, t.Subject, t.CreatedAtUtc
                     FROM dbo.Tickets t
-                    WHERE t.AssignedToUserId IS NULL
-                      AND t.Status <> N'Closed'
+                    WHERE {{DashboardTrendPredicates.Unassigned}}
                       AND NOT EXISTS (SELECT 1 FROM dbo.TicketComments c WHERE c.TicketId = t.Id)
                     ORDER BY t.CreatedAtUtc, t.Id
                 ) AS untouched
                 OUTER APPLY (
                     SELECT TOP (1) t.Id, t.TicketNumber, t.Subject, t.CreatedAtUtc
                     FROM dbo.Tickets t
-                    WHERE t.AssignedToUserId = {userId}
+                    WHERE t.AssignedToUserId = {1}
                       AND t.Status <> N'Closed'
                     ORDER BY t.CreatedAtUtc, t.Id
                 ) AS mine
-                """)
+                LEFT JOIN dbo.DashboardDailySnapshot prev
+                       ON prev.LocalDate = {3}
+                      -- The TEAM row's scope is NULL, so `= NULL` would match nothing and every
+                      -- Manager would silently get no baseline at all.
+                      AND (({0} = 1 AND prev.ScopeUserId IS NULL)
+                           OR ({0} = 0 AND prev.ScopeUserId = {1}))
+                """;
+
+        var rows = await context.Database
+            .SqlQuery<AttentionRow>(
+                FormattableStringFactory.Create(sql, team, userId, overdueBefore, previousDate))
             .ToListAsync(cancellationToken);
 
         // One row always, because the anchor is a literal. Defended anyway: a shape assumption
@@ -267,7 +307,8 @@ internal sealed class DashboardAggregatesQuery(
                 row.MineTicketNumber,
                 row.MineSubject,
                 row.MineCreatedAtUtc,
-                nowUtc));
+                nowUtc),
+            Previous: Previous(row, previousDate));
     }
 
     /* ══════════════════════════════════════════════════════════════════════════════════════
@@ -649,6 +690,32 @@ internal sealed class DashboardAggregatesQuery(
             .ToList();
     }
 
+    /// <summary>
+    /// The baseline, or <c>null</c> when the <c>LEFT JOIN</c> matched no snapshot row. `020b`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>ONE column decides, not four.</b> The four values come from a single row and are absent
+    /// together; testing them independently would let a future column that is legitimately
+    /// nullable — as <c>OldestUntouchedHours</c> already is — be mistaken for "no baseline".
+    /// <c>UnassignedCount</c> is the discriminator because it is <c>NOT NULL</c> in the table, so
+    /// a null here can only mean the join found nothing.
+    /// </para>
+    /// <para>
+    /// <b>No baseline renders NO ARROW</b> (ruled Q-2) — not a dash, not a zero. The first
+    /// fortnight after this ships, the tiles look exactly as they do today.
+    /// </para>
+    /// </remarks>
+    private static DashboardPrevious? Previous(AttentionRow row, DateOnly previousDate) =>
+        row.PrevUnassignedCount is { } unassigned
+            ? new DashboardPrevious(
+                LocalDate: Iso(previousDate),
+                UnassignedCount: unassigned,
+                EscalatedOpenCount: row.PrevEscalatedOpenCount ?? 0,
+                WaitingOnCustomerCount: row.PrevWaitingOnCustomerCount ?? 0,
+                OldestUntouchedHours: row.PrevOldestUntouchedHours)
+            : null;
+
     private static DashboardTicketRef? TicketRef(
         Guid? id,
         string? ticketNumber,
@@ -750,6 +817,14 @@ internal sealed class DashboardAggregatesQuery(
         public string? MineTicketNumber { get; set; }
         public string? MineSubject { get; set; }
         public DateTime? MineCreatedAtUtc { get; set; }
+
+        /* `020b`. All four nullable, and they are null TOGETHER — the LEFT JOIN either matched a
+         * snapshot row or it did not. `Previous()` reads one of them to decide, rather than
+         * treating them as four independent absences. */
+        public int? PrevUnassignedCount { get; set; }
+        public int? PrevEscalatedOpenCount { get; set; }
+        public int? PrevWaitingOnCustomerCount { get; set; }
+        public int? PrevOldestUntouchedHours { get; set; }
     }
 
     private sealed class DailyRow

@@ -3,7 +3,6 @@ using Wasl.Application.Common.Abstractions;
 using Wasl.Application.Features.Tickets.CreateTicket;
 using Wasl.Domain.Common.Exceptions;
 using Wasl.Domain.Tickets;
-using Wasl.Domain.Users;
 
 namespace Wasl.Application.Features.Tickets.AssignTicket;
 
@@ -87,20 +86,20 @@ internal sealed class AssignTicketCommandHandler(
         // catches a writer that arrived between the explicit check above and this line.
         await context.SaveChangesAsync(cancellationToken);
 
-        var customer = await context.FirstOrDefaultAsync(
-            context.Customers
-                .Where(candidate => candidate.Id == ticket.CustomerId)
-                .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
-            cancellationToken);
-
-        // AC-16. The same mapping every ticket endpoint uses, so allowedTransitions comes back
-        // recomputed — and it CHANGES here even though the status did not, because BR-1.3 makes
-        // InProgress conditional on having an assignee.
-        return CreateTicketCommandHandler.Map(
-            ticket,
-            customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null, null),
-            assignee);
+        // AC-16. The same read shape every ticket endpoint returns, so allowedTransitions comes
+        // back recomputed — and it CHANGES here even though the status did not, because BR-1.3
+        // makes InProgress conditional on having an assignee.
+        //
+        // `016` moved this from a direct `Map` call, which passed `assignee` and nothing else:
+        // this endpoint answered `tags: []` on a tagged ticket and `canEscalate: false` to a
+        // Manager, against a frozen contract that says the body is `TicketDetailResponse`.
+        //
+        // `assignee` is handed over rather than re-read. This handler already had to load that
+        // row to tell a `404` from a `400` (BR-2.4), and after `Assign` it IS the ticket's
+        // assignee — on an unassign it is null and the reader queries nothing, because
+        // `ticket.AssignedToUserId` is null too.
+        return await TicketDetailReader.ReadAsync(
+            context, currentUser, ticket, cancellationToken, knownAssignee: assignee);
     }
 
     /// <summary>
@@ -131,7 +130,10 @@ internal sealed class AssignTicketCommandHandler(
             throw new ForbiddenException("Error.Ticket.AssignNotPermitted");
         }
 
-        if (string.Equals(currentUser.Role, nameof(SupportRole.Manager), StringComparison.Ordinal))
+        // `016` replaced an inline comparison against nameof(SupportRole.Manager) here. Two other
+        // sites compared against the literal "Manager" — the same characters today, which is what
+        // would have made a rename break two of the three with a green build.
+        if (currentUser.IsManager())
         {
             return;
         }

@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Wasl.Application.Common.Abstractions;
+using Wasl.Domain.Communications;
 using Wasl.Domain.Audit;
 using Wasl.Domain.Common;
 using Wasl.Domain.Common.Exceptions;
@@ -407,6 +408,11 @@ public sealed class WaslDbContext(
     IQueryable<TicketTag> IApplicationDbContext.TicketTags => TicketTags;
 
     IQueryable<CannedReply> IApplicationDbContext.CannedReplies => CannedReplies;
+
+    /// <summary>Added by `021`. Outbound messages and what the provider said about them.</summary>
+    public DbSet<Interaction> Interactions => Set<Interaction>();
+
+    IQueryable<Interaction> IApplicationDbContext.Interactions => Interactions;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
 

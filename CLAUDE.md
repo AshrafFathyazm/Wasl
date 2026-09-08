@@ -31,9 +31,12 @@ src/
     Customers/                       Customer, ContactNormalisation
     Tickets/                         Ticket, TicketComment, TicketHistoryEntry,
                                      TicketStatus, TicketStatusTransitions
-    Communications/                  CommunicationChannel. NO Interaction — this line named one
-                                     until 034 went looking for a home for a customer's message
-                                     and found the folder holds one file. It was never built
+    Communications/                  CommunicationChannel, Interaction, InteractionDirection,
+                                     DeliveryStatus, CommunicationExceptions. This line said
+                                     "NO Interaction … it was never built" from 034 until 021
+                                     built it, 2026-09-08. Inbound is refused by a CHECK
+                                     constraint, not by the enum — US-013 is a dropped
+                                     constraint, not a migration of every row
     Audit/                           AuditEntry
   Wasl.Application/                  depends only on Wasl.Domain
     Features/                        one folder per USE CASE, not per technical type
@@ -62,7 +65,10 @@ src/
                                      abstraction; VALIDATING one is an HTTP concern and stays)
     Persistence/Seed/                DemoSeeder · SupportUserSeeder · SeedOptions — they touch
                                      WaslDbContext directly, so the API only invokes them
-    Communications/
+    Communications/                  MockCommunicationProvider · MockProviderOptions ·
+                                     SentMessageBuffer (`021`). The folder this file has
+                                     listed since `001` and which did not exist on disk
+                                     until 2026-09-08
   Wasl.Api/                          composes everything at startup
     Controllers/  Middleware/  Program.cs
     Common/Localization/             SharedResource.cs + SharedResource{,.ar}.resx SIDE BY SIDE,
@@ -161,6 +167,33 @@ and `ar`.
 - **`002-error-contract` core delivered** 2026-08-25 — domain exception hierarchy, the 13-row `ProblemTypes` registry, one `ProblemDetailsFactory`, `TraceContext`, `ValidationBehaviour` (33 tests). `002b` — `UseStatusCodePages`, malformed request, Swashbuckle — deferred with a reason per task
 - **`003-audit-trail` core delivered** 2026-08-25 — `dbo.AuditLog`, capture-only diff interceptor, BR-9.7 redaction, `TransactionBehaviour` + `AuditBehaviour` **in `Wasl.Infrastructure`**, one ordered behaviour registration in `Wasl.Api`, NFR-10 scanner + self-test (93 tests). `003b` — **closed 2026-08-30**: append-only is a database permission now
 - **`009-create-ticket` backend delivered** 2026-08-26 — `Ticket` + `TicketHistory` + `dbo.TicketNumberSeq`, `POST /api/tickets`, `GET /api/tickets/{id}`, the BR-1 map with **all 36 cells**, `IAuditableEntity` stamping in `SaveChangesAsync`, `IRequestTimestamp` (214 tests). Form is `024-frontend-create-ticket-form`
+- **`021-communication-provider-abstraction` delivered, both lanes** 2026-09-08 — the provider
+  seam, `dbo.Interactions`, three endpoints and a Messages tab (882 backend / 1325 frontend
+  tests). **Its own spec was corrected at the approval gate before any code:** the structural
+  half — spec, research, tasks and three ticked checklist rows — targeted **ADR-010, which was
+  rejected**, and AC-17's search path would have scanned a directory that never exists and passed
+  vacuously. R-7's *argument* survived; only its destination moved. **A refused delivery is a
+  `201` carrying `deliveryStatus: "Failed"`** — the attempt is the resource, and a `5xx` would
+  roll the record back; clients branch on the field, not only the status code. The failure path is
+  configuration-only, and a body token and an `X-Force-Failure` header were both rejected by
+  name. **`Interaction.Body` was going into `AuditLog.Changes` in full — the third time BR-9.7's
+  list has been found short.** Four dead `NotBuiltYet` exemptions found and deleted, all of them
+  endpoints their contracts *reject*. AC-8 **unmet** and AC-18 **partial**, both recorded
+- **`016-escalate-ticket` delivered, both lanes** 2026-09-08 — `POST /api/tickets/{id}/escalate`,
+  **`ManagerOnly`'s first production consumer**, BR-3.6's floor with four independent witnesses, and
+  four additive read fields (799 backend / 1295 frontend tests). **Adding one of those fields found
+  eleven missing ones:** four of the shared mapper's five call sites were returning incomplete
+  bodies, three of them contract violations standing since `011`, `012` and `034` — invisible
+  because `026` §5 forbids painting a ticket from a write response, so the client refetches and
+  every test passes. **The escalation reason was going into `AuditLog.Changes` in full, twice**;
+  BR-9.7's list is five literal things and free text is none of them, and redacting only the ticket
+  column would have left a `[redacted]` placeholder beside the value it was hiding.
+  **`021` then found the same gap a third time** — `Interaction.Body`, an outbound message's text,
+  which is the only text in this product a *customer* receives. Three features, three discoveries,
+  one cause: **BR-9.7 enumerates instead of describing a category**, so every new kind of human
+  text is absent from the list until somebody writes a test that looks. Write that test. **A browser
+  found what no test could** — `PriorityChanged` rendered an actor, a timestamp, a glyph and no
+  sentence. AC-16 is **partial**: FE-016-09's focus trap and screen-reader pass were not done
 - **`012-change-ticket-status` backend delivered** 2026-08-26 — `PUT /api/tickets/{id}/status`, three distinct `409` codes, explicit optimistic concurrency **before** the transition rules (250 tests)
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). Login screen and route guard belong to the frontend lane
@@ -300,6 +333,29 @@ Anything not `yes` is `409 Conflict`. `Closed` is terminal — no reopen, reassi
 escalate, or comment. A same-status transition is `409`, not `200`. `InProgress` requires
 an assignee. `PendingCustomer → Resolved` is not permitted directly.
 
+- **BR-3 escalation — implemented by `016`** — `POST /api/tickets/{id}/escalate`, Manager only,
+  **one-way**. Four things about it that must not be re-derived:
+  - **BR-3.6 is a FLOOR, not an assignment.** `Priority < EscalationPriorityFloor` raises `Low` and
+    `Normal` to `High` and leaves `High` and `Critical` alone. `Priority = High` would silently
+    **downgrade** a `Critical` ticket — the request succeeds, nothing is logged, and the ticket
+    that most needed attention becomes less visible *because* somebody escalated it. Four
+    independent statements guard it: TEST-016-02, the history **row count** (one row for
+    `Critical`, two for `Normal`), the audit diff, and the dialog's own sentence. The comparison
+    is safe only because `TicketPriority` is declared ascending, and
+    `The_priority_rank_is_ascending_by_urgency` pins all four ordinals as written-out literals.
+  - **`canEscalate` is server-computed**, `IsEscalatable && caller is Manager` — one fact about the
+    ticket (BR-3.3, BR-3.4) and one about the caller (BR-3.2). Same rule as `allowedTransitions`
+    (ADR-004): the client renders what it was given. Recomputing it from `status`, `isEscalated`
+    and the role is BR-3 in TypeScript, and it drifts into a menu item that produces a `403` for
+    something the interface offered. One boolean, deliberately — a reason string is a thing the
+    client would branch on. There is a source scan.
+  - **`errors/ticket-not-escalatable` is its own `409`**, not `ticket-closed`, because BR-3.3
+    refuses `Resolved` too and a manager told "this ticket is closed" about a resolved one goes
+    looking for the wrong thing. **BR-3.3 is evaluated before BR-3.4**, and only a ticket in both
+    states can tell the two orders apart.
+  - **There is no de-escalation and no undo (BR-3.9)** — no endpoint, no `isEscalated` on any
+    request body, no `priority` either (it could be sent *below* the floor). Adding one is a new
+    decision.
 - **BR-2 assignment — implemented by `011`** — a `Manager` assigns anyone; an `Agent` may only
   self-assign an unassigned ticket. Assigning a `New` ticket does not move it to `Open`. The
   endpoint carries **no role policy** and cannot: `ManagerOnly` there would refuse every Agent.
@@ -391,6 +447,17 @@ an assignee. `PendingCustomer → Resolved` is not permitted directly.
   pipeline behaviour writes the row in the **same transaction** as the change, so it is
   absent when that transaction rolls back. Denials and failures write a row too, outside
   any transaction. Nothing sensitive in `Changes`. An architecture test enforces it.
+- **BR-9.7's redaction list is a LIST, and a new kind of free text is not on it until somebody
+  adds it.** The rule names a password, a hash, a token, a signing key and a full comment body —
+  so `016`'s escalation reason went out in `Changes` in full, **twice**, because a manager's
+  sentence about a customer is none of those literally. `AuditRedaction.SecretEntityFields` is the
+  list; `04-business-rules.md` records the extension under BR-9.7 rather than editing the rule.
+  **When one request writes the same text to two columns, redact both or redact neither** — the
+  escalation writes it to `Ticket.EscalationReason` and `TicketHistoryEntry.Note` in one
+  transaction, so half a fix produces a row carrying a `[redacted]` placeholder beside the value
+  it is hiding, which is worse than no redaction. Both spellings of an entity go in the list (the
+  CLR type and the table differ), and the **field name survives redaction** — that a reason was
+  recorded is auditable, the reason is not.
 
 The frontend may mirror a rule for UX (disable a button that would be rejected) but is
 never the authority. Every mirrored rule is enforced server-side.
@@ -523,6 +590,28 @@ broken deliberately and both produced a broken feed.
 
 **`errors[field]` with one entry is not a content assertion
 
+**An optional parameter with a `null` default is a field every OTHER caller can silently drop, and
+one shared mapper is what makes that a design instead of a habit.** `CreateTicketCommandHandler.Map`
+grew five optional parameters, one per feature, and each was optional for an honest reason — a
+create has no assignee (BR-2.7), no tags, no escalation. `016` measured its five call sites and
+found **eleven missing fields**: `PUT /status` passed none of the four, `PUT /assignee` passed one
+of three, `POST /escalate` passed two of three. Three were live contract violations since `011`,
+`012` and `034`, because both frozen contracts say the body *is* `TicketDetailResponse`.
+**What kept it invisible is a rule that is itself correct** — `026` §5 forbids a screen rendering a
+ticket from a write response, so the client refetches and every status/assignment test passes.
+`TicketDetailReader` assembles that shape now and `TicketReadShapeTests` fails the build on a
+second direct caller. **A new endpoint returning a ticket calls the reader.**
+
+**Adding a member to an enum the timeline parses is mandatory; adding the client's label for it is
+not, and nothing tells you.** `GetTimelineQueryHandler` uses `Enum.Parse<TimelineEntryType>`, so a
+`TicketHistoryEventType` present in the domain and absent from the timeline enum throws on **every
+later read of that ticket** — a `500` in a feature you never touched. `016` added
+`PriorityChanged` to both and still shipped a blank row: the client's render switch had no case and
+reached `default: return ''`, drawing an actor, a timestamp, a glyph and no sentence. Every
+frontend test passed, because none of them puts that entry in the feed. **Found in a browser.**
+Adding a history event type means four edits: the domain enum, `TimelineEntryType`, the client's
+type union, and the client's label switch — plus a test that asserts the SENTENCE, not the row.
+
 **`errors[field]` with one entry is not a content assertion — it is a shape assertion.** Read the
 message. Six assertion sites across the suite checked a `400` this way — `TryGetProperty("subject")
 is true`, `EnumerateArray().HaveCount(1)` — and **all seventeen unresolved keys went out under
@@ -549,14 +638,67 @@ that the failures did not match the change. **Re-measure every negative control 
 `--no-incremental`**, and kill stray `Wasl.Api` processes first — a file lock turns the same
 build into `MSB3061`, which at least fails loudly.
 
+**A guard that goes red on a legitimate case gets loosened wholesale, so write it narrow enough to
+be right and give it a control that proves it still matches a real offender.** `016` wrote the same
+guard wrong twice. A scan forbidding BR-3 from being recomputed in the client first banned
+`=== 'Closed'` anywhere in `TicketDetailPage.tsx` and went red on `noteRequiredFor` — a BR-1.2
+mirror that predates the feature and is *explicitly permitted*. Narrowed to escalation lines, it
+went red on `if (type === 'Escalated')`: the timeline's dispatch over an **entry type**, because
+`Escalated` the event and `Resolved` the status are different vocabularies. The catalogue parity
+guard did the same thing from the other side, reporting three plural keys where English carries
+`{{formatted}}` and Arabic spells the number out — both correct, and Arabic's dual makes
+«تذكرتان» *mean* "two tickets". **Neither was a rule violation; both would have been "fixed" by
+weakening the guard.**
+
+**Measure the suspect BEFORE fixing it, and kill stray processes by PORT OWNER.** `021` had three
+consecutive configuration attempts fail — an environment variable, a `--Key=Value` argument, and
+`appsettings.Development.json` — while a test proved the same setting worked through `UseSetting`.
+Three negative results all pointing at the options binder, and the next step was nearly to change
+the type it binds to. A five-test probe asked the binder directly instead: **all five passed.**
+Only then did the startup log say
+`Failed to bind to address http://127.0.0.1:5272: address already in use` — every restart had
+failed and every probe had been answered by the *original* process. **`pkill -f "Wasl.Api"` does
+not kill it, because the process is `dotnet`;** kill the owner of the port
+(`Get-NetTCPConnection -LocalPort 5272` → `OwningProcess`). This file already names the
+stale-process hazard for the BUILD; it is the same hazard for a MEASUREMENT, and the cost of
+getting it wrong is a permanent, pointless change defended by confident reasoning.
+
+**Generating a migration is not applying it, and the integration suite cannot tell you.** `021`
+answered `500` on both new endpoints in a browser — including the pure read, which is the tell.
+SQL Server error **208**, invalid object name. The fixture builds the schema from scratch every
+run, so a suite of 591 green integration tests says nothing about the database that already
+exists. **A feature with a migration is not verified until it has been driven against a database
+that predates it** — `dotnet run --project src/Wasl.Api -- --provision`.
+
+**A schema assertion on `sys.*` must be made by a principal allowed to see the schema.** `021`'s
+AC-9 asked for a non-null `definition` from `sys.check_constraints` and got NULL — because that
+column needs `VIEW DEFINITION`, `003b`'s `db_datareader` does not grant it, and **SQL Server
+returns null rather than erroring**. The test reported a missing constraint for one that was
+present and enforcing. Read schema metadata on the **migrator** connection and behaviour on the
+**runtime** one; and prefer a non-nullable column (`has_filter`) over a nullable one
+(`filter_definition`) when the question is "does this object exist", because a null cannot tell
+"absent" from "no value".
+
+**`vitest run` is not a verification of a TypeScript file.** `016` had a new guard passing 38 tests
+while the file carried two `tsc` errors and one `eslint` error. Vitest does not typecheck. `tsc -b`
+and `eslint` are separate statements and both have to be made.
+
 **Verify a measurement with something below it.**
  A `grep` over `src/` cannot see what
 the framework builds inside itself — `002`'s AC-2 guard was green while three request
-shapes returned the framework's envelope. Five tools have lied here: that grep, a
+shapes returned the framework's envelope. **Six tools have lied here:** that grep, a
 regex that matched the wrong table, a preview toggle that said `en` while rendering
-Arabic, a measurement block that named the wrong label, and the **build** (see above). Each produced a
-well-formed report about nothing. **A measurement that names the wrong thing is worse
-than no measurement, because it is believed.**
+Arabic, a measurement block that named the wrong label, the **build** (see above), and
+**`Invoke-RestMethod` in PowerShell 5.1** — it encodes a string body as ISO-8859-1 when the
+content type declares no charset, so a live Arabic escalation reason came back `?????`
+while an Arabic *name* in the same output rendered fine. That is exactly the shape this
+file warns about for `varchar`, so the obvious next step was to go and look at the column.
+Re-probing with `[Text.Encoding]::UTF8.GetBytes` and `charset=utf-8` round-tripped it
+byte-identical. **Send a body as UTF-8 bytes with an explicit charset when probing this API
+by hand, or the tool will hand you someone else's bug.**
+
+Each produced a well-formed report about nothing. **A measurement that names the wrong
+thing is worse than no measurement, because it is believed.**
 
 ## Correctness under concurrency and abuse — check these on every write
 
@@ -620,10 +762,19 @@ rules, in `PUT /api/tickets/{id}/assignee`. Role-only checks go on the endpoint 
 assignee?") go in the handler off `ICurrentUser.UserId` — and the reason is in BR-6 above, because
 `011` measured what happens when you put them in the wrong place.
 
-**`ManagerOnly` still has no production consumer.** `011` deliberately did not use it: BR-2.2 lets
-an Agent self-assign, so a role gate on that endpoint would refuse the legitimate case. It is
-proven by `004` AC-7 against a test-host endpoint, which is honest and is not the same as proven in
-the product. The first endpoint that is genuinely Manager-only should carry it.
+**`ManagerOnly` HAS a production consumer now — `POST /api/tickets/{id}/escalate`, `016`.** This
+line said it had none until 2026-09-08, and the instruction it carried has been followed: BR-3.2
+has no BR-2.2-shaped exception, so escalation is the first endpoint that is genuinely Manager-only
+and it carries the policy. `011` still deliberately does not, for the reason it always gave — an
+Agent self-assigning is legitimate, and a role gate there would refuse the legal case.
+
+What `016` measured on the real endpoint, with a real Agent token: `403`, an **enveloped** body
+(`004b`), an `Auth.Forbidden` audit row matched to the trace id *in the response*, and the handler
+never reached. `004` AC-7's test-host proof still stands and is no longer the only proof.
+
+**The policy sits ahead of the lookup, and that is a disclosure decision.** An Agent gets `403` for
+an id that does not exist, so the endpoint tells them nothing about which tickets are real. Moving
+the check into the handler would turn it into an enumeration oracle with a green build.
 
 **Never fill any remaining gap with a fake actor** — a seeded "system" user, a header, a
 constant claim. ADR-005 rejects it by name, and the rule still applies: `004` closed the gap by
@@ -669,6 +820,36 @@ Controls D1 to D3, and the list was found short because D1 had to be run four ti
 reached the key it was actually testing.
 
 
+## Scheduled work — there is exactly one, and it must never stop the host
+
+`020b` introduced the **first and only** background service in this product:
+`Wasl.Infrastructure/Scheduling/DailySnapshotService.cs`, registered by `AddInfrastructure`
+like everything else that layer owns. It captures the dashboard's four attention levels into
+`dbo.DashboardDailySnapshot` once per local day, which is what the tiles' `▲ vs prev` arrows are
+measured against.
+
+**`HostOptions.BackgroundServiceExceptionBehavior` defaults to `StopHost`** — measured, not read
+— so an exception escaping a `BackgroundService` takes the whole API down. That is the wrong trade
+here by a wide margin: a failed snapshot would close every ticket screen for a number that
+decorates four tiles. **The service therefore catches inside its own loop**, logs at `Error` with
+the local date, and waits for the next tick. **Do not "simplify" that to
+`BackgroundServiceExceptionBehavior = Ignore`** — it is global, and it would silence the next
+background service somebody adds, whose failure may well deserve to stop the host.
+
+| Rule | Why |
+|---|---|
+| **A missed day stays missed, and is NEVER back-filled** | A snapshot is the level *at the moment of capture*. Filing today's levels under yesterday's date produces a row indistinguishable from a real one and wrong by a day's work — the same defect as reconstructing history, which `020b` §2.1 rejected on measurement |
+| **The tick is frequent (15 min) and the decision is inside it** | A timer aimed once at midnight misses the day entirely if the process restarts at the wrong minute, and a restart is the normal case |
+| **The clock is `TimeProvider` and the day comes from `Wasl:OrganizationTimeZone`** | `PeriodicTimer` takes a `TimeProvider` on this target (verified by compiling it), so tests drive the loop instead of waiting. The *decision* — which day a capture describes — is a pure function in `DailySnapshotSchedule`, tested with no host at all |
+| **Two instances are safe by the INDEX, not by the check** | `UX_DashboardDailySnapshot_Date_Scope` plus an upsert. The `AlreadyCaptured` query is an optimisation; removing it would leave the feature correct and merely wasteful |
+| **It runs with no principal** | `ICurrentUser` is request-scoped. The capture takes its scope from the `SupportUsers` rows it is capturing for, never from an ambient user, and writes no audit row — a snapshot is derived data, not a state change a person made |
+
+**EF Core adds `IS NOT NULL` to a unique index over a nullable column by default**, which would
+have excluded every team row (`ScopeUserId IS NULL`) from that index and let the team's snapshot
+silently duplicate. `.HasFilter(null)` suppresses it. **ADR-013 tells you to check that
+`filter_definition` comes back non-null for BR-4's *partial* index; here the correct answer is the
+opposite** — so read the filter and know which answer you want, rather than expecting one.
+
 ## Definition of Done
 
 Full list: [docs/sdd/09-definition-of-done.md](docs/sdd/09-definition-of-done.md). The
@@ -696,7 +877,7 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | **.NET 10** — confirmed by the product owner 2026-08-23, while the house platform targets `net8.0` | `specs/001-solution-skeleton/research.md` R-3 — current LTS, one line to revert. `global.json` pins the SDK band because a preview `10.0.400` is also installed and would otherwise win |
 | React, not Angular | ADR-003 (Q-4, Q-12 closed) |
 | No global state store | ADR-011 §1 |
-| `ICommunicationProvider` + one Mock is **specified and NOT built** | `docs/sdd/08-board.md`, feature `021`. Channels is a named module in the requirement, and the module is still a requirement. **This row said "is built" until `036` grepped for it: zero matches in `src/`, and `Wasl.Domain/Communications/` holds one file, `CommunicationChannel.cs`.** Corrected in place, in the shape `034` used for `Interaction` one line above — a false claim of a built component is worse than an unbuilt one, because nobody goes looking |
+| `ICommunicationProvider` + one Mock **IS built now — `021`, 2026-09-08** | This row has been wrong in both directions. It said "is built" until `036` grepped and found zero matches; it then said "specified and NOT built" until `021` built it. `ICommunicationProvider` is in `Wasl.Application/Common/Abstractions/`, `MockCommunicationProvider` in `Wasl.Infrastructure/Communications/`, one instance per sendable channel, and `CommunicationProviderRegistry` is the single source of the sendable set. **Still no credential and no network** — that half of the exclusion in `00-project-context.md` is untouched and AC-17 asserts it by search. **`Interaction` is built too**, which the row above this one said was never built |
 | Attachments are **out of scope**, stated explicitly in the affected `spec.md` | `docs/sdd/00-project-context.md` |
 | Theming: token architecture in `006`, settings screen deferred | ADR-012, accepted in part |
 | **`TransactionBehaviour` and `AuditBehaviour` live in `Wasl.Infrastructure`**, not beside `ValidationBehaviour` | `003` `research.md` R-14, product owner 2026-08-25. Both need a real transaction; `IApplicationDbContext` exposes no EF Core type and `IDbContextTransaction` is one, so putting it there would fail the architecture test. The `IUnitOfWork` wrapper was the alternative and was turned down — the boundary keeps **no exemption** |

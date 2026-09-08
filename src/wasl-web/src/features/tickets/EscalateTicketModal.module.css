@@ -1,0 +1,103 @@
+/* ============================================================================
+ * EscalateTicketModal — `016`
+ * ============================================================================
+ * The BODY only. The scrim, the panel, the fixed head and foot, the focus trap
+ * and "a scrim click does not close a modal holding input" are all
+ * `components/Modal`, so nothing here re-declares them.
+ *
+ * Every value is a semantic token. The three notices reuse the tones
+ * `CloseTicketModal` established rather than inventing a fourth convention on a
+ * screen that already has one — a form with two error conventions is a form
+ * nobody reads at a glance.
+ * ========================================================================= */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lead {
+  margin: 0;
+  font-size: var(--text-helper);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* ---- the three notices ---------------------------------------------------- */
+
+/* A statement about what will happen, or a refusal the server gave. Reported
+   here and NEVER as a toast — `016` AC-16. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-helper);
+  line-height: 1.6;
+}
+
+/* WHAT THE PRIORITY WILL DO. Info rather than warning: it is not a hazard, it
+   is the one consequence the reader cannot see from the form. Untinted border,
+   which is the tinted-panel pattern `tokens.css` describes — there is no
+   `--state-info-border` and adding one for a single consumer is the gap that
+   note warns against filling on spec. */
+.noticeInfo {
+  background-color: var(--state-info-bg);
+  color: var(--state-info-text);
+}
+
+/* ONE-WAY. Amber and bordered, the shape `038`'s duplicate banner introduced —
+   the border is what separates a hazard panel from a tinted statement, and the
+   two sit next to each other here. */
+.noticeWarn {
+  background-color: var(--state-warning-bg);
+  border: 1px solid var(--state-warning-border);
+  color: var(--state-warning-text);
+}
+
+.noticeError {
+  background-color: var(--state-danger-bg);
+  border: 1px solid var(--state-danger-text);
+  color: var(--state-danger-text);
+}
+
+/* `flex: none` so a long sentence does not squash the glyph, and 1px of optical
+   lead-in so a 16px icon sits on the first line's baseline rather than above it. */
+.noticeIcon {
+  flex: none;
+  margin-block-start: 1px;
+}
+
+/* ---- the foot ------------------------------------------------------------- */
+
+/* `inline-size: 100%` IS LOAD-BEARING, AND IT WAS MEASURED IN THE BROWSER.
+   `components/Modal`'s own `.foot` is `display: flex; justify-content:
+   flex-start`, so a single child div is a flex item that shrinks to its content:
+   without this the footer was 119px inside a 420px panel and `.grow` below grew
+   the primary to fill 119px rather than the dialog.
+
+   `039`'s CloseTicketModal has the same three rules and the same comment about
+   the primary taking the remaining width, and it was 151px in the same 420px —
+   so that claim had never been true on either modal. Fixed in both. */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  inline-size: 100%;
+}
+
+/* The primary takes the remaining width, as on the close modal. NAVY, from
+   `Button`'s own `primary`: `danger` is for deletion, and escalation raises a
+   ticket's visibility rather than destroying anything. That it cannot be undone
+   is said in words, in the amber panel, where a reader will actually read it —
+   a red button says "careful" and nothing about permanence. */
+.grow {
+  flex: 1 1 auto;
+  display: flex;
+}
+
+.grow > * {
+  flex: 1 1 auto;
+}

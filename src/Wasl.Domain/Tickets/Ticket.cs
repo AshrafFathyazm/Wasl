@@ -116,6 +116,37 @@ public sealed class Ticket : IAuditableEntity
         TicketStatusTransitions.AllowedFrom(Status, AssignedToUserId is not null);
 
     /// <summary>
+    /// Whether the ticket's own state permits escalation. BR-3.3, BR-3.4. `016`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>The ticket's half of <c>canEscalate</c>, and only that half.</b> The other half is the
+    /// caller's role (BR-3.2), which a ticket does not know — so the read shape's
+    /// <c>canEscalate</c> is this AND "the caller is a Manager", combined where the caller is
+    /// known. Putting the role here would mean passing a principal into a domain entity.
+    /// </para>
+    /// <para>
+    /// Computed, never stored (ADR-004) — the same treatment <see cref="AllowedTransitions"/>
+    /// gets, and for the same reason: a stored copy of a derived rule is a copy that goes stale
+    /// the first time the rule changes.
+    /// </para>
+    /// </remarks>
+    public bool IsEscalatable =>
+        !IsEscalated && Status is not (TicketStatus.Resolved or TicketStatus.Closed);
+
+    /// <summary>
+    /// The priority floor escalation applies. BR-3.6.
+    /// </summary>
+    /// <remarks>
+    /// <b>A FLOOR, not an assignment — and `docs/sdd/testing/test-strategy.md` names this the
+    /// rule most likely to be implemented wrongly.</b> Writing <c>Priority = High</c> silently
+    /// DOWNGRADES a <c>Critical</c> ticket: the request succeeds, nothing is logged, and the
+    /// ticket that most needed attention becomes less visible <i>because</i> somebody escalated
+    /// it.
+    /// </remarks>
+    public const TicketPriority EscalationPriorityFloor = TicketPriority.High;
+
+    /// <summary>
     /// The only way to create a ticket. Always <see cref="TicketStatus.New"/> and unassigned
     /// (AC-2, BR-1.1).
     /// </summary>
@@ -250,6 +281,93 @@ public sealed class Ticket : IAuditableEntity
 
         return TicketHistoryEntry.StatusChanged(Id, previous, target, occurredAtUtc, note);
     }
+
+    /// <summary>
+    /// Escalates the ticket. `016` — BR-3.3 to BR-3.8.
+    /// </summary>
+    /// <param name="reason">
+    /// The manager's written reason. <b>Trimmed here</b>, so the stored value never carries
+    /// trailing whitespace whatever the caller passed.
+    /// </param>
+    /// <param name="escalatedByUserId">The Manager. From <c>ICurrentUser</c>, never a constant.</param>
+    /// <param name="occurredAtUtc">From <c>IRequestTimestamp</c>, never <c>DateTime.UtcNow</c>.</param>
+    /// <returns>
+    /// The <c>Escalated</c> history row, and a <c>PriorityChanged</c> row <b>only when the floor
+    /// actually moved the priority</b>. Two rows or one — never a row recording that nothing
+    /// happened.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <b>The two state rules are here because they are invariants of the ticket</b>, true for
+    /// every caller — a handler, a seeder, a future bulk import. BR-3.2 (Manager only) is NOT
+    /// here: it is a fact about the caller, it is a role-only check, and BR-6 puts those on the
+    /// endpoint as a policy. `011` measured what happens when the two are swapped.
+    /// </para>
+    /// <para>
+    /// <b>The order is fixed and it is the contract's:</b> not-escalatable before
+    /// already-escalated. A ticket that is both closed and already escalated reports the terminal
+    /// state, because a manager told "already escalated" about a closed ticket would go looking
+    /// for de-escalation — and BR-3.9 says there is none.
+    /// </para>
+    /// <para>
+    /// <b>Nothing here can un-escalate.</b> BR-3.9 makes escalation one-way for the ticket's
+    /// lifetime, which is why there is no inverse method and why the read shape's
+    /// <c>isEscalated</c> is documented as never returning to <c>false</c>.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<TicketHistoryEntry> Escalate(
+        string reason,
+        Guid escalatedByUserId,
+        DateTime occurredAtUtc)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        // BR-3.3, and FIRST — see the remarks. Resolved is refused as well as Closed, so this is
+        // not TicketClosedException wearing a different name.
+        if (Status is TicketStatus.Resolved or TicketStatus.Closed)
+        {
+            throw new TicketNotEscalatableException(Status);
+        }
+
+        // BR-3.4.
+        if (IsEscalated)
+        {
+            throw new TicketAlreadyEscalatedException();
+        }
+
+        IsEscalated = true;
+        EscalatedAtUtc = occurredAtUtc;
+        EscalatedByUserId = escalatedByUserId;
+        EscalationReason = reason.Trim();
+
+        var rows = new List<TicketHistoryEntry>
+        {
+            TicketHistoryEntry.Escalated(
+                Id, EscalationReason, occurredAtUtc, escalatedByUserId),
+        };
+
+        /* BR-3.6 — A FLOOR, NOT AN ASSIGNMENT.
+         *
+         * `Priority = High` would silently downgrade a Critical ticket: the request succeeds,
+         * nothing is logged, and the ticket that most needed attention becomes LESS visible
+         * because somebody escalated it. The test strategy names this the rule most likely to be
+         * implemented wrongly, and TEST-016-02 is the named test.
+         *
+         * The comparison works because TicketPriority is declared Low < Normal < High < Critical
+         * and `009` stores it as a STRING — so the ordinal is a compile-time fact about the
+         * declaration order and not something a row can disagree with. */
+        if (Priority < EscalationPriorityFloor)
+        {
+            var previousPriority = Priority;
+            Priority = EscalationPriorityFloor;
+
+            rows.Add(TicketHistoryEntry.PriorityChanged(
+                Id, previousPriority, Priority, occurredAtUtc, escalatedByUserId));
+        }
+
+        return rows;
+    }
+
     /// <summary>
     /// Sets or clears the assignee. `011` AC-8, AC-9, AC-10, AC-11 — BR-2.5, BR-2.6, BR-2.7.
     /// </summary>

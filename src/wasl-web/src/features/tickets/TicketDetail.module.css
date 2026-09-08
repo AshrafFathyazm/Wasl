@@ -349,6 +349,61 @@
   color: var(--state-danger-text);
 }
 
+/* ---- the escalation callout on the rail — `016` --------------------------- */
+
+/* DATA, not an action, and the first region on this rail to be on the right side
+   of `027`'s split: every value comes off the response — `escalatedAtUtc`,
+   `escalatedBy`, `escalationReason` — so nothing here is drawn from a field the
+   product does not have. That is the whole difference between this block and the
+   SLA block, which is still absent.
+
+   Amber rather than the header pill's red. The pill is a STATE marker in a row
+   of state markers and shares its red with `Critical`; this is a paragraph of
+   facts, and a red panel on the rail would read as a failure rather than as a
+   raised priority. */
+.escalatedBlock {
+  gap: 4px;
+  padding: var(--space-3);
+  background-color: var(--state-warning-bg);
+  border: 1px solid var(--state-warning-border);
+  border-radius: var(--radius-sm);
+}
+
+.escalatedHead {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--state-warning-text);
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+}
+
+.escalatedMeta {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.escalatedReasonLabel {
+  margin-block-start: 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* `overflow-wrap` rather than a clamp: the reason is up to 500 characters and it
+   is the only record of WHY a ticket was escalated, so it is not the thing to
+   truncate on a rail the reader can scroll. `pre-wrap` keeps the manager's own
+   line breaks, the way the timeline renders a comment. */
+.escalatedReason {
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* The subject card repeats the priority as its leading edge. One small chip is
  * not enough to change a triage decision — the canvas's own reasoning. */
 .subjectCard.prCritical,

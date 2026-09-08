@@ -24,6 +24,19 @@ public enum TimelineEntryType
     Escalated,
     CommentAdded,
     Comment,
+
+    /// <summary>
+    /// The priority moved. `016`, mirroring <c>TicketHistoryEventType.PriorityChanged</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>This member is load-bearing even though `027` does not draw the row.</b>
+    /// <c>TicketTimelineQuery</c> maps the stored event type with
+    /// <c>Enum.Parse&lt;TimelineEntryType&gt;</c>, so the first <c>PriorityChanged</c> row `016`
+    /// writes would have thrown on every subsequent timeline read — a `500` on the ticket detail
+    /// screen, caused by a successful escalation. The two enums' remark that they "mirror exactly"
+    /// is what made the omission findable.
+    /// </remarks>
+    PriorityChanged,
 }
 
 /// <summary>

@@ -61,6 +61,52 @@ public sealed record CreateTicketResult(
     TicketAssignee? Assignee,
 
     bool IsEscalated,
+
+    /// <summary>When the ticket was escalated, or <c>null</c> before it. BR-3.7. `016`.</summary>
+    /// <remarks>
+    /// <b>Always present with a null value before escalation</b>, never omitted — the same rule
+    /// <see cref="ClosedAtUtc"/> records, and for the same reason: an absent key deserialises to
+    /// undefined, renders as empty, and passes every shape assertion.
+    /// </remarks>
+    DateTime? EscalatedAtUtc,
+
+    /// <summary>
+    /// The Manager who escalated. <c>null</c> before escalation. `016`.
+    /// </summary>
+    /// <remarks>
+    /// Still reported if that user is later deactivated — there is no hard delete and the FK is
+    /// <c>ON DELETE NO ACTION</c>, which is what makes the history readable after somebody
+    /// leaves.
+    /// </remarks>
+    TicketAssignee? EscalatedBy,
+
+    /// <summary>
+    /// The reason, verbatim. <c>null</c> before escalation. BR-3.7. `016`.
+    /// </summary>
+    /// <remarks>
+    /// <b>Never translated</b> (BR-8.10) and stored trimmed. It may be Arabic in an English
+    /// interface, so the client renders it with <c>dir="auto"</c>.
+    /// </remarks>
+    string? EscalationReason,
+
+    /// <summary>
+    /// <b>The server's answer to "may this caller escalate this ticket right now?"</b> `016`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>IsEscalatable</c> AND the caller is a <c>Manager</c> — the ticket's half and the
+    /// caller's half combined here, because a ticket does not know who is asking.
+    /// </para>
+    /// <para>
+    /// <b>It exists for the reason <see cref="AllowedTransitions"/> exists</b> (ADR-004,
+    /// Constitution III): the server says what is permitted rather than the client deriving it. A
+    /// client computing <c>role === 'Manager' &amp;&amp; !isEscalated &amp;&amp;
+    /// !['Resolved','Closed'].includes(status)</c> is a second implementation of BR-3, and the two
+    /// copies drift into a menu item that produces a `403`.
+    /// </para>
+    /// </remarks>
+    bool CanEscalate,
+
     Guid? CreatedByUserId,
     DateTime CreatedAtUtc,
     DateTime UpdatedAtUtc,

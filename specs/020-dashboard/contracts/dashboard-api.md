@@ -472,3 +472,45 @@ changed.
   `Validation.Dashboard.RangeRepeated`, "Send range once." — rather than the accepted-values
   one, because both values in `?range=7d&range=30d` are accepted and saying otherwise sends the
   caller looking at the wrong thing.
+
+### 2026-09-08 — `attention.previous`, from `020b`
+
+One additive object, and no existing property changes. It answers the canvas's `▲ 3 vs prev`,
+which `020` recorded as **not built** because the tiles are a STOCK and the product kept no
+history of one. `020b` writes that history down.
+
+```jsonc
+"attention": {
+  // …every field above, plus:
+  "previous": {                    // ABSENT when no snapshot exists for the baseline day
+    "localDate": "2026-08-24",     // WHICH day this is measured against, echoed
+    "unassignedCount": 9,
+    "escalatedOpenCount": 4,
+    "waitingOnCustomerCount": 16,
+    "oldestUntouchedHours": 51     // null when nothing was untouched that day
+  }
+}
+```
+
+**The baseline day is the day BEFORE the range began** — so a `14d` view compares against the
+level a fortnight ago. It is derived from the same day spine the series uses, so the two can never
+disagree about the timezone, and it is echoed so no client re-derives it.
+
+**Absent, not `null`, and the client renders NO ARROW** — not a dash, not a zero, not a grey
+arrow. Before the capture has been running for the length of the range there is no answer, and a
+UI implying a comparison that does not exist is worse than a tile that looks like today's.
+
+**One object, not five nullable numbers.** They come from one snapshot row and are true together
+or absent together; five independent nulls would invite a client to draw four arrows and a gap.
+
+**The server sends the BASELINE, never a delta.** The tile needs the direction, the magnitude and
+the number being measured against — `+3` alone throws away the third.
+
+**It costs no eighth command.** A `LEFT JOIN` onto the existing attention statement, keyed on the
+local date the spine already computed. Seven for a Manager and six for an Agent still holds, and
+`020b` AC-8 asserts it with a baseline actually present — a join that matched nothing could have
+hidden a second command that only runs on a hit.
+
+**Scoped like everything else:** a Manager reads the team's row (`ScopeUserId IS NULL`), an Agent
+reads their own. An Agent with no row of their own gets **no** baseline rather than falling back
+to the team's, which would put the team's numbers under a scoped tile and look plausible.

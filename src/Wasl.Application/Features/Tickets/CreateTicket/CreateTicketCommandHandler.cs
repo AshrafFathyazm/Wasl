@@ -103,10 +103,29 @@ internal sealed class CreateTicketCommandHandler(
     /// The one mapping every endpoint that returns a ticket goes through.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <paramref name="assignee"/> is optional and defaults to null, added by `011`. A create
     /// never has one — BR-2.7 keeps assignment a separate act — and the read endpoints supply it
     /// when the ticket has one. Optional rather than required so `009`'s and `010`'s call sites
-    /// did not have to change to pass a null they could not have.
+    /// did not have to change to pass a null they could not have. <paramref name="tags"/> (`034`)
+    /// and <paramref name="escalatedBy"/> / <paramref name="callerIsManager"/> (`016`) were added
+    /// on the same reasoning.
+    /// </para>
+    /// <para>
+    /// <b>THE REASONING WAS SOUND EACH TIME AND THE RESULT WAS FOUR WRONG RESPONSES.</b> Every
+    /// one of those parameters is honestly unavailable to the create — and each then became a
+    /// field the other four callers also silently failed to supply. `016` measured them and found
+    /// eleven missing fields across the five call sites, three of them contract violations
+    /// standing since `011`, `012` and `034`. A default of <c>null</c> is indistinguishable from
+    /// a deliberate <c>null</c> at the call site, and no build error exists to find.
+    /// </para>
+    /// <para>
+    /// <b>So this method has ONE caller now — the create above.</b> Every other endpoint goes
+    /// through <c>TicketDetailReader.ReadAsync</c>, which assembles all five arguments from the
+    /// ticket and the token and cannot omit one. Keep it that way: a new endpoint returning a
+    /// ticket calls the reader. <c>TicketReadShapeTests</c> fails the build if a second direct
+    /// caller appears.
+    /// </para>
     /// </remarks>
     internal static CreateTicketResult Map(
         Ticket ticket,
@@ -117,7 +136,23 @@ internal sealed class CreateTicketCommandHandler(
          * has no tags, and making it required would force every existing caller to pass a value
          * it cannot have. The empty list is supplied HERE rather than defaulted on the record,
          * because a record positional parameter cannot default to a collection. */
-        IReadOnlyList<TagSummary>? tags = null) =>
+        IReadOnlyList<TagSummary>? tags = null,
+
+        /* `016`'s read half. Optional for the reason `assignee` and `tags` are: a create can
+         * never have escalated, so `009`'s call site cannot supply either of these. */
+        TicketAssignee? escalatedBy = null,
+
+        /* WHETHER THE CALLER IS A MANAGER — the caller's half of `canEscalate` (BR-3.2).
+         *
+         * A BOOL rather than an `ICurrentUser` on this static method, deliberately. `Map` is
+         * called from five handlers and a mapper that reaches for an ambient principal is a mapper
+         * whose output depends on something its signature does not mention — which is exactly how
+         * a read shape starts differing between two endpoints for no visible reason.
+         *
+         * FALSE by default, so a caller that forgets it renders no escalate action rather than one
+         * that produces a `403`. Refusing to offer an action somebody could take is a smaller
+         * defect than offering one they cannot. */
+        bool callerIsManager = false) =>
         new(
             Id: ticket.Id,
             TicketNumber: ticket.TicketNumber,
@@ -135,6 +170,16 @@ internal sealed class CreateTicketCommandHandler(
             // the client rather than a missing lookup here.
             Assignee: assignee,
             IsEscalated: ticket.IsEscalated,
+            EscalatedAtUtc: ticket.EscalatedAtUtc,
+            EscalatedBy: escalatedBy,
+            EscalationReason: ticket.EscalationReason,
+
+            /* `016`. BOTH halves, and neither is stored: the ticket's own state (BR-3.3, BR-3.4)
+             * and the caller's role (BR-3.2). Computed here for the same reason
+             * `allowedTransitions` is — the server tells the client what is permitted, so BR-3
+             * has one implementation. */
+            CanEscalate: ticket.IsEscalatable && callerIsManager,
+
             CreatedByUserId: ticket.CreatedByUserId,
             CreatedAtUtc: ticket.CreatedAtUtc,
             UpdatedAtUtc: ticket.UpdatedAtUtc,

@@ -100,6 +100,18 @@ const MANAGER: DashboardSnapshot = {
     },
     myOldest: null,
     needsAttentionTotal: 15,
+
+    /* `020b`. The canvas's own deltas: ▲3 unassigned, ▼1 escalated, ▲2d on the
+       oldest, ▲5 waiting. Present here so the arrows are reviewable — the EMPTY
+       and AGENT frames below deliberately omit `previous`, which is what the first
+       fortnight after the capture starts running actually looks like. */
+    previous: {
+      localDate: '2026-08-24',
+      unassignedCount: 9,
+      escalatedOpenCount: 4,
+      waitingOnCustomerCount: 16,
+      oldestUntouchedHours: 51,
+    },
   },
   dailySeries: series(CREATED, RESOLVED),
   openByStatus: [

@@ -175,13 +175,40 @@ in `decisions/ADR-008-audit-log.md`.
 | BR-9.4 | For a denied or failed action there is no business transaction to join, so the row is written independently. This asymmetry is deliberate and is tested. |
 | BR-9.5 | `AuditLog` is append-only. The application's database role is granted `INSERT` and `SELECT` only; `UPDATE` and `DELETE` are revoked. |
 | BR-9.6 | The actor's email and role are **snapshotted** onto the row, never resolved by joining to `SupportUsers`. The role recorded is the role held at the time of the action. |
-| BR-9.7 | Redaction is mandatory. An audit row never contains a password, a password hash, a token, a signing key, or a full comment body. A comment records that a comment was added, consistent with BR-5.5. |
+| BR-9.7 | Redaction is mandatory. An audit row never contains a password, a password hash, a token, a signing key, or a full comment body. A comment records that a comment was added, consistent with BR-5.5. **Extended by `016` — see the note below the table.** |
 | BR-9.8 | `Changes` records the fields that actually changed, before and after. A field whose value did not change is not recorded. |
 | BR-9.9 | `TraceId` on the audit row matches the `traceId` in the `ProblemDetails` response and the correlation id in the request log, so one identifier links all three. |
 | BR-9.10 | Audit content is always English, regardless of the request locale (BR-8.9). |
 | BR-9.11 | Only a `Manager` may read the audit log. Reading it is itself audited as `Audit.Read`. |
 | BR-9.12 | Audit rows have no foreign keys. A row must be able to record a deletion and continue to exist afterwards. |
 | BR-9.13 | Nothing in the application deletes an audit row. Retention, if any, is an operational job outside the application — and the retention period is an open question, not an assumption (`11-open-questions.md` Q-9). |
+
+#### BR-9.7's list was extended by `016`, 2026-09-08 — recorded, not edited away
+
+BR-9.7 enumerates five things: a password, a password hash, a token, a signing key, and a
+full comment body. **An escalation reason is none of them, so it went out in `Changes` in
+full** — and `016`'s own `tasks.md` (BE-016-06, TEST-016-14) says explicitly that it must
+not, on BR-9.7's own stated principle: the trail records **that** something happened, and
+the human sentence about a customer lives on the timeline.
+
+`AuditRedaction`'s entity-qualified list gained three rows:
+
+| Row | Why |
+|---|---|
+| `Ticket.EscalationReason` | The reason itself, on the ticket. |
+| `TicketHistoryEntry.Note` · `TicketHistory.Note` | **The same request writes the reason here too**, in the same transaction, so one diff carried it twice. Redacting only the ticket column produced a row with a `[redacted]` placeholder sitting beside the value it was hiding — measured by `EscalateTicketTests`, not predicted. Both spellings are listed because the CLR type and the table differ, as they do for comments. |
+
+**This also redacts `012`'s status-change note, and that is intended.** BR-1.2's note is the
+same category of data reaching the same column through a different endpoint — an agent's
+free text about a customer's ticket — so exempting it would mean the trail protects the
+sentence a Manager typed and publishes the sentence an Agent typed. No test asserted that
+note was in the diff, so nothing had to be loosened.
+
+**What is NOT redacted, deliberately:** the field *names* survive, and so does the fact
+that the field changed. `Ticket.EscalationReason: null → [redacted]` is the row, and it is
+what makes "this ticket was escalated with a stated reason" auditable without publishing
+the reason. A redacted `null` still becomes the placeholder, so the row cannot leak the
+difference between "absent" and "set".
 
 ### Action naming
 

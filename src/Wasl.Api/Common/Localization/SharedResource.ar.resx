@@ -97,6 +97,48 @@
   <data name="Error.AlreadyEscalated.Title" xml:space="preserve">
     <value>تم تصعيد هذه التذكرة بالفعل.</value>
   </data>
+  <data name="Error.Ticket.AlreadyEscalated" xml:space="preserve">
+    <value>هذه التذكرة مُصعّدة بالفعل، والتصعيد لا يمكن التراجع عنه.</value>
+  </data>
+  <data name="Error.TicketNotEscalatable.Title" xml:space="preserve">
+    <value>لا يمكن تصعيد هذه التذكرة.</value>
+  </data>
+  <data name="Error.Ticket.NotEscalatable" xml:space="preserve">
+    <value>لا يمكن تصعيد تذكرة حالتها {0}.</value>
+  </data>
+  <data name="Validation.Ticket.EscalationReasonRequired" xml:space="preserve">
+    <value>السبب مطلوب، من حرف إلى 500 حرف.</value>
+  </data>
+  <data name="Validation.Ticket.EscalationReasonTooLong" xml:space="preserve">
+    <value>يجب ألا يزيد السبب عن 500 حرف.</value>
+  </data>
+  <data name="Error.NoContactForChannel.Title" xml:space="preserve">
+    <value>لا يوجد لهذا العميل عنوان للقناة المختارة.</value>
+  </data>
+  <data name="Error.Communication.NoEmailForChannel" xml:space="preserve">
+    <value>لا يوجد بريد إلكتروني لهذا العميل، فلا يمكن استخدام البريد. اختر قناة أخرى، أو أضف بريدًا إلكترونيًا للعميل.</value>
+  </data>
+  <data name="Error.Communication.NoPhoneForChannel" xml:space="preserve">
+    <value>لا يوجد رقم جوال لهذا العميل، فلا يمكن استخدام هذه القناة. اختر قناة أخرى، أو أضف رقم جوال للعميل.</value>
+  </data>
+  <data name="Error.Communication.NoAddressForChannel" xml:space="preserve">
+    <value>لا يوجد لهذا العميل عنوان للقناة المختارة. اختر قناة أخرى.</value>
+  </data>
+  <data name="Error.Communication.SendNotPermitted" xml:space="preserve">
+    <value>لا تملك صلاحية إرسال رسالة على هذه التذكرة. يمكن للوكيل الإرسال على التذاكر المُسندة إليه أو غير المُسندة فقط.</value>
+  </data>
+  <data name="Validation.Communication.BodyRequired" xml:space="preserve">
+    <value>الرسالة مطلوبة، من حرف واحد إلى 4000 حرف.</value>
+  </data>
+  <data name="Validation.Communication.BodyTooLong" xml:space="preserve">
+    <value>يجب أن تكون الرسالة 4000 حرف أو أقل.</value>
+  </data>
+  <data name="Validation.Communication.ChannelInvalid" xml:space="preserve">
+    <value>اختر قناة صحيحة.</value>
+  </data>
+  <data name="Validation.Communication.ChannelNotSendable" xml:space="preserve">
+    <value>لا يوجد مزوّد مسجَّل لهذه القناة.</value>
+  </data>
   <data name="Error.ConcurrencyConflict.Title" xml:space="preserve">
     <value>تم تعديل هذا السجل أثناء عملك عليه.</value>
   </data>

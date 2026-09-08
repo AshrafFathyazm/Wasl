@@ -53,21 +53,62 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
          * the hand edit this dictionary's remarks describe. The gate went red on the first full run
          * after the endpoint was built, naming it, and that is the mechanism working rather than a
          * nuisance: an entry left behind would have kept the endpoint out of the comparison for
-         * every release after the one that built it. */
+         * every release after the one that built it.
+         *
+         * `POST /api/tickets/{id}/escalate` WAS HERE AND IS DELETED TOO, by `016` on 2026-09-08,
+         * for the same reason. */
         ["GET /api/settings/branding"] = "022-tenant-theming-settings",
         ["PUT /api/settings/branding"] = "022-tenant-theming-settings",
-        ["GET /api/locales"] = "014-language-preference-and-rtl",
+        /* `GET /api/locales` WAS HERE AND IS DELETED — found by
+         * `No_pending_entry_names_an_endpoint_no_contract_declares` on its first run, 2026-09-08,
+         * and it is a different mistake from the two `021` entries below.
+         *
+         * It is not an undelivered promise. `005`'s frozen contract names it in an OUT OF SCOPE
+         * table — "two locales, both known at build time on both sides. It would be a round trip
+         * to learn something the bundle already contains" — so it is an endpoint this product
+         * decided NOT to have. `014` then carried an exemption forward for it, and `014`'s
+         * `spec.md`, `summary.md` and `tests.md` all state that it "stays in `002c`'s NotBuiltYet
+         * with its reason", which reads as correct and is not: this dictionary is for endpoints a
+         * contract DECLARES and nothing serves. A rejected endpoint needs no entry. */
         ["GET /api/customers/{id}/overview"] = "018-customer-overview",
-        ["POST /api/tickets/{id}/escalate"] = "016-escalate-ticket",
-        ["GET /api/communications/channels"] = "021-communication-provider-abstraction",
-        ["POST /api/communications/inbound"] = "021-communication-provider-abstraction",
-        ["GET /api/tickets/{ticketId}/interactions"] = "021-communication-provider-abstraction",
-        ["GET /api/tickets/{id}/interactions/{interactionId}"] = "021-communication-provider-abstraction",
+        /* `021`'S THREE ENTRIES ARE ALL DELETED, 2026-09-08 — the endpoints are built:
+         *
+         *   GET  /api/communications/channels
+         *   GET  /api/tickets/{ticketId}/interactions
+         *   POST /api/tickets/{ticketId}/messages
+         *
+         * `No_pending_entry_names_an_endpoint_that_now_exists` went red naming all three on the
+         * first full run after they were wired, which is that test doing its job — an entry left
+         * behind would have kept the comparison from covering the endpoint for every release
+         * after the one that built it. */
 
-        // Found BY this test on its first run, not by anyone reading the contracts. It is in
-        // `021`'s frozen contract and nothing had ever noticed it was unbuilt.
-        ["POST /api/tickets/{ticketId}/messages"] = "021-communication-provider-abstraction",
-        ["GET /api/tickets/{id}/comments/{commentId}"] = "013 — the contract describes a single-comment read that was never built; the timeline serves it",
+        /* TWO ENTRIES WERE DELETED FROM HERE by `021` on 2026-09-08, and neither was stale in the
+         * usual way — both named endpoints that **no contract declares**:
+         *
+         *   POST /api/communications/inbound
+         *   GET  /api/tickets/{id}/interactions/{interactionId}
+         *
+         * `021`'s contract mentions both only to say it will NOT build them — the inbound
+         * endpoint is US-013's and "appears nowhere in the OpenAPI document", and the
+         * single-interaction read "would be an endpoint with no caller". So the entries exempted
+         * nothing from a comparison that never saw them, while reading as a promise.
+         * `No_pending_entry_names_an_endpoint_no_contract_declares` is the guard that would have
+         * caught them, and it did not exist. */
+
+        /* `POST /api/tickets/{ticketId}/messages` WAS HERE TOO and is deleted with the other two.
+         * Its note is worth keeping: it was "found BY this test on its first run, not by anyone
+         * reading the contracts" — it had been in `021`'s frozen contract, unbuilt, and nothing
+         * had ever noticed. It is built now. */
+
+        /* `GET /api/tickets/{id}/comments/{commentId}` WAS HERE AND IS DELETED — the fourth dead
+         * entry the new guard found, and its own note had it exactly backwards. It read: "the
+         * contract describes a single-comment read that was never built; the timeline serves it".
+         *
+         * `013`'s contract says the opposite, in words: "there is no
+         * GET /api/tickets/{id}/comments/{commentId} in the endpoint inventory and THERE WILL NOT
+         * BE ONE, because BR-5.3 gives a comment no addressable identity of its own." Same
+         * category as `GET /api/locales` above — an endpoint a contract REJECTS, listed as one a
+         * contract PROMISES. */
     };
 
     /// <summary>`METHOD /path`, from the generated document.</summary>
@@ -222,7 +263,38 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
     }
 
     /// <summary>
-    /// The contract scanner finds something, so an empty sweep cannot pass as agreement.
+    /// `021`. An entry naming an endpoint <b>no contract declares</b> is dead too.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test above catches an exemption whose endpoint is now BUILT. Nothing caught the other
+    /// kind, and `021` found two of them — both attributed to itself:
+    /// <c>POST /api/communications/inbound</c> and
+    /// <c>GET /api/tickets/{id}/interactions/{interactionId}</c>. Neither appears as a heading in
+    /// any file under a <c>contracts/</c> directory, so neither was ever in the comparison; the
+    /// entries exempted nothing.
+    /// </para>
+    /// <para>
+    /// <b>Worse than merely dead:</b> `021`'s contract explicitly refuses to build both — the
+    /// inbound endpoint is US-013's and *"returns `404` and appears nowhere in the OpenAPI
+    /// document"*, and the single-interaction read *"would be an endpoint with no caller"*. An
+    /// entry reading "contracted, not built yet" says the opposite: that it is coming. And if
+    /// anybody ever did build a path with one of those names, the stale entry would exempt it
+    /// from the comparison silently.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void No_pending_entry_names_an_endpoint_no_contract_declares()
+    {
+        var contracted = Contracted();
+
+        NotBuiltYet.Keys.Where(endpoint => !contracted.Contains(endpoint))
+            .Should().BeEmpty(
+                "an exemption for an endpoint no contract declares exempts nothing, and it hides "
+                + "the path if somebody later builds it. Delete the entry — or add the contract "
+                + "heading, if the endpoint is genuinely promised");
+    }
+
     /// <summary>
     /// AC-3 — every operation declares its statuses, and every error one is `problem+json`.
     /// </summary>

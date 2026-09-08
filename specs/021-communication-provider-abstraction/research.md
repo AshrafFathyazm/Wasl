@@ -182,6 +182,21 @@ criterion is that no other trigger exists.
 
 ## R-7 · Where does the interface live — `Wasl.Domain` or `Wasl.Api`?
 
+> **CORRECTED 2026-09-08, BEFORE ANY CODE. This entry was decided against ADR-010, which
+> was REJECTED.** `CLAUDE.md`: *"ADR-010 proposed vertical slices, was evaluated, and was
+> **rejected**: house convention, separation of concerns that is visible without
+> explanation…"* — ADR-002's four-project Clean stands, and `Wasl.Api/Features/` is not a
+> directory that exists or will.
+>
+> **The argument below survives intact; only its destination moves.** "Nothing in
+> `Wasl.Domain` calls a provider, so an outbound port there is a port in the wrong place"
+> is exactly right, and it is the same reasoning that keeps `IAuditWriter`,
+> `ITicketNumberGenerator`, `IAccessTokenIssuer` and `ISignInThrottle` out of the domain.
+> Under ADR-002 those all live in one place, and so does this one.
+>
+> The original text is kept below rather than rewritten, because the *rejected*
+> alternative in it is still the right rejection for the right reason.
+
 **Checked:** ADR-010's dependency direction and the domain's "no dependencies" rule;
 `02-architecture.md`, which places `Interaction.cs` and `CommunicationChannel.cs` in
 `Wasl.Domain/Communications/` and the slices in `Wasl.Api/Features/Communications/`.
@@ -189,17 +204,28 @@ criterion is that no other trigger exists.
 `ICommunicationProvider` returning `Task<SendResult>` needs nothing but the BCL, so the
 domain **could** hold it without breaking the architecture test.
 
-**Settled:** `src/Wasl.Api/Features/Communications/Providers/`. Reason: nothing in
-`Wasl.Domain` calls a provider. An outbound port in the domain that the domain never
-uses is a port in the wrong place, and it invites the next person to inject
-infrastructure into an entity. The entity (`Interaction`) and the enums stay in
-`Wasl.Domain/Communications/` exactly where `02-architecture.md` puts them.
+**Settled — as corrected:**
 
-**Rejected:** `Wasl.Api/Common/`. `Common/` holds cross-cutting infrastructure —
-persistence, behaviours, auth, errors, localization, health. The provider seam is one
-module's machinery used by one slice today and one deferred slice tomorrow, so it lives
-with the module. Keeping it under `Features/Communications/` also means the whole named
-module is one folder a reviewer can open, which is the point of promoting the story.
+| Type | Project and folder | Why there |
+|---|---|---|
+| `ICommunicationProvider`, `OutboundMessage`, `SendOutcome` | `src/Wasl.Application/Common/Abstractions/` | Every outbound port in this codebase is declared here and implemented in `Wasl.Infrastructure`. `Application` declares, `Infrastructure` implements — that boundary is *"the whole return on four projects"* |
+| `CommunicationProviderRegistry` | `src/Wasl.Application/Common/Communications/` | Concrete, no interface (spec). The **validator** and the **channels query** both need it, and both are Application code, so it cannot live in Infrastructure without Application depending on it |
+| `MockCommunicationProvider`, `MockProviderOptions`, `SentMessageBuffer` | `src/Wasl.Infrastructure/Communications/` | An implementation of an Application abstraction. `CLAUDE.md`'s structure block **already names this folder**; it did not exist on disk until this feature |
+| `Interaction`, `InteractionDirection`, `DeliveryStatus` | `src/Wasl.Domain/Communications/` | Unchanged — exactly where `02-architecture.md` puts the entity, beside `CommunicationChannel.cs` |
+| `SendMessage`, `GetInteractions`, `GetSendableChannels` | `src/Wasl.Application/Features/Communications/…/` | One folder per use case, per ADR-002 |
+
+**Rejected, and this rejection still stands:** a `Common/` folder in the API project.
+`Wasl.Api/Common/` holds cross-cutting HTTP machinery — auth's HTTP half, errors,
+localization. A provider seam is not HTTP machinery.
+
+**Also rejected: `ICommunicationProvider` in `Wasl.Domain`.** It compiles — the interface
+needs nothing but the BCL — and that is exactly the trap. A port the domain never calls,
+sitting in the domain, is what invites the next person to inject a provider into an
+entity.
+
+**What this correction costs:** nothing in the contract, the ACs, or the client. It moves
+files between projects and it changes AC-17's search path. That is the whole diff, and it
+is the reason the correction was worth making before any code rather than after.
 
 ---
 

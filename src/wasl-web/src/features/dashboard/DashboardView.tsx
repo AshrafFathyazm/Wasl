@@ -17,6 +17,7 @@ import { BarRow } from './BarRow';
 import { CreatedResolvedChart } from './CreatedResolvedChart';
 import { ageParts, durationParts } from './dashboardFormat';
 import { NeedsAttentionList } from './NeedsAttentionList';
+import { TrendArrow } from './TrendArrow';
 import styles from './Dashboard.module.css';
 
 /* ============================================================================
@@ -256,6 +257,26 @@ export function DashboardView({
 function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) {
   const { t } = useTranslation('dashboard');
   const attention = snapshot.attention;
+  const previous = attention.previous;
+
+  /* EVERY TILE DECLARES ITS OWN DIRECTION — `020b`, ruled 2026-09-07. There is no
+     `delta > 0 ? bad : good` anywhere, and `dashboardGuards.test.ts` scans for that
+     shape. All four of these are `higherIsWorse`, which is a fact about the metrics
+     this product happens to have rather than a rule: a "resolved today" tile would
+     be the other way round, and the renderer must not have to guess. */
+  const trend = (
+    current: number,
+    baseline: number | null | undefined,
+    unit: 'count' | 'hours',
+  ) => (
+    <TrendArrow
+      current={current}
+      previous={baseline}
+      higherIsWorse
+      unit={unit}
+      lang={lang}
+    />
+  );
 
   /** A ticket tile's value: its age, or an em dash when there is no such ticket.
    *  Never `0` — `0h` would claim a ticket exists and is brand new. */
@@ -284,6 +305,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             label={t('tiles.unassigned')}
             value={formatNumber(attention.unassignedCount, lang)}
             footer={t('tiles.unassignedFoot')}
+            trend={trend(attention.unassignedCount, previous?.unassignedCount, "count")}
             isZero={attention.unassignedCount === 0}
             to="/tickets/unassigned"
           />
@@ -292,6 +314,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             tone="danger"
             label={t('tiles.escalated')}
             value={formatNumber(attention.escalatedOpenCount, lang)}
+            trend={trend(attention.escalatedOpenCount, previous?.escalatedOpenCount, "count")}
             /* The contract change of 2026-09-07 renders here and nowhere else.
                Counting `needsAttention` for this would be wrong from the
                eleventh escalation, silently. */
@@ -307,6 +330,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             tone="warning"
             label={t('tiles.oldestUntouched')}
             value={ticketAge(attention.oldestUntouched)}
+            trend={trend(attention.oldestUntouched?.ageHours ?? 0, previous?.oldestUntouchedHours, "hours")}
             footer={attention.oldestUntouched?.ticketNumber ?? t('tiles.noneFoot')}
             isZero={attention.oldestUntouched === null}
             to={
@@ -321,6 +345,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             label={t('tiles.waiting')}
             value={formatNumber(attention.waitingOnCustomerCount, lang)}
             footer={t('tiles.waitingFoot')}
+            trend={trend(attention.waitingOnCustomerCount, previous?.waitingOnCustomerCount, "count")}
             isZero={attention.waitingOnCustomerCount === 0}
             to={waitingTo}
           />
@@ -353,6 +378,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             tone="warning"
             label={t('tiles.myOldest')}
             value={ticketAge(attention.myOldest)}
+            trend={trend(attention.myOldest?.ageHours ?? 0, previous?.oldestUntouchedHours, "hours")}
             footer={attention.myOldest?.ticketNumber ?? t('tiles.noneFoot')}
             isZero={attention.myOldest === null}
             to={
@@ -367,6 +393,7 @@ function Tiles({ snapshot, lang }: { snapshot: DashboardSnapshot; lang: Lang }) 
             label={t('tiles.waiting')}
             value={formatNumber(attention.waitingOnCustomerCount, lang)}
             footer={t('tiles.waitingFoot')}
+            trend={trend(attention.waitingOnCustomerCount, previous?.waitingOnCustomerCount, "count")}
             isZero={attention.waitingOnCustomerCount === 0}
             to={waitingTo}
           />

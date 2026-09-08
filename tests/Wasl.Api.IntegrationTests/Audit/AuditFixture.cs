@@ -24,7 +24,21 @@ namespace Wasl.Api.IntegrationTests.Audit;
 /// </remarks>
 internal static class AuditFixture
 {
-    public static async Task<Guid> SeedCustomerAsync(WaslApiFactory factory, string? companyName = "initial")
+    /// <param name="phone">
+    /// An E.164 number, or <c>null</c> for a customer with no phone. Added by `021`, which is the
+    /// first feature for which the DIFFERENCE matters: BR-4.1 makes email and phone each
+    /// individually optional, so a customer with only an email is normal data — and AC-12's `409`
+    /// is about exactly that customer being asked to receive an SMS.
+    /// </param>
+    /// <param name="email">
+    /// <c>null</c> for a customer with no email. Also `021`'s: the mirror case, an SMS-only
+    /// customer asked to receive an email.
+    /// </param>
+    public static async Task<Guid> SeedCustomerAsync(
+        WaslApiFactory factory,
+        string? companyName = "initial",
+        string? phone = null,
+        bool email = true)
     {
         using var scope = factory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<WaslDbContext>();
@@ -34,7 +48,8 @@ internal static class AuditFixture
 
         Set(customer, nameof(Customer.Id), id);
         Set(customer, nameof(Customer.FullName), "Probe Customer");
-        Set(customer, nameof(Customer.Email), $"probe-{id:N}@example.com");
+        Set(customer, nameof(Customer.Email), email ? $"probe-{id:N}@example.com" : null);
+        Set(customer, nameof(Customer.PhoneE164), phone);
         Set(customer, nameof(Customer.CompanyName), companyName);
         Set(customer, nameof(Customer.IsActive), true);
         Set(customer, nameof(Customer.CreatedAtUtc), DateTime.UtcNow);

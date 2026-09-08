@@ -59,6 +59,16 @@ Full detail in `05-api-conventions.md`. In summary:
 | `POST` | `/api/tickets/{id}/escalate` | Escalate |
 | `POST` | `/api/tickets/{id}/comments` | Add a comment |
 | `GET` | `/api/tickets/{id}/timeline` | Merged comments and history |
+| `POST` | `/api/tickets/{ticketId}/messages` | **`021`.** Send an outbound message to the ticket's customer. `201` **even when the provider refuses** — the attempt is the resource, so branch on `deliveryStatus` and not only on the status code. **No `Location`**, deliberately: there is no single-interaction resource to point at |
+| `GET` | `/api/tickets/{ticketId}/interactions` | **`021`.** What was sent on this ticket, oldest first, in the page envelope. Reading is not assignment-sensitive; sending is |
+| `GET` | `/api/communications/channels` | **`021`.** The channels this deployment can send on — a projection of the provider registry, never a constant. Empty when nothing is registered, and the module is then visibly disabled |
+
+**There is no inbound endpoint, and there will not be one in this release.**
+`POST /api/communications/inbound` returns `404` and appears nowhere in the generated
+OpenAPI document. US-013 is deferred with four live blockers — an inbound webhook, a
+provider payload contract, webhook authentication, and a strategy for matching an inbound
+message to a customer — and every one depends on the provider account that is out of
+scope. `CK_Interactions_Direction` is the schema-level statement of the same thing.
 
 ### Me
 

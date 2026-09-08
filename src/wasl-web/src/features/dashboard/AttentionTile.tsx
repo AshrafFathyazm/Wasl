@@ -37,6 +37,16 @@ export interface AttentionTileProps {
    *  string, and "0h" is a real age while `"0"` is an empty queue. */
   isZero?: boolean | undefined;
 
+  /**
+   * The trend, beside the number. `020b`.
+   *
+   * A node rather than the numbers, because the DIRECTION belongs to the metric and
+   * the tile is what knows which metric it is showing — `TrendArrow` refuses to
+   * infer it. Absent when there is no baseline, which is most of the first
+   * fortnight after the capture starts.
+   */
+  trend?: React.ReactNode | undefined;
+
   to: string;
 }
 
@@ -46,6 +56,7 @@ export function AttentionTile({
   value,
   footer,
   isZero = false,
+  trend,
   to,
 }: AttentionTileProps) {
   return (
@@ -58,7 +69,10 @@ export function AttentionTile({
         {label}
       </span>
 
-      <span className={cx(styles.tileValue, isZero && styles.tileValueZero)}>{value}</span>
+      <span className={styles.tileValueRow}>
+        <span className={cx(styles.tileValue, isZero && styles.tileValueZero)}>{value}</span>
+        {trend}
+      </span>
 
       {footer === undefined ? null : (
         <span

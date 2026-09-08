@@ -1,3 +1,4 @@
+using Wasl.Domain.Communications;
 using Wasl.Domain.Customers;
 using Wasl.Domain.Tickets;
 using Wasl.Domain.Users;
@@ -57,6 +58,25 @@ public interface IApplicationDbContext
 
     /// <summary>Added by `034`. Read-only in this feature; `--seed` writes them.</summary>
     IQueryable<CannedReply> CannedReplies { get; }
+
+    /// <summary>
+    /// Added by `021`. What the system sent to a customer, and what the provider said.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Exposed as <c>IQueryable</c> unlike <c>TicketHistory</c> below</b>, and the difference
+    /// is that this table has a real read endpoint: <c>GET /api/tickets/{ticketId}/interactions</c>
+    /// is paginated, ordered and part of the contract. The history table is read only by
+    /// <c>TicketTimelineQuery</c>, which unions it with comments and lives in
+    /// <c>Infrastructure/Queries</c> because neither side of that union is on this interface.
+    /// </para>
+    /// <para>
+    /// Writing is <c>SendMessageCommand</c>'s job through <see cref="Add"/>. There is no update
+    /// path — <c>Interaction</c> has no mutator, and spec Q-E explains why that is a property of
+    /// the code rather than a database <c>DENY</c>.
+    /// </para>
+    /// </remarks>
+    IQueryable<Interaction> Interactions { get; }
 
     /// <summary>
     /// <c>TicketHistory</c> is deliberately <b>not</b> exposed.

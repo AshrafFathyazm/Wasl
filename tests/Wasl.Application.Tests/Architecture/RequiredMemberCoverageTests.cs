@@ -82,16 +82,16 @@ public sealed class RequiredMemberCoverageTests
     }
 
     /// <summary>The validator registered for a command, if there is one.</summary>
-    private static IValidator? ValidatorFor(Type command)
-    {
-        var contract = typeof(IValidator<>).MakeGenericType(command);
-
-        var type = Application.GetTypes()
-            .FirstOrDefault(candidate => candidate is { IsClass: true, IsAbstract: false }
-                && contract.IsAssignableFrom(candidate));
-
-        return type is null ? null : (IValidator)Activator.CreateInstance(type)!;
-    }
+    /// <remarks>
+    /// Built through <see cref="ValidatorFactory"/> since 2026-09-08. It was
+    /// <c>Activator.CreateInstance</c>, which threw the moment `021`'s validator took a
+    /// constructor argument — and the failure mode that matters is the one the factory avoids: a
+    /// validator this test cannot build must be a red build, not a skipped command, because a
+    /// non-nullable member with no rule reaches a handler as <c>null</c> and is a `500` where a
+    /// `400` belongs.
+    /// </remarks>
+    private static IValidator? ValidatorFor(Type command) =>
+        ValidatorFactory.For(Application, command);
 
     /// <summary>The property names a validator has at least one rule for.</summary>
     /// <remarks>

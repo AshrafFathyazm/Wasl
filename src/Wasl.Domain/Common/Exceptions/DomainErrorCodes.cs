@@ -96,6 +96,25 @@ public static class DomainErrorCodes
     public const string AlreadyEscalated = "already-escalated";
 
     /// <summary>
+    /// The ticket is <c>Resolved</c> or <c>Closed</c>, so it cannot be escalated. BR-3.3, `016`.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Its own code rather than reusing <see cref="TicketClosed"/></b>, because BR-3.3 refuses
+    /// <c>Resolved</c> too and a client told "this ticket is closed" about a resolved one would
+    /// go looking for the wrong thing. The two states share a refusal, not a reason.
+    /// </para>
+    /// <para>
+    /// <b>And it is evaluated BEFORE <see cref="AlreadyEscalated"/></b> (`016`'s contract fixes
+    /// the order). A ticket that is both closed and already escalated reports this one: the
+    /// terminal state is the more fundamental refusal, and a manager told "already escalated"
+    /// about a closed ticket would go looking for de-escalation, which BR-3.9 says does not
+    /// exist.
+    /// </para>
+    /// </remarks>
+    public const string TicketNotEscalatable = "ticket-not-escalatable";
+
+    /// <summary>
     /// The ticket already carries this tag, or does not carry the one being detached. `034`.
     /// </summary>
     /// <remarks>
@@ -105,6 +124,31 @@ public static class DomainErrorCodes
     /// quietly — this is what a double-click on the tag picker produces.
     /// </remarks>
     public const string TagUnchanged = "tag-unchanged";
+
+    /// <summary>
+    /// The customer has no address for the requested channel. `021`, AC-12.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A `409` and not a `400`, because the request is well-formed.</b> `Sms` is a valid
+    /// channel and a registered one; what is wrong is this customer's relationship to it — BR-4.1
+    /// makes email and phone each individually optional, so a customer with only an email is
+    /// normal data and not a defect. The same shape as <c>duplicate-customer</c>: every field
+    /// valid, the combination refused.
+    /// </para>
+    /// <para>
+    /// <b>It carries an <c>errors.channel</c> entry even so</b>, because the user's remedy is to
+    /// change the channel and the message belongs on that control. It is the only `409` in this
+    /// registry that carries <c>errors</c> alongside <c>duplicate-customer</c>, and for the same
+    /// reason: there is a field to point at.
+    /// </para>
+    /// <para>
+    /// <b>The body must not name the addresses the customer DOES have.</b> The remedy is "pick
+    /// another channel or edit the customer", and enumerating contact details into an error
+    /// response is a leak with no purpose (NFR-4) — the same restraint BR-4.7's `409` keeps.
+    /// </para>
+    /// </remarks>
+    public const string NoContactForChannel = "no-contact-for-channel";
 
     /// <summary><c>expectedVersion</c> is stale. ADR-006.</summary>
     public const string ConcurrencyConflict = "concurrency-conflict";

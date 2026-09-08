@@ -204,12 +204,13 @@ assertion catches a container sized to English text.
 | # | Feature | Story | Cut first? |
 |---|---|---|---|
 | 015 | `ticket-filters-and-search` | US-006 (filters) | Yes — first out |
-| 016 | `escalate-ticket` | US-009 | |
+| 016 | `escalate-ticket` | US-009 | **DONE 2026-09-08** — both lanes. `POST /api/tickets/{id}/escalate`, `ManagerOnly`'s first production consumer, BR-3.6's floor with four independent witnesses, and four additive read fields. Adding one of them found **eleven missing fields across the shared mapper's five call sites** and the escalation reason going out in the audit diff twice. A browser found a timeline row that rendered with no text while every test was green |
 | 017 | `update-customer` | US-003 | |
 | 018 | `customer-overview` | US-004 | |
 | 019 | `audit-log-access` | US-015 | The log is already being written; SQL suffices until the endpoint exists |
 | 020 | `dashboard` | US-016 | **DONE 2026-09-07** — both lanes. `GET /api/dashboard` in 7 commands (6 for an Agent), `/` replacing `023`'s last placeholder. Four additive contract fields from the design canvases; the tiles' `vs prev` deltas and the per-agent breach count raised, not built  |
-| 021 | `communication-provider-abstraction` | US-012 | Promoted from Deferred — see `docs/sdd/08-board.md` |
+| 020b | `dashboard-trend` | US-016 | **DONE 2026-09-08** — the `▲ vs prev` arrows. `dbo.DashboardDailySnapshot`, the product's FIRST background service, and `attention.previous` as a `LEFT JOIN` (still 7/6 commands). EF adds an `IS NOT NULL` filter to a unique index over a nullable column by default — it would have excluded every team row |
+| 021 | `communication-provider-abstraction` | US-012 | **DONE 2026-09-08** — both lanes. The provider seam, `dbo.Interactions`, three endpoints, and a Messages tab. **Its spec was corrected at the approval gate:** the structural half targeted ADR-010, which was rejected, and AC-17's search path would have scanned a directory that never exists. A refused delivery is a `201` — the attempt is the resource. Found `Interaction.Body` in the audit diff (BR-9.7's list short for the third time) and four dead `NotBuiltYet` exemptions. AC-8 unmet, AC-18 partial |
 | 022 | `tenant-theming-settings` | — | ADR-012. The token architecture ships in `006`; only the settings screen is here |
 
 **When behind, cut from Phase 5 — never from tests.** Quality is a gate, not points.

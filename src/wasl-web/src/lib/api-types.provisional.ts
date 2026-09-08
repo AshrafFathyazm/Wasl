@@ -200,6 +200,48 @@ export interface TicketResponse {
   assignee: TicketAssignee | null;
   isEscalated: boolean;
 
+  /* ---- `016`, four fields, added 2026-09-08 --------------------------------
+   * Source: specs/016-escalate-ticket/contracts/ticket-escalate-api.md —
+   * frozen. Additive on the ticket read shape, so `009`'s and `010`'s frozen
+   * contracts each carry a **Contract changes** entry rather than being edited.
+   *
+   * ALL FOUR ARE ON EVERY ENDPOINT THAT RETURNS A TICKET, and `016` had to make
+   * that true: `PUT /status`, `PUT /assignee` and `POST /escalate` each passed a
+   * subset to the shared mapper, so eleven fields were missing across five call
+   * sites. `TicketDetailReader` assembles them once now. The client still
+   * refetches after a write (`026` §5) — which is exactly why the gap was
+   * invisible for three features, and is not a reason to trust a write body. */
+
+  /** ISO 8601, UTC, `Z`. `null` until escalated, and **never cleared** —
+   *  escalation is one-way (BR-3.9), so a non-null value here is permanent. */
+  escalatedAtUtc: string | null;
+
+  /** The Manager who escalated, as a nested object rather than a bare id —
+   *  same record as `assignee`, and for the same reason: an id alone cannot
+   *  produce a name, and a blank name reads as a rendering bug in the client
+   *  rather than a missing lookup on the server. */
+  escalatedBy: TicketAssignee | null;
+
+  /** The manager's own words, 1–500 characters, trimmed by the server.
+   *  Rendered with `dir="auto"` — it can be Arabic on an English screen, and
+   *  the reverse. Never translated, never normalised.
+   *
+   *  **Absent from the audit diff on purpose**: `016` measured it going out in
+   *  `AuditLog.Changes` in full, twice, and `AuditRedaction` now replaces it
+   *  with `[redacted]` there. The timeline is where the text belongs. */
+  escalationReason: string | null;
+
+  /** SERVER-COMPUTED, exactly like `allowedTransitions`, and for the same
+   *  reason (ADR-004). It is `IsEscalatable && caller is Manager` — one fact
+   *  about the ticket (BR-3.3, BR-3.4) and one about the caller (BR-3.2), and
+   *  the client can see only the first.
+   *
+   *  **Deriving it from `status`, `isEscalated` and the role is the defect this
+   *  field exists to prevent** — that is BR-3 re-implemented in TypeScript, and
+   *  it drifts into a menu item that produces a `403` for something the
+   *  interface offered. There is a source-scan test for it. */
+  canEscalate: boolean;
+
   /** NULLABLE, NOT OPTIONAL. `009` ships before `004`, so the server has no
    *  authenticated user and returns `null` here today. The field stays in the
    *  shape so that `004` filling it in is not a breaking change — removing and
@@ -453,6 +495,119 @@ export interface ChangeTicketStatusRequest {
   expectedVersion: string;
 }
 
+/* ---- `021`, communications ------------------------------------------------
+ * Source: specs/021-communication-provider-abstraction/contracts/communications-api.md
+ * — frozen. Three endpoints.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against the frozen contract. Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** Which way a message travelled. Only `Outbound` is reachable in this release. */
+export type InteractionDirection = 'Outbound' | 'Inbound';
+
+/** What the provider said when it was handed the message. */
+export type DeliveryStatus = 'Accepted' | 'Failed';
+
+/**
+ * One interaction. **The `201` body from `POST` and every item in the `GET` list
+ * are this same shape** — the contract says so, so the client has one type and
+ * one renderer rather than two.
+ */
+export interface InteractionResponse {
+  id: string;
+  ticketId: string;
+
+  /** Read it rather than assuming — US-013 landing must not be a breaking change. */
+  direction: InteractionDirection;
+  channel: CommunicationChannel;
+
+  /** Where it actually went. A **snapshot**: it does not follow a later edit to
+   *  the customer, which is the point (spec A-5, same reasoning as BR-9.6). */
+  recipientAddress: string;
+
+  /** Verbatim, never translated (BR-8.10). Render with `dir="auto"`. */
+  body: string;
+
+  /** `Mock` today. Kept on the row so old messages still say who sent them. */
+  providerName: string;
+
+  /** **Null exactly when `deliveryStatus` is `Failed`.** Quoted in support
+   *  conversations, so never reformatted and never localized. */
+  providerMessageId: string | null;
+
+  /** **BRANCH ON THIS, NOT ONLY ON THE STATUS CODE.** A refused send is a `201`
+   *  carrying `Failed` — the request succeeded in recording an attempt, and the
+   *  attempt is the resource. A `5xx` would have rolled the record back. */
+  deliveryStatus: DeliveryStatus;
+
+  /** Null exactly when delivery succeeded. A **machine-readable code**, never a
+   *  sentence — map it to a translated string and never render it raw (AC-22).
+   *  The only code the mock emits is `MockConfiguredFailure`; a real provider
+   *  adds more, so an unrecognised one needs a generic translated fallback. */
+  failureCode: string | null;
+
+  sentByUserId: string;
+  createdAtUtc: string;
+}
+
+// PROVISIONAL — hand-written against the frozen contract.
+/** `POST /api/tickets/{ticketId}/messages`. */
+export interface SendMessageRequest {
+  /** Must be in `GET /api/communications/channels`. Anything else is `400`. */
+  channel: CommunicationChannel;
+
+  /** 1–4000 characters after trimming. Sent verbatim. */
+  body: string;
+}
+
+/* NO `recipientAddress` AND NO `expectedVersion`, and both absences are the
+ * contract's.
+ *
+ * The address is resolved from the ticket's customer and snapshotted — a
+ * recipient field would be the one place a support user could direct data to an
+ * arbitrary address. And nothing on the ticket is mutated, so there is no
+ * version to be stale against: two concurrent sends are two messages. */
+
+// PROVISIONAL — hand-written against the frozen contract.
+/** `GET /api/communications/channels`. */
+export interface SendableChannelsResponse {
+  /** In `CommunicationChannel` declaration order, so it is stable between
+   *  restarts. **Empty** when nothing is registered, and the module is then
+   *  visibly disabled rather than throwing on first use.
+   *
+   *  A projection of the server's provider registry — **never mirrored as a
+   *  client-side constant.** That copy is the one that drifts, and it drifts
+   *  into offering a channel the server answers `400` for. */
+  sendableChannels: CommunicationChannel[];
+}
+
+/* ---- `016`, escalate -----------------------------------------------------
+ * Source: specs/016-escalate-ticket/contracts/ticket-escalate-api.md — frozen.
+ * -------------------------------------------------------------------------- */
+
+// PROVISIONAL — hand-written against the frozen contract. Delete when OpenAPI
+// generation lands. ADR-011 §6.
+/** `POST /api/tickets/{id}/escalate` — Manager only, and **one-way**. */
+export interface EscalateTicketRequest {
+  /** 1–500 characters, measured by the server AFTER trimming (BR-3.5). Stored
+   *  verbatim otherwise, and it is the only record of WHY a ticket was
+   *  escalated. */
+  reason: string;
+
+  /** Required, exactly as on `/status` and `/assignee`. */
+  expectedVersion: string;
+}
+
+/* NO `isEscalated` FIELD, AND NO `priority` FIELD — both are BR-3.9 and BR-3.6
+ * rather than omissions.
+ *
+ * `isEscalated: false` would make DE-escalation expressible, and the whole
+ * reason this is a POST on a sub-resource rather than a field on a generic PUT
+ * is that escalation cannot be undone. A `priority` here could be sent BELOW
+ * BR-3.6's floor, which is the one thing that rule exists to prevent — the
+ * server raises to the floor and never assigns, and `priority` is a field to
+ * read. */
+
 /* ---- `013`, comments ------------------------------------------------------
  * Source: specs/013-ticket-timeline-and-comments/contracts/ticket-timeline-api.md
  * — FROZEN 2026-08-23. The COMMENTS half of that contract matches what the
@@ -538,13 +693,28 @@ export interface TicketCommentResponse {
  * tell it which to expect.
  */
 export interface TimelineEntry {
-  /** Seven values. `Comment` is SINGULAR here — see `TimelineFilter`. */
+  /**
+   * EIGHT values, and this said seven until `016` added `PriorityChanged`
+   * 2026-09-08. `Comment` is SINGULAR here — see `TimelineFilter`.
+   *
+   * **The new member is not optional on either side.** The server's
+   * `TimelineEntryType` had to gain it because `Enum.Parse<TimelineEntryType>`
+   * throws on an unknown value, which would have made every later timeline read
+   * of an escalated ticket a `500`. The client had to gain it for a quieter
+   * reason: without the member the render switch reached its `default` and drew
+   * an actor, a timestamp, a glyph and NO SENTENCE. Found by escalating a `Low`
+   * ticket in a browser, not by a test.
+   *
+   * BR-3.6's floor is the only thing that produces one — there is no
+   * change-priority endpoint.
+   */
   type:
     | 'Created'
     | 'StatusChanged'
     | 'Assigned'
     | 'Unassigned'
     | 'Escalated'
+    | 'PriorityChanged'
     | 'CommentAdded'
     | 'Comment';
   id: string;
@@ -865,6 +1035,45 @@ export interface DashboardAttention {
    *  "View all 15 →" cannot be counted from the list — added 2026-09-07 with the
    *  revised canvas, as a sixth subquery in the same command. */
   needsAttentionTotal: number;
+
+  /**
+   * What these levels were on the day before the range began. `020b`.
+   *
+   * **ABSENT — not `null` — when no snapshot exists for that day, and the tile then
+   * renders NO ARROW.** Not a dash, not a zero, not a grey arrow: the question
+   * "what was this level a fortnight ago" has no answer before the capture has been
+   * running that long, and a UI implying a comparison that does not exist is worse
+   * than one that looks like today's. Hence `?:` — `previous !== undefined` is the
+   * test.
+   *
+   * **The server sends the BASELINE, never a delta.** The tile needs the direction,
+   * the magnitude and the number being measured against; `+3` alone throws away the
+   * baseline that makes the arrow checkable at a glance.
+   */
+  previous?: DashboardPrevious;
+}
+
+/**
+ * One captured day's levels, for comparison against today's. `020b`.
+ *
+ * `localDate` is echoed rather than derived: a client recomputing "the range's first
+ * day minus one" would be re-implementing the day spine, in a timezone it does not
+ * have.
+ */
+export interface DashboardPrevious {
+  localDate: string;
+  unassignedCount: number;
+  escalatedOpenCount: number;
+  waitingOnCustomerCount: number;
+
+  /**
+   * `null` when nothing was untouched that day.
+   *
+   * **A fall in this number does not mean the backlog improved.** The oldest ticket
+   * may have been answered — or simply closed and left the set. Both produce the same
+   * arrow, so the tile's copy states that the AGE changed and claims nothing further.
+   */
+  oldestUntouchedHours: number | null;
 }
 
 /**

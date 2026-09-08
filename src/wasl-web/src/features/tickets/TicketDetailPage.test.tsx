@@ -9,6 +9,8 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ToastProvider } from '../../components/Toast/ToastHost';
+import { AuthProvider } from '../auth/AuthContext';
+import { SESSION_STORAGE_KEY } from '../../lib/tokenStorage';
 import { ApiError } from '../../lib/api';
 import type {
   CannedReplySummary,
@@ -79,7 +81,20 @@ const ticket = (over: Partial<TicketResponse> = {}): TicketResponse =>
     assignee: null,
     isEscalated: false,
     escalatedAtUtc: null,
+
+    /* `016` added these two to the shape. `escalatedBy` was missing here while
+       `escalatedAtUtc` and `escalationReason` were already declared, which is
+       the fixture having been written against a contract before the endpoint
+       existed. */
+    escalatedBy: null,
     escalationReason: null,
+
+    /* TRUE BY DEFAULT, because the fixture is an `Open`, unescalated ticket read
+       by a Manager — which is what the server would send. A default of `false`
+       would make every test in this file exercise the refused path without
+       saying so, and the live path would be the special case. */
+    canEscalate: true,
+
     createdByUserId: 'u-1',
     createdAtUtc: '2026-08-23T12:00:00Z',
     updatedAtUtc: '2026-08-23T12:00:00Z',
@@ -146,18 +161,57 @@ const REPLIES: CannedReplySummary[] = [
  * `403` moved from a banner to a toast, which is the behaviour the throw is for:
  * a silent no-op is a failure the user never sees, because the write succeeded,
  * the toast was requested, and nothing appeared. */
+/**
+ * The signed-in user this harness provides. `021`.
+ *
+ * **`AuthProvider` arrived here when `021` made the page read the current user**
+ * — Q-A's rule needs it: an Agent may send a message only on a ticket assigned
+ * to them or unassigned. `useAuth` throws outside its provider, deliberately, so
+ * adding the read to the page turned 49 tests in this file red at once with one
+ * message. That is the provider contract working rather than a nuisance.
+ *
+ * **A MANAGER, because that is what this file's fixtures assume everywhere
+ * else.** The ticket fixture is unassigned and `canEscalate: true`, which is what
+ * the server sends a Manager — so a harness signed in as an Agent would quietly
+ * put every existing test on a different permission path.
+ */
+const SESSION_USER = {
+  id: 'u-1',
+  fullName: 'منى العتيبي',
+  email: 'manager@wasl.local',
+  role: 'Manager' as const,
+  preferredLanguage: 'en' as const,
+};
+
+/** Seeded into storage, because `AuthProvider` reads it before first paint. */
+function signIn() {
+  localStorage.setItem(
+    SESSION_STORAGE_KEY,
+    JSON.stringify({
+      accessToken: 'test-token',
+      tokenType: 'Bearer',
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+      user: SESSION_USER,
+    }),
+  );
+}
+
 const mounted = () => {
+  signIn();
+
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
-        <ToastProvider>
-          <MemoryRouter initialEntries={[`/tickets/${ID}`]}>
-            <Routes>
-              <Route path="/tickets/:id" element={<TicketDetailPage />} />
-            </Routes>
-          </MemoryRouter>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <MemoryRouter initialEntries={[`/tickets/${ID}`]}>
+              <Routes>
+                <Route path="/tickets/:id" element={<TicketDetailPage />} />
+              </Routes>
+            </MemoryRouter>
+          </ToastProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </I18nextProvider>,
   );
@@ -475,6 +529,77 @@ describe('AC-3 — the timeline is a cursor', () => {
    * أولاً» — which reverses `027` Q-2's "newest at the bottom, load earlier
    * above". The CLAIM is untouched and is the one `013` measured: the cursor the
    * server sent, never one derived from an entry. */
+  /* ══ `016`. THE REGRESSION GUARD FOR A DEFECT A BROWSER FOUND AND NO TEST DID ══
+   *
+   * `016` added `PriorityChanged` to the server's `TimelineEntryType` because it
+   * HAD to: `Enum.Parse<TimelineEntryType>` throws on an unknown value, so
+   * without the member every later timeline read of an escalated ticket would
+   * have been a `500`. That half had a test.
+   *
+   * The client half did not. `sentence()`'s switch had no case, so the row fell
+   * through to `default: return ''` and rendered an actor, a timestamp, a glyph
+   * and NO TEXT. Every existing test in this file passed — none of them puts a
+   * `PriorityChanged` entry in the feed — and the only way it surfaced was
+   * escalating a `Low` ticket in a real browser and looking at the History tab.
+   *
+   * So this asserts the SENTENCE, not the row's presence. A blank row is present
+   * too, which is exactly why `CLAUDE.md`'s rule is to assert content.
+   */
+  it.each([
+    ['ar', 'رفع الأولوية من', 'منخفضة', 'مرتفعة'],
+    ['en', 'raised the priority from', 'Low', 'High'],
+  ])(
+    'renders a priority-change row with both values translated (%s)',
+    async (language, stem, from, to) => {
+      /* THE LANGUAGE IS RESTORED TO WHAT IT WAS, NOT TO A GUESS.
+         ──────────────────────────────────────────────────────────────────────
+         The first version of this test ended with `changeLanguage('ar')`, on the
+         assumption that Arabic was this file's default — it is not, it is `en`.
+         Leaving Arabic behind turned the "renders newest first" test red four
+         describes later, because its regex `/الأحدث|الأقدم/` then also matched
+         the feed's own «الأحدث أولاً» label, which had been rendering in English
+         and matching nothing. Three matches instead of two, in a test that has
+         nothing to do with priorities or languages. */
+      const original = i18n.language;
+
+      await i18n.changeLanguage(language);
+
+      vi.mocked(getTicketTimeline).mockResolvedValue(
+        timeline({
+          items: [
+            entry({
+              id: 'e-prio',
+              type: 'PriorityChanged',
+              oldValue: 'Low',
+              newValue: 'High',
+            }),
+          ],
+          historyCount: 1,
+        }),
+      );
+
+      mounted();
+
+      const row = await screen.findByText(new RegExp(stem));
+
+      /* THE ENUM VALUES ARE NEVER LOCALIZED ON THE WIRE (BR-8), so the row
+         carries `Low` and `High` and the client translates both. In Arabic that
+         means neither literal may survive to the screen — a row reading
+         "رفع الأولوية من Low إلى High" is the defect one layer along. */
+      const text = row.textContent ?? '';
+
+      expect(text).toContain(from);
+      expect(text).toContain(to);
+
+      if (language === 'ar') {
+        expect(text).not.toContain('Low');
+        expect(text).not.toContain('High');
+      }
+
+      await i18n.changeLanguage(original);
+    },
+  );
+
   it('loads older entries with the cursor it was given, never a derived one', async () => {
     vi.mocked(getTicketTimeline).mockResolvedValueOnce(
       timeline({
@@ -1056,20 +1181,72 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
     );
   };
 
-  it.each(['escalate', 'merge', 'extendDue'])(
-    '%s is present and disabled',
-    async (key) => {
+  /* TWO, NOT THREE — `escalate` LEFT THIS LIST WHEN `016` BUILT IT, 2026-09-08.
+   *
+   * The four guards in this file that named escalate all went red on `016`'s
+   * first frontend run, which is the mechanism working rather than a nuisance:
+   * an entry left behind would have kept asserting that a built action is
+   * unbuilt, and the next person to read it would have believed the file.
+   *
+   * The list was NOT loosened to a blanket exemption. `merge` and `extendDue`
+   * still have no endpoint, and they still need exactly this. */
+  it.each(['merge', 'extendDue'])('%s is present and disabled', async (key) => {
+    mounted();
+    await rendered();
+    await openMenu();
+
+    const item = screen.getByRole('menuitem', {
+      name: i18n.t(`tickets:detail.action.${key}`),
+    });
+    expect(item).toBeDisabled();
+    /* AND IT SAYS WHY. A control that refuses without a reason is the defect this
+     screen was rebuilt to avoid, and `disabled` alone is exactly that. */
+    expect(item).toHaveAttribute('title', i18n.t('tickets:detail.actionUnavailable'));
+  });
+
+  /* `016`. Escalate is live now, and its enabled state is ONE server field. */
+  it('offers Escalate as a live item when canEscalate is true', async () => {
+    mounted();
+    await rendered();
+    await openMenu();
+
+    const item = screen.getByRole('menuitem', {
+      name: i18n.t('tickets:detail.action.escalate'),
+    });
+
+    expect(item).not.toBeDisabled();
+    expect(item).not.toHaveAttribute('title');
+  });
+
+  /* THE TWO REFUSALS ARE DISTINGUISHED BY `isEscalated`, NOT BY `status`.
+   *
+   * `canEscalate` is one boolean by design — the server does not send a reason
+   * string, because a reason the client branches on is BR-3 arriving in
+   * TypeScript through the back door. What the client MAY read is
+   * `isEscalated`, which is a plain fact on the response and not a rule: an
+   * already-escalated ticket gets the permanence sentence, everything else gets
+   * the role-and-status one. Neither message claims to know which of BR-3.2,
+   * BR-3.3 or BR-3.4 fired. */
+  it.each([
+    [true, 'detail.escalateAlready'],
+    [false, 'detail.escalateNotAllowed'],
+  ])(
+    'disables Escalate with the right reason when canEscalate is false (isEscalated %s)',
+    async (isEscalated, key) => {
+      vi.mocked(getTicket).mockResolvedValue(
+        ticket({ canEscalate: false, isEscalated }),
+      );
+
       mounted();
       await rendered();
       await openMenu();
 
       const item = screen.getByRole('menuitem', {
-        name: i18n.t(`tickets:detail.action.${key}`),
+        name: i18n.t('tickets:detail.action.escalate'),
       });
+
       expect(item).toBeDisabled();
-      /* AND IT SAYS WHY. A control that refuses without a reason is the defect this
-       screen was rebuilt to avoid, and `disabled` alone is exactly that. */
-      expect(item).toHaveAttribute('title', i18n.t('tickets:detail.actionUnavailable'));
+      expect(item).toHaveAttribute('title', i18n.t(`tickets:${key}`));
     },
   );
 
@@ -1183,20 +1360,119 @@ describe('the unbuilt facts and endpoints are absent from the code', () => {
 
   /* THE HALF THAT MAKES "INERT" STRUCTURAL. A `disabled` attribute is one edit
    * away from being deleted; a fetcher that does not exist cannot be called by
-   * one. So the three unbuilt actions have no client function at all — the menu
-   * rows have no `onClick` to give them. */
-  it.each([/escalateTicket/, /mergeTicket/, /extendDue/, /\/escalate/, /\/merge/])(
+   * one. So the unbuilt actions have no client function at all — the menu rows
+   * have no `onClick` to give them.
+   *
+   * `escalateTicket` AND `/escalate` LEFT THIS LIST on 2026-09-08, because `016`
+   * built the endpoint. Both entries went red on that feature's first frontend
+   * run, naming themselves, which is the mechanism working. Removed
+   * individually rather than by loosening the assertion — `merge` and
+   * `extendDue` still have no endpoint and still need exactly this. */
+  it.each([/mergeTicket/, /extendDue/, /\/merge/])(
     'the api module exports nothing matching %s',
     (pattern) => {
       expect(api).not.toMatch(pattern);
     },
   );
 
-  it('reads isEscalated and calls no escalate endpoint', () => {
-    /* ESCALATION IS THE ONE THAT NEEDS CARE: `isEscalated` IS on the response and
-       IS rendered, read-only. What must not exist is a way to change it. */
+  /* THE REPLACEMENT FOR THE `escalateTicket` ROW ABOVE, and it is a different
+   * assertion rather than a weaker one.
+   *
+   * What `016` must not have is the thing BR-3.9 forbids: a way to UNDO an
+   * escalation. There is no de-escalate endpoint, no `isEscalated` on any
+   * request body, and no `DELETE` on that sub-resource — so the guard now scans
+   * for those rather than for the endpoint that exists. */
+  it.each([
+    [/deEscalate/i, 'BR-3.9 — escalation is one-way, so there is no reverse call'],
+    [/unescalate/i, 'the same, under the other spelling somebody would reach for'],
+    [/isEscalated\s*:/, 'no request body carries the flag — it is server-owned'],
+  ])('the api module has no way to undo an escalation — %s (%s)', (pattern) => {
+    expect(api).not.toMatch(pattern);
+  });
+
+  it('reads isEscalated and canEscalate, and derives neither', () => {
+    /* BOTH ARE SERVER FIELDS AND BOTH ARE READ. What must not appear is BR-3
+       being recomputed: a status or role comparison deciding whether escalation
+       is offered.
+       ────────────────────────────────────────────────────────────────────────
+       THIS GUARD WAS WRITTEN OVER-BROAD FIRST AND THE RUN CAUGHT IT. The first
+       version banned `=== 'Closed'`, `=== 'Resolved'` and `role === ` anywhere
+       in the file, and it went red on `noteRequiredFor` — a BR-1.2 mirror that
+       predates `016` and is explicitly permitted ("the frontend may mirror a
+       rule for UX"). A blanket ban on a status comparison in a file about
+       statuses is the same mistake `AuditRedaction` warns about in the other
+       direction: over-broad, so the first legitimate case gets it loosened
+       wholesale, and then it guards nothing.
+       ────────────────────────────────────────────────────────────────────────
+       So it is line-scoped AND right-hand-side-scoped: no line that mentions
+       escalation may compare against a ticket STATUS or a ROLE. Both halves
+       were forced by a run rather than chosen — the second attempt banned any
+       `===` on an escalation line and went red on
+       `if (type === 'Escalated')`, which is the timeline's label dispatch over
+       an ENTRY TYPE. `Escalated` the event and `Resolved` the status are
+       different vocabularies, and the guard has to know that.
+
+       The forbidden values are written out rather than derived from a type, so
+       a new status added to `TicketStatus` does not silently widen or narrow
+       what this test protects. */
     expect(page).toContain('isEscalated');
-    expect(page.toLowerCase()).not.toContain('escalateticket');
+    expect(page).toContain('canEscalate');
+
+    const BR3_INPUTS =
+      /'(New|Open|InProgress|PendingCustomer|Resolved|Closed|Manager|Agent)'/;
+
+    /* `page` IS ALREADY STRIPPED — this describe block's own `strip` runs over
+       it at the top, and it is hand-rolled rather than a regex because a regex
+       cannot tell a comment from the same characters inside a string.
+
+       THE CONTROL, and it runs before the scan: without it a stripper that had
+       silently stopped working would be reading prose, and the page's own
+       comments say "re-implemented in TypeScript" and name every status. */
+    expect(page).not.toContain('re-implemented in TypeScript');
+
+    const offenders = page
+      .split('\n')
+      .filter((line) => /escalat/i.test(line) && BR3_INPUTS.test(line));
+
+    expect(offenders).toEqual([]);
+
+    /* THE CONTROL FOR THE SCAN ITSELF, and it is not optional: a filter that
+       matched nothing would report success, which is `001`'s false-negative
+       architecture test exactly. So the same scan is run over a line that IS an
+       offender and must find it. */
+    expect(
+      ["if (ticket.status === 'Resolved') setEscalating(false);"].filter(
+        (line) => /escalat/i.test(line) && BR3_INPUTS.test(line),
+      ),
+    ).toHaveLength(1);
+  });
+
+  /* THE MODAL ITSELF CARRIES NO BR-3 AT ALL, which is the stronger half.
+   *
+   * The page decides whether to OFFER the action; the dialog only submits. So a
+   * status comparison, a role literal or an `isEscalated` read inside it would
+   * be a second authority on a rule that has one — and unlike the page, this
+   * file has no legitimate reason to mention a status. Scanned whole. */
+  it('the escalate dialog carries no status, role or flag check', () => {
+    const modal = strip(read('src/features/tickets/EscalateTicketModal.tsx'));
+
+    expect(modal).toContain('escalateTicket(');
+
+    for (const forbidden of [
+      "'Resolved'",
+      "'Closed'",
+      "'Manager'",
+      'isEscalated',
+      'allowedTransitions',
+    ]) {
+      expect(modal).not.toContain(forbidden);
+    }
+
+    /* THE CONTROL FOR THIS ONE. `'Critical'` IS in the dialog — it is the
+       priority sentence, which is a statement about BR-3.6 rather than a check
+       of it — so a stripper that returned an empty string would make every
+       assertion above pass. This is what proves it did not. */
+    expect(modal).toContain("'Critical'");
   });
 
   it('has no catalogue key for an unbuilt FACT', () => {

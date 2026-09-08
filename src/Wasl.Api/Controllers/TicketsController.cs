@@ -1,10 +1,16 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Wasl.Api.Common.Auth;
 using Wasl.Api.Common.Idempotency;
 using Wasl.Api.Contracts.Tickets;
+using Wasl.Api.Contracts.Communications;
+using Wasl.Application.Features.Communications;
+using Wasl.Application.Features.Communications.GetInteractions;
+using Wasl.Application.Features.Communications.SendMessage;
 using Wasl.Application.Features.Tickets.AddComment;
 using Wasl.Application.Features.Tickets.AssignTicket;
+using Wasl.Application.Features.Tickets.EscalateTicket;
 using Wasl.Application.Features.Tickets.GetTimeline;
 using Wasl.Application.Features.Tickets.Tags;
 using Wasl.Application.Features.Tickets.ChangeStatus;
@@ -43,8 +49,12 @@ namespace Wasl.Api.Controllers;
 // metadata. So the attribute is what makes the intent visible on the endpoint itself, and the
 // fallback is what catches the endpoint that forgets it.
 //
-// No [Authorize(Policy = ManagerOnly)] anywhere yet: BR-2 puts the role split on assignment, and
-// there is no assign endpoint until `011`.
+// `016` PUT ManagerOnly ON ONE ACTION, and this comment said there was none until then. It
+// claimed "BR-2 puts the role split on assignment, and there is no assign endpoint until 011" —
+// which became doubly stale: `011` shipped the assign endpoint and deliberately did NOT use the
+// policy, because BR-2.2 makes an Agent self-assigning legitimate. BR-3.2 has no such exception,
+// so `Escalate` carries it. Corrected in place rather than deleted, because the reasoning is what
+// tells the next endpoint which of the two shapes it has.
 [Authorize]
 public sealed class TicketsController(ISender sender) : ControllerBase
 {
@@ -183,6 +193,53 @@ public sealed class TicketsController(ISender sender) : ControllerBase
             new ChangeTicketStatusCommand(id, request.Status, request.ExpectedVersion, request.Note),
             cancellationToken));
 
+    /// <summary>Escalates a ticket. `016` AC-1 to AC-12 — US-009, BR-3.</summary>
+    /// <remarks>
+    /// <para>
+    /// <b><c>ManagerOnly</c> FINALLY HAS A PRODUCTION CONSUMER, and this is it.</b> `004` built
+    /// the policy and proved it against a test-host endpoint; `CLAUDE.md` has recorded ever since
+    /// that it had no real caller, and that `011` deliberately declined to be one because BR-2.2
+    /// makes an Agent self-assigning legitimate. BR-3.2 has no such exception: escalation is
+    /// Manager-only, unconditionally, with nothing about the ticket or the request that could
+    /// make an Agent's attempt valid. That is exactly the shape BR-6 puts in a policy.
+    /// </para>
+    /// <para>
+    /// <b>The policy runs BEFORE the lookup, and the contract makes that a feature.</b> An Agent
+    /// probing ids gets `403` for every one of them, existing or not — so this endpoint discloses
+    /// nothing about which tickets exist. The contract states it in words: *"also returned for an
+    /// unknown ticket id when the caller is an Agent"*.
+    /// </para>
+    /// <para>
+    /// <b>The known cost is `004` AC-18, and it is accepted here rather than worked around.</b> A
+    /// policy denial throws nothing, so MediatR never runs and `003`'s <c>AuditBehaviour</c>
+    /// writes no row — an Agent's refused escalation attempt is absent from the audit log, while
+    /// `011`'s refused assignment is present. Moving BR-3.2 into the handler to gain the audit row
+    /// would trade a `403` with an empty body for one with a body and lose the
+    /// disclose-nothing property above. `004b` closed the *envelope* half of that gap; the audit
+    /// half stays open and is `004`'s.
+    /// </para>
+    /// <para>
+    /// <c>POST</c> on a sub-resource, not a field on a generic <c>PUT</c>: escalation is a
+    /// distinct business action with its own rule, its own authorization and its own history row.
+    /// A generic patch accepting <c>isEscalated</c> would also make <c>false</c> expressible,
+    /// which BR-3.9 forbids.
+    /// </para>
+    /// </remarks>
+    [HttpPost("{id:guid}/escalate")]
+    [Authorize(Policy = WaslPolicies.ManagerOnly)]
+    [ProducesResponseType(typeof(CreateTicketResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Escalate(
+        Guid id,
+        [FromBody] EscalateTicketRequest request,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(
+            new EscalateTicketCommand(id, request.Reason, request.ExpectedVersion),
+            cancellationToken));
+
     /// <summary>Sets or clears the assignee. `011` AC-1 to AC-12, AC-16, AC-17.</summary>
     /// <remarks>
     /// <para>
@@ -311,4 +368,81 @@ public sealed class TicketsController(ISender sender) : ControllerBase
         Guid tagId,
         CancellationToken cancellationToken) =>
         Ok(await sender.Send(new DetachTicketTagCommand(id, tagId), cancellationToken));
+
+    /// <summary>
+    /// Sends an outbound message to the ticket's customer. `021` AC-1, AC-7. US-012, FR-3.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>NO ROLE POLICY, AND IT CANNOT HAVE ONE — the same shape as `011`'s assign endpoint.</b>
+    /// Q-A makes sending assignment-sensitive: a Manager on any ticket, an Agent on a ticket
+    /// assigned to themselves or unassigned. <c>ManagerOnly</c> here would refuse an Agent
+    /// replying to a customer on their own ticket, which is the ordinary case. So the rule is in
+    /// the handler, off <c>ICurrentUser</c> — BR-6's data-dependent half — and `011` measured the
+    /// consequence: a handler denial is audited, a policy denial is not.
+    /// </para>
+    /// <para>
+    /// <b>A `201` even when the provider refused the message</b> (AC-7). The request succeeded in
+    /// recording an attempt, and the attempt is the resource: a `5xx` would unwind the transaction
+    /// and take the record with it, leaving a support agent nothing to show for a message they
+    /// tried to send. **This is not "`200` with an error in the body"** — the row is real, the
+    /// resource was created, and `deliveryStatus` is data about the world rather than about the
+    /// request. Clients branch on `deliveryStatus`, not only on the status code.
+    /// </para>
+    /// <para>
+    /// <b>No <c>Location</c> header, and that is a recorded deviation</b> from
+    /// `05-api-conventions.md`'s `201` row. There is no single-interaction resource to point at,
+    /// and inventing <c>GET /api/tickets/{id}/interactions/{interactionId}</c> to satisfy a header
+    /// would be an endpoint with no caller. Unlike `013`'s comment — which points its
+    /// <c>Location</c> at the timeline — pointing at the paged list would be a header the client
+    /// cannot use to fetch the thing it just created.
+    /// </para>
+    /// </remarks>
+    [HttpPost("{ticketId:guid}/messages")]
+    [ProducesResponseType(typeof(InteractionResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SendMessage(
+        Guid ticketId,
+        [FromBody] SendMessageRequest request,
+        CancellationToken cancellationToken)
+    {
+        var interaction = await sender.Send(
+            new SendMessageCommand(ticketId, request.Channel, request.Body),
+            cancellationToken);
+
+        // `StatusCode` rather than `Created`, because every `Created` overload writes a Location
+        // header and this response deliberately has none — see the remarks.
+        return StatusCode(StatusCodes.Status201Created, interaction);
+    }
+
+    /// <summary>
+    /// What was sent on this ticket, oldest first. `021` AC-19, AC-20.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No role policy at all here, unlike the send above</b>, and the asymmetry is deliberate:
+    /// BR-6 lets every support user see every ticket, and interactions are part of a ticket.
+    /// Sending creates something a customer sees; reading does not.
+    /// </para>
+    /// <para>
+    /// <b>The page envelope, not `013`'s cursor.</b> `CLAUDE.md` records both shapes as deliberate
+    /// and gives the test — a list grows at the end the reader is *not* looking at, a feed grows
+    /// at the end they *are*. A ticket's message history is short, bounded and read from the top,
+    /// so page 2 stays page 2.
+    /// </para>
+    /// </remarks>
+    [HttpGet("{ticketId:guid}/interactions")]
+    [ProducesResponseType(typeof(PagedResult<InteractionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInteractions(
+        Guid ticketId,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken cancellationToken) =>
+        Ok(await sender.Send(
+            new GetInteractionsQuery(ticketId, page, pageSize), cancellationToken));
 }

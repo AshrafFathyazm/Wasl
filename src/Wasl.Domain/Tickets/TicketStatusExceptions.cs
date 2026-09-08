@@ -83,3 +83,36 @@ public sealed class NoteRequiredException(TicketStatus current)
     public override IReadOnlyDictionary<string, string[]> FieldErrors { get; } =
         new Dictionary<string, string[]> { ["note"] = ["Validation.Ticket.NoteRequiredToClose"] };
 }
+
+/// <summary>
+/// BR-3.3. The ticket is <c>Resolved</c> or <c>Closed</c> and cannot be escalated. `016`.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>Not <see cref="TicketClosedException"/>, and the difference is the message a manager
+/// reads.</b> BR-3.3 refuses <c>Resolved</c> as well, and telling somebody "this ticket is
+/// closed" about a resolved one sends them looking for the wrong thing.
+/// </para>
+/// <para>
+/// <b>Thrown BEFORE the already-escalated check</b>, which `016`'s contract fixes: a ticket that
+/// is both closed and already escalated reports this, because the terminal state is the more
+/// fundamental refusal and "already escalated" would send a manager hunting for de-escalation
+/// (BR-3.9 — it does not exist).
+/// </para>
+/// </remarks>
+public sealed class TicketNotEscalatableException(TicketStatus current)
+    : DomainException(
+        DomainErrorCodes.TicketNotEscalatable,
+        "Error.Ticket.NotEscalatable",
+        current.ToString());
+
+/// <summary>
+/// BR-3.4. The ticket is already escalated. `016`.
+/// </summary>
+/// <remarks>
+/// A <c>409</c> rather than an idempotent <c>200</c>: escalation writes a history row and an
+/// audit row, so a second success would put a second <c>Escalated</c> event on the timeline for
+/// one act. The client's correct reaction is to refetch — the state it was rendering is stale.
+/// </remarks>
+public sealed class TicketAlreadyEscalatedException()
+    : DomainException(DomainErrorCodes.AlreadyEscalated, "Error.Ticket.AlreadyEscalated");

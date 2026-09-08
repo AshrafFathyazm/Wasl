@@ -18,6 +18,11 @@ namespace Wasl.Application.Features.Tickets.ChangeStatus;
 /// </remarks>
 internal sealed class ChangeTicketStatusCommandHandler(
     IApplicationDbContext context,
+
+    /* `016`. NOT for a permission check — step 4 below is still `004`'s and still absent. This is
+     * for `canEscalate` in the response, which is half a fact about the ticket and half a fact
+     * about who is asking (BR-3.2). */
+    ICurrentUser currentUser,
     IRequestTimestamp timestamp) : IRequestHandler<ChangeTicketStatusCommand, CreateTicketResult>
 {
     public async Task<CreateTicketResult> Handle(
@@ -61,18 +66,21 @@ internal sealed class ChangeTicketStatusCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
-        var customer = await context.FirstOrDefaultAsync(
-            context.Customers
-                .Where(candidate => candidate.Id == ticket.CustomerId)
-                .Select(candidate => new TicketCustomerSummary(
-                    candidate.Id, candidate.FullName, candidate.Email, candidate.CompanyName)),
-            cancellationToken);
-
-        // AC-23. The same mapping the create and the read use, so allowedTransitions comes back
-        // recomputed for the NEW status — the client never derives its next actions from the set
-        // it just used.
-        return CreateTicketCommandHandler.Map(
-            ticket, customer ?? new TicketCustomerSummary(ticket.CustomerId, string.Empty, null, null));
+        /* AC-23. The same read shape the create and the read return, so allowedTransitions comes
+         * back recomputed for the NEW status — the client never derives its next actions from the
+         * set it just used.
+         *
+         * THIS CALL WAS THE WORST OF THE FIVE, and `016` found it while adding a field to `Map`.
+         * It passed the ticket and the customer and nothing else, so `PUT /status` on an assigned,
+         * tagged ticket answered `assignedToUserId` populated with `assignee: null`, `tags: []`,
+         * and — once `016` landed — `canEscalate: false` for a Manager. The contract has said
+         * since `012` that this body "is `TicketDetailResponse`, owned by `010`", so all three
+         * were contract violations, not omissions.
+         *
+         * Invisible for three features because `026` §5 forbids a screen rendering a ticket from
+         * a write response: the client refetches, the wrong body is never displayed, and every
+         * test asserting the status transition passes. */
+        return await TicketDetailReader.ReadAsync(context, currentUser, ticket, cancellationToken);
     }
 
     /// <summary>

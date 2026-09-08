@@ -115,6 +115,25 @@ internal static class ProblemTypes
         [DomainErrorCodes.AlreadyEscalated] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.AlreadyEscalated.Title"),
 
+        // `016`, BR-3.3. Its own row rather than reusing TicketClosed, because BR-3.3 refuses
+        // Resolved as well — and a manager told "this ticket is closed" about a resolved one goes
+        // looking for the wrong thing.
+        [DomainErrorCodes.TicketNotEscalatable] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.TicketNotEscalatable.Title"),
+
+        // `021`, AC-12. A `409` that CARRIES `errors` — only the second one, after
+        // duplicate-customer, and for the same reason: the request is well-formed, every field is
+        // valid, and what is refused is the relationship between them. BR-4.1 makes email and
+        // phone each individually optional, so a customer with only an email is normal data and
+        // asking to SMS them is not a `400`.
+        //
+        // `errors.channel` is present because the user's remedy is to change the channel and the
+        // message belongs on that control. The body must NOT name the addresses the customer does
+        // have — that is a leak with no purpose (NFR-4), and the same restraint BR-4.7 keeps.
+        [DomainErrorCodes.NoContactForChannel] = new(
+            StatusCodes.Status409Conflict, CarriesErrors: true,
+            TitleKey: "Error.NoContactForChannel.Title"),
+
         [DomainErrorCodes.ConcurrencyConflict] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.ConcurrencyConflict.Title"),
 

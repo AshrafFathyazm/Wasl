@@ -3,6 +3,7 @@ using Wasl.Api.Common;
 using Wasl.Api.Common.Errors;
 using Wasl.Api.Health;
 using Wasl.Application.Common.Abstractions;
+using Wasl.Application.Common.Communications;
 using Wasl.Infrastructure.Persistence.Seed;
 using Wasl.Application;
 using Wasl.Infrastructure;
@@ -245,6 +246,27 @@ app.MapHealthChecks("/health", new() { ResponseWriter = HealthReportWriter.Write
     // policy applies to every endpoint, and a probe that answers 401 reports the application as
     // unhealthy to a load balancer that is behaving correctly.
     .AllowAnonymous();
+
+/* ── `021` AC-5. THE PROVIDER REGISTRY IS FORCED HERE, BEFORE THE FIRST REQUEST ──────
+ *
+ * `CommunicationProviderRegistry`'s constructor throws when two providers claim one channel, and
+ * it is registered as a singleton — so without this line the check would run lazily, the first
+ * time something resolved it. A misconfigured deployment would then start "successfully", pass a
+ * health check, and fail one endpoint: exactly the outcome AC-5 rules out, because the person who
+ * deployed it has already moved on by the time anybody sends a message.
+ *
+ * The alternative — last registration wins — is worse still. It is a routing bug with no error
+ * anywhere, presenting months later as "the wrong provider sent it", and a data trail that looks
+ * correct because `Interaction.ProviderName` faithfully records whichever provider actually ran.
+ *
+ * Resolved from a scope even though the registry is a singleton: `app.Services` is the root
+ * provider, and resolving from it directly is the pattern that captures scoped services in a
+ * singleton by accident. Nothing here is scoped today, and this is the shape that stays correct
+ * if a provider ever needs something that is. */
+using (var startupScope = app.Services.CreateScope())
+{
+    startupScope.ServiceProvider.GetRequiredService<CommunicationProviderRegistry>();
+}
 
 app.Run();
 

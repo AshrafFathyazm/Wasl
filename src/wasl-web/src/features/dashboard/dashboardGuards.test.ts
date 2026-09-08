@@ -151,6 +151,46 @@ describe('the catalogues are the same shape in both languages', () => {
   });
 });
 
+describe('trend sentiment is declared per metric, never inferred from the sign', () => {
+  /**
+   * The banned shape, `020b` AC-13's other half.
+   *
+   * `TrendArrow.test.tsx` proves the tone FOLLOWS the declaration by flipping it.
+   * This proves nobody re-derived it somewhere else: a second renderer with
+   * `delta > 0 ? 'bad' : 'good'` in it would disagree with the first silently, and
+   * would be right for half the metrics and wrong for the other half.
+   */
+  const inference =
+    /\b(delta|diff|change|trend)\w*\s*[<>]\s*0\s*\?|[<>]\s*0\s*\?\s*['"](bad|worse|good|better|danger|success)/i;
+
+  it('has no delta-sign-to-sentiment expression anywhere in the feature', () => {
+    const offenders = sourceFiles()
+      .filter((file) => inference.test(withoutComments(file.text)))
+      .map((file) => file.name);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('CONTROL — the scan finds the banned shape when one is put in front of it', () => {
+    /* Both spellings the rule is written against, and a comment containing it must
+     * NOT count — the stripper runs first. */
+    expect(inference.test(withoutComments("const tone = delta > 0 ? 'bad' : 'good';"))).toBe(true);
+    expect(inference.test(withoutComments("const t = change < 0 ? 'good' : 'bad';"))).toBe(true);
+    expect(inference.test(withoutComments("/* delta > 0 ? 'bad' : 'good' in prose */"))).toBe(false);
+  });
+
+  it('AC-11 — the trend glyphs are NOT in `037`s flip set', () => {
+    /* ▲ and ▼ encode an increase and a decrease. They point along the VERTICAL
+     * axis, which the direction of the text does not touch — so they must not
+     * carry `data-flip`, and an Arabic reader must see the same arrow an English
+     * one does. */
+    const arrow = readFileSync(join(FEATURE, 'TrendArrow.tsx'), 'utf8');
+
+    expect(withoutComments(arrow)).toContain('▲');
+    expect(withoutComments(arrow)).not.toContain('data-flip');
+  });
+});
+
 describe('no colour is hard-coded in the feature', () => {
   it('has no hex literal in the stylesheet — tokens.css owns every value', () => {
     /* `CLAUDE.md`: semantic design tokens only. The dashboard's twelve chart
