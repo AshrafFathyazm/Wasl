@@ -205,7 +205,7 @@ assertion catches a container sized to English text.
 |---|---|---|---|
 | 015 | `ticket-filters-and-search` | US-006 (filters) | Yes — first out |
 | 016 | `escalate-ticket` | US-009 | **DONE 2026-09-08** — both lanes. `POST /api/tickets/{id}/escalate`, `ManagerOnly`'s first production consumer, BR-3.6's floor with four independent witnesses, and four additive read fields. Adding one of them found **eleven missing fields across the shared mapper's five call sites** and the escalation reason going out in the audit diff twice. A browser found a timeline row that rendered with no text while every test was green |
-| 017 | `update-customer` | US-003 | |
+| 017 | `update-customer` | US-003 | **DONE 2026-09-03, by `035`** — `PUT /api/customers/{id}` on `017`'s frozen contract, unchanged, plus `/customers/:id/edit`. **The record was written 2026-09-27**, three weeks late: the folder held a spec, a plan and four templates reading *"Status: Not started"* beside a live endpoint |
 | 018 | `customer-overview` | US-004 | |
 | 019 | `audit-log-access` | US-015 | The log is already being written; SQL suffices until the endpoint exists |
 | 020 | `dashboard` | US-016 | **DONE 2026-09-07** — both lanes. `GET /api/dashboard` in 7 commands (6 for an Agent), `/` replacing `023`'s last placeholder. Four additive contract fields from the design canvases; the tiles' `vs prev` deltas and the per-agent breach count raised, not built  |
@@ -332,7 +332,7 @@ deferred with a reason per task; `009`'s two auth criteria belong to `004` and i
 | `014-language-preference-and-rtl` | 4 | Migrated from `US-014-language-preference` |
 | `015-ticket-filters-and-search` | 5 | Migrated from `US-006-list-filter-tickets` (filter half) |
 | `016-escalate-ticket` | 5 | Migrated from `US-009-escalate-ticket` |
-| `017-update-customer` | 5 | Migrated from `US-003-update-customer` |
+| `017-update-customer` | 5 | Migrated from `US-003-update-customer`. **✅ Delivered 2026-09-03 inside `035`** — the first endpoint in the product to consume the concurrency token, and `Customer`'s second mutator. Three ordered checks (exists → version → contacts) with a test pinning the ORDER. **`summary.md` and `tests.md` written 2026-09-27**; three criteria carry no test of their own (AC-15's parallel update, AC-19's empty `Changes`, AC-21's Agent token) and **AC-5 is closed as ANSWERED DIFFERENTLY** — a malformed id stays `404`, the same ruling `008` AC-3 and `011` D-2 got |
 | `018-customer-overview` | 5 | Migrated from `US-004-customer-overview` |
 | `019-audit-log-access` | 5 | Migrated from `US-015-audit-log-access` |
 | `020-dashboard` | 5 | Authored from `US-016-dashboard` — no prior artifacts existed |
