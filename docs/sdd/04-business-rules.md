@@ -118,10 +118,19 @@ map. Controllers and React never re-implement it; the frontend reads a
 | Escalate | ❌ | ✅ |
 | Change priority directly | ❌ | ✅ |
 | Read the audit log | ❌ | ✅ (and the read is itself audited — BR-9.11) |
+| Read the organisation's branding | ✅ | ✅ (`022`. Every screen is painted with it, so an Agent who could not read it would be left on the default theme) |
+| Change the organisation's branding | ❌ | ✅ (`022`, DOC-022-02. This matrix had no row for it; `design/settings-and-uploads.md` was the only place the Manager rule was written down) |
 
-Role-only checks (`Escalate`, `Reassign`) are enforced as ASP.NET Core authorization
-policies at the API boundary. Data-dependent checks ("is this user the assignee?")
-are enforced in the application layer, because the boundary does not have the data.
+Role-only checks (`Escalate`, `Reassign`, `Change branding`) are enforced as ASP.NET Core
+authorization policies at the API boundary. Data-dependent checks ("is this user the
+assignee?") are enforced in the application layer, because the boundary does not have the
+data.
+
+**The split is not a style choice, and `011` measured it: a handler denial is audited, a
+policy denial is not** — a `ForbiddenException` reaches `AuditBehaviour`, while a `403`
+from the authorization middleware throws nothing, so MediatR never sees it. `004b`'s
+`AuthDenialResultHandler` closed that gap by writing an independent `Auth.Forbidden` row,
+which is what makes a policy check acceptable for the three rows above.
 
 A denied action returns `403 Forbidden`. A request for a resource the user may not
 even know exists is not applicable here — all support users may see all tickets.

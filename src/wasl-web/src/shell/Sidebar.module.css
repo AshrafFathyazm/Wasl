@@ -13,6 +13,25 @@
  * active bar, the 220ms collapse, and the 12px lockup fade. Spec Q-8.
  * ============================================================================ */
 
+/* AC-24, AND THE PROPERTY IS HERE RATHER THAN IN tokens.css FOR A MEASURED
+ * REASON.
+ *
+ * The Dark preset's token values live under `[data-sidebar-mode='dark']` on
+ * :root — they have to, because the pre-paint script runs before this element
+ * exists. `color-scheme` cannot go there with them: it applied the dark scheme
+ * to the WHOLE DOCUMENT, measured on 2026-09-27 as `colorScheme: "dark"` on
+ * `<html>`, which breaks DESIGN-BRIEF.md rule 16 and repaints every form control
+ * and scrollbar in the product. The sidebar looked correct throughout.
+ *
+ * Scoped to this element, the app root stays `light` and this stays ONE DARK
+ * SURFACE rather than dark mode. Without it entirely, the browser paints a LIGHT
+ * scrollbar on a near-black nav list as soon as it has enough items to scroll —
+ * which reads as a rendering bug and gets reported as "the sidebar looks broken"
+ * with nothing further (`research.md` R-10). */
+:global([data-sidebar-mode='dark']) .sidebar {
+  color-scheme: dark;
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -67,7 +86,7 @@
   padding-block: var(--sidebar-padding-block);
   padding-inline: var(--sidebar-padding-inline);
 
-  background-color: var(--surface-page);
+  background-color: var(--sidebar-surface);
   border-inline-end: var(--shell-border);
 
   /* A DELIBERATE EXCEPTION to DESIGN-BRIEF rule 19, which bans animating width
@@ -161,7 +180,7 @@
   font-size: var(--type-label-lg);
   font-weight: var(--weight-bold);
   line-height: var(--leading-ar-tight);
-  color: var(--text-primary);
+  color: var(--sidebar-fg);
 }
 
 /* Small, uppercase, letterspaced, muted — the second line of the lockup, not a
@@ -172,7 +191,7 @@
   font-weight: var(--weight-medium);
   line-height: var(--leading-tight);
   letter-spacing: 0.18em;
-  color: var(--text-muted);
+  color: var(--sidebar-muted);
 }
 
 .collapsed .wordmark {
@@ -245,10 +264,10 @@
   block-size: 26px;
   padding: 0;
 
-  background-color: var(--surface-card) !important;
-  color: var(--text-secondary) !important;
-  -webkit-text-fill-color: var(--text-secondary) !important;
-  border: var(--border-width) solid var(--border-subtle);
+  background-color: var(--sidebar-surface) !important;
+  color: var(--sidebar-fg) !important;
+  -webkit-text-fill-color: var(--sidebar-fg) !important;
+  border: var(--border-width) solid var(--sidebar-border);
   border-radius: var(--radius-pill);
   cursor: pointer;
 }
@@ -325,7 +344,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text-placeholder);
+  color: var(--sidebar-muted);
   overflow: hidden;
   max-block-size: var(--space-6);
   opacity: 1;
@@ -372,14 +391,14 @@
    * the middle of the navigation. See base.css, "HOW A COMPONENT OVERRIDES
    * THESE" — a class beats an element, but only if it is also !important. */
   background-color: transparent !important;
-  color: var(--text-secondary) !important;
-  -webkit-text-fill-color: var(--text-secondary) !important;
+  color: var(--sidebar-fg) !important;
+  -webkit-text-fill-color: var(--sidebar-fg) !important;
   border: 0;
   cursor: pointer;
 }
 
 .item:hover {
-  background-color: var(--surface-content) !important;
+  background-color: color-mix(in oklab, var(--sidebar-fg) 8%, transparent) !important;
 }
 
 .collapsed .item {
@@ -430,14 +449,14 @@
   padding-inline: var(--space-8) var(--space-3);
 
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--sidebar-muted);
   font-size: var(--text-ui);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .child:hover {
-  background-color: var(--surface-content);
+  background-color: color-mix(in oklab, var(--sidebar-fg) 8%, transparent);
 }
 
 /* The active bar is `inset-inline-start`, so it follows the direction with no
@@ -448,8 +467,8 @@
  * tinted background disappears in both. The tint is what makes the row read as
  * selected at a glance. Each covers what the other cannot. */
 .active {
-  color: var(--text-primary) !important;
-  -webkit-text-fill-color: var(--text-primary) !important;
+  color: var(--sidebar-fg) !important;
+  -webkit-text-fill-color: var(--sidebar-fg) !important;
   background-color: var(--brand-subtle) !important;
   font-weight: 600;
 }
@@ -485,8 +504,8 @@
   padding: var(--space-2);
 
   background-color: transparent !important;
-  color: var(--text-primary) !important;
-  -webkit-text-fill-color: var(--text-primary) !important;
+  color: var(--sidebar-fg) !important;
+  -webkit-text-fill-color: var(--sidebar-fg) !important;
   border: 0;
   border-radius: var(--radius-sm);
   text-align: start;
@@ -494,7 +513,7 @@
 }
 
 .userButton:hover {
-  background-color: var(--surface-content) !important;
+  background-color: color-mix(in oklab, var(--sidebar-fg) 8%, transparent) !important;
 }
 
 .collapsed .userButton {
@@ -531,7 +550,7 @@
 .identityName {
   font-size: var(--text-ui);
   font-weight: var(--weight-medium);
-  color: var(--text-primary);
+  color: var(--sidebar-fg);
 }
 
 /* A long email truncates with an ellipsis and keeps the full value in `title`.
@@ -539,7 +558,19 @@
  * the end of the STRING rather than at the end of the paragraph — without that,
  * an RTL page truncates a Latin address from the wrong side and shows the wrong
  * half of it. */
-.identityEmail,
+/* SPLIT BY `022`, and the shared rule was a real hazard rather than a tidy-up.
+ * `.identityEmail` sits ON the sidebar and `.popoverEmail` sits in the floating
+ * card, which is an ordinary page surface whatever the sidebar preset is. One
+ * rule serving both meant the Dark and Brand presets would have had to choose
+ * between an unreadable email in the sidebar and a washed-out one in the card. */
+.identityEmail {
+  font-size: var(--text-helper);
+  color: var(--sidebar-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .popoverEmail {
   font-size: var(--text-helper);
   color: var(--text-muted);
@@ -551,7 +582,7 @@
 .userChevron {
   display: inline-flex;
   flex: none;
-  color: var(--text-muted);
+  color: var(--sidebar-muted);
 }
 
 /* ---- User popover -------------------------------------------------------- */

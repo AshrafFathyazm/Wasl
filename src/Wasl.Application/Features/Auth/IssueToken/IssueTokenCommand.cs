@@ -1,4 +1,5 @@
 using Wasl.Application.Common.Messaging;
+using Wasl.Application.Features.Settings;
 using Wasl.Domain.Audit;
 
 namespace Wasl.Application.Features.Auth.IssueToken;
@@ -53,14 +54,31 @@ public sealed record IssueTokenCommand(string Email, string Password)
 
 /// <summary>The `200` body, exactly as `contracts/auth-api.md` freezes it.</summary>
 /// <remarks>
+/// <para>
 /// <c>ExpiresAtUtc</c> is issued so the client never decodes the JWT, and <c>TokenType</c> is a
 /// constant so the client composes the header rather than hard-coding the scheme.
+/// </para>
+/// <para>
+/// <b><c>Theme</c> was added by `022`, and it is a CONTRACT CHANGE to `004`'s frozen
+/// <c>auth-api.md</c></b> — recorded under Contract changes in `022`'s <c>plan.md</c>, not made
+/// silently. It is additive, so no existing consumer breaks.
+/// </para>
+/// <para>
+/// <b>Why it rides on the token response instead of being fetched.</b> The theme has to reach
+/// <c>:root</c> before the first paint after sign-in; a separate request means the default theme
+/// renders and then snaps to the tenant's, on every sign-in, on every device. That flash is the
+/// first thing anyone notices and it is invisible to every test that does not measure paint
+/// order (AC-17). The same object is served by <c>GET /api/settings/branding</c> for every later
+/// load, and AC-3 asserts the two are <b>field-for-field equal</b> by calling both and comparing
+/// — not by two independent shape assertions, which both pass while the two drift apart.
+/// </para>
 /// </remarks>
 public sealed record IssueTokenResult(
     string AccessToken,
     string TokenType,
     DateTime ExpiresAtUtc,
-    AuthenticatedUser User);
+    AuthenticatedUser User,
+    BrandingResponse Theme);
 
 /// <summary>
 /// Everything the UI needs about the signed-in user. <b>Never the password hash.</b>

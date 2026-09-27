@@ -100,20 +100,46 @@
   /* The ONE value a tenant sets. Everything below is derived from it, so a brand
    * change is one variable and not a palette. Fixed tokens — status, neutral,
    * text, border, surface — must never point in here. See design/theming.md. */
-  --brand: var(--navy-900); /* (C) — today's value is the house navy */
-  /* (D) — STATIC. The comment here said "COMPUTED at runtime" and nothing
-   * computes it: `grep setProperty` over src/ finds four callers and none of them
-   * touches a brand token. Corrected 2026-09-01 rather than deleted, because the
-   * claim cost real time — it was the leading hypothesis for a white-on-white
-   * page number, and the truth is that `--brand` and `--on-brand` are each
-   * defined exactly once, here, and never scoped down.
+  /* (C) — the DEFAULT, and only the default. `022` overwrites --brand,
+   * --on-brand and --brand-away on :root before first paint, from the value the
+   * server stored. These three declarations are what paints before a theme has
+   * ever been fetched, and what a signed-out visitor sees. */
+  --brand: var(--navy-900);
+
+  /* (D) — COMPUTED NOW, and the comment that used to sit here was right about
+   * when. It said: "A tenant that changes --brand to a light colour will need
+   * this to become dark, and THAT is the day it earns a computation." That is
+   * `022`. The computation is server-side — relative luminance against the two
+   * candidate foregrounds, in Wasl.Domain/Settings/BrandContrast.cs — because a
+   * colour that reaches neither is REFUSED, and refusing is a rule the client
+   * must not be the authority on (Constitution III, ADR-012 part 2).
    *
-   * A tenant that changes `--brand` to a light colour will need this to become
-   * dark, and THAT is the day it earns a computation. Until then, white. */
+   * The value below is the default's answer, not a fallback for a missing one. */
   --on-brand: var(--Main-White-White);
 
-  --brand-hover: color-mix(in oklab, var(--brand) 88%, white); /* (D) */
-  --brand-active: color-mix(in oklab, var(--brand) 82%, black); /* (D) */
+  /* (D) — `022`. WHICH WAY THE RAMP MIXES, and it is load-bearing.
+   *
+   * This was `white` for hover and `black` for active, unconditionally, and it
+   * was MEASURED WRONG on 2026-09-27: lightening a brand that needs white text
+   * makes the hover state LESS readable than the base. Across ten colours the
+   * old ramp put `#1570EF` at 3.66, `#4A9E96` at 3.10 and `#2E7D32` at 4.07
+   * against their own foregrounds — all below 4.5 — while the gate accepted
+   * their base colours comfortably. Only the house navy and pure black survived,
+   * and the house navy survived because it is nearly black. **The default brand
+   * was the one colour the old ramp could not break, which is why nobody saw it.**
+   *
+   * Both states now move AWAY from the foreground, so contrast is monotonic: a
+   * white-text brand darkens, an ink-text brand lightens. The direction follows
+   * from --on-brand, so it is written by the same pre-paint assignment. */
+  --brand-away: black;
+
+  --brand-hover: color-mix(in oklab, var(--brand) 92%, var(--brand-away)); /* (D) */
+  --brand-active: color-mix(in oklab, var(--brand) 82%, var(--brand-away)); /* (D) */
+
+  /* These three carry no --on-brand text — they are a tint, a border and a focus
+   * ring — so they are outside the contrast gate and keep mixing toward white
+   * regardless of the foreground. A `--brand-subtle` that darkened for a dark
+   * brand would stop being subtle. */
   --brand-subtle: color-mix(in oklab, var(--brand) 8%, white); /* (D) */
   --brand-border: color-mix(in oklab, var(--brand) 24%, white); /* (D) */
   --brand-ring: color-mix(in oklab, var(--brand) 22%, transparent); /* (D) */
@@ -334,6 +360,23 @@
 
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-ar: 'IBM Plex Sans Arabic', 'IBM Plex Sans', system-ui, sans-serif; /* (D) */
+
+  /* (D) — ADDED 2026-09-27, and it had been REFERENCED for longer than it has
+   * existed. `CreateTicket.module.css` sets `font-family: var(--font-mono)` on
+   * the duplicate and prior ticket numbers, and no such token was declared —
+   * so both declarations were dropped and those numbers rendered in the sans
+   * face, which looks like a design choice rather than a defect.
+   *
+   * `032` met the same reference in the customers stylesheet and REMOVED it,
+   * recording in `customerGuards.test.ts` that "the design specifies IBM Plex
+   * Mono and no such token exists". That closed one call site and left two.
+   *
+   * IBM Plex Mono is deliberately NOT requested: `index.html` loads two
+   * families from the CDN and a third is a network cost for two ticket numbers.
+   * The stack is the platform's own monospace, which is what a tabular figure
+   * needs — a fixed advance width so two numbers line up. */
+  --font-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
+    'SF Mono', Menlo, Consolas, monospace;
 
   --weight-regular: 400;
   --weight-medium: 500; /* the sort menu's active row, since 2026-09-06 */
@@ -686,6 +729,27 @@
   --frame-height: 1024px;
   --sidebar-width: 288px;
   --sidebar-width-collapsed: 68px; /* (C) — 02-app-shell.md Collapse table */
+
+  /* ---- SIDEBAR PRESET SURFACE (`022`, ADR-012 part 4) --------------------
+   *
+   * FOUR TOKENS THAT DID NOT EXIST UNTIL 2026-09-27, and their absence was a
+   * three-document disagreement rather than an oversight: `022`'s own contract
+   * said the presets "ship in the stylesheet (`006`)", `006`'s spec put them out
+   * of scope in writing, and `design/theming.md` designed all three and named no
+   * variables. The stylesheet settled it — `Sidebar.module.css` painted from
+   * --surface-page and --text-primary, the PAGE tokens.
+   *
+   * THE SHARED TOKEN WAS THE ACTUAL HAZARD. A Dark preset implemented by
+   * redefining --surface-page on the sidebar element would have leaked to every
+   * descendant that reads it, which is a defect that renders rather than errors.
+   * These four are scoped to the sidebar and nothing else may use them.
+   *
+   * Light is the default and is declared here rather than under a selector, so a
+   * root with no [data-sidebar-mode] paints correctly. */
+  --sidebar-surface: var(--Main-White-White);
+  --sidebar-fg: var(--Text-Primary);
+  --sidebar-muted: var(--text-muted);
+  --sidebar-border: var(--border-subtle);
   --nav-item-height: 48px; /* (C) */
   --nav-child-height: 40px; /* (C) */
   --header-height: 68px;
@@ -751,6 +815,66 @@
 [dir='rtl'] {
   --ld-dir: -1;
   --ld-origin: right;
+}
+
+/* ============================================================================
+ * SIDEBAR PRESETS — `022`, ADR-012 part 4
+ * ============================================================================
+ * Three, not a colour picker. A free colour on a 288px surface has to work
+ * against text, icons, hover and the active indicator at once, and any one of
+ * them failing is a defect nobody notices until a tenant picks that colour.
+ *
+ * THE ATTRIBUTE IS ON :root, NOT ON THE SIDEBAR, and it has to be: the
+ * pre-paint script in index.html runs before React mounts, so the sidebar
+ * element does not exist yet. The four token VALUES therefore cascade from the
+ * root, and only sidebar rules consume them.
+ *
+ * `color-scheme` IS NOT DECLARED HERE, AND A BROWSER IS WHAT SETTLED THAT.
+ * The first version of this block set `color-scheme: dark` beside the Dark
+ * preset's colours. Because the attribute is on :root, that applied the dark
+ * scheme to the WHOLE DOCUMENT — measured 2026-09-27, `getComputedStyle`
+ * reported `colorScheme: "dark"` on `<html>` — which breaks DESIGN-BRIEF.md
+ * rule 16 and repaints every form control and scrollbar in the product. The
+ * sidebar looked right the entire time, because the token values were correct;
+ * **the defect was in the one property that inherits differently from a custom
+ * property.** It lives in `Sidebar.module.css` now, scoped to the element.
+ *
+ * No vitest test could have caught it: jsdom computes no cascade and no
+ * `color-scheme`. AC-24 exists because this failure reads as a rendering bug.
+ *
+ * Light is not declared here — it is the default in :root, so a document with
+ * no attribute at all paints correctly rather than losing every colour.
+ * ========================================================================= */
+
+[data-sidebar-mode='dark'] {
+  /* Fixed values from design/theming.md. Not derived from anything, because a
+   * dark sidebar is a house preset and not a function of the tenant's colour. */
+  --sidebar-surface: #0d1420;
+  --sidebar-fg: #e8ebf0;
+  --sidebar-muted: color-mix(in oklab, var(--sidebar-fg) 62%, transparent);
+  --sidebar-border: color-mix(in oklab, var(--sidebar-fg) 16%, transparent);
+}
+
+[data-sidebar-mode='brand'] {
+  /* CORRECT BY CONSTRUCTION FOR ANY ACCEPTED BRAND. The surface is the brand and
+   * the foreground is the pair the contrast gate already accepted, so this
+   * preset cannot be made unreadable by a colour that got through. */
+  --sidebar-surface: var(--brand);
+  --sidebar-fg: var(--on-brand);
+
+  /* Muted and border TRACK the computed foreground rather than being hard-coded
+   * for a dark brand — which is the mistake that makes a Brand sidebar look
+   * right for the house navy and illegible for a pale one.
+   *
+   * Mixed with `transparent`, so they are the foreground at reduced alpha over
+   * whatever the surface is. AC-15 holds TEXT roles to 4.5:1, so --sidebar-muted
+   * stays high enough to be text; the border is non-text and is held to 3:1. */
+  --sidebar-muted: color-mix(in oklab, var(--on-brand) 72%, transparent);
+  --sidebar-border: color-mix(in oklab, var(--on-brand) 20%, transparent);
+
+  /* No color-scheme override. A Brand sidebar may be light or dark depending on
+   * the tenant, and guessing wrong is worse than the default — the scrollbar
+   * problem Dark has is a KNOWN surface, this one is not. */
 }
 
 /* ============================================================================

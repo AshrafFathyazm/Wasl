@@ -415,6 +415,58 @@ export interface SignInResponse {
   /** Equals the token's `exp`. Issued so the client never decodes the JWT. */
   expiresAtUtc: string;
   user: AuthenticatedUser;
+  /**
+   * `022`. The organisation's branding, so the first paint after sign-in is
+   * already branded — a separate fetch renders the default and then snaps.
+   *
+   * **Field-for-field identical to `GET /api/settings/branding`**, from the same
+   * server-side mapper. Contract change to `004`'s frozen `auth-api.md`,
+   * recorded there and in `022`'s `plan.md`. Additive.
+   */
+  theme: BrandingResponse;
+}
+
+/* ---- `022`, tenant theming -------------------------------------------------
+ * Source: specs/022-tenant-theming-settings/contracts/theming-api.md — FROZEN.
+ * -------------------------------------------------------------------------- */
+
+/** One shape for the `GET`, the `PUT` result, and the token response's `theme`. */
+export interface BrandingResponse {
+  /** `#RRGGBB`, upper case. What is stored, not what was typed. */
+  brandColor: string;
+  /**
+   * `#FFFFFF` or `#0D2626`. **Computed server-side from relative luminance, and
+   * the client never recomputes it** — the rule that chooses it is the same rule
+   * that refuses a colour, and a client copy would be one rounding difference
+   * away from disagreeing with a refusal (Constitution III).
+   */
+  onBrand: string;
+  sidebarMode: 'Light' | 'Dark' | 'Brand';
+  updatedAtUtc: string;
+  /** base64 `rowversion`. Required on the next `PUT`. */
+  version: string;
+}
+
+export interface UpdateBrandingRequest {
+  brandColor: string;
+  /** Case-**sensitive**: an enum identifier, not a label. `light` is a `400`. */
+  sidebarMode: 'Light' | 'Dark' | 'Brand';
+  expectedVersion: string;
+}
+
+/**
+ * The extensions on `400 errors/inaccessible-brand-color`.
+ *
+ * **Numbers, not preformatted sentences.** Arabic formats numbers differently,
+ * so the client formats them in the active locale; these five are byte-identical
+ * in every language (BR-8.7).
+ */
+export interface InaccessibleBrandColorProblem {
+  refusedBy: 'text' | 'hover' | 'surface';
+  bestContrastRatio: number;
+  requiredContrastRatio: number;
+  surfaceContrastRatio: number;
+  requiredSurfaceContrastRatio: number;
 }
 
 /* ---- `011`, the assignee picker -------------------------------------------

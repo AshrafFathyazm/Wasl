@@ -4,7 +4,10 @@
 
 - Base path: `/api`
 - Content type: `application/json`
-- Interactive documentation is served in Development at `/swagger`
+- **No interactive documentation is served.** This line promised `/swagger` until `002c`
+  measured it; the path answered `401` from the fallback policy on an unmatched route.
+  An OpenAPI document is generated and deliberately not served — serving it needs
+  `AllowAnonymous`, which `004` AC-10 counts
 - Authentication: `Authorization: Bearer <token>`
 
 ## Getting a token

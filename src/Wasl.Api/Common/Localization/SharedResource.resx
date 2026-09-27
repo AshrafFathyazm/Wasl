@@ -385,4 +385,34 @@
   <data name="Validation.Idempotency.KeyTooLong" xml:space="preserve">
     <value>Idempotency-Key must be 128 characters or fewer.</value>
   </data>
+  <data name="Error.InaccessibleBrandColor.Title" xml:space="preserve">
+    <value>This colour cannot be used.</value>
+  </data>
+  <data name="Error.Branding.NoReadableForeground" xml:space="preserve">
+    <value>No available text colour reaches the required contrast against this colour. Choose a darker or a lighter shade.</value>
+  </data>
+  <data name="Error.Branding.HoverStateUnreadable" xml:space="preserve">
+    <value>The base colour is readable, but its hover and pressed states are not. Choose a shade a little further from the middle.</value>
+  </data>
+  <data name="Error.Branding.InvisibleAgainstPage" xml:space="preserve">
+    <value>This colour is too close to the page background, so buttons using it would be hard to see. Choose a deeper shade.</value>
+  </data>
+  <data name="Validation.Branding.BrandColorRequired" xml:space="preserve">
+    <value>Choose a brand colour.</value>
+  </data>
+  <data name="Validation.Branding.BrandColorFormat" xml:space="preserve">
+    <value>Provide a colour as six hexadecimal digits, for example #1D174D.</value>
+  </data>
+  <data name="Validation.Branding.SidebarModeRequired" xml:space="preserve">
+    <value>Choose a sidebar style.</value>
+  </data>
+  <data name="Validation.Branding.SidebarModeUnknown" xml:space="preserve">
+    <value>Choose one of the three sidebar styles.</value>
+  </data>
+  <data name="Validation.Branding.ExpectedVersionRequired" xml:space="preserve">
+    <value>Reload the page and try again.</value>
+  </data>
+  <data name="Validation.Branding.ExpectedVersionFormat" xml:space="preserve">
+    <value>Reload the page and try again.</value>
+  </data>
 </root>

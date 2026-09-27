@@ -224,6 +224,61 @@ namespace Wasl.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Wasl.Domain.Settings.OrganizationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BrandColor")
+                        .IsRequired()
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OnBrand")
+                        .IsRequired()
+                        .HasColumnType("varchar(7)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SidebarMode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrganizationSettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OrganizationSettings_SingleRow", "Id = '0000022a-0000-0000-0000-000000000001'");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0000022a-0000-0000-0000-000000000001"),
+                            BrandColor = "#1D174D",
+                            CreatedAtUtc = new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OnBrand = "#FFFFFF",
+                            SidebarMode = "Light",
+                            UpdatedAtUtc = new DateTime(2026, 9, 27, 0, 0, 0, 0, DateTimeKind.Utc)
+                        });
+                });
+
             modelBuilder.Entity("Wasl.Domain.Tickets.CannedReply", b =>
                 {
                     b.Property<Guid>("Id")

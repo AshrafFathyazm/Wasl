@@ -71,6 +71,59 @@
         } catch (e) {
           /* Defaults are correct. */
         }
+
+        /*
+         * THE TENANT'S THEME, `022`, AC-17 and AC-18.
+         *
+         * Same argument as `dir` above and it is the criterion the whole feature
+         * turns on: a useEffect runs AFTER paint, so the product default renders
+         * and then snaps to the tenant's colour on every single load. It is a
+         * flash rather than an error, so it gets reported as "the app feels
+         * slow", or not at all.
+         *
+         * THIS DUPLICATES src/lib/theme.ts ON PURPOSE, exactly as the block
+         * above duplicates direction.ts: a module cannot run before first paint.
+         * This does the FIRST write, from cache; every write after it goes
+         * through applyTheme() and nowhere else. If one changes, change both.
+         *
+         * The cache is a RENDERING cache, not a validation gate. A stored colour
+         * the contrast rule would now refuse still paints — it was valid when it
+         * was stored, and refusing to paint it would leave an unthemed product
+         * with no explanation. The next save is what refuses it.
+         */
+        try {
+          var cached = localStorage.getItem('wasl.theme');
+
+          if (cached) {
+            var theme = JSON.parse(cached);
+
+            if (theme && theme.brandColor && theme.onBrand) {
+              root.style.setProperty('--brand', theme.brandColor);
+              root.style.setProperty('--on-brand', theme.onBrand);
+              root.style.setProperty(
+                '--brand-away',
+                theme.onBrand.toUpperCase() === '#FFFFFF' ? 'black' : 'white'
+              );
+            }
+
+            if (theme && theme.sidebarMode) {
+              root.dataset.sidebarMode = String(theme.sidebarMode).toLowerCase();
+            }
+          }
+        } catch (e) {
+          /* Corrupt JSON, a private window, a changed shape. The product default
+             paints and the server corrects it once. A theme cache must never
+             throw before first paint — a broken app is worse than a flash. */
+        }
+
+        /* AC-17 measures against this mark. It is set whether or not a theme was
+           found, so the comparison is "the theme decision happened before first
+           contentful paint" rather than "a cached theme existed". */
+        try {
+          performance.mark('theme-applied');
+        } catch (e) {
+          /* Nothing depends on the mark at runtime. */
+        }
       })();
     </script>
   </head>

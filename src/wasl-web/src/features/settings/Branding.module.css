@@ -1,0 +1,244 @@
+/* `/settings/branding` — `022`. Semantic tokens only; no literal colour, spacing
+ * or radius (DESIGN-BRIEF.md rule 2). Logical properties throughout, so Arabic
+ * needs no second rule (ADR-007 §6). */
+
+.page {
+  max-inline-size: 680px;
+}
+
+.title {
+  font-size: var(--text-section-title);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin-block-start: var(--space-2);
+  font-size: var(--text-ui);
+  color: var(--text-muted);
+}
+
+.error {
+  margin-block-start: var(--space-4);
+  padding: var(--space-3);
+  font-size: var(--text-ui);
+  color: var(--state-danger-text);
+  background-color: var(--state-danger-bg);
+  border: var(--border-width) solid color-mix(in oklab, var(--state-danger-text) 32%, white);
+  border-radius: var(--radius-md);
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-block-start: var(--space-4);
+  padding: var(--space-3);
+  font-size: var(--text-ui);
+  color: var(--state-warning-text);
+  background-color: var(--state-warning-bg);
+  border: var(--border-width) solid var(--state-warning-border);
+  border-radius: var(--radius-md);
+}
+
+.group {
+  margin-block-start: var(--space-6);
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-block-end: var(--space-3);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.colorRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+/* A HEX COLOUR IS SEVEN CHARACTERS, so the field is sized for seven characters.
+ * Stretching it to the 680px measure made the form read as though a long value
+ * were expected and left the swatch stranded at the far edge — the field and the
+ * control that fills it belong within one saccade of each other. */
+.colorRow > :first-child {
+  flex: 0 1 240px;
+  min-inline-size: 0;
+}
+
+.swatch {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Aligns the swatch's own label with the field's label beside it, so the two
+ * controls share one baseline instead of stepping. */
+.swatchLabel {
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+  color: var(--text-secondary);
+}
+
+/* The native control is SECONDARY and never the only way in (AC-22). Height
+ * matched to the text field beside it — `--field-height-md` is the same token
+ * `base.css` gives that field — so the pair reads as one control rather than as
+ * two that nearly line up. `inline-size` is explicit for the same reason the
+ * radio's is: the base rule would otherwise stretch it to 100%. */
+.swatchInput {
+  flex: none;
+  inline-size: 56px;
+  block-size: var(--field-height-md);
+  padding: var(--space-1);
+  cursor: pointer;
+  background: none;
+  border: var(--border-width) solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.swatchInput:hover {
+  border-color: var(--brand);
+}
+
+.swatchInput:focus-visible {
+  outline: 3px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.verdict {
+  margin-block-start: var(--space-4);
+}
+
+.refusal {
+  padding: var(--space-4);
+  font-size: var(--text-ui);
+  color: var(--state-danger-text);
+  background-color: var(--state-danger-bg);
+  border: var(--border-width) solid color-mix(in oklab, var(--state-danger-text) 32%, white);
+  border-radius: var(--radius-md);
+}
+
+.refusalTitle {
+  font-weight: var(--weight-bold);
+  margin-block-end: var(--space-2);
+}
+
+.ratios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin-block-start: var(--space-3);
+}
+
+.ratios dt {
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+.ratios dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+}
+
+.needed {
+  font-weight: var(--weight-regular);
+  color: var(--text-muted);
+}
+
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  cursor: pointer;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-enter) var(--ease-out),
+    background-color var(--duration-enter) var(--ease-out);
+}
+
+.row:hover {
+  border-color: var(--border-default);
+}
+
+.row + .row {
+  margin-block-start: var(--space-2);
+}
+
+.rowActive,
+.rowActive:hover {
+  border-color: var(--brand);
+  background-color: var(--brand-subtle);
+}
+
+/* THE RESET IS THE WHOLE RULE, AND IT WAS MEASURED RATHER THAN EYEBALLED.
+ *
+ * `styles/base.css` sets `input, select, textarea { block-size:
+ * var(--field-height-md); inline-size: 100%; padding-inline: var(--space-3) }`
+ * — written for text fields, and a radio is an `input`. Measured in the browser
+ * on 2026-09-27: this control's box was **474 × 47px**, so the "oversized
+ * circle" was the base stylesheet stretching a radio to field width, not a
+ * missing size here.
+ *
+ * `flex: none` matters as much as the size: inside a flex row the stretched
+ * control was also free to absorb the remaining space. */
+.radio {
+  flex: none;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  margin-block-start: 3px;
+  padding: 0;
+  border: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.rowName {
+  display: block;
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.rowHint {
+  display: block;
+  margin-block-start: var(--space-1);
+  font-size: var(--text-helper);
+  color: var(--text-muted);
+}
+
+/* AC-20. Permanently visible — not a tooltip, not behind a disclosure.
+ *
+ * It is a long paragraph BY DESIGN (ADR-012 part 3: enforcement without
+ * explanation reads as a missing feature), so it needs the treatment a long
+ * paragraph needs: a wider measure than the rows above it would give, a relaxed
+ * line height, and an accent rule on the inline-start edge so it reads as an
+ * aside rather than as a wall of body copy. `text-align: start` is explicit —
+ * this is the one block where a centred fallback would be most visible. */
+.fixedNotice {
+  margin-block-start: var(--space-6);
+  padding: var(--space-4);
+  font-size: var(--text-helper);
+  line-height: var(--leading-ar-normal);
+  text-align: start;
+  color: var(--text-secondary);
+  background-color: var(--surface-content);
+  border-start-start-radius: var(--radius-md);
+  border-start-end-radius: var(--radius-md);
+  border-end-start-radius: var(--radius-md);
+  border-end-end-radius: var(--radius-md);
+  border-inline-start: 3px solid var(--brand-border);
+}
+
+.actions {
+  display: flex;
+  margin-block-start: var(--space-6);
+}

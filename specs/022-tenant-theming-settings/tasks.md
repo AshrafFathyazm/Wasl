@@ -54,6 +54,9 @@ the theme actually arriving before paint.
 | FE-022-06 | `SidebarModePicker` (one radio group, three presets), `FixedTokensNotice` (permanently visible), `BrandPreview` (branded button beside a **fixed** status chip) | FE-022-04 | The notice present in the DOM with no interaction; the fixed chip unchanged across a brand change | AC-14, AC-20 | `voltagent-lang:react-specialist` | `frontend-design` |
 | FE-022-07 | The screen walked in Arabic and by keyboard and screen reader; findings written down, not summarised as "fine" | FE-022-05, FE-022-06 | `tests.md` carries the findings list, including anything found and left | AC-27 | `voltagent-qa-sec:accessibility-tester` | `chrome-devtools-mcp:a11y-debugging` |
 | FE-022-08 | The Branding item in `SettingsNav`, rendered for a Manager only; `/settings/branding` renders the forbidden state for an Agent who navigates directly | FE-022-04 | Sign in as each role; observe the nav and then the direct URL | AC-5 | `voltagent-lang:react-specialist` | `frontend-design` |
+| FE-022-09 | **The sidebar preset layer, which nothing in the product has.** Four scoped tokens — `--sidebar-surface`, `--sidebar-fg`, `--sidebar-muted`, `--sidebar-border` — defined per preset under `[data-sidebar-mode]`, with `Brand` deriving muted and border from `color-mix(in oklab, var(--on-brand) N%, transparent)` so they track the computed foreground | REV-022-01 | The three presets read back from `getComputedStyle` on the sidebar element; `Brand` re-derives when `--brand` changes | AC-14, AC-15, `design/theming.md` | `voltagent-lang:react-specialist` | `frontend-design` |
+| FE-022-10 | **`Sidebar.module.css` rewired off the global tokens it uses today** — `--surface-page` → `--sidebar-surface`, `--text-primary` → `--sidebar-fg`, `--text-muted` → `--sidebar-muted`. A shipped screen is being restyled, so the shell's existing tests and `shellLayout.test.ts` are re-run and the shell is walked in both languages | FE-022-09 | No rule inside `Sidebar.module.css` names a page-level surface or text token; a source scan asserts it, with a control | AC-15, AC-24 | `voltagent-lang:react-specialist` | `frontend-design` |
+| FE-022-11 | The **Dark** preset scopes `color-scheme: dark` to the sidebar element only, never the app root | FE-022-09 | `getComputedStyle` read on both elements — `dark` on the sidebar, `light` on the root | AC-24, `research.md` R-10 | `voltagent-lang:react-specialist` | `frontend-design` |
 
 ## Tests
 
@@ -123,3 +126,22 @@ every colour and has never been asked to refuse one.
 **Not droppable:** `BE-022-02` staying in `Wasl.Domain`. Moving it into a validator to save
 a file puts the only server-side copy of the rule next to the client's mirror, with nothing
 structural keeping them in step (Constitution III).
+
+---
+
+## Gate corrections — 2026-09-27
+
+Four rulings at the approval gate changed three rows here. Recorded rather than edited
+away; the full reasoning is at the head of [`spec.md`](spec.md).
+
+| Row | Change |
+|---|---|
+| **REV-022-01** | **Run, and it is the reason the other corrections exist.** Six of its seven items are satisfied — `--brand`, `--on-brand`, the five ramp tokens and `--action-primary-bg: var(--brand)` all shipped with `006` after this spec was written. **The sidebar presets are not**, and `006`'s spec defers them in writing, so the gate's own wording ("`006` has shipped … the three sidebar presets") asserts something `006` never promised. Closed as **partially met, with the gap transferred to FE-022-09 … FE-022-11** |
+| **REV-022-03** | **Closed.** Q-E ruled **yes** — the 3:1 surface gate is in, and AC-12 loses its conditional label. Q-F ruled **refuse**, per ADR-012's own sentence; the darkened-action-colour alternative is recorded as the revisit and stays out of this feature |
+| **FE-022-02** | `applyTheme.ts` writes `--brand`, `--on-brand` **and the sidebar mode** — the row said "only `--brand` and `--on-brand`" when the presets were believed to be inherited. The mode is a `data-` attribute on the root, not a colour, so the pre-paint write stays three assignments |
+| **FE-022-09 … FE-022-11** | **New.** The preset layer, the `Sidebar.module.css` rewiring, and the scoped `color-scheme: dark`. None of this was in the plan because A-1 assumed it shipped with `006` |
+
+**One thing this gate did NOT change.** REV-022-02 still stands: the missing
+`@supports (color: color-mix(in oklab, …))` guard is raised **against `006`** and is not
+fixed here. `022` makes the ramp tenant-variable and is therefore the first place its
+absence can be observed — which is a reason to report it, not a reason to own it.

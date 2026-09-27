@@ -1,0 +1,39 @@
+/* The settings sub-nav. `022`, design/screens/09-settings-localization.md. */
+
+.nav {
+  display: flex;
+  gap: var(--space-2);
+  margin-block-end: var(--space-6);
+  border-block-end: var(--border-width) solid var(--border-subtle);
+}
+
+.item {
+  position: relative;
+  padding-block: var(--space-3);
+  padding-inline: var(--space-2);
+  font-size: var(--text-ui);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.item:hover {
+  color: var(--text-primary);
+}
+
+/* The active bar follows the reading direction via a logical property, so it
+ * moves to the correct edge in Arabic without a second rule (ADR-007 §6). */
+.active {
+  color: var(--text-primary);
+}
+
+.active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--border-width) * -1);
+  block-size: 3px;
+  background-color: var(--brand);
+  border-start-start-radius: var(--radius-sm);
+  border-start-end-radius: var(--radius-sm);
+}

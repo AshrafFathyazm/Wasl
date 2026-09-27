@@ -22,7 +22,27 @@ theatre that makes a plan look bigger than the delivery behind it.
 
 ## US-012 — Provider Abstraction
 
-**Status:** Deferred
+**Status:** **Promoted and delivered** 2026-09-08 — `021-communication-provider-abstraction`,
+tracked in `08-board.md`. Everything below is the reasoning for the original deferral and is
+kept because the deferral was correct at the time; it is **not** a standing decision, and a
+reader who arrives here should not conclude that `021` was built against one.
+
+**What changed:** the argument below is about an abstraction with one implementation. It
+still has one, and the deviation is **recorded rather than argued away**, in
+`specs/021-communication-provider-abstraction/review.md` under the mechanism the
+constitution specifies in Governance. What the promotion bought is a *demonstrable* seam:
+Communication Channels resolved to one enum column, which reads as missing rather than as
+scoped. **It is not precedent for the next abstraction.**
+
+**Still out of scope, untouched by `021`:** any credential, any network call, any real
+provider account. `MockCommunicationProvider` is the only implementation and AC-17 asserts
+by source search that no `HttpClient`, `SmtpClient`, `Socket` or `WebSocket` exists behind
+the seam.
+
+<details>
+<summary>The original deferral reasoning</summary>
+
+**Status at the time:** Deferred
 
 Originally scoped as "an abstraction over communication providers so that a real
 WhatsApp, SMS, or email provider can be plugged in".
@@ -39,6 +59,8 @@ known rather than imagined.
 **What was done instead:** `CommunicationChannel` is a first-class domain enum stored
 on tickets and comments. The data needed to route a future provider exists; only the
 routing is absent.
+
+</details>
 
 ---
 

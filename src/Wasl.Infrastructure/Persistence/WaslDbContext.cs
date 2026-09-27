@@ -8,6 +8,7 @@ using Wasl.Domain.Common.Exceptions;
 using Wasl.Infrastructure.Persistence.Configurations;
 using Wasl.Application.Features.Customers.CreateCustomer;
 using Wasl.Domain.Customers;
+using Wasl.Domain.Settings;
 using Wasl.Domain.Tickets;
 using Wasl.Domain.Users;
 
@@ -413,6 +414,11 @@ public sealed class WaslDbContext(
     public DbSet<Interaction> Interactions => Set<Interaction>();
 
     IQueryable<Interaction> IApplicationDbContext.Interactions => Interactions;
+
+    /// <summary>Added by `022`. One row, seeded by the migration. ADR-012.</summary>
+    public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
+
+    IQueryable<OrganizationSettings> IApplicationDbContext.OrganizationSettings => OrganizationSettings;
 
     void IApplicationDbContext.Add<TEntity>(TEntity entity) => Set<TEntity>().Add(entity);
 

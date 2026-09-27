@@ -31,6 +31,13 @@ const RESPONSE: SignInResponse = {
     role: 'Agent',
     preferredLanguage: 'ar',
   },
+  theme: {
+    brandColor: '#1D174D',
+    onBrand: '#FFFFFF',
+    sidebarMode: 'Light',
+    updatedAtUtc: '2026-09-27T00:00:00Z',
+    version: 'AAAAAAAAB9E=',
+  },
 };
 
 beforeEach(() => {

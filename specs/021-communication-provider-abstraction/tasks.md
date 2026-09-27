@@ -122,3 +122,22 @@ silent failure this schema has (AC-9), and reading the migration does not catch 
 **DOC-021-05.** A reviewer who arrives at `DEFERRED.md` and reads US-012 as still
 deferred will conclude this feature was built against a standing decision. Two sentences
 prevent that, and no test does.
+
+---
+
+## Closed late — 2026-09-27
+
+`021` delivered and committed (`c6efba7`) on 2026-09-08 with four rows still open. Closed
+on 2026-09-27 and recorded here rather than back-dated:
+
+| ID | Closed by |
+|---|---|
+| DOC-021-04 | `docs/sdd/design/screens/04-ticket-detail.md` gains **The Messages tab** — elements, the four decisions it encodes, six state rows, and its RTL rule. It also carries **two corrections `016` should have made**: escalate was still listed as "drawn and inert", and a priority-change row was still listed as absent because `PriorityChanged` "cannot arrive" |
+| DOC-021-05 | US-012 in `DEFERRED.md` now reads **Promoted and delivered**, with the original deferral reasoning kept in a fold and the non-precedent statement carried across. **The ADR-010 half of this row was stale before `021` started** — the sentence it asked to correct was removed by `d3add43`, the commit that rejected ADR-010. Verified with `git log -S`, because "already corrected" and "never needed correcting" look identical from a clean grep |
+| REV-021-01 · REV-021-03 · REV-021-04 | [`review.md`](review.md). Verdict `Approved`; AC-8 **Not met**, AC-18 **Partial**; the constitutional deviation recorded with its non-precedent statement and left **open for the product owner** |
+| REV-021-02 | `OpenApiContractTests`, green at delivery inside the 591-test integration run. **Not re-run for this review**, and `review.md` says so rather than implying a fresh measurement |
+
+**Two documents outside this feature's scope were corrected in the same pass**, because
+the review found them while checking the contract: `documentation/api/overview.md` and
+`documentation/development/setup.md` both still promised interactive documentation at
+`/swagger`. `002c` measured in August that there is none and never was.

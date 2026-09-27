@@ -36,6 +36,7 @@ const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
 const CreateTicketPage = lazy(() => import('./features/tickets/CreateTicketPage'));
 const TicketListPage = lazy(() => import('./features/tickets/TicketListPage'));
 const LocalizationPage = lazy(() => import('./features/settings/LocalizationPage'));
+const BrandingPage = lazy(() => import('./features/settings/BrandingPage'));
 const CustomersListPage = lazy(() => import('./features/customers/CustomersListPage'));
 const CreateCustomerPage = lazy(() => import('./features/customers/CreateCustomerPage'));
 const CustomerProfilePage = lazy(
@@ -221,6 +222,7 @@ export const routes: RouteObject[] = [
             element: <TicketListPage queue="unassigned" />,
           },
           { path: '/settings/localization', element: <LocalizationPage /> },
+          { path: '/settings/branding', element: <BrandingPage /> },
           { path: '/tickets/new', element: <CreateTicketPage /> },
           { path: '/tickets/:id', element: <TicketDetailPage /> },
 

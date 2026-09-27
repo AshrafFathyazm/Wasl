@@ -1,5 +1,6 @@
 using MediatR;
 using Wasl.Application.Common.Abstractions;
+using Wasl.Application.Features.Settings;
 using Wasl.Domain.Common.Exceptions;
 
 namespace Wasl.Application.Features.Auth.IssueToken;
@@ -69,6 +70,23 @@ internal sealed class IssueTokenCommandHandler(
 
         var (token, expiresAtUtc) = tokens.Issue(user!);
 
+        /* `022`, AC-3. THE THEME RIDES ON THIS RESPONSE SO THE FIRST PAINT AFTER SIGN-IN IS
+         * ALREADY BRANDED.
+         *
+         * Read AFTER the credentials are verified, never before: an unauthenticated caller must
+         * not be able to learn the organisation's branding by posting a wrong password, and the
+         * throttle above is what makes that ordering matter.
+         *
+         * `BrandingResponse.From` is the same mapper `GET /api/settings/branding` uses, which is
+         * what makes AC-3's field-for-field comparison true by construction rather than by two
+         * shapes that happen to agree today. */
+        var settings = await context.FirstOrDefaultAsync(
+            context.OrganizationSettings,
+            cancellationToken)
+            ?? throw new InvalidOperationException(
+                "The organisation settings row is missing. The AddOrganizationSettings migration "
+                + "has not been applied to this database.");
+
         return new IssueTokenResult(
             AccessToken: token,
             TokenType: "Bearer",
@@ -78,6 +96,7 @@ internal sealed class IssueTokenCommandHandler(
                 user.FullName,
                 user.Email,
                 user.Role.ToString(),
-                user.PreferredLanguage));
+                user.PreferredLanguage),
+            Theme: BrandingResponse.From(settings));
     }
 }

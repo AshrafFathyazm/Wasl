@@ -137,6 +137,18 @@ internal static class ProblemTypes
         [DomainErrorCodes.ConcurrencyConflict] = new(
             StatusCodes.Status409Conflict, CarriesErrors: false, TitleKey: "Error.ConcurrencyConflict.Title"),
 
+        // Added by `022`. A `400` with its own `type` rather than errors/validation, because the
+        // screen does something different with it: a malformed colour is a typo and the message
+        // goes on the field, while a refused colour is a decision that has to be EXPLAINED, with
+        // the four measured ratios rendered beside it. `05-api-conventions.md` establishes this
+        // pattern for `409` and the reason is the same one.
+        //
+        // It carries `errors` — the remedy is to change `brandColor`, so the message belongs on
+        // that control — AND the only machine extensions in this registry.
+        [DomainErrorCodes.InaccessibleBrandColor] = new(
+            StatusCodes.Status400BadRequest, CarriesErrors: true,
+            TitleKey: "Error.InaccessibleBrandColor.Title"),
+
         // Added by `011`. Two more that a client must tell apart without reading English:
         // assignee-unchanged means refetch quietly (a double-click on the picker), and
         // assignee-not-found means the PICKER is stale — distinct from errors/not-found, which

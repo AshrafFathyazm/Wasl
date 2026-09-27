@@ -28,7 +28,7 @@ response, because the theme must reach `:root` before first paint — ADR-012), 
 |---|---|---|
 | `brandColor` | The five derived ramp values | The ramp is five `color-mix(in oklab, …)` declarations in the stylesheet. Sending hex values would be a second implementation of the ramp that has to agree with the first forever (`research.md` R-6) |
 | `onBrand` | — | Not a derivation, a **decision**: the output of the rule that gates the colour. Constitution III — the server tells the client what is permitted rather than the client deriving it |
-| `sidebarMode` | The preset's colour values | A mode, not a colour (ADR-012 part 4). The three presets ship in the stylesheet (`006`) |
+| `sidebarMode` | The preset's colour values | A mode, not a colour (ADR-012 part 4). The three presets live in the stylesheet, so the wire carries a name and never four hex values. ~~ship in the stylesheet (`006`)~~ — **corrected 2026-09-27: they did not, and `006` never owed them.** `006`'s spec defers the presets to the app-shell feature in writing, and the shipped `Sidebar.module.css` paints from the **global** `--surface-page` and `--text-primary`. `022` builds the preset layer; the wire shape is unchanged |
 
 ---
 

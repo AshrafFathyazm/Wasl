@@ -72,6 +72,28 @@ internal sealed class ProblemDetailsFactory(
                 StringComparer.Ordinal);
         }
 
+        // `022`. Machine-readable values, copied verbatim and NOT resolved against the
+        // catalogue — the whole reason they exist is that a ratio formatted into a translated
+        // sentence is a number in the wrong locale. Written before `errors` would let one
+        // collide with it silently, so they are written after and a collision is impossible:
+        // no exception may name an extension `errors`, and the guard is that this loop cannot
+        // overwrite it.
+        foreach (var extension in exception.MachineExtensions)
+        {
+            if (string.Equals(extension.Key, "errors", StringComparison.Ordinal)
+                || string.Equals(extension.Key, "traceId", StringComparison.Ordinal))
+            {
+                // Loud rather than silent: an exception trying to redefine the two extensions
+                // every consumer branches on is a defect in this codebase, not a request.
+                throw new InvalidOperationException(
+                    $"{exception.GetType().Name} declares a machine extension named "
+                    + $"'{extension.Key}', which is part of the error envelope and cannot be "
+                    + "overwritten. Rename it.");
+            }
+
+            problem.Extensions[extension.Key] = extension.Value;
+        }
+
         return problem;
     }
 

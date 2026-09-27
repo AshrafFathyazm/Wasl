@@ -19,6 +19,7 @@ import {
 import type { AuthenticatedUser, SignInResponse } from '../../lib/api-types.provisional';
 import { applyDocumentLanguage, isLanguage, storeLanguage } from '../../lib/direction';
 import i18n from '../../lib/i18n';
+import { applyTheme, writeCachedTheme } from '../../lib/theme';
 import {
   clearSession,
   readSession,
@@ -135,6 +136,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * Cleared BEFORE the preference is adopted, so the order cannot matter. */
       clearSessionCulture();
       adoptPreferredLanguage(response.user);
+
+      /* `022`, AC-18. THE THEME ARRIVES WITH THE TOKEN AND IS CACHED HERE, so
+       * the NEXT load's pre-paint script already has it and paints the tenant's
+       * brand with exactly one write to `:root`.
+       *
+       * Applied as well as cached, because this load is already past first paint
+       * — a sign-in that stored the theme and did not apply it would leave the
+       * signed-in user on the default until they reloaded. */
+      applyTheme(response.theme, document.documentElement);
+      writeCachedTheme(response.theme);
     },
     [],
   );

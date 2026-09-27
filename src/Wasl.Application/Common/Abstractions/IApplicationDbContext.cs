@@ -1,5 +1,6 @@
 using Wasl.Domain.Communications;
 using Wasl.Domain.Customers;
+using Wasl.Domain.Settings;
 using Wasl.Domain.Tickets;
 using Wasl.Domain.Users;
 
@@ -77,6 +78,25 @@ public interface IApplicationDbContext
     /// </para>
     /// </remarks>
     IQueryable<Interaction> Interactions { get; }
+
+    /// <summary>
+    /// Added by `022`. The organisation's interface settings — <b>exactly one row</b>, seeded by
+    /// the migration and updated in place.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>No <see cref="Add"/> path, by construction.</b> The row is seeded, so nothing in the
+    /// request path creates one; <c>CK_OrganizationSettings_SingleRow</c> refuses a second
+    /// insert anyway (AC-25). A handler reads it, mutates it through
+    /// <c>OrganizationSettings.ChangeBranding</c>, and saves.
+    /// </para>
+    /// <para>
+    /// <b>Queryable even though there is only ever one row</b>, because the read still has to be
+    /// a tracked query for the write path and an untracked one for the token response — and the
+    /// call site is the right place to choose, not this interface.
+    /// </para>
+    /// </remarks>
+    IQueryable<OrganizationSettings> OrganizationSettings { get; }
 
     /// <summary>
     /// <c>TicketHistory</c> is deliberately <b>not</b> exposed.

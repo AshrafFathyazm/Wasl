@@ -119,4 +119,32 @@ public abstract class DomainException : Exception
     /// </para>
     /// </remarks>
     public virtual string? TitleKey => null;
+
+    /// <summary>
+    /// Machine-readable values copied verbatim onto <c>ProblemDetails.Extensions</c>. Added by
+    /// `022`. Empty for every other exception.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Nothing in here is ever translated, and that is the point.</b> `022`'s contrast refusal
+    /// has to report four ratios and which gate refused the colour, and the client renders them:
+    /// a server-composed sentence like <c>"4.02:1, needs 4.5:1"</c> would put a formatted number
+    /// inside a translated string, and Arabic formats numbers differently. The contract asserts
+    /// these are byte-identical under <c>Accept-Language: ar</c>.
+    /// </para>
+    /// <para>
+    /// <b>Not a general-purpose bag.</b> It exists because a refusal the user has to <i>act on</i>
+    /// needs the measurements behind it, which <c>errors</c> cannot carry — that maps a field to
+    /// sentences. Anything that is a sentence belongs in <see cref="MessageKey"/> or
+    /// <see cref="FieldErrors"/>, both of which go through the catalogue. A value added here
+    /// bypasses localization entirely, so adding one is a decision about the contract.
+    /// </para>
+    /// <para>
+    /// <b>The factory copies it without consulting the registry</b>, unlike <c>errors</c>. There
+    /// is no "may this type carry extensions" row: an exception that sets this has already
+    /// decided, and a registry flag would be a second place for the same fact to be wrong.
+    /// </para>
+    /// </remarks>
+    public virtual IReadOnlyDictionary<string, object> MachineExtensions { get; }
+        = new Dictionary<string, object>(StringComparer.Ordinal);
 }

@@ -57,9 +57,32 @@ keeps the token; the server issues the same token either way, with the same life
     "email": "manager@wasl.local",
     "role": "Manager",
     "preferredLanguage": "ar"
+  },
+  "theme": {
+    "brandColor": "#1D174D",
+    "onBrand": "#FFFFFF",
+    "sidebarMode": "Light",
+    "updatedAtUtc": "2026-09-27T00:00:00Z",
+    "version": "AAAAAAAAB9E="
   }
 }
 ```
+
+> **Contract change — `022-tenant-theming-settings`, 2026-09-27.** `theme` was added to this
+> frozen body. **Additive**: a client reading `accessToken`, `tokenType`, `expiresAtUtc` and
+> `user` is unaffected.
+>
+> **Why it rides on this response rather than being fetched.** The theme must reach `:root`
+> before the first paint after sign-in. A separate request paints the default theme and then
+> snaps to the tenant's, on every sign-in, on every device — and that flash is invisible to
+> every test that does not measure paint order (`022` AC-17).
+>
+> **It is the same object, from the same mapper, that `GET /api/settings/branding` returns**, and
+> `022` AC-3 asserts the two are field-for-field equal by calling both and comparing. Two
+> independent shape assertions would both keep passing while the two responses drifted apart.
+>
+> **It is read after the credentials are verified**, so an unauthenticated caller cannot learn
+> the organisation's branding by posting a wrong password.
 
 | Field | Type | Notes |
 |---|---|---|

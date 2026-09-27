@@ -13,6 +13,7 @@ import {
 import { formatDateLong, formatNumber } from '../../lib/formatters';
 import { changeLanguage } from '../../lib/i18n';
 import { changeMyLanguage } from './me.api';
+import { SettingsNav } from './SettingsNav';
 import styles from './Localization.module.css';
 
 /**
@@ -83,6 +84,9 @@ export default function LocalizationPage() {
 
   return (
     <main className={styles.page}>
+      {/* `022`. The settings area has two screens now, so it has a sub-nav. */}
+      <SettingsNav />
+
       <h2 className={styles.title}>{t('localization.title')}</h2>
       <p className={styles.subtitle}>{t('localization.body')}</p>
 

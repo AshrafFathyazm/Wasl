@@ -173,6 +173,8 @@ accepted; deduplicating them would require guessing intent.
 | `GET` | `/api/tickets/{id}/timeline` | US-010 |
 | `GET` | `/api/support-users` | US-007 |
 | `PUT` | `/api/me/language` | US-014 |
+| `GET` | `/api/settings/branding` | `022`. Any authenticated support user — every screen is painted with it |
+| `PUT` | `/api/settings/branding` | `022`. **Manager only** (BR-6). `400 errors/inaccessible-brand-color` when the colour fails a contrast gate |
 | `GET` | `/api/audit` | US-015 |
 | `GET` | `/api/dashboard` | US-016 |
 | `POST` | `/api/auth/token` | Auth |

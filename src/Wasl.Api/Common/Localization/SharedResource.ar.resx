@@ -385,4 +385,34 @@
   <data name="Validation.Idempotency.KeyTooLong" xml:space="preserve">
     <value>يجب ألا يتجاوز Idempotency-Key ١٢٨ حرفًا.</value>
   </data>
+  <data name="Error.InaccessibleBrandColor.Title" xml:space="preserve">
+    <value>لا يمكن استخدام هذا اللون.</value>
+  </data>
+  <data name="Error.Branding.NoReadableForeground" xml:space="preserve">
+    <value>لا يوجد لون نص متاح يحقق التباين المطلوب مع هذا اللون. اختر درجة أغمق أو أفتح.</value>
+  </data>
+  <data name="Error.Branding.HoverStateUnreadable" xml:space="preserve">
+    <value>اللون الأساسي مقروء، لكن حالتي التمرير والضغط ليستا كذلك. اختر درجة أبعد قليلًا عن المنتصف.</value>
+  </data>
+  <data name="Error.Branding.InvisibleAgainstPage" xml:space="preserve">
+    <value>هذا اللون قريب جدًا من خلفية الصفحة، لذا يصعب تمييز الأزرار التي تستخدمه. اختر درجة أعمق.</value>
+  </data>
+  <data name="Validation.Branding.BrandColorRequired" xml:space="preserve">
+    <value>اختر لون العلامة.</value>
+  </data>
+  <data name="Validation.Branding.BrandColorFormat" xml:space="preserve">
+    <value>أدخل اللون بست خانات ست عشرية، مثل ‎#1D174D‎.</value>
+  </data>
+  <data name="Validation.Branding.SidebarModeRequired" xml:space="preserve">
+    <value>اختر نمط الشريط الجانبي.</value>
+  </data>
+  <data name="Validation.Branding.SidebarModeUnknown" xml:space="preserve">
+    <value>اختر أحد أنماط الشريط الجانبي الثلاثة.</value>
+  </data>
+  <data name="Validation.Branding.ExpectedVersionRequired" xml:space="preserve">
+    <value>أعد تحميل الصفحة وحاول مرة أخرى.</value>
+  </data>
+  <data name="Validation.Branding.ExpectedVersionFormat" xml:space="preserve">
+    <value>أعد تحميل الصفحة وحاول مرة أخرى.</value>
+  </data>
 </root>

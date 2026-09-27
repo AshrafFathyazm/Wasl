@@ -48,6 +48,54 @@ after. Also settled: `--border-focus` stays fixed (`var(--blue-500)`), so the fo
 *indicator* cannot be destroyed by a brand choice — `--brand-ring` is additive
 reinforcement, which is why it is outside the contrast gate.
 
+### Re-measured 2026-09-27 — six of the seven rows are built, and the seventh is not `006`'s
+
+**Everything above was true on 2026-08-24 and is kept**, because the check it prescribes
+is the reason this was caught rather than assumed. `006` shipped in between. Re-run:
+
+```text
+grep -n -- '--brand\b|--on-brand|--action-primary-bg' src/wasl-web/src/styles/tokens.css
+  103:  --brand: var(--navy-900);            /* (C) — today's value is the house navy */
+  113:  --on-brand: var(--Main-White-White);
+  115:  --brand-hover:  color-mix(in oklab, var(--brand) 88%, white);
+  116:  --brand-active: color-mix(in oklab, var(--brand) 82%, black);
+  117:  --brand-subtle: color-mix(in oklab, var(--brand)  8%, white);
+  118:  --brand-border: color-mix(in oklab, var(--brand) 24%, white);
+  119:  --brand-ring:   color-mix(in oklab, var(--brand) 22%, transparent);
+  260:  --action-primary-bg:     var(--brand);
+  261:  --action-primary-border: var(--brand);
+  262:  --action-primary-text:   var(--on-brand);
+```
+
+`docs/sdd/design/tokens.css:151` says the same. **The rewiring — the row this section
+called the one that makes the feature invisible without it — is done.** Six of seven rows
+are satisfied.
+
+**The seventh is not, and the interesting part is that it was never `006`'s to owe.**
+`specs/006-design-system/spec.md` line 66 puts the sidebar presets **out of scope**,
+deferred to the app-shell feature: *"Specified in `design/theming.md`; nothing renders one
+yet."* This file put them on `006`'s bill and `contracts/theming-api.md` says they *"ship
+in the stylesheet (`006`)"*. **Three documents, two of which assign the work to a feature
+that declined it in writing.** The stylesheet settles it:
+
+```text
+grep -n 'background|color:' src/wasl-web/src/shell/Sidebar.module.css
+  70:  background-color: var(--surface-page);      ← the PAGE surface
+  141: background-color: var(--action-primary-bg);
+  164: color: var(--text-primary);
+  175: color: var(--text-muted);
+```
+
+No preset layer, and the surface token is shared with the page — so a Dark preset
+implemented by redefining `--surface-page` on the sidebar element would leak to every
+descendant that reads it. **`022` builds the layer** (ruled 2026-09-27): four scoped
+tokens, three presets, and `Sidebar.module.css` rewired off the three global ones.
+
+**Why this matters beyond one row:** the original section prescribed exactly the right
+control — *check A-1 before any frontend task starts* — and running it found the premise
+stale in **both** directions at once. Six rows had quietly been built and one had quietly
+been disowned, and neither is visible from the document that claims them.
+
 ---
 
 ## R-2 · What does the contrast gate actually accept, and what does it refuse?

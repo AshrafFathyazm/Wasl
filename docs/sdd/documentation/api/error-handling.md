@@ -66,6 +66,7 @@ both ways, so a registry row with no row here fails the build, and so does the r
 | `errors/assignee-unchanged` | 409 | The ticket already has that assignee — a double-click on the picker | `011` |
 | `errors/tag-unchanged` | 409 | The tag is already attached, or already absent | `034` |
 | `errors/no-contact-for-channel` | 409 | The ticket's customer has no address for the requested channel — for example `Sms` to a customer with only an email, which BR-4.1 allows. **Carries `errors.channel`**, because the remedy is to change the channel; it never names the addresses the customer *does* have (NFR-4) | **`021`** |
+| `errors/inaccessible-brand-color` | 400 | A well-formed brand colour that fails a contrast gate. **The only type in this registry that carries numeric extensions** — `refusedBy` (`text`/`hover`/`surface`) plus four ratios — because the screen has to *explain* the refusal, not just report it. They are numbers rather than a composed sentence: Arabic formats numbers differently, so the client formats them in the active locale (BR-8.7). Also carries `errors.brandColor` | **`022`** |
 | `errors/concurrency-conflict` | 409 | `expectedVersion` is stale (ADR-006) | `002` |
 | `errors/idempotency-conflict` | 409 | The same `Idempotency-Key` arrived with a **different** body | `036` |
 | `errors/rate-limited` | 429 | Too many attempts. Carries `Retry-After` | `004b` |

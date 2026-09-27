@@ -150,6 +150,25 @@ public static class DomainErrorCodes
     /// </remarks>
     public const string NoContactForChannel = "no-contact-for-channel";
 
+    /// <summary>
+    /// A well-formed brand colour that the contrast gate refuses. `022`, ADR-012.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A <c>400</c> with its own <c>type</c>, not plain <c>errors/validation</c></b>, because
+    /// the interface does something different with it. A malformed colour is a typo and the
+    /// message goes on the field; a refused colour is a decision the user has to act on, and the
+    /// response carries the four measured ratios so the screen can explain it rather than only
+    /// report it.
+    /// </para>
+    /// <para>
+    /// <b>It is the only code in this registry that carries numeric extensions.</b> They are
+    /// numbers rather than a composed sentence because Arabic formats numbers differently, so
+    /// the client formats them in the active locale (BR-8.7).
+    /// </para>
+    /// </remarks>
+    public const string InaccessibleBrandColor = "inaccessible-brand-color";
+
     /// <summary><c>expectedVersion</c> is stale. ADR-006.</summary>
     public const string ConcurrencyConflict = "concurrency-conflict";
 

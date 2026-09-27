@@ -30,8 +30,13 @@ dotnet ef database update --project ../Wasl.Infrastructure --startup-project .
 dotnet run
 ```
 
-The API listens on the port printed at startup. Interactive documentation is at
-`/swagger` in Development.
+The API listens on the port printed at startup. **There is no `/swagger`, and there never
+was** — this line promised one for fifteen features, and the path answered `401` from the
+fallback policy on an unmatched route, which reads like a protected endpoint rather than an
+absent one. `002c` generates an OpenAPI document and deliberately does **not** serve it:
+`MapOpenApi` would need `AllowAnonymous` and make it the third anonymous endpoint after
+`/health` and `POST /api/auth/token`, a list `004` AC-10 counts and asserts. The document is
+produced in a test and compared against the frozen `contracts/`.
 
 The application fails fast at startup if the connection string or the signing key is
 missing. It does not fall back to a default, because a development default that

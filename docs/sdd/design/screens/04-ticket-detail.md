@@ -307,6 +307,47 @@ nothing to escape. Here the composer's popovers are `position: absolute` inside 
 six rows, with no error. The corner-painting defect that made the list clip is answered
 instead by giving the one opaque child (`Closed`'s locked composer) its own top radius.
 
+## The Messages tab — `021`
+
+The third tab, beside **All** and **Internal** over `034`'s `?type=`. It is a **record of
+what was sent**, not a conversation: there is no inbound path in this release (US-013,
+four live blockers), so the panel never draws an "awaiting reply" state and never implies
+a customer can answer.
+
+`TicketDetailPage` owns all three queries — the interaction page, the channel list, and the
+send mutation (ADR-011 §4). The panel fetches nothing, so mounting it introduces no
+waterfall.
+
+### Elements
+
+| Element | Detail |
+|---|---|
+| Channel select | `Dropdown`, **options from `GET /api/communications/channels`** — never a client constant. Opens on the first sendable channel, not a hard-coded `Email` |
+| Body | `Textarea`, `dir="auto"`, `maxLength` 4000 matching `Interaction.BodyMaxLength` and the column, counter from 3800 |
+| Send hint | the address the message will go to, shown **before** it goes. The recipient is resolved server-side, so this is the reader's only chance to check it |
+| Send | `Button`, disabled while in flight |
+| Sent item | channel glyph + label · recipient `dir="ltr"` · delivery badge · timestamp · body `dir="auto"` · a translated failure sentence when `Failed` |
+| Delivery badge | `Accepted` / `Failed` over the existing `Badge` geometry. **No ninth primitive** (ADR-009) — "the badge has different words in it" is not a written reason for one |
+
+**No recipient field.** The address is resolved from the ticket's customer and snapshotted
+server-side. An input here would be the one place in this product where a support user
+could direct customer data to an arbitrary address.
+
+**No raw `failureCode`.** The code maps to a translated sentence, with a generic fallback
+for a code this client has never seen — which a real provider will produce.
+
+**No retry control on a failed message.** There is no retry endpoint, and re-sending is
+sending again, which the composer already does. A "Retry" that quietly composed a second
+message would be a second row the agent did not know they had created.
+
+**`Accepted` is not "delivered", and the label says so.** What a provider reports
+synchronously is that it took responsibility; whether it reached a handset arrives through
+a callback this product does not have. A label reading "Delivered" is a claim the system
+cannot make — and one an agent would repeat to a customer.
+
+**Icon plus label on the badge, never colour alone**, so the state survives a monochrome
+screen and a reader who cannot separate green from red.
+
 ## States
 
 | State | Condition | Renders |
@@ -322,6 +363,12 @@ instead by giving the one opaque child (`Closed`'s locked composer) its own top 
 | Closed | `allowedTransitions` is `[]` | status pill as text; take-action's Close inert; **composer replaced** by one locked sentence, not disabled |
 | Unassigned | `assignee` is `null` | dashed avatar + «تعيين». **The key is present** — an absent key is `undefined`, which renders empty and passes every shape assertion |
 | Send failed | `POST /comments` rejected | inline error above the shell, danger border on it, **draft kept** |
+| Messages loading | the channel list or the first interaction page is in flight | one line of text inside the panel |
+| No sendable channel | `GET /api/communications/channels` returns `[]` | composer replaced by an info notice — **the module is visibly disabled** rather than offering a channel the server would refuse with a `400` |
+| Not permitted to send | the server says this reader may not send on this ticket | composer replaced by an info notice saying why, instead of inviting the `403` and its denial audit row |
+| Empty messages | no interaction on this ticket | title + body pane, composer still shown |
+| Message refused | `POST /…/messages` rejected | **inline beside the composer, never a toast** — the refusal is about the thing the reader is looking at, with the text they typed still in the field |
+| Message failed at the provider | `201` carrying `deliveryStatus: "Failed"` | an ordinary row with the `Failed` badge and a translated failure sentence. **The attempt is the resource**, so this is not an error state |
 
 ## RTL
 
@@ -340,6 +387,12 @@ defaults to Hijri, and neither default announces itself.
 scroll, the header stays one row, the priority edge moves to the left border, and both
 popovers open inward.
 
+On the Messages tab the message body keeps `dir="auto"` — it is the agent's own words and
+can be Arabic on an English screen or the reverse — while the **recipient address is
+`dir="ltr"` and never mirrored**. An email address and an E.164 number read left-to-right
+in every locale, and reversing either destroys the one thing a reader does with it: check
+it before sending.
+
 ## Open against this screen
 
 | # | Question | Working assumption |
@@ -351,14 +404,22 @@ popovers open inward.
 
 ## Not on this screen
 
-**Drawn and inert** (owner's ruling, with a stated reason each): escalate · merge · extend
-the due date.
+**Drawn and inert** (owner's ruling, with a stated reason each): merge · extend the due
+date. **Escalate is no longer one of them — `016` built it**, so the take-action row opens
+a real dialog and the ticket read carries a server-computed `canEscalate`.
 
 **Absent entirely, because nothing behind them exists:** the SLA pill, the rail's SLA block
 and the «خُرق زمن الحل» banner — there is no due date, no first-response time and no SLA
 field, table or setting anywhere in the domain; `@ mentions` — no field on a comment, no
-notification, nothing to resolve a name against; a priority-change history row — there is no
-`PriorityChanged` in `TicketHistoryEventType`, so it cannot arrive.
+notification, nothing to resolve a name against.
+
+**No longer absent:** the priority-change history row. This section said *"there is no
+`PriorityChanged` in `TicketHistoryEventType`, so it cannot arrive"* — `016` added it, to
+the domain enum, to `TimelineEntryType`, to the client's union **and** to the client's
+label switch. The first three were done and the row still rendered an actor, a timestamp,
+a glyph and no sentence, because the fourth reached `default: return ''`. **Found in a
+browser; every frontend test passed.** Adding a history event type is four edits, and the
+test that catches the fourth asserts the sentence, not the row.
 
 **Out of scope by decision:** editing or deleting a comment · attachments · reopening a
 closed ticket · time tracking · the audit log view (`019`).

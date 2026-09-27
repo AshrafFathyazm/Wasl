@@ -57,8 +57,11 @@ public sealed class OpenApiContractTests(WaslApiFactory factory)
          *
          * `POST /api/tickets/{id}/escalate` WAS HERE AND IS DELETED TOO, by `016` on 2026-09-08,
          * for the same reason. */
-        ["GET /api/settings/branding"] = "022-tenant-theming-settings",
-        ["PUT /api/settings/branding"] = "022-tenant-theming-settings",
+        /* `GET /api/settings/branding` AND `PUT /api/settings/branding` WERE HERE AND ARE DELETED,
+         * by `022` on 2026-09-27, for the reason stated above: the entry keeps a BUILT endpoint
+         * out of the comparison, so leaving it would silently exempt the two endpoints this
+         * feature exists to add. `No_pending_entry_names_an_endpoint_that_now_exists` is the
+         * guard that makes forgetting this a red build rather than a quiet exemption. */
         /* `GET /api/locales` WAS HERE AND IS DELETED — found by
          * `No_pending_entry_names_an_endpoint_no_contract_declares` on its first run, 2026-09-08,
          * and it is a different mistake from the two `021` entries below.
