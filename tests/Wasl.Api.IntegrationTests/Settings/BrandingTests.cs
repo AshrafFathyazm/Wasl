@@ -408,9 +408,24 @@ public sealed class BrandingTests(WaslApiFactory factory)
         var before = await BodyOf(await manager.GetAsync(Path));
         var version = before.GetProperty("version").GetString();
 
-        async Task<JsonElement> RefuseIn(string language)
+        /* `?culture=` RATHER THAN `Accept-Language`, AND THE FIRST VERSION OF THIS TEST WAS
+         * WRONG ABOUT THAT.
+         *
+         * It sent `Accept-Language: en` and `ar` and asserted the two titles differed. Both came
+         * back ARABIC, so the English request produced the Arabic sentence and the assertion
+         * failed — reading, at first glance, like the localization was broken.
+         *
+         * It is not. The seeded Manager's token carries `preferred_language: ar`, and
+         * `LocalizationRegistration` orders the providers query → claim → header (`005`). The
+         * claim outranks the header by design, which is exactly `014`'s behaviour: a signed-in
+         * user's stored preference beats whatever their browser asks for. The query override
+         * exists above both precisely so a caller can ask for a specific culture anyway.
+         *
+         * Recorded rather than quietly switched, because "the test used the wrong lever" and
+         * "the server ignores Accept-Language" produce the same red line. */
+        async Task<JsonElement> RefuseIn(string culture)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Put, Path)
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{Path}?culture={culture}")
             {
                 Content = JsonContent.Create(new
                 {
@@ -419,8 +434,6 @@ public sealed class BrandingTests(WaslApiFactory factory)
                     expectedVersion = version,
                 }),
             };
-
-            request.Headers.Add("Accept-Language", language);
 
             return await BodyOf(await manager.SendAsync(request));
         }

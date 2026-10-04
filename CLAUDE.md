@@ -194,6 +194,17 @@ and `ar`.
   text is absent from the list until somebody writes a test that looks. **That test is written — `AuditRedactionCoverageTests`, 2026-09-27.** **A browser
   found what no test could** — `PriorityChanged` rendered an actor, a timestamp, a glyph and no
   sentence. AC-16 is **partial**: FE-016-09's focus trap and screen-reader pass were not done
+- **`022-tenant-theming-settings` delivered, both lanes** 2026-10-04 — `dbo.OrganizationSettings`
+  (one row, `CK_OrganizationSettings_SingleRow`), `GET` + `PUT /api/settings/branding`, the
+  contrast gate in `Wasl.Domain/Settings/BrandContrast.cs`, `/settings/branding` and a settings
+  sub-nav (987 backend / 1416 frontend tests). **`006`'s ramp direction was wrong and the default
+  brand hid it:** `--brand-hover` lightened unconditionally, so the gate refused `#1570EF`,
+  `#4A9E96` and the frozen contract's own `#2E7D32` — only the house navy and pure black passed,
+  **and the navy passed because it is nearly black.** Hover and active now move *away* from the
+  chosen foreground (`--brand-away`). **The oklab arithmetic was checked against Chrome 154,
+  twenty values byte-identical** — not against itself. **The theme is written before first paint
+  by `index.html`**, beside `dir` and `lang`, and `theme` rides on `POST /api/auth/token` — a
+  contract change to `004`, recorded. AC-15 and AC-19 **partial**; **Q-H open and not coded**
 - **`012-change-ticket-status` backend delivered** 2026-08-26 — `PUT /api/tickets/{id}/status`, three distinct `409` codes, explicit optimistic concurrency **before** the transition rules (250 tests)
 - **`010-ticket-list-and-detail` backend delivered** 2026-08-26 — `GET /api/tickets`, paged envelope, BR-7.2 clamping (263 tests). Filters, search and sorting to `015`; both screens to the frontend lane
 - **`004-auth-and-roles` backend half delivered** 2026-08-27 — `dbo.SupportUsers` + the four FKs `009` deferred, two seeded users, `POST /api/auth/token`, real `ICurrentUser`, `ManagerOnly` + `RequireAuthenticatedUser` as the **fallback**, `UseAuthentication` before `UseRequestLocalization` (303 tests). Login screen and route guard belong to the frontend lane
@@ -680,6 +691,24 @@ present and enforcing. Read schema metadata on the **migrator** connection and b
 (`filter_definition`) when the question is "does this object exist", because a null cannot tell
 "absent" from "no value".
 
+**`var(--a-token-that-does-not-exist)` is not an error — the declaration is silently dropped.**
+`022` wrote four plausible names that do not exist (`--state-danger-subtle`, `--leading-relaxed`
+…) and shipped a refusal panel with **no background and no border** while `tsc`, `eslint` and
+1359 vitest tests were green. jsdom computes no custom properties, so no rendered test can see
+it. **`tokenReferences.test.ts` scans every stylesheet** and found four more in shipped CSS on its
+first run. `032` had built the same check and scoped it to two files in one folder — **a guard
+scoped to one folder only protects one folder.** A `var(--x, fallback)` is *not* a defect: the
+fallback is how CSS says "this may not exist", and the guard's first form went red on four of
+them and was narrowed rather than the code bent.
+
+**A property that is not a custom property does not inherit like one.** `022`'s Dark sidebar
+preset declared its colours *and* `color-scheme: dark` under a `:root` attribute — necessarily,
+because the pre-paint script runs before the sidebar exists. The token values were only ever
+read by sidebar rules, so the sidebar looked right; **`color-scheme` applied to the whole
+document** and repainted every form control in the product. Found in a browser. A
+document-level attribute can carry token *values*; an element-level property belongs in the
+element's own module.
+
 **`vitest run` is not a verification of a TypeScript file.** `016` had a new guard passing 38 tests
 while the file carried two `tsc` errors and one `eslint` error. Vitest does not typecheck. `tsc -b`
 and `eslint` are separate statements and both have to be made.
@@ -880,7 +909,7 @@ modified without help? If not, it is not Done, regardless of whether tests pass.
 | No global state store | ADR-011 §1 |
 | `ICommunicationProvider` + one Mock **IS built now — `021`, 2026-09-08** | This row has been wrong in both directions. It said "is built" until `036` grepped and found zero matches; it then said "specified and NOT built" until `021` built it. `ICommunicationProvider` is in `Wasl.Application/Common/Abstractions/`, `MockCommunicationProvider` in `Wasl.Infrastructure/Communications/`, one instance per sendable channel, and `CommunicationProviderRegistry` is the single source of the sendable set. **Still no credential and no network** — that half of the exclusion in `00-project-context.md` is untouched and AC-17 asserts it by search. **`Interaction` is built too**, which the row above this one said was never built |
 | Attachments are **out of scope**, stated explicitly in the affected `spec.md` | `docs/sdd/00-project-context.md` |
-| Theming: token architecture in `006`, settings screen deferred | ADR-012, accepted in part |
+| Theming: token architecture in `006`; **the settings screen, the sidebar presets and the ramp-direction fix are `022`** (2026-10-04). The contrast gate is in `Wasl.Domain` and **the client never recomputes `onBrand`** — the rule that chooses the foreground is the rule that refuses a colour | ADR-012, now fully delivered except Q-H |
 | **`TransactionBehaviour` and `AuditBehaviour` live in `Wasl.Infrastructure`**, not beside `ValidationBehaviour` | `003` `research.md` R-14, product owner 2026-08-25. Both need a real transaction; `IApplicationDbContext` exposes no EF Core type and `IDbContextTransaction` is one, so putting it there would fail the architecture test. The `IUnitOfWork` wrapper was the alternative and was turned down — the boundary keeps **no exemption** |
 | **Each layer registers itself** — `AddApplication()` · `AddInfrastructure(config)` · `AddPresentation()`, three chained calls in `Program.cs`, which names no type from another layer. A layer registering its own implementations is what lets them stay `internal` | 2026-08-26. `TimeProvider` and the `WaslDbContext` health check belong to `AddInfrastructure`, not to the composition root |
 | **All three behaviours are registered once, in `Wasl.Api/Common/WaslPipeline.cs`** — the **one exception** to the row above, called last from `Program.cs` | `003` `research.md` R-15. Registration order is execution order and `Program.cs` calls `AddInfrastructure` first, so per-project registration was **observed** producing `Transaction → Audit → Validation` — a `400` then writes an audit row, and nothing throws. Do not move a registration back into `AddApplication` or `AddInfrastructure` |

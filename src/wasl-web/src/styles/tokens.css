@@ -862,14 +862,29 @@
   --sidebar-surface: var(--brand);
   --sidebar-fg: var(--on-brand);
 
-  /* Muted and border TRACK the computed foreground rather than being hard-coded
-   * for a dark brand — which is the mistake that makes a Brand sidebar look
-   * right for the house navy and illegible for a pale one.
+  /* MUTED TEXT IS THE FULL FOREGROUND HERE, and that is a measured result, not
+   * a stylistic one.
    *
-   * Mixed with `transparent`, so they are the foreground at reduced alpha over
-   * whatever the surface is. AC-15 holds TEXT roles to 4.5:1, so --sidebar-muted
-   * stays high enough to be text; the border is non-text and is held to 3:1. */
-  --sidebar-muted: color-mix(in oklab, var(--on-brand) 72%, transparent);
+   * This was `color-mix(in oklab, var(--on-brand) 72%, transparent)`, with a
+   * comment claiming it "stays high enough to be text". MEASURED 2026-10-04 over
+   * every colour the gate accepts in a 16-step sweep of the sRGB cube: 1079 of
+   * 1800 accepted brands put this text BELOW 4.5:1, worst `#EE0000` at 2.72:1
+   * (`BrandSidebarContrastTests`). The claim was reasoned and never checked.
+   *
+   * It cannot be tuned, and the reason is arithmetic rather than taste. The gate
+   * accepts a brand whose full-strength foreground reaches 4.5:1 — and some
+   * brands reach it with nothing to spare. Any opacity below 100% blends the
+   * text toward the surface it sits on, so for a brand at the boundary EVERY
+   * alpha below 1 fails. No percentage works for every accepted colour.
+   *
+   * AC-15 already said so in words — "mixed foregrounds are used only for
+   * borders and dividers, which are non-text" — and the first implementation
+   * used one for text anyway. Muted roles in this preset are distinguished by
+   * size and weight, which the module already sets, not by fading. */
+  --sidebar-muted: var(--on-brand);
+
+  /* The border stays mixed: it is non-text. See `spec.md` Q-I for the 3:1
+   * question AC-15 raises about it, which is recorded rather than resolved. */
   --sidebar-border: color-mix(in oklab, var(--on-brand) 20%, transparent);
 
   /* No color-scheme override. A Brand sidebar may be light or dark depending on
