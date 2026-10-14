@@ -62,3 +62,9 @@ Thumbs.db
 # Test result artifacts (trx, coverage)
 TestResults/
 *.trx
+
+# Deployment config — holds the hosted DB password and the JWT signing key
+src/Wasl.Api/appsettings.Production.json
+publish/
+publish.zip
+publish-db.sql
