@@ -250,6 +250,12 @@
   justify-content: flex-start;
 }
 
+/* An odd count leaves one orphan cell (five channels, two columns). Let it take
+   the whole row instead of sitting half-width beside nothing. */
+.groupLabels .option:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
 .option:hover {
   color: var(--text-primary);
   border-color: var(--border-default);

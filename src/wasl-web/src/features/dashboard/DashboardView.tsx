@@ -677,6 +677,13 @@ function DemandCard({
   const channelMax = Math.max(1, ...channels.map((entry) => entry.count));
   const channelTotal = channels.reduce((sum, entry) => sum + entry.count, 0);
 
+  /* ZERO-COUNT CHANNELS ARE NOT DRAWN (`040` item 17). A bar with no length and
+   * a "0" is a row that says nothing, and three of them under two real ones makes
+   * the card look like the data failed to load. They are named once, muted, in a
+   * single line — the fact "nothing from SMS" survives, the rows do not. */
+  const shown = channels.filter((entry) => entry.count > 0);
+  const hidden = channels.filter((entry) => entry.count === 0);
+
   return (
     <section className={styles.card}>
       <h2 className={styles.cardTitle}>{t('channels.title')}</h2>
@@ -687,7 +694,7 @@ function DemandCard({
         })}
       </p>
 
-      {channels.map((entry, index) => (
+      {shown.map((entry, index) => (
         <BarRow
           key={entry.channel}
           /* THE SHARE, added 2026-09-07 — the canvas prints "38%" after the
@@ -710,6 +717,17 @@ function DemandCard({
         />
       ))}
 
+      {shown.length === 0 ? (
+        <p className={styles.emptyLine}>{t('channels.allNone')}</p>
+      ) : hidden.length > 0 ? (
+        <p className={styles.emptyLine}>
+          {t('channels.none', {
+            names: hidden
+              .map((entry) => t(`tickets:channel.${entry.channel}`))
+              .join(t('common:listSeparator')),
+          })}
+        </p>
+      ) : null}
     </section>
   );
 }

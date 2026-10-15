@@ -105,14 +105,17 @@ export type CreateTicketFormValues = z.input<typeof createTicketSchema>;
 /** The PARSED shape — enums narrowed, strings trimmed. */
 export type CreateTicketParsed = z.output<typeof createTicketSchema>;
 
-/** Every field present and blank. `priority: ''` means untouched; the server
- *  defaults an absent value to `Normal`. */
+/** Every field present and blank, except `priority`: `Normal` is selected on load
+ *  (`040` item 22, product owner 2026-10-15 — it supersedes `038` R-3, which left it
+ *  unselected). The body now carries `priority: 'Normal'` even when nobody touched the
+ *  control, which is the value the server would have chosen; the cost is that this
+ *  client pins today's server default. `''` stays valid input and is still omitted. */
 export const emptyCreateTicketForm: CreateTicketFormValues = {
   customerId: '',
   subject: '',
   description: '',
   category: '',
-  priority: '',
+  priority: 'Normal',
   channel: '',
 };
 

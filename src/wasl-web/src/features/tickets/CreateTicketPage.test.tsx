@@ -403,7 +403,7 @@ describe('AC-27, AC-30, AC-39 — what actually goes on the wire', () => {
     await waitFor(() => expect(createTicket).toHaveBeenCalledTimes(1));
   });
 
-  it('omits `priority` entirely when it was never touched', async () => {
+  it('sends `priority: Normal` when it was never touched — it is selected on load (040 item 22)', async () => {
     vi.mocked(createTicket).mockResolvedValue({ ticket: TICKET, location: null });
 
     const user = userEvent.setup();
@@ -424,7 +424,7 @@ describe('AC-27, AC-30, AC-39 — what actually goes on the wire', () => {
       string,
       unknown
     >;
-    expect('priority' in body).toBe(false);
+    expect(body.priority).toBe('Normal');
   });
 
   it('carries an Idempotency-Key, keeps it on an identical retry, remints it after an edit', async () => {

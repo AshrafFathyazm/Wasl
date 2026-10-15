@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '../components/Button/Button';
 import {
@@ -56,7 +56,10 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
           FIXED: both scripts render in both locales, because a logo is a brand
           asset and not copy — neither line replaces the other when the language
           changes. Collapsed, it becomes the tile alone. */}
-      <div className={styles.lockup} role="img" aria-label={t('common:productName')}>
+      {/* A LINK HOME since `040` item 24: it was `role="img"`, so the one element
+          every product lets you press to start over was inert and unnamed as a
+          control. */}
+      <Link to="/" className={styles.lockup} aria-label={t('common:nav.home')} onClick={onNavigate}>
         <span className={styles.mark} aria-hidden="true">
           <Mark size={20} />
         </span>
@@ -69,7 +72,7 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
           </span>
           <span className={styles.wordmarkSecondary}>{WORDMARK_LATIN}</span>
         </span>
-      </div>
+      </Link>
 
       {/* On the sidebar's OUTER edge, half-overlapping the border. The chevron
           rotates 180°; under RTL it mirrors, and so does the direction of
@@ -404,7 +407,7 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-haspopup="menu"
-            aria-label={collapsed ? user.fullName : undefined}
+            aria-label={t('common:nav.userMenu', { name: user.fullName })}
           >
             <span className={styles.avatar} aria-hidden="true">
               {initialsOf(user.fullName)}

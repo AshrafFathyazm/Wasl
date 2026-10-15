@@ -22,6 +22,7 @@ import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
 import { formatDateTime, formatNumber, type Lang } from '../../lib/formatters';
 import { formatRelativeAge } from '../../lib/relativeTime';
+import { AutoText } from '../../components/AutoText/AutoText';
 import { CloseTicketModal } from './CloseTicketModal';
 import { RowAssignMenu } from './RowAssignMenu';
 import { TicketFilterBar } from './TicketFilterBar';
@@ -425,9 +426,9 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
       header: t('list.column.customer'),
       width: 124,
       cell: (row) => (
-        <span className={styles.truncate} title={row.customerName}>
+        <AutoText className={styles.truncate} title={row.customerName}>
           {row.customerName}
-        </span>
+        </AutoText>
       ),
     },
     {
@@ -478,7 +479,7 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
         ) : (
           <span className={styles.assignee} title={row.assigneeName}>
             <Avatar name={row.assigneeName} />
-            <span className={styles.truncate}>{row.assigneeName}</span>
+            <AutoText className={styles.truncate}>{row.assigneeName}</AutoText>
           </span>
         ),
     },
