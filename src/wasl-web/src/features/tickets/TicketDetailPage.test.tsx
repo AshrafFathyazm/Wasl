@@ -392,7 +392,10 @@ describe('AC-2 — only allowedTransitions render, and an empty array renders no
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
     expect(
-      screen.queryByLabelText(i18n.t('tickets:detail.comment')),
+      screen.queryByLabelText(i18n.t('tickets:detail.modeInternal')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n.t('tickets:detail.modeReply') }),
     ).not.toBeInTheDocument();
   });
 });
@@ -634,20 +637,18 @@ describe('AC-3 — the timeline is a cursor', () => {
 });
 
 describe('the comment composer', () => {
-  it('sends the body and the internal flag, then clears', async () => {
+  /* `040` ITEM 7. The page has ONE composer with two modes; the channel list is not
+     mocked here, so no reply is possible and it opens on the internal note — which
+     is exactly the comment path these two tests are about. Reply is covered in
+     `TicketComposer.test.tsx`. */
+  it('sends an internal note as an internal comment, then clears', async () => {
     mounted();
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
-    const box = screen.getByLabelText(i18n.t('tickets:detail.comment'));
+    const box = screen.getByLabelText(i18n.t('tickets:detail.modeInternal'));
     await userEvent.type(box, 'رد على العميل');
-    /* A SWITCH, not a checkbox: it is not a field being submitted, it is the mode
-       the next comment is written in — and the hint under it changes with the
-       mode, which is the only place a reader learns what internal means. */
     await userEvent.click(
-      screen.getByRole('switch', { name: i18n.t('tickets:detail.markInternal') }),
-    );
-    await userEvent.click(
-      screen.getByRole('button', { name: i18n.t('tickets:detail.send') }),
+      screen.getByRole('button', { name: i18n.t('tickets:detail.sendNote') }),
     );
 
     await waitFor(() =>
@@ -665,7 +666,7 @@ describe('the comment composer', () => {
     await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
 
     expect(
-      screen.getByRole('button', { name: i18n.t('tickets:detail.send') }),
+      screen.getByRole('button', { name: i18n.t('tickets:detail.sendNote') }),
     ).toBeDisabled();
   });
 });
@@ -863,7 +864,7 @@ describe("`034`'s reply templates", () => {
     await userEvent.click(screen.getByRole('menuitem', { name: /طلب كشف حساب/ }));
 
     await waitFor(() =>
-      expect(screen.getByLabelText(i18n.t('tickets:detail.comment'))).toHaveValue(
+      expect(screen.getByLabelText(i18n.t('tickets:detail.modeInternal'))).toHaveValue(
         'نحتاج صورة من كشف الحساب.',
       ),
     );
@@ -1201,7 +1202,10 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
     expect(item).toBeDisabled();
     /* AND IT SAYS WHY. A control that refuses without a reason is the defect this
      screen was rebuilt to avoid, and `disabled` alone is exactly that. */
-    expect(item).toHaveAttribute('title', i18n.t('tickets:detail.actionUnavailable'));
+    expect(item.closest('[title]')).toHaveAttribute(
+      'title',
+      i18n.t('tickets:detail.actionUnavailable'),
+    );
   });
 
   /* `016`. Escalate is live now, and its enabled state is ONE server field. */
@@ -1246,7 +1250,7 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
       });
 
       expect(item).toBeDisabled();
-      expect(item).toHaveAttribute('title', i18n.t(`tickets:${key}`));
+      expect(item.closest('[title]')).toHaveAttribute('title', i18n.t(`tickets:${key}`));
     },
   );
 
@@ -1283,7 +1287,10 @@ describe('the unbuilt actions are drawn, inert, and unreachable', () => {
       name: i18n.t('tickets:detail.action.close'),
     });
     expect(close).toBeDisabled();
-    expect(close).toHaveAttribute('title', i18n.t('tickets:detail.closeNotAllowed'));
+    /* 040 item 11: the reason names where the ticket CAN go, from allowedTransitions. */
+    expect(close.closest('[title]')?.getAttribute('title')).toContain(
+      i18n.t('tickets:status.InProgress'),
+    );
   });
 });
 
@@ -1549,5 +1556,99 @@ describe('the tint is derived from the name, and one name always gives one colou
     ];
     const used = new Set(names.map((name) => tint(name, 5)));
     expect(used.size).toBe(5);
+  });
+});
+
+describe('040 item 11 — a disabled action says why, from what the server sent', () => {
+  const rendered = async () =>
+    waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
+
+  const openMenu = async () => {
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n.t('tickets:detail.takeAction') }),
+    );
+  };
+
+  /* The tooltip sits on the WRAPPER: a disabled button swallows the pointer events
+   * a `title` needs in Firefox and Safari. */
+  const tipOf = (key: string) =>
+    screen
+      .getByRole('menuitem', { name: i18n.t(`tickets:detail.action.${key}`) })
+      .closest('span[title]');
+
+  it('a closed ticket says it is already closed', async () => {
+    vi.mocked(getTicket).mockResolvedValue(
+      ticket({ status: 'Closed', allowedTransitions: [] }),
+    );
+    mounted();
+    await rendered();
+    await openMenu();
+
+    expect(tipOf('close')).toHaveAttribute('title', i18n.t('tickets:detail.closeAlready'));
+  });
+
+  it('a ticket that cannot close names where it CAN go — read from allowedTransitions', async () => {
+    vi.mocked(getTicket).mockResolvedValue(
+      ticket({ status: 'PendingCustomer', allowedTransitions: ['InProgress'] }),
+    );
+    mounted();
+    await rendered();
+    await openMenu();
+
+    const title = tipOf('close')?.getAttribute('title') ?? '';
+    expect(title).toContain(i18n.t('tickets:status.PendingCustomer'));
+    expect(title).toContain(i18n.t('tickets:status.InProgress'));
+  });
+
+  it('merge and extend-due carry the unbuilt reason on their wrapper', async () => {
+    mounted();
+    await rendered();
+    await openMenu();
+
+    for (const key of ['merge', 'extendDue']) {
+      expect(tipOf(key)).toHaveAttribute(
+        'title',
+        i18n.t('tickets:detail.actionUnavailable'),
+      );
+    }
+  });
+
+  it('escalate says which reason applies', async () => {
+    vi.mocked(getTicket).mockResolvedValue(ticket({ canEscalate: false, isEscalated: true }));
+    mounted();
+    await rendered();
+    await openMenu();
+
+    expect(tipOf('escalate')).toHaveAttribute(
+      'title',
+      i18n.t('tickets:detail.escalateAlready'),
+    );
+  });
+});
+
+describe('040 item 12 — the customer’s other tickets show the full number and a status badge', () => {
+  it('renders TCK-2026-000038 in full, beside a badge that says the status in words', async () => {
+    vi.mocked(listTickets).mockResolvedValue({
+      items: [
+        {
+          id: 'other',
+          ticketNumber: 'TCK-2026-000038',
+          subject: 'تأخر تسليم الطلب',
+          status: 'New',
+        },
+      ],
+      page: 1,
+      pageSize: 4,
+      totalCount: 1,
+      totalPages: 1,
+    } as never);
+
+    mounted();
+    await waitFor(() => expect(screen.getByText('TCK-2026-000042')).toBeInTheDocument());
+
+    const link = (await screen.findByText('تأخر تسليم الطلب')).closest('a');
+    expect(link).toHaveAttribute('href', '/tickets/other');
+    expect(link).toHaveTextContent('TCK-2026-000038');
+    expect(link).toHaveTextContent(i18n.t('tickets:status.New'));
   });
 });

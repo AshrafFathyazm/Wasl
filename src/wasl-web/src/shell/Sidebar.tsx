@@ -16,7 +16,13 @@ import { cx } from '../lib/cx';
 import { useAuth } from '../features/auth/AuthContext';
 import { Anchored, anchoredStyles } from './Anchored';
 import { initialsOf } from './currentUser';
-import { NAV_ITEMS, type NavEntry, type NavLeaf } from './navItems';
+import {
+  NAV_ITEMS,
+  isNavLeafActive,
+  navEntryContains,
+  type NavEntry,
+  type NavLeaf,
+} from './navItems';
 import styles from './Sidebar.module.css';
 import type { SidebarMode } from './useSidebarState';
 
@@ -142,8 +148,7 @@ interface NavItemProps {
 function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
   const { t } = useTranslation();
   const Icon = item.icon;
-  const childPaths = item.children?.map((c) => c.to) ?? [];
-  const containsActive = childPaths.includes(pathname) || item.to === pathname;
+  const containsActive = navEntryContains(item, pathname);
 
   /* A group stays expanded while one of its children is active. */
   const [open, setOpen] = useState(containsActive);
@@ -163,7 +168,13 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       <span className={anchoredStyles.flyoutHeading}>{label}</span>
       <span className={anchoredStyles.flyoutList}>
         {item.children.map((child) => (
-          <ChildLink key={child.key} child={child} onNavigate={onNavigate} inFlyout />
+          <ChildLink
+            key={child.key}
+            child={child}
+            pathname={pathname}
+            onNavigate={onNavigate}
+            inFlyout
+          />
         ))}
       </span>
     </>
@@ -202,7 +213,9 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       to={item.to}
       end
       onClick={onNavigate}
-      className={({ isActive }) => cx(styles.item, isActive && styles.active)}
+      className={({ isActive }) =>
+        cx(styles.item, (isActive || isNavLeafActive(item, pathname)) && styles.active)
+      }
       aria-label={collapsed ? label : undefined}
       aria-describedby={collapsed ? panelId : undefined}
     >
@@ -227,7 +240,7 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       {!collapsed && item.children && open ? (
         <div className={styles.children}>
           {item.children.map((child) => (
-            <ChildLink key={child.key} child={child} onNavigate={onNavigate} />
+            <ChildLink key={child.key} child={child} pathname={pathname} onNavigate={onNavigate} />
           ))}
         </div>
       ) : null}
@@ -243,10 +256,12 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
  */
 function ChildLink({
   child,
+  pathname,
   onNavigate,
   inFlyout = false,
 }: {
   child: NavLeaf;
+  pathname: string;
   onNavigate: () => void;
   inFlyout?: boolean;
 }) {
@@ -256,14 +271,15 @@ function ChildLink({
       to={child.to}
       end
       onClick={onNavigate}
-      className={({ isActive }) =>
-        cx(
+      className={({ isActive: exact }) => {
+        const isActive = exact || isNavLeafActive(child, pathname);
+        return cx(
           styles.child,
           inFlyout && styles.childInFlyout,
           isActive && styles.active,
           isActive && inFlyout && styles.activeInFlyout,
-        )
-      }
+        );
+      }}
     >
       {t(child.labelKey)}
     </NavLink>

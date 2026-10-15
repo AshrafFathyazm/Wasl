@@ -43,7 +43,9 @@ import type {
 import { cx } from '../../lib/cx';
 import { tint } from '../../lib/tint';
 import { AssigneePanel } from './AssigneePanel';
+import { TicketStatusBadge } from './TicketBadges';
 import { CHANNEL_ICON } from './channelIcons';
+import { TicketComposer } from './TicketComposer';
 import { TicketMessagesPanel } from './TicketMessagesPanel';
 import { AVATAR_TINT, Avatar } from './Avatar';
 import { EscalateTicketModal } from './EscalateTicketModal';
@@ -151,12 +153,6 @@ const TIMELINE_LIMIT = 50; /* `013`'s own default. */
 
 /** The canvas's four, and the step «تحميل الأقدم» reveals. */
 const FEED_STEP = 4;
-
-/** The canvas's separator. A glyph, not a word — it is not in the catalogues and
- *  it must not be: there is nothing to translate and a middot is a middot in
- *  both languages. Named so BR-8.8's rule does not have to be argued with at two
- *  call sites. */
-const DOT = '\u00B7';
 
 /* One asset per channel, keyed on the WIRE value — the same map the list row
  * carries, and the canvas puts the glyph beside the rail's channel value too.
@@ -610,8 +606,6 @@ export default function TicketDetailPage() {
      the client is holding. */
   const { user } = useAuth();
 
-  const [draft, setDraft] = useState('');
-  const [internal, setInternal] = useState(false);
   const [conflict, setConflict] = useState(false);
   /* `forbidden` was a boolean here and is gone — the `403` is a toast now, so
      there is no banner whose visibility needs tracking. */
@@ -878,10 +872,10 @@ export default function TicketDetailPage() {
   };
 
   const comment = useMutation({
-    mutationFn: (body: string) => addTicketComment(id, { body, isInternal: internal }),
+    /* ALWAYS INTERNAL since `040` item 7: a reply to the customer is a MESSAGE now
+       (`sendMessage` below), so the only comment this screen writes is a note. */
+    mutationFn: (body: string) => addTicketComment(id, { body, isInternal: true }),
     onSuccess: async () => {
-      setDraft('');
-      setInternal(false);
       setSendFailed(false);
       /* A new comment lands in the comments tab. Switching to it is what makes
          the write visible — posting from the history tab otherwise looks like
@@ -992,6 +986,9 @@ export default function TicketDetailPage() {
       sendTicketMessage(id, { channel, body }),
     onSuccess: async (interaction) => {
       setSendFailure(undefined);
+      /* The reply is a Messages-tab row; switching there is what makes the write
+         visible, the same reason a posted note switches to Comments. */
+      setTab('Messages');
 
       await queryClient.invalidateQueries({ queryKey: ticketKeys.interactions(id) });
 
@@ -1176,6 +1173,17 @@ export default function TicketDetailPage() {
 
   const tints = tagTints(ticket.tags);
   const templates = cannedReplies.data ?? [];
+
+  /* Q-A (`021`), MIRRORED for UX: a Manager may send on any ticket, an Agent only on
+   * one assigned to them or unassigned. The server enforces it and audits a denial;
+   * this only decides whether the composer opens on Reply. The `ticket !== undefined`
+   * guard matters: before the ticket loads, `undefined === undefined` would
+   * otherwise read as "assigned to me". */
+  const canSendMessage =
+    ticket !== undefined &&
+    (user?.role === 'Manager' ||
+      ticket.assignedToUserId === null ||
+      ticket.assignedToUserId === user?.id);
   const attachable = (tagVocabulary.data ?? []).filter(
     (tag) => !ticket.tags.some((attached) => attached.id === tag.id),
   );
@@ -1328,20 +1336,24 @@ export default function TicketDetailPage() {
                     {t('detail.action.escalate')}
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={styles.actionItem}
-                    disabled
+                  <span
+                    className={styles.actionTip}
                     title={
                       ticket.isEscalated
                         ? t('detail.escalateAlready')
                         : t('detail.escalateNotAllowed')
                     }
                   >
-                    <IconEscalate size={15} aria-hidden="true" />
-                    {t('detail.action.escalate')}
-                  </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.actionItem}
+                      disabled
+                    >
+                      <IconEscalate size={15} aria-hidden="true" />
+                      {t('detail.action.escalate')}
+                    </button>
+                  </span>
                 )}
 
                 {/* THE INERT TWO. `disabled` AND a title: a control that
@@ -1359,17 +1371,21 @@ export default function TicketDetailPage() {
                     ['extendDue', <IconCalendar size={15} aria-hidden="true" key="d" />],
                   ] as const
                 ).map(([key, glyph]) => (
-                  <button
+                  <span
                     key={key}
-                    type="button"
-                    role="menuitem"
-                    className={styles.actionItem}
-                    disabled
+                    className={styles.actionTip}
                     title={t('detail.actionUnavailable')}
                   >
-                    {glyph}
-                    {t(`detail.action.${key}`)}
-                  </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.actionItem}
+                      disabled
+                    >
+                      {glyph}
+                      {t(`detail.action.${key}`)}
+                    </button>
+                  </span>
                 ))}
 
                 <span className={styles.actionSep} aria-hidden="true" />
@@ -1395,16 +1411,34 @@ export default function TicketDetailPage() {
                     {t('detail.action.close')}
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={styles.actionItem}
-                    disabled
-                    title={t('detail.closeNotAllowed')}
+                  <span
+                    className={styles.actionTip}
+                    /* `040` item 11 — the reason is the ticket's own, read off what
+                       the server sent (`allowedTransitions`), never recomputed from
+                       BR-1: "already closed", or "from X it can only move to Y". */
+                    title={
+                      ticket.status === 'Closed'
+                        ? t('detail.closeAlready')
+                        : transitions.length > 0
+                          ? t('detail.closeNotAllowedFrom', {
+                              status: t(`status.${ticket.status}`),
+                              allowed: transitions
+                                .map((next) => t(`status.${next}`))
+                                .join(tCommon('listSeparator')),
+                            })
+                          : t('detail.closeNotAllowed')
+                    }
                   >
-                    <IconClose size={15} aria-hidden="true" />
-                    {t('detail.action.close')}
-                  </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={styles.actionItem}
+                      disabled
+                    >
+                      <IconClose size={15} aria-hidden="true" />
+                      {t('detail.action.close')}
+                    </button>
+                  </span>
                 )}
               </div>
             ) : null}
@@ -1613,18 +1647,20 @@ export default function TicketDetailPage() {
                       className={styles.siblingRow}
                       to={`/tickets/${row.id}`}
                     >
-                      <span
-                        className={cx(styles.siblingDot, STATUS_CLASS[row.status])}
-                        aria-hidden="true"
-                      />
                       <span className={styles.siblingSubject} dir="auto">
                         {row.subject}
                       </span>
-                      {/* The last four digits, LTR-isolated. The full number is
-                          the row's accessible name; the tail is what fits. */}
-                      <bdi className={styles.siblingNo} dir="ltr">
-                        {`${DOT}${row.ticketNumber.slice(-3)}`}
-                      </bdi>
+                      {/* `040` item 12: the FULL number and a status BADGE. It was
+                          a 6px dot and the last three digits — a colour with no
+                          word and a number that could not be matched against the
+                          list. The number is LTR-isolated; the whole row is the
+                          link. */}
+                      <span className={styles.siblingMeta}>
+                        <bdi className={styles.siblingNo} dir="ltr">
+                          {row.ticketNumber}
+                        </bdi>
+                        <TicketStatusBadge status={row.status} />
+                      </span>
                     </Link>
                   ))}
                   {siblingsMore > 0 ? (
@@ -1823,132 +1859,20 @@ export default function TicketDetailPage() {
                   <span>{t('detail.closedNoComment')}</span>
                 </div>
               ) : (
-                <div className={styles.composeBox}>
-                  {sendFailed && !conflict && !clientBug ? (
-                    <div className={styles.sendError} role="alert">
-                      <strong>{t('detail.sendFailedTitle')}</strong>
-                      <span>{t('detail.sendFailedBody')}</span>
-                    </div>
-                  ) : null}
-
-                  <div
-                    className={cx(
-                      styles.composeShell,
-                      sendFailed && styles.composeShellBad,
-                    )}
-                  >
-                    <Textarea
-                      label={t('detail.comment')}
-                      labelHidden
-                      placeholder={t(
-                        internal
-                          ? 'detail.internalPlaceholder'
-                          : 'detail.commentPlaceholder',
-                      )}
-                      value={draft}
-                      onChange={setDraft}
-                      rows={3}
-                    />
-
-                    <div className={styles.composeBar}>
-                      {templates.length > 0 ? (
-                        <div className={styles.popWrap} data-pop="template">
-                          {/* `034`'s templates. They INSERT into the draft rather
-                              than sending: a template is a starting point, and a
-                              picker that sent would post an unedited form letter
-                              with one click. */}
-                          <button
-                            type="button"
-                            className={styles.composeTool}
-                            aria-expanded={openPop === 'template'}
-                            onClick={() =>
-                              setOpenPop((at) => (at === 'template' ? null : 'template'))
-                            }
-                          >
-                            <IconComment size={14} aria-hidden="true" />
-                            {t('detail.useTemplate')}
-                          </button>
-                          {openPop === 'template' ? (
-                            <div className={styles.templateMenu} role="menu">
-                              <span className={styles.popHead}>
-                                {`${t('detail.cannedReplies')} ${DOT} ${t(
-                                  `category.${ticket.category}`,
-                                )}`}
-                              </span>
-                              {templates.map((reply) => (
-                                <button
-                                  key={reply.id}
-                                  type="button"
-                                  role="menuitem"
-                                  className={styles.templateItem}
-                                  onClick={() => {
-                                    setDraft(reply.body);
-                                    setOpenPop(null);
-                                  }}
-                                >
-                                  <span className={styles.templateTitle} dir="auto">
-                                    {reply.title}
-                                  </span>
-                                  <span className={styles.templatePreview} dir="auto">
-                                    {reply.body}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-
-                      <span className={styles.composeSep} aria-hidden="true" />
-
-                      {/* BR-5.4's switch. `role="switch"` rather than a checkbox:
-                          it is not a form field being submitted, it is a mode the
-                          next comment is written in — and the note under it
-                          changes with the mode, which is the only place a reader
-                          learns what internal means. */}
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={internal}
-                        className={styles.switchWrap}
-                        onClick={() => setInternal((on) => !on)}
-                      >
-                        <span
-                          className={cx(styles.switchTrack, internal && styles.switchOn)}
-                        >
-                          <span className={styles.switchKnob} />
-                        </span>
-                        {t('detail.markInternal')}
-                      </button>
-
-                      <span
-                        /* AMBER WHEN THE COMMENT IS INTERNAL — the product
-                           owner's frame, and it is the switch's own colour: the
-                           button that sends it says which kind it is sending. */
-                        className={cx(
-                          styles.composeSend,
-                          internal && styles.composeSendInternal,
-                        )}
-                      >
-                        <Button
-                          text={t('detail.send')}
-                          loading={comment.isPending}
-                          disabled={draft.trim() === ''}
-                          onClick={() => comment.mutate(draft.trim())}
-                        />
-                      </span>
-                    </div>
-
-                    <span
-                      className={cx(
-                        styles.internalNote,
-                        internal && styles.internalNoteOn,
-                      )}
-                    >
-                      {t(internal ? 'detail.internalHintOn' : 'detail.internalHint')}
-                    </span>
-                  </div>
-                </div>
+                <TicketComposer
+                  categoryLabel={t(`category.${ticket.category}`)}
+                  templates={templates}
+                  sendableChannels={sendableChannels.data?.sendableChannels ?? []}
+                  canReply={canSendMessage}
+                  notePending={comment.isPending}
+                  noteFailed={sendFailed && !conflict && !clientBug}
+                  replyPending={sendMessage.isPending}
+                  replyFailure={sendFailure}
+                  onSendNote={(body, onDone) => comment.mutate(body, { onSuccess: onDone })}
+                  onSendReply={(channel, body, onDone) =>
+                    sendMessage.mutate({ channel, body }, { onSuccess: onDone })
+                  }
+                />
               )}
 
               {/* ── THREE tabs since `021`, over TWO data sources ─────────────
@@ -2032,20 +1956,18 @@ export default function TicketDetailPage() {
                   permits: *"the frontend may mirror a rule for UX but is never
                   the authority."* */}
               {tab === 'Messages' ? (
-                <TicketMessagesPanel
-                  sendableChannels={sendableChannels.data?.sendableChannels ?? []}
-                  interactions={interactions.data?.items ?? []}
-                  loading={interactions.isPending || sendableChannels.isPending}
-                  canSend={
-                    user?.role === 'Manager' ||
-                    ticket.assignedToUserId === null ||
-                    ticket.assignedToUserId === user?.id
-                  }
-                  sending={sendMessage.isPending}
-                  failure={sendFailure}
-                  onSend={(channel, body) => sendMessage.mutate({ channel, body })}
-                  lang={lang}
-                />
+                /* `040` item 10: the SAME skeleton the Comments and History tabs
+                   use, not a line of text. The panel is only the record now, so
+                   "loading" is this page's state and the panel is never mounted
+                   half-empty. */
+                interactions.isPending ? (
+                  <FeedSkeleton />
+                ) : (
+                  <TicketMessagesPanel
+                    interactions={interactions.data?.items ?? []}
+                    lang={lang}
+                  />
+                )
               ) : timelineQuery.isPending ? (
                 <FeedSkeleton />
               ) : timelineQuery.isError ? (

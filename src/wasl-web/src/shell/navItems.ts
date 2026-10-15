@@ -26,6 +26,9 @@ export interface NavLeaf {
   /** `namespace:key`. Resolved by the caller — this file holds no strings. */
   labelKey: string;
   to: string;
+  /** A label that is data rather than copy — a ticket number. Wins over
+   *  `labelKey` when present; `labelKey` is then only the fallback. */
+  label?: string | undefined;
 }
 
 export interface NavEntry extends NavLeaf {
@@ -69,9 +72,56 @@ export const NAV_PATHS: string[] = NAV_ITEMS.flatMap((item) =>
   item.children ? item.children.map((child) => child.to) : [item.to],
 );
 
-/** The trail for a pathname: the parent group, when there is one, then the
- *  current entry. Derived from the route, never fetched. */
-export function breadcrumbFor(pathname: string): NavLeaf[] {
+/** `/tickets/:id` — anything under `/tickets/` that is not one of the fixed
+ *  sub-routes. The set is closed and lives in `routes.tsx`; a new fixed sub-route
+ *  needs adding here or it reads as a ticket id. */
+const TICKET_DETAIL = /^\/tickets\/(?!mine$|unassigned$|new$)([^/]+)$/;
+
+export function ticketIdFromPath(pathname: string): string | null {
+  return TICKET_DETAIL.exec(pathname)?.[1] ?? null;
+}
+
+/**
+ * `040` item 15. The sidebar marks a leaf active by exact path (`NavLink end`), so
+ * on `/tickets/:id` NOTHING was marked and the reader lost their place in the
+ * product. A ticket belongs to the list it was opened from; the nav cannot know
+ * which, so it is "All tickets" — the one that always contains it. Customers has
+ * the same shape (`/customers/:id`, `/customers/new`, `/customers/:id/edit`).
+ */
+export function isNavLeafActive(leaf: NavLeaf, pathname: string): boolean {
+  if (pathname === leaf.to) return true;
+  if (leaf.key === 'tickets-all') return TICKET_DETAIL.test(pathname);
+  if (leaf.key === 'customers') return pathname.startsWith('/customers/');
+  return false;
+}
+
+/** The group a path sits under, for keeping it expanded. */
+export function navEntryContains(item: NavEntry, pathname: string): boolean {
+  return (
+    isNavLeafActive(item, pathname) ||
+    (item.children?.some((child) => isNavLeafActive(child, pathname)) ?? false)
+  );
+}
+
+/**
+ * `040` item 14 — the trail for the routes that are not in the nav: a new ticket and
+ * a ticket's own page. `ticketNumber` is whatever the cache already holds; the
+ * header makes no request for it, so before the page has loaded the last crumb says
+ * "Ticket" and then takes the number.
+ */
+export function breadcrumbFor(pathname: string, ticketNumber?: string): NavLeaf[] {
+  const tickets = NAV_ITEMS.find((item) => item.key === 'tickets');
+  if (tickets) {
+    if (pathname === '/tickets/new') {
+      return [tickets, { key: 'ticket-new', labelKey: 'tickets:new', to: pathname }];
+    }
+    if (ticketIdFromPath(pathname) !== null) {
+      return [
+        tickets,
+        { key: 'ticket-detail', labelKey: 'common:nav.ticketDetail', to: pathname, label: ticketNumber },
+      ];
+    }
+  }
   for (const item of NAV_ITEMS) {
     if (item.children) {
       const child = item.children.find((c) => c.to === pathname);

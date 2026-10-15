@@ -1,12 +1,7 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { Button } from '../../components/Button/Button';
-import { Dropdown } from '../../components/Dropdown/Dropdown';
-import { Textarea } from '../../components/Textarea/Textarea';
 import { IconAlert, IconCheck } from '../../icons/icons';
 import type {
-  CommunicationChannel,
   DeliveryStatus,
   InteractionResponse,
 } from '../../lib/api-types.provisional';
@@ -16,6 +11,13 @@ import { CHANNEL_ICON } from './channelIcons';
 import styles from './TicketMessagesPanel.module.css';
 
 /* ============================================================================
+ * `040` ITEM 7 — THE COMPOSER LEFT THIS FILE. This panel is the RECORD of what was
+ * sent; the one composer for the whole ticket is `TicketComposer`, whose Reply mode
+ * posts here. Everything below that talks about the composer, the channel list, the
+ * recipient field or the retry button is still the reasoning for what is NOT in the
+ * composer either.
+ * ============================================================================
+ *
  * TicketMessagesPanel — `021`, FE-021-02 … FE-021-06
  * ============================================================================
  * THE THING THAT MAKES A NAMED MODULE SOMETHING A REVIEWER CAN USE. `021` exists
@@ -54,30 +56,7 @@ import styles from './TicketMessagesPanel.module.css';
  * ========================================================================= */
 
 export interface TicketMessagesPanelProps {
-  /** From `GET /api/communications/channels`. **Empty disables the composer.** */
-  sendableChannels: CommunicationChannel[];
-
   interactions: InteractionResponse[];
-
-  /** `true` while the channel list or the first page is loading. */
-  loading: boolean;
-
-  /** The reader may send on this ticket — the server's answer, not a guess. */
-  canSend: boolean;
-
-  /** Set while a send is in flight, so submit can be disabled (AC-22). */
-  sending: boolean;
-
-  /**
-   * A translated sentence for the last refusal, or `undefined`.
-   *
-   * **Rendered inline beside the composer, never as a toast** — the same rule
-   * `016`'s escalate dialog follows: a refusal is about the thing the reader is
-   * looking at, with the text they typed still in the field.
-   */
-  failure?: string | undefined;
-
-  onSend: (channel: CommunicationChannel, body: string) => void;
 
   lang: Lang;
 }
@@ -86,46 +65,15 @@ export interface TicketMessagesPanelProps {
 export const MESSAGE_MAX = 4000;
 
 export function TicketMessagesPanel({
-  sendableChannels,
   interactions,
-  loading,
-  canSend,
-  sending,
-  failure,
-  onSend,
   lang,
 }: TicketMessagesPanelProps) {
   const { t } = useTranslation('tickets');
 
-  /* THE FIRST SENDABLE CHANNEL, not a hard-coded `Email`. If the deployment
-     registers only SMS, the composer opens on SMS. `undefined` when nothing is
-     registered, which is the state that disables the whole composer. */
-  const [channel, setChannel] = useState<CommunicationChannel | ''>('');
-  const [body, setBody] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-
-  const effectiveChannel = channel === '' ? sendableChannels[0] : channel;
-  const trimmed = body.trim();
-
-  const disabled = !canSend || sending || sendableChannels.length === 0;
-
-  function submit() {
-    setSubmitted(true);
-
-    if (trimmed === '' || trimmed.length > MESSAGE_MAX) return;
-    if (effectiveChannel === undefined) return;
-
-    onSend(effectiveChannel, trimmed);
-    setBody('');
-    setSubmitted(false);
-  }
-
   return (
     <section className={styles.panel} aria-label={t('messages.panelLabel')}>
       {/* ── the record ─────────────────────────────────────────────────────── */}
-      {loading ? (
-        <p className={styles.state}>{t('messages.loading')}</p>
-      ) : interactions.length === 0 ? (
+      {interactions.length === 0 ? (
         <div className={styles.empty}>
           <p className={styles.emptyTitle}>{t('messages.emptyTitle')}</p>
           <p className={styles.emptyBody}>{t('messages.emptyBody')}</p>
@@ -179,86 +127,6 @@ export function TicketMessagesPanel({
             </li>
           ))}
         </ol>
-      )}
-
-      {/* ── the composer ───────────────────────────────────────────────────── */}
-      {sendableChannels.length === 0 ? (
-        /* THE MODULE IS VISIBLY DISABLED, which is the designed alternative to a
-           composer that offers nothing and fails on submit. The server returns an
-           empty set when no provider is registered. */
-        <p className={cx(styles.notice, styles.noticeInfo)}>
-          {t('messages.noChannels')}
-        </p>
-      ) : !canSend ? (
-        /* Q-A. An Agent on somebody else's ticket. The server would answer `403`
-           and the audit trail would carry a denial — so the composer says why
-           instead of inviting the refusal. */
-        <p className={cx(styles.notice, styles.noticeInfo)}>
-          {t('messages.notPermitted')}
-        </p>
-      ) : (
-        <div className={styles.composer}>
-          {failure === undefined ? null : (
-            <p className={cx(styles.notice, styles.noticeError)} role="alert">
-              <IconAlert size={15} aria-hidden="true" className={styles.noticeIcon} />
-              {failure}
-            </p>
-          )}
-
-          {/* THE OPTIONS COME FROM THE SERVER (AC-22). `Dropdown` and not a
-              native select, because it is the primitive this product has — there
-              is no `Select`, and adding a ninth primitive needs a written reason
-              (ADR-009) that "I wanted a shorter element" is not. */}
-          <Dropdown
-            label={t('messages.channel')}
-            value={effectiveChannel ?? null}
-            onChange={(value) => setChannel((value ?? '') as CommunicationChannel | '')}
-            options={sendableChannels.map((option) => ({
-              value: option,
-              label: t(`channel.${option}`),
-              icon: (() => {
-                const Glyph = CHANNEL_ICON[option];
-                return Glyph ? <Glyph size={14} aria-hidden="true" /> : undefined;
-              })(),
-            }))}
-            disabled={sending}
-            size="sm"
-          />
-
-          <Textarea
-            label={t('messages.body')}
-            value={body}
-            onChange={setBody}
-            placeholder={t('messages.bodyPlaceholder')}
-            helperText={t('messages.bodyHelp')}
-            error={
-              submitted && trimmed === '' ? t('messages.bodyRequired') : undefined
-            }
-            rows={3}
-            required
-            maxLength={MESSAGE_MAX}
-            counterFrom={MESSAGE_MAX - 200}
-            disabled={sending}
-          />
-
-          <div className={styles.composerFoot}>
-            {/* WHERE IT WILL GO, before it goes. The reader is about to send
-                something a CUSTOMER receives, and the address is resolved
-                server-side — so showing it is the only way they can check it. */}
-            <span className={styles.sendHint}>{t('messages.sendHint')}</span>
-
-            <Button
-              text={t('messages.send')}
-              onClick={submit}
-              loading={sending}
-              /* Disabled while in flight, which is the honest mitigation for an
-                 endpoint that is deliberately not idempotent: two clicks would
-                 be two messages, and the server cannot tell them apart from two
-                 intents. */
-              disabled={disabled || trimmed === ''}
-            />
-          </div>
-        </div>
       )}
     </section>
   );

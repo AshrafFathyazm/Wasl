@@ -103,7 +103,10 @@
  * ======================================================================== */
 
 .sheet {
-  max-inline-size: 1240px;
+  /* `040` item 13 — 1440, up from the canvas's 1240. The rail is a fixed 292px, so
+     every pixel added here goes to the conversation column; at 1240 the feed was
+     ~900px wide on a 1620px screen with wide empty gutters either side. */
+  max-inline-size: 1440px;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -676,8 +679,9 @@
 
 .siblingRow {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
   min-inline-size: 0;
   padding: 5px 6px;
   margin-inline: -6px;
@@ -689,16 +693,15 @@
   background-color: var(--surface-row-hover);
 }
 
-.siblingDot {
-  flex: none;
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: var(--radius-pill);
-  background-color: currentcolor;
+.siblingMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-inline-size: 0;
 }
 
 .siblingSubject {
-  flex: 1;
   min-inline-size: 0;
   overflow: hidden;
   color: var(--text-secondary);
@@ -764,6 +767,9 @@
 
 .subjectTitle {
   margin: 0;
+  /* `040` item 6 — named, not inherited. The heading took whatever the cascade
+     above it held, which is why it read as a different black from the body. */
+  color: var(--text-primary);
   max-inline-size: 46ch;
   font-size: 21px;
   font-weight: var(--weight-bold);
@@ -902,6 +908,55 @@
 
 .composeShellBad {
   border-color: var(--state-danger-text);
+}
+
+/* `040` item 7 — an internal note is amber all the way round: the frame, the mode
+   button, the helper and the Send button say the same thing, because the customer
+   will not see this and the reader should not have to read a sentence to know it. */
+.composeShellInternal {
+  border-color: var(--state-warning-border);
+  background-color: var(--state-warning-bg);
+}
+
+.modeSwitch {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 9px;
+  background-color: var(--surface-card);
+}
+
+.modeButton {
+  block-size: 30px;
+  padding-inline: 12px;
+  border: 0;
+  border-radius: 7px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.modeButton:hover:not(.modeButtonOn) {
+  color: var(--text-primary);
+}
+
+.modeButtonOn {
+  background-color: var(--brand-subtle);
+  color: var(--brand);
+  font-weight: var(--weight-medium);
+}
+
+.modeButtonOn.modeButtonInternal {
+  background-color: var(--state-warning-bg);
+  color: var(--state-warning-text);
+}
+
+.channelPick {
+  min-inline-size: 150px;
 }
 
 .sendError {
@@ -1143,6 +1198,10 @@
 }
 
 .tabsNote {
+  /* `040` item 9 — one line. In the tab strip's flex row the note shrank before
+     anything else and wrapped to two lines beside the tabs. */
+  flex: none;
+  white-space: nowrap;
   margin-inline-start: auto;
   color: var(--text-placeholder);
   font-size: 11.5px;
@@ -1614,6 +1673,13 @@
 }
 
 /* ---- «اتخاذ إجراء» ------------------------------------------------------- */
+
+/* The tooltip lives on a wrapper because a DISABLED button swallows the pointer
+   events a `title` needs in Firefox and Safari — the reason was on the control
+   that could not show it. */
+.actionTip {
+  display: block;
+}
 
 .headEnd {
   margin-inline-start: auto;

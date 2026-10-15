@@ -1,10 +1,13 @@
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 
 import { IconChevronDown, IconMore } from '../icons/icons';
 import { cx } from '../lib/cx';
 import styles from './Header.module.css';
-import { breadcrumbFor } from './navItems';
+import { ticketKeys } from '../features/tickets/tickets.api';
+import type { TicketResponse } from '../lib/api-types.provisional';
+import { breadcrumbFor, ticketIdFromPath } from './navItems';
 
 interface HeaderProps {
   /** Only the drawer breakpoint shows a menu button; above it the sidebar is
@@ -16,7 +19,16 @@ interface HeaderProps {
 export function Header({ showMenuButton, onMenuClick }: HeaderProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const trail = breadcrumbFor(pathname);
+  const queryClient = useQueryClient();
+
+  /* READ FROM THE CACHE, NEVER FETCHED — the shell makes no request. The ticket
+     page has put this exact object there by the time it paints. */
+  const ticketId = ticketIdFromPath(pathname);
+  const ticketNumber =
+    ticketId === null
+      ? undefined
+      : queryClient.getQueryData<TicketResponse>(ticketKeys.detail(ticketId))?.ticketNumber;
+  const trail = breadcrumbFor(pathname, ticketNumber);
 
   return (
     <header className={styles.header}>
@@ -44,7 +56,7 @@ export function Header({ showMenuButton, onMenuClick }: HeaderProps) {
               ) : null}
               {isLast ? (
                 <span className={cx(styles.current)} aria-current="page">
-                  {t(crumb.labelKey)}
+                  {crumb.label ?? t(crumb.labelKey)}
                 </span>
               ) : (
                 <Link to={crumb.to} className={styles.crumb}>
