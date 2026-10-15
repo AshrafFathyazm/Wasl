@@ -82,7 +82,7 @@
   "status.New": "New",
   "status.Open": "Open",
   "status.InProgress": "In progress",
-  "status.PendingCustomer": "Pending cust.",
+  "status.PendingCustomer": "Pending customer",
   "status.open": "Show tickets with status {{status}}",
 
   "medians.firstReply": "Median first reply",
@@ -103,6 +103,8 @@
   "channels.title": "Where demand comes from",
   "channels.subtitle_one": "Last day · click to filter",
   "channels.subtitle_other": "Last {{formatted}} days · click to filter",
+  "channels.none": "No tickets from {{names}}",
+  "channels.allNone": "No tickets in this period.",
   "channels.open": "Show tickets from {{channel}}",
 
   "team.title": "Team load",

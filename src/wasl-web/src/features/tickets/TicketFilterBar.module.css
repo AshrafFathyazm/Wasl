@@ -196,7 +196,14 @@
 /* stylelint-disable-next-line no-duplicate-selectors -- a deliberate second block:
    the correction is kept beside the reason it was made, not merged into the first. */
 .searchField {
-  flex: 0 0 320px;
+  /* `040` — SHRINKS BEFORE THE ROW WRAPS. It was a fixed 320px, and with seven
+     status chips (All + the six statuses) the chips alone take ~945px: chips +
+     search + filter overflowed a 1420px content area and the whole toolbar
+     dropped to a second line at 100% zoom. A basis of 200 lets the pair sit beside
+     the chips, and the cap keeps the field from growing past what it had. */
+  flex: 1 1 200px;
+  max-inline-size: 320px;
+  min-inline-size: 160px;
 }
 
 /* The narrow shell is the one case where it may give way: 320 + 12 + 80 does not
@@ -414,7 +421,12 @@
   align-items: center;
   gap: var(--space-3);
   margin-inline-start: auto;
-  flex: 0 0 auto;
+  /* Grows into what the chips leave, shrinks before wrapping — see
+     `.searchField`. `flex-end` keeps the pair at the row's end either way. */
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  max-inline-size: 440px;
+  min-inline-size: 0;
   flex-wrap: nowrap;
 }
 

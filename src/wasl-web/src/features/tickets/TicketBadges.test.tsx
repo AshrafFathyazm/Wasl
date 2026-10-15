@@ -1,12 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import i18n from '../../lib/i18n';
 import type { TicketPriority, TicketStatus } from '../../lib/api-types.provisional';
-import { STATUS_TONE_MAP, TicketPriorityText, TicketStatusBadge } from './TicketBadges';
+import { PRIORITY_TONE_MAP, STATUS_TONE_MAP, TicketPriorityBadge, TicketStatusBadge } from './TicketBadges';
 
 /*
  * TEST-026-04. Two things, and the second is the one that would ship broken.
@@ -79,71 +76,30 @@ describe('AC-026-12 — language changes the label and nothing else', () => {
   });
 });
 
-describe('priority is coloured text, and only where it demands action', () => {
-  /* A CLASS NAME IS NOT A STYLE, and this test proved it the hard way.
-   *
-   * It asserted className.includes('priority-') — and passed for weeks against
-   * `priority-high` and `priority-critical` written as PLAIN GLOBAL STRINGS
-   * that no stylesheet defined. High and Critical rendered in the default text
-   * colour; the map was inert and the assertion could not tell.
-   *
-   * getComputedStyle cannot help: vitest applies no CSS Modules, so it reports
-   * nothing either way. So the class must come from the MODULE (which only
-   * exists if the stylesheet declares it) and the stylesheet is read to confirm
-   * the rule sets a colour. Two facts, neither sufficient alone. */
-  const badgeCss = readFileSync(
-    resolve(process.cwd(), 'src/features/tickets/TicketBadges.module.css'),
-    'utf8',
-  );
+describe('priority is a badge, and red belongs to Critical alone', () => {
+  const ALL: TicketPriority[] = ['Low', 'Normal', 'High', 'Critical'];
 
-  it.each<[TicketPriority, 'muted' | 'coloured']>([
-    ['Low', 'muted'],
-    ['Normal', 'muted'],
-    ['High', 'coloured'],
-    ['Critical', 'coloured'],
-  ])('%s renders %s, and the class it uses is declared', (priority, kind) => {
-    const { container } = render(<TicketPriorityText priority={priority} />);
-    const classes = container.firstElementChild!.className.split(' ').filter(Boolean);
-
-    /* The base class is always present and always declared. */
-    expect(classes.length).toBeGreaterThan(0);
-    expect(badgeCss).toContain('.priority {');
-
-    if (kind === 'muted') {
-      expect(classes).toHaveLength(1);
-      return;
+  it('covers every priority, and only Critical is danger', () => {
+    expect(Object.keys(PRIORITY_TONE_MAP).sort()).toEqual([...ALL].sort());
+    for (const p of ALL) {
+      expect(PRIORITY_TONE_MAP[p][0] === 'danger').toBe(p === 'Critical');
     }
-
-    expect(classes).toHaveLength(2);
-    /* A CSS-module class is hashed. A hand-written global string is not — which
-     * is exactly what shipped, and is what this catches. */
-    const modifier = classes[1]!;
-    expect(modifier).not.toBe(`priority-${priority.toLowerCase()}`);
-    expect(modifier).toMatch(/_/);
-
-    /* And the rule it points at actually sets a colour. */
-    const rule = priority === 'High' ? '.priorityHigh {' : '.priorityCritical {';
-    expect(badgeCss).toContain(rule);
-    const body = badgeCss.slice(
-      badgeCss.indexOf(rule),
-      badgeCss.indexOf('}', badgeCss.indexOf(rule)),
-    );
-    expect(body).toContain('color:');
   });
 
-  it('is the one place red is allowed on a ticket row', () => {
-    /* BR-1 bans red for STATUS. Critical is a severity, so red on a ticket row
-     * always means "needs attention now" and never "this ended badly". */
-    const { container } = render(<TicketPriorityText priority="Critical" />);
-    const modifier = container.firstElementChild!.className.split(' ')[1]!;
-    expect(modifier).toContain('priorityCritical');
-    const rule = badgeCss.slice(badgeCss.indexOf('.priorityCritical {'));
-    expect(rule.slice(0, rule.indexOf('}'))).toContain('--state-danger-text');
+  it('Low and Normal are outline, so only the two that demand action shout', () => {
+    expect(PRIORITY_TONE_MAP.Low[1]).toBe('outline');
+    expect(PRIORITY_TONE_MAP.Normal[1]).toBe('outline');
+    expect(PRIORITY_TONE_MAP.High[1]).toBe('filled');
+  });
+
+  it.each(ALL)('renders %s as a badge with no status dot', (priority) => {
+    const { container } = render(<TicketPriorityBadge priority={priority} />);
+    expect(container.querySelector('[class*="dot"]')).toBeNull();
   });
 
   it('renders a translated label, not the wire value', async () => {
     await i18n.changeLanguage('ar');
-    render(<TicketPriorityText priority="High" />);
+    render(<TicketPriorityBadge priority="High" />);
     expect(screen.getByText('مرتفعة')).toBeInTheDocument();
     await i18n.changeLanguage('en');
   });

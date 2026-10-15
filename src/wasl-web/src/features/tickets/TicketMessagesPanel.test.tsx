@@ -1,21 +1,20 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { I18nextProvider } from 'react-i18next';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '../../lib/api';
 import type { InteractionResponse } from '../../lib/api-types.provisional';
 import i18n from '../../lib/i18n';
-import { MESSAGE_MAX, TicketMessagesPanel } from './TicketMessagesPanel';
+import { TicketMessagesPanel } from './TicketMessagesPanel';
 import { refusalToSend } from './TicketDetailPage';
 
 /* ============================================================================
  * TicketMessagesPanel — `021` AC-22, AC-23
  * ============================================================================
  * The panel fetches nothing, so every case here is a prop combination. What is
- * worth asserting is the set of things the panel must NOT do: mirror the channel
- * list, render a raw failure code, offer a composer to somebody the server would
- * refuse, or imply a conversation the product cannot have.
+ * worth asserting is the set of things the panel must NOT do: render a raw failure
+ * code or imply a conversation the product cannot have. The composer tests moved
+ * to `TicketComposer.test.tsx` with the composer (`040` item 7).
  * ========================================================================= */
 
 const label = (key: string) => i18n.t(key, { ns: 'tickets' });
@@ -36,29 +35,11 @@ const interaction = (over: Partial<InteractionResponse> = {}): InteractionRespon
   ...over,
 });
 
-const onSend = vi.fn();
-
-/**
- * The composer's textarea, by role.
- *
- * **Not `getByLabelText(/Message/)`, which was the first version and matched
- * three elements** — the field's own label, the panel's `aria-label` ("Messages
- * sent to the customer"), and the tab. A loose label regex on a panel whose
- * every string starts with the same word is a selector that finds the wrong
- * thing as soon as anything is added.
- */
-const bodyField = () => screen.getByRole('textbox');
-
 function mount(over: Partial<Parameters<typeof TicketMessagesPanel>[0]> = {}) {
   return render(
     <I18nextProvider i18n={i18n}>
       <TicketMessagesPanel
-        sendableChannels={['Email', 'WhatsApp', 'Sms']}
         interactions={[]}
-        loading={false}
-        canSend
-        sending={false}
-        onSend={onSend}
         lang="en"
         {...over}
       />
@@ -67,133 +48,6 @@ function mount(over: Partial<Parameters<typeof TicketMessagesPanel>[0]> = {}) {
 }
 
 describe('TicketMessagesPanel', () => {
-  // ── AC-22. The channel options come from the server ─────────────────────────
-
-  /**
-   * The composer offers exactly what the server said, and nothing else.
-   *
-   * **This is the test that would catch a client-side channel constant.** The
-   * sendable set is a projection of the server's provider registry, and a
-   * hard-coded list is the same fact stated twice — with the copy that drifts
-   * being the one offering a channel the server answers `400` for.
-   */
-  it('offers only the channels the server reported', async () => {
-    mount({ sendableChannels: ['Sms'] });
-
-    await userEvent.click(screen.getByRole('combobox', { name: label('messages.channel') }));
-
-    expect(screen.getByRole('option', { name: label('channel.Sms') })).toBeInTheDocument();
-
-    for (const absent of ['Email', 'WhatsApp', 'LiveChat', 'WebForm']) {
-      expect(
-        screen.queryByRole('option', { name: label(`channel.${absent}`) }),
-      ).not.toBeInTheDocument();
-    }
-  });
-
-  /**
-   * An empty set disables the module visibly rather than offering nothing.
-   *
-   * The server returns `[]` when no provider is registered, and the designed
-   * outcome is a panel that says so — not a composer whose picker is empty and
-   * whose submit fails.
-   */
-  it('says the module is unavailable when no channel is registered', () => {
-    mount({ sendableChannels: [] });
-
-    expect(screen.getByText(label('messages.noChannels'))).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: label('messages.send') }),
-    ).not.toBeInTheDocument();
-  });
-
-  /**
-   * The composer opens on the first sendable channel, not on a hard-coded Email.
-   */
-  it('defaults to the first channel the server offers', async () => {
-    mount({ sendableChannels: ['Sms', 'Email'] });
-
-    await userEvent.type(
-      bodyField(),
-      'Hello.',
-    );
-    await userEvent.click(screen.getByRole('button', { name: label('messages.send') }));
-
-    expect(onSend).toHaveBeenCalledWith('Sms', 'Hello.');
-  });
-
-  // ── Q-A. The composer is not offered to somebody the server would refuse ───
-
-  it('explains rather than offering a composer when the reader cannot send', () => {
-    mount({ canSend: false });
-
-    expect(screen.getByText(label('messages.notPermitted'))).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: label('messages.send') }),
-    ).not.toBeInTheDocument();
-  });
-
-  /**
-   * But the RECORD is still rendered — reading is not assignment-sensitive.
-   *
-   * The asymmetry is the contract's: BR-6 lets every support user see every
-   * ticket, so an Agent who may not send may still read what was sent.
-   */
-  it('still shows the record when the reader cannot send', () => {
-    mount({ canSend: false, interactions: [interaction()] });
-
-    expect(screen.getByText('Your invoice has been corrected.')).toBeInTheDocument();
-  });
-
-  // ── The body's boundaries ──────────────────────────────────────────────────
-
-  it('will not send an empty or whitespace-only message', async () => {
-    mount();
-
-    const send = screen.getByRole('button', { name: label('messages.send') });
-    expect(send).toBeDisabled();
-
-    await userEvent.type(bodyField(), '   ');
-    expect(send).toBeDisabled();
-
-    await userEvent.type(bodyField(), 'x');
-    expect(send).toBeEnabled();
-  });
-
-  it('caps the field at the maximum rather than letting the server refuse it', () => {
-    mount();
-
-    expect(bodyField()).toHaveAttribute(
-      'maxlength',
-      String(MESSAGE_MAX),
-    );
-  });
-
-  it('sends the trimmed body', async () => {
-    mount();
-
-    await userEvent.type(
-      bodyField(),
-      '   Corrected.   ',
-    );
-    await userEvent.click(screen.getByRole('button', { name: label('messages.send') }));
-
-    expect(onSend).toHaveBeenCalledWith('Email', 'Corrected.');
-  });
-
-  /**
-   * Submit is disabled while a send is in flight.
-   *
-   * The honest mitigation for an endpoint that is deliberately not idempotent:
-   * two clicks would be two messages, and the server cannot tell that from two
-   * intents.
-   */
-  it('disables submit while a send is in flight', () => {
-    mount({ sending: true });
-
-    expect(screen.getByRole('button', { name: label('messages.send') })).toBeDisabled();
-  });
-
   // ── AC-22. A failure code is mapped, never rendered raw ────────────────────
 
   it('renders a known failure code as a translated sentence', () => {
@@ -335,14 +189,6 @@ describe('TicketMessagesPanel', () => {
     });
 
     expect(screen.queryByRole('button', { name: /retry|إعادة/i })).not.toBeInTheDocument();
-  });
-
-  // ── The inline refusal, never a toast ─────────────────────────────────────
-
-  it('renders the server refusal inline, as an alert', () => {
-    mount({ failure: 'This ticket is closed.' });
-
-    expect(screen.getByRole('alert')).toHaveTextContent('This ticket is closed.');
   });
 });
 

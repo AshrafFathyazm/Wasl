@@ -231,12 +231,12 @@ internal sealed class DashboardAggregatesQuery(
                         AND {{scope}})                                             AS WaitingOnCustomerCount,
                     (SELECT COUNT(*) FROM dbo.Tickets t
                       WHERE t.AssignedToUserId = {1}
-                        AND t.Status <> N'Closed')                                 AS AssignedToMeCount,
+                        AND {{DashboardTrendPredicates.OpenStatus}})                             AS AssignedToMeCount,
                     -- The attention SET's size, not the list's length. The predicate is the one
                     -- NeedsAttentionAsync uses, kept beside it here rather than in an eighth
                     -- command — the card's header says "View all 15" and the list holds ten.
                     (SELECT COUNT(*) FROM dbo.Tickets t
-                      WHERE t.Status <> N'Closed'
+                      WHERE {{DashboardTrendPredicates.OpenStatus}}
                         AND (t.AssignedToUserId IS NULL OR t.IsEscalated = 1)
                         AND ({0} = 1
                              OR t.AssignedToUserId = {1}
@@ -269,7 +269,7 @@ internal sealed class DashboardAggregatesQuery(
                     SELECT TOP (1) t.Id, t.TicketNumber, t.Subject, t.CreatedAtUtc
                     FROM dbo.Tickets t
                     WHERE t.AssignedToUserId = {1}
-                      AND t.Status <> N'Closed'
+                      AND {{DashboardTrendPredicates.OpenStatus}}
                     ORDER BY t.CreatedAtUtc, t.Id
                 ) AS mine
                 LEFT JOIN dbo.DashboardDailySnapshot prev
@@ -588,7 +588,7 @@ internal sealed class DashboardAggregatesQuery(
                     t.CreatedAtUtc  AS CreatedAtUtc
                 FROM dbo.Tickets t
                 JOIN dbo.Customers c ON c.Id = t.CustomerId
-                WHERE t.Status <> N'Closed'
+                WHERE t.Status NOT IN (N'Resolved', N'Closed')
                   AND (t.AssignedToUserId IS NULL OR t.IsEscalated = 1)
                   AND ({team} = 1
                        OR t.AssignedToUserId = {userId}
@@ -643,7 +643,7 @@ internal sealed class DashboardAggregatesQuery(
                 FROM dbo.SupportUsers u
                 LEFT JOIN dbo.Tickets t
                        ON t.AssignedToUserId = u.Id
-                      AND t.Status <> N'Closed'
+                      AND t.Status NOT IN (N'Resolved', N'Closed')
                 GROUP BY u.Id, u.FullName, u.IsActive
                 ORDER BY COUNT(t.Id) DESC, u.FullName
                 """)

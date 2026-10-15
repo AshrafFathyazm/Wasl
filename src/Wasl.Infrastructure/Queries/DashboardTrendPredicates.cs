@@ -35,7 +35,18 @@ namespace Wasl.Infrastructure.Queries;
 internal static class DashboardTrendPredicates
 {
     /// <summary>
-    /// Unassigned and not closed.
+    /// THE definition of "open" on this screen (`040` item 3, 2026-10-15): neither Resolved nor
+    /// Closed. Before it, team load, assigned-to-me, unassigned and needs-attention used
+    /// <c>&lt;&gt; Closed</c>, so Resolved tickets counted as load while the status card drew four
+    /// bars without them — 18 open + 4 resolved = 22 = 17 assigned + 5 unassigned. Every "open"
+    /// number on the dashboard reads this one fact. The two raw-interpolated statements below
+    /// (needs-attention list, team load) spell it out as a literal, because a constant placed in a
+    /// <c>$"""</c> hole becomes a parameter, not SQL text.
+    /// </summary>
+    public const string OpenStatus = "t.Status NOT IN (N'Resolved', N'Closed')";
+
+    /// <summary>
+    /// Unassigned and open.
     /// </summary>
     /// <remarks>
     /// <b>Carries no scope clause, and that is the contract rather than an omission.</b> An
@@ -44,7 +55,7 @@ internal static class DashboardTrendPredicates
     /// documents it on <c>DashboardAttention.UnassignedCount</c> and the snapshot inherits it.
     /// </remarks>
     public const string Unassigned =
-        "t.AssignedToUserId IS NULL AND t.Status <> N'Closed'";
+        $"t.AssignedToUserId IS NULL AND {OpenStatus}";
 
     /// <summary>
     /// Escalated, and neither resolved nor closed — BR-3.3 makes those two the non-actionable
@@ -58,7 +69,7 @@ internal static class DashboardTrendPredicates
         "t.Status = N'PendingCustomer'";
 
     /// <summary>
-    /// Assigned to somebody and not closed.
+    /// Assigned to somebody and open.
     /// </summary>
     /// <remarks>
     /// No tile shows this today. The snapshot captures it because it is the one number a trend on
@@ -66,7 +77,7 @@ internal static class DashboardTrendPredicates
     /// unused one costs four bytes a day (`data-model.md`).
     /// </remarks>
     public const string Assigned =
-        "t.AssignedToUserId IS NOT NULL AND t.Status <> N'Closed'";
+        $"t.AssignedToUserId IS NOT NULL AND {OpenStatus}";
 
     /// <summary>
     /// The scope clause both consumers apply: everything for a Manager, one assignee otherwise.

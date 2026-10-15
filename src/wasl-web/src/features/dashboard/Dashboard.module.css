@@ -632,7 +632,7 @@
   /* Fixed, so the four tracks start at the same inline offset. A label column
      sized to its content would step the bars in and out and destroy the
      comparison the card exists for. */
-  flex: 0 0 92px;
+  flex: 0 0 112px;
   min-inline-size: 0;
   color: var(--text-secondary);
   overflow: hidden;

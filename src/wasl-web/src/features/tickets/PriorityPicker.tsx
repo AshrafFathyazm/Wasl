@@ -9,7 +9,13 @@ import { RadioGroup } from './RadioGroup';
 /* ============================================================================
  * PriorityPicker — `038` §3.3b
  * ============================================================================
- * NOTHING IS SELECTED ON FIRST PAINT (R-3), and the mock-up's pre-selected
+ * `040` item 22 (2026-10-15) REVERSED THE RULING BELOW: the form now starts with
+ * `Normal` selected, because a required-looking chooser with nothing checked read as
+ * an unfinished form. The picker itself still renders `value=""` as nothing checked
+ * (the tests use it), and the request now carries `Normal`. The reasoning that
+ * follows is kept as the record of what was weighed.
+ *
+ * ORIGINAL R-3: NOTHING IS SELECTED ON FIRST PAINT, and the mock-up's pre-selected
  * «عادية» is deliberately not reproduced.
  *
  * The reason is one the product already paid for. `priority` is OMITTED from the

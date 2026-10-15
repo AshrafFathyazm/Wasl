@@ -189,12 +189,12 @@ Every count is an `int`, already scoped, and never `null`.
 
 | Field | Definition |
 |---|---|
-| `unassignedCount` | Tickets with `AssignedToUserId IS NULL` and `Status <> 'Closed'`. **Global in both scopes** |
+| `unassignedCount` | Tickets with `AssignedToUserId IS NULL` and `Status NOT IN ('Resolved','Closed')`. **Global in both scopes** |
 | `escalatedOpenCount` | `IsEscalated = 1` and `Status NOT IN ('Resolved','Closed')` (BR-3.3 makes those two the non-actionable ones) |
 | `waitingOnCustomerCount` | `Status = 'PendingCustomer'`. Shown so it can be *excluded* from judgement — that clock is not ours (BR-1.4) |
-| `assignedToMeCount` | `AssignedToUserId = <caller>` and `Status <> 'Closed'`. Present in both scopes; a Manager's own assigned count is harmless and keeps one shape |
-| `oldestUntouched` | Oldest ticket with **no assignee and no comment**, `Status <> 'Closed'`. `null` when none exists |
-| `myOldest` | Oldest ticket assigned to the caller, `Status <> 'Closed'`. `null` when none exists |
+| `assignedToMeCount` | `AssignedToUserId = <caller>` and `Status NOT IN ('Resolved','Closed')`. Present in both scopes; a Manager's own assigned count is harmless and keeps one shape |
+| `oldestUntouched` | Oldest ticket with **no assignee and no comment**, `Status NOT IN ('Resolved','Closed')`. `null` when none exists |
+| `myOldest` | Oldest ticket assigned to the caller, `Status NOT IN ('Resolved','Closed')`. `null` when none exists |
 
 `oldestUntouched` and `myOldest` share one shape:
 
@@ -257,7 +257,7 @@ At most **10** entries, ordered `CreatedAtUtc` ascending — oldest first. Not p
 this is a top-ten prompt, and "see all" is a link into the ticket list (`010`, and its
 filters in `015`). An empty list is `[]` with `200`, never `404` (BR-7.6).
 
-Membership: `Status <> 'Closed'` **and** (`AssignedToUserId IS NULL` **or**
+Membership: `Status NOT IN ('Resolved','Closed')` **and** (`AssignedToUserId IS NULL` **or**
 `IsEscalated = 1`).
 
 | Field | Type | Notes |
@@ -280,7 +280,7 @@ appears with `assignedOpenCount: 0`. Ordered by `assignedOpenCount` descending, 
 | `userId` | `guid` | |
 | `fullName` | `string(200)` | `dir="auto"` when rendered |
 | `isActive` | `bool` | An inactive user still appears **while holding open tickets** — dropping them hides work that exists |
-| `assignedOpenCount` | `int` | `Status <> 'Closed'` |
+| `assignedOpenCount` | `int` | `Status NOT IN ('Resolved','Closed')` |
 
 **This is not a leaderboard.** It is assigned-and-open per agent, which prompts
 redistribution. US-016 excludes a ranking by tickets closed deliberately: the fastest way

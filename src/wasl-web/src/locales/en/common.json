@@ -10,7 +10,10 @@
     "customers": "Customers",
     "settings": "Settings",
     "collapse": "Collapse sidebar",
-    "expand": "Expand sidebar"
+    "expand": "Expand sidebar",
+    "ticketDetail": "Ticket",
+    "home": "Wasl — go to the dashboard",
+    "userMenu": "Account menu for {{name}}"
   },
   "role": {
     "agent": "Agent",

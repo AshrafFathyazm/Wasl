@@ -187,6 +187,25 @@ adding one later is a five-minute decision rather than a fresh investigation.
 The initial contract: [`contracts/dashboard-api.md`](contracts/dashboard-api.md), frozen
 2026-08-23. No prior contract exists, so nothing is broken.
 
+### 2026-10-15 — "open" means neither Resolved nor Closed, everywhere (`040` item 3)
+
+**Behaviour change, no shape change.** `unassignedCount`, `assignedToMeCount`, `oldestUntouched`,
+`myOldest`, `needsAttentionTotal`, `needsAttention` and `teamLoad[].assignedOpenCount` used
+`Status <> 'Closed'`, so a **Resolved** ticket counted as open load. The status card draws four bars
+(`New`, `Open`, `InProgress`, `PendingCustomer`) and leaves Resolved out, so on the live site the two
+disagreed: 18 open + 4 Resolved = 22 = 17 assigned + 5 unassigned.
+
+Now one definition, `DashboardTrendPredicates.OpenStatus`. `escalatedOpenCount` and
+`waitingOnCustomerCount` already excluded Resolved and are unchanged.
+
+**One-time discontinuity:** `dbo.DashboardDailySnapshot` rows captured before this date used the old
+definition, so the `▲ vs prev` arrow on the unassigned tile compares across the change **once** (by the
+number of Resolved unassigned tickets that day). No back-fill — `020b` §2.1.
+
+Invariant, asserted by `Assigned_load_plus_unassigned_equals_the_open_by_status_total`: sum of
+`teamLoad[].assignedOpenCount` + `attention.unassignedCount` == sum of `openByStatus` **excluding the
+`Resolved` entry**, which the body still carries (five members; the client draws four).
+
 ### 2026-09-07 — four additive fields, from the two design canvases
 
 The product owner supplied a dashboard canvas on 2026-09-07 and a revised one the same day.

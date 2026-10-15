@@ -148,6 +148,18 @@ beforeAll(async () => {
 });
 
 describe('the four tiles', () => {
+  it('every tile link has an accessible name that carries its label (040 item 24)', () => {
+    mount();
+
+    const tiles = screen
+      .getAllByRole('link')
+      .filter((link) => (link.getAttribute('href') ?? '').startsWith('/tickets'));
+    expect(tiles.length).toBeGreaterThanOrEqual(4);
+    for (const tile of tiles) {
+      expect((tile.getAttribute('aria-label') ?? tile.textContent ?? '').trim()).not.toBe('');
+    }
+  });
+
   it('renders the Manager four, each linking to what it is about', () => {
     const { container } = mount();
 
@@ -278,7 +290,7 @@ describe('the queue card', () => {
       .slice(0, 4)
       .map((node) => node.textContent);
 
-    expect(labels).toEqual(['New', 'Open', 'In progress', 'Pending cust.']);
+    expect(labels).toEqual(['New', 'Open', 'In progress', 'Pending customer']);
     expect(labels).not.toContain('Resolved');
   });
 
@@ -400,6 +412,40 @@ describe('where demand comes from', () => {
 
     expect(screen.getByText('38%')).toBeInTheDocument();
     expect(screen.getByText('6%')).toBeInTheDocument();
+  });
+
+  it('draws no row for a channel with nothing and names it once instead (040 item 17)', () => {
+    const { container } = mount({
+      snapshot: snapshot({
+        channelMix: [
+          { channel: 'Email', count: 5 },
+          { channel: 'WhatsApp', count: 0 },
+          { channel: 'LiveChat', count: 0 },
+          { channel: 'Sms', count: 3 },
+          { channel: 'WebForm', count: 0 },
+        ],
+      }),
+    });
+
+    const labels = [...container.querySelectorAll('[class*="barLabel"]')]
+      .slice(4)
+      .map((node) => node.textContent);
+
+    expect(labels).toEqual(['Email', 'SMS']);
+    expect(screen.getByText('No tickets from Live chat, Web form, WhatsApp')).toBeInTheDocument();
+  });
+
+  it('says the period was empty when every channel is zero', () => {
+    mount({
+      snapshot: snapshot({
+        channelMix: [
+          { channel: 'Email', count: 0 },
+          { channel: 'WhatsApp', count: 0 },
+        ],
+      }),
+    });
+
+    expect(screen.getByText('No tickets in this period.')).toBeInTheDocument();
   });
 
   it('links each channel into the filtered list', () => {

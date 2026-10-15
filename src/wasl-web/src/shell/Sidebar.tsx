@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 import { Button } from '../components/Button/Button';
 import {
@@ -16,7 +16,13 @@ import { cx } from '../lib/cx';
 import { useAuth } from '../features/auth/AuthContext';
 import { Anchored, anchoredStyles } from './Anchored';
 import { initialsOf } from './currentUser';
-import { NAV_ITEMS, type NavEntry, type NavLeaf } from './navItems';
+import {
+  NAV_ITEMS,
+  isNavLeafActive,
+  navEntryContains,
+  type NavEntry,
+  type NavLeaf,
+} from './navItems';
 import styles from './Sidebar.module.css';
 import type { SidebarMode } from './useSidebarState';
 
@@ -56,7 +62,10 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
           FIXED: both scripts render in both locales, because a logo is a brand
           asset and not copy — neither line replaces the other when the language
           changes. Collapsed, it becomes the tile alone. */}
-      <div className={styles.lockup} role="img" aria-label={t('common:productName')}>
+      {/* A LINK HOME since `040` item 24: it was `role="img"`, so the one element
+          every product lets you press to start over was inert and unnamed as a
+          control. */}
+      <Link to="/" className={styles.lockup} aria-label={t('common:nav.home')} onClick={onNavigate}>
         <span className={styles.mark} aria-hidden="true">
           <Mark size={20} />
         </span>
@@ -69,7 +78,7 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
           </span>
           <span className={styles.wordmarkSecondary}>{WORDMARK_LATIN}</span>
         </span>
-      </div>
+      </Link>
 
       {/* On the sidebar's OUTER edge, half-overlapping the border. The chevron
           rotates 180°; under RTL it mirrors, and so does the direction of
@@ -139,8 +148,7 @@ interface NavItemProps {
 function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
   const { t } = useTranslation();
   const Icon = item.icon;
-  const childPaths = item.children?.map((c) => c.to) ?? [];
-  const containsActive = childPaths.includes(pathname) || item.to === pathname;
+  const containsActive = navEntryContains(item, pathname);
 
   /* A group stays expanded while one of its children is active. */
   const [open, setOpen] = useState(containsActive);
@@ -160,7 +168,13 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       <span className={anchoredStyles.flyoutHeading}>{label}</span>
       <span className={anchoredStyles.flyoutList}>
         {item.children.map((child) => (
-          <ChildLink key={child.key} child={child} onNavigate={onNavigate} inFlyout />
+          <ChildLink
+            key={child.key}
+            child={child}
+            pathname={pathname}
+            onNavigate={onNavigate}
+            inFlyout
+          />
         ))}
       </span>
     </>
@@ -199,7 +213,9 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       to={item.to}
       end
       onClick={onNavigate}
-      className={({ isActive }) => cx(styles.item, isActive && styles.active)}
+      className={({ isActive }) =>
+        cx(styles.item, (isActive || isNavLeafActive(item, pathname)) && styles.active)
+      }
       aria-label={collapsed ? label : undefined}
       aria-describedby={collapsed ? panelId : undefined}
     >
@@ -224,7 +240,7 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       {!collapsed && item.children && open ? (
         <div className={styles.children}>
           {item.children.map((child) => (
-            <ChildLink key={child.key} child={child} onNavigate={onNavigate} />
+            <ChildLink key={child.key} child={child} pathname={pathname} onNavigate={onNavigate} />
           ))}
         </div>
       ) : null}
@@ -240,10 +256,12 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
  */
 function ChildLink({
   child,
+  pathname,
   onNavigate,
   inFlyout = false,
 }: {
   child: NavLeaf;
+  pathname: string;
   onNavigate: () => void;
   inFlyout?: boolean;
 }) {
@@ -253,14 +271,15 @@ function ChildLink({
       to={child.to}
       end
       onClick={onNavigate}
-      className={({ isActive }) =>
-        cx(
+      className={({ isActive: exact }) => {
+        const isActive = exact || isNavLeafActive(child, pathname);
+        return cx(
           styles.child,
           inFlyout && styles.childInFlyout,
           isActive && styles.active,
           isActive && inFlyout && styles.activeInFlyout,
-        )
-      }
+        );
+      }}
     >
       {t(child.labelKey)}
     </NavLink>
@@ -404,7 +423,7 @@ function UserBlock({ collapsed }: { collapsed: boolean }) {
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-haspopup="menu"
-            aria-label={collapsed ? user.fullName : undefined}
+            aria-label={t('common:nav.userMenu', { name: user.fullName })}
           >
             <span className={styles.avatar} aria-hidden="true">
               {initialsOf(user.fullName)}

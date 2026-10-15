@@ -46,7 +46,8 @@ describe('AC-6, AC-7, AC-8 — the channel row', () => {
     /* DERIVED FROM THE CONSTANT, so a sixth channel added to the contract fails
        here instead of quietly leaving the row at five and looking complete. */
     expect(radios).toHaveLength(COMMUNICATION_CHANNELS.length);
-    expect(radios.map((r) => r.getAttribute('aria-label'))).toEqual([
+    /* VISIBLE text since `040` item 20 — the name is the content, not an aria-label. */
+    expect(radios.map((r) => r.textContent)).toEqual([
       'Email',
       'WhatsApp',
       'Live chat',

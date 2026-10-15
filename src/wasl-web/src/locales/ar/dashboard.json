@@ -166,6 +166,8 @@
   "channels.subtitle_few": "آخر {{formatted}} أيام · اضغط للتصفية",
   "channels.subtitle_many": "آخر {{formatted}} يومًا · اضغط للتصفية",
   "channels.subtitle_other": "آخر {{formatted}} يوم · اضغط للتصفية",
+  "channels.none": "لا توجد تذاكر من {{names}}",
+  "channels.allNone": "لا توجد تذاكر في هذه الفترة.",
   "channels.open": "إظهار التذاكر من {{channel}}",
 
   "team.title": "حِمل الفريق",

@@ -80,7 +80,10 @@ export function ChannelPicker({ value, onChange, onBlur, error }: ChannelPickerP
         value={value === '' ? null : value}
         onChange={onChange}
         onBlur={onBlur}
-        variant="icon"
+        /* `040` item 20: the label is VISIBLE. Five unlabelled glyphs in a row made
+           WhatsApp and SMS — a bubble and a bubble — a guess, and the hint line below
+           was doing the label's job after the fact. */
+        variant="label"
         invalid={error !== undefined}
         describedBy="nt-channel-hint"
       />
