@@ -559,3 +559,30 @@ describe('the range control and the states', () => {
     expect(container.querySelector('[class*="bodyBusy"]')).toBeInTheDocument();
   });
 });
+
+describe('040 item 5 — an empty sample says so', () => {
+  const EMPTY = {
+    firstReplyMinutes: null,
+    firstReplySampleSize: 0,
+    resolutionMinutes: null,
+    resolutionSampleSize: 0,
+    firstReplyTargetMinutes: 120,
+    resolutionTargetMinutes: 1440,
+  };
+
+  it('shows — and "No data yet", never 0m', () => {
+    mount({ snapshot: snapshot({ medians: EMPTY }) });
+    expect(screen.getAllByText('No data yet')).toHaveLength(2);
+    expect(screen.queryByText('0m')).not.toBeInTheDocument();
+  });
+
+  it('a real measured zero keeps its 0m and carries no "No data yet"', () => {
+    mount({
+      snapshot: snapshot({
+        medians: { ...EMPTY, firstReplyMinutes: 0, firstReplySampleSize: 3 },
+      }),
+    });
+    expect(screen.getByText('0m')).toBeInTheDocument();
+    expect(screen.getAllByText('No data yet')).toHaveLength(1);
+  });
+});

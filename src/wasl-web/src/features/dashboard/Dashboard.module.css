@@ -806,6 +806,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.medianNoData {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .medianValue {
   font-size: var(--type-title-2);
   font-weight: var(--weight-bold);

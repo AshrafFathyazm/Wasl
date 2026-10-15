@@ -143,6 +143,7 @@
   "medians.firstReply": "وسيط أول رد",
   "medians.resolution": "وسيط زمن الحل",
   "medians.none": "—",
+  "medians.noData": "لا بيانات بعد",
   "medians.target": "المستهدف {{value}}",
   "medians.over": "+{{value}} فوق المستهدف",
 

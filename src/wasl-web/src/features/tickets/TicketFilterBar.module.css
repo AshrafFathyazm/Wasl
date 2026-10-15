@@ -136,6 +136,10 @@
   background: var(--state-warning-text);
 }
 
+.dotClosed {
+  background: var(--state-neutral-text);
+}
+
 .dotResolved {
   background: var(--state-success-text);
 }

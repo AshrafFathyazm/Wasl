@@ -52,15 +52,23 @@ export const STATUS_VALUES = [
  */
 /* THE FOUR THE DESIGN DRAWS, and `Open` is deliberately not among them.
  *
- * The design frames supplied on 2026-08-31 show five chips: All, New, In
- * progress, Pending customer, Resolved. `Open` and `Closed` stay reachable from
- * the filter panel — a tab strip carries the states a queue is worked through,
- * not every value BR-1 defines.
+ * `040` item 4 (2026-10-15): EVERY status BR-1 defines, in the dashboard's order.
+ * The 2026-08-31 frames showed five chips and left `Open` and `Closed` to the
+ * filter panel; that made `All` a sum of four of six statuses and every `Open`
+ * ticket vanished from the counts. Do not drop an entry without fixing what
+ * sums them.
  *
  * This list decides what the counts are fetched for: `TicketListPage` issues one
  * count query per entry plus one for `Closed`, and the labels come from
  * `status.*` in the catalogue. */
-export const TAB_STATUSES = ['New', 'InProgress', 'PendingCustomer', 'Resolved'] as const;
+export const TAB_STATUSES = [
+  'New',
+  'Open',
+  'InProgress',
+  'PendingCustomer',
+  'Resolved',
+  'Closed',
+] as const;
 
 /** How many values one repeated filter may carry before the server clamps. */
 export const MAX_FILTER_VALUES = 20;

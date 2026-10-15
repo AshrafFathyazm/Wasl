@@ -48,6 +48,26 @@ const STATUS_TONE: Record<TicketStatus, [BadgeTone, BadgeAppearance]> = {
   Closed: ['neutral', 'filled'],
 };
 
+/* `040` item 2: the list renders priority as a badge beside Status, same size,
+ * at the product owner's request — which reverses the "plain text, not a badge"
+ * ruling on `TicketPriorityText` below. That component stays: its tests still use
+ * the plain form. No dot, so the two badges in one row differ by more than a
+ * word; Low/Normal are outline so only High and Critical shout. */
+const PRIORITY_TONE: Record<TicketPriority, [BadgeTone, BadgeAppearance]> = {
+  Low: ['neutral', 'outline'],
+  Normal: ['neutral', 'outline'],
+  High: ['warning', 'filled'],
+  Critical: ['danger', 'filled'],
+};
+
+export function TicketPriorityBadge({ priority }: { priority: TicketPriority }) {
+  const { t } = useTranslation('tickets');
+  const [tone, appearance] = PRIORITY_TONE[priority];
+  return (
+    <Badge tone={tone} appearance={appearance} label={t(`priority.${priority}`)} dot={false} />
+  );
+}
+
 export function TicketStatusBadge({ status }: { status: TicketStatus }) {
   const { t } = useTranslation('tickets');
   const [tone, appearance] = STATUS_TONE[status];

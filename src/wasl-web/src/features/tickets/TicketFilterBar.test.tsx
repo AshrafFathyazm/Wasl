@@ -418,11 +418,11 @@ describe('the path decides the assignee, and nothing on screen can undo it', () 
     expect(lastParams()?.assignee).toBe('me');
   });
 
-  it('scopes all five chip counts, so the header describes this queue', async () => {
+  it('scopes every chip count, and the All total, so the header describes this queue', async () => {
     mounted('/tickets/mine', 'mine');
-    await waitFor(() => expect(countTickets).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(countTickets).toHaveBeenCalledTimes(7));
 
-    /* EVERY call, not the first: the counts are five separate queries and a
+    /* EVERY call, not the first: the counts are seven separate queries (six statuses plus All) and a
      * scope applied to some of them is a header that mixes two queues. */
     for (const [params] of vi.mocked(countTickets).mock.calls) {
       expect(params.assignee).toBe('me');
@@ -525,5 +525,39 @@ describe('the path decides the assignee, and nothing on screen can undo it', () 
     /* And not the "nothing has arrived on any channel" copy either, which is
      * false while the team's queue holds work. */
     expect(screen.queryByText(i18n.t('tickets:list.emptyTitle'))).not.toBeInTheDocument();
+  });
+});
+
+describe('040 items 3 and 4 — the tab strip counts every status', () => {
+  /* 5 + 4 + 3 + 2 + 1 + 6 = 21 across six statuses; the server says 27 for the
+   * whole queue. The old All summed the chips and would have said 21 — or, with
+   * Open missing, less. */
+  const BY_STATUS: Record<string, number> = {
+    New: 5, Open: 4, InProgress: 3, PendingCustomer: 2, Resolved: 1, Closed: 6,
+  };
+
+  beforeEach(() => {
+    vi.mocked(countTickets).mockImplementation((params) => {
+      const status = params.status?.[0];
+      return Promise.resolve(status === undefined ? 27 : (BY_STATUS[status] ?? 0));
+    });
+  });
+
+  it('shows Open and Closed tabs, in the dashboard order', async () => {
+    mounted();
+    const tabs = await screen.findAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent?.replace(/\d+$/, ''))).toEqual([
+      'All', 'New', 'Open', 'In progress', 'Pending customer', 'Resolved', 'Closed',
+    ]);
+  });
+
+  it('All is the server total, not the sum of the tabs', async () => {
+    mounted();
+    expect(await screen.findByRole('tab', { name: /^All\s*27$/ })).toBeInTheDocument();
+  });
+
+  it('the subtitle counts New + Open + In progress + Pending customer only', async () => {
+    mounted();
+    expect(await screen.findByText(/14 open tickets/)).toBeInTheDocument();
   });
 });

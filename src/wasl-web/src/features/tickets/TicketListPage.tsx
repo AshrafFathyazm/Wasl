@@ -20,7 +20,8 @@ import {
 import { ApiError } from '../../lib/api';
 import { cx } from '../../lib/cx';
 import type { TicketListItem } from '../../lib/api-types.provisional';
-import { formatDate, formatNumber, type Lang } from '../../lib/formatters';
+import { formatDateTime, formatNumber, type Lang } from '../../lib/formatters';
+import { formatRelativeAge } from '../../lib/relativeTime';
 import { CloseTicketModal } from './CloseTicketModal';
 import { RowAssignMenu } from './RowAssignMenu';
 import { TicketFilterBar } from './TicketFilterBar';
@@ -33,8 +34,9 @@ import {
   withFilters,
   type FilterState,
 } from './ticketFilters';
+import { OPEN_STATUSES } from './openTicketCounts';
 import { countTickets, listTickets, ticketKeys } from './tickets.api';
-import { TicketPriorityText, TicketStatusBadge } from './TicketBadges';
+import { TicketPriorityBadge, TicketStatusBadge } from './TicketBadges';
 import styles from './TicketList.module.css';
 
 /**
@@ -293,11 +295,10 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
    * "how much work exists", not "how much survives my current question" — and
    * as a bonus they stop refetching on every keystroke of the search box.
    *
-   * `Closed` is queried although it has no chip: the subtitle says *"124 open
-   * tickets"*, and open is every status that is not Closed. Without that number
-   * the subtitle would have to call the total "open", which is a claim the data
-   * does not make. */
-  const countStatuses = [...TAB_STATUSES, 'Closed'] as const;
+   * `Closed` has a chip since `040`; the subtitle says *"124 open
+   * tickets"*, and open is every status that is neither Resolved nor Closed.
+   * (Counting only Closed out made every Resolved ticket "open".) */
+  const countStatuses = TAB_STATUSES;
 
   const countQueries = useQueries({
     queries: countStatuses.map((status) => {
@@ -321,20 +322,36 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
     }),
   });
 
+  /* ALL IS THE SERVER'S TOTAL (`040` item 3), not a sum of the chips. Summing
+   * is how `Open` went missing from it: any status the tab list omitted fell out
+   * of the total silently. One more count with NO status filter cannot skip one,
+   * and equals the pager's totalCount whenever no status is chosen. */
+  const allParams = toListParams(
+    { ...NO_FILTERS, assignee: scopeAssignee, status: [] },
+    1,
+    1,
+  );
+  const allQuery = useQuery({
+    queryKey: ticketKeys.count(allParams),
+    queryFn: ({ signal }: { signal: AbortSignal }) => countTickets(allParams, signal),
+    staleTime: 60_000,
+  });
+
   const statusCounts: Record<string, number | undefined> = {};
   countStatuses.forEach((status, index) => {
     statusCounts[status] = countQueries[index]?.data;
   });
 
-  /* All = the sum of every status, which is the total under the non-status
-   * filters. Absent until every count has landed: a total assembled from four of
-   * five numbers is wrong, and wrong is worse than pending. */
-  const allCount = countQueries.every((q) => q.data !== undefined)
-    ? countQueries.reduce((sum, q) => sum + (q.data ?? 0), 0)
-    : undefined;
+  const allCount = allQuery.data;
 
-  const openCount =
-    allCount === undefined ? undefined : allCount - (statusCounts['Closed'] ?? 0);
+  /* OPEN = New + Open + InProgress + PendingCustomer — everything that is
+   * neither Resolved nor Closed. One definition: the same list the assignee menu
+   * counts with, and the dashboard's "open by status". Pending until all four
+   * land: a total from three of four numbers is wrong, and wrong is worse than
+   * pending. */
+  const openCount = OPEN_STATUSES.every((s) => statusCounts[s] !== undefined)
+    ? OPEN_STATUSES.reduce((sum, s) => sum + (statusCounts[s] ?? 0), 0)
+    : undefined;
 
   /* WHEN THE LIST WAS LAST TRUE, not when this component rendered.
    * `dataUpdatedAt` is the moment the data arrived; a clock started on mount
@@ -407,19 +424,30 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
       id: 'customer',
       header: t('list.column.customer'),
       width: 124,
-      cell: (row) => <span className={styles.truncate}>{row.customerName}</span>,
+      cell: (row) => (
+        <span className={styles.truncate} title={row.customerName}>
+          {row.customerName}
+        </span>
+      ),
     },
     {
       id: 'channel',
       header: t('list.column.channel'),
-      width: 150,
-      skeleton: 'pill',
+      width: 72,
+      skeleton: 'icon',
       cell: (row) => {
         const Icon = CHANNEL_ICON[row.channel];
+        const label = t(`channel.${row.channel}`);
+        /* ICON ONLY (`040` item 2): the name moved to the tooltip and the
+           accessible name, which frees the width Subject needs. */
         return (
-          <span className={cx(styles.channel, CHANNEL_CLASS[row.channel])}>
+          <span
+            className={cx(styles.channel, CHANNEL_CLASS[row.channel])}
+            title={label}
+            role="img"
+            aria-label={label}
+          >
             <Icon size={14} className={styles.channelIcon} />
-            {t(`channel.${row.channel}`)}
           </span>
         );
       },
@@ -435,7 +463,7 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
       id: 'priority',
       header: t('list.column.priority'),
       width: 92,
-      cell: (row) => <TicketPriorityText priority={row.priority} />,
+      cell: (row) => <TicketPriorityBadge priority={row.priority} />,
     },
     {
       id: 'assignee',
@@ -448,7 +476,7 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
              says little to a sighted user either. */
           <span className={styles.muted}>{t('list.unassigned')}</span>
         ) : (
-          <span className={styles.assignee}>
+          <span className={styles.assignee} title={row.assigneeName}>
             <Avatar name={row.assigneeName} />
             <span className={styles.truncate}>{row.assigneeName}</span>
           </span>
@@ -469,7 +497,9 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
        * hover background painted over the leading digit. `29/08/2026` read as
        * `9/08/2026` — a plausible date, which is the whole problem. */
       cell: (row) => (
-        <span className={styles.dateCell}>{formatDate(row.createdAtUtc, lang)}</span>
+        <span className={styles.dateCell} title={formatDateTime(row.createdAtUtc, lang)}>
+          {formatRelativeAge(row.createdAtUtc, Date.now(), lang, t)}
+        </span>
       ),
     },
   ];

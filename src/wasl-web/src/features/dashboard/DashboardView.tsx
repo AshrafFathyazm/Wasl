@@ -620,6 +620,10 @@ function MedianRow({
       <div className={styles.medianHead}>
         <span className={styles.medianValue}>{renderMedian(minutes, sampleSize)}</span>
 
+        {hasValue ? null : (
+          <span className={styles.medianNoData}>{t('medians.noData')}</span>
+        )}
+
         {over ? (
           <span className={styles.medianOver}>
             {t('medians.over', { value: renderDuration(minutes - targetMinutes) })}

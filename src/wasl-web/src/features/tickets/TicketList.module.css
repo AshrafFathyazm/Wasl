@@ -190,9 +190,10 @@
 .channel {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  justify-content: center;
+  /* Icon only (`040` item 2) — a 24px disc, the name is in the tooltip. */
+  inline-size: 24px;
   block-size: 24px;
-  padding-inline: var(--space-2);
   border-radius: var(--radius-pill);
   background-color: var(--surface-chip);
   color: var(--text-secondary);
@@ -233,10 +234,16 @@
 /* Q-4 — the initials circle. --table-avatar-size is the token the design fixes;
  * this is not a primitive and does not become one until a second screen wants it. */
 .assignee {
-  display: inline-flex;
+  /* `040` item 1 — the overflow into Created. An inline-flex box sizes to its
+     content, so a long name widened it past the fixed-width cell instead of
+     letting the inner .truncate clip. Block flex + a cap is what makes the cell
+     the limit. */
+  display: flex;
   align-items: center;
   gap: var(--space-2);
   min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
 }
 
 .avatar {
