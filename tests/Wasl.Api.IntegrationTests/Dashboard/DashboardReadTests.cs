@@ -1001,4 +1001,78 @@ public sealed class DashboardReadTests(WaslApiFactory factory)
             .Select(user => user.Id)
             .SingleAsync();
     }
+
+    /* ══════════════════════════════════════════════════════════════════════════════════════
+     *  `040` item 3 — ONE definition of "open"
+     * ══════════════════════════════════════════════════════════════════════════════════════ */
+
+    private static int OpenByStatusTotal(JsonElement body) =>
+        body.GetProperty("openByStatus").EnumerateArray()
+            .Where(entry => entry.GetProperty("status").GetString() != nameof(TicketStatus.Resolved))
+            .Sum(entry => entry.GetProperty("count").GetInt32());
+
+    private static int AssignedPlusUnassigned(JsonElement body) =>
+        body.GetProperty("teamLoad").EnumerateArray()
+            .Sum(member => member.GetProperty("assignedOpenCount").GetInt32())
+        + body.GetProperty("attention").GetProperty("unassignedCount").GetInt32();
+
+    /// <summary>
+    /// Team load (assigned) + unassigned == the status card's open total. This is the sum the
+    /// live screen disagreed on (18 against 22): team load counted <c>Resolved</c>, the status card
+    /// drew four bars without it. <c>openByStatus</c> still CARRIES a Resolved entry — the client
+    /// draws four and the contract says five — so the comparison excludes it by name.
+    /// </summary>
+    [Fact]
+    public async Task Assigned_load_plus_unassigned_equals_the_open_by_status_total()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+        var agentId = await UserIdAsync(Wasl.Infrastructure.Persistence.Seed.SupportUserSeeder.AgentTwoEmail);
+
+        // Every status, assigned and not, so a leak in either direction moves one side only.
+        foreach (var status in Enum.GetValues<TicketStatus>())
+        {
+            await DashboardFixture.SeedTicketAsync(
+                factory, customerId, DateTime.UtcNow.AddHours(-3), status, assignedToUserId: agentId);
+            await DashboardFixture.SeedTicketAsync(
+                factory, customerId, DateTime.UtcNow.AddHours(-3), status);
+        }
+
+        var body = await ManagerDashboardAsync();
+
+        AssignedPlusUnassigned(body).Should().Be(
+            OpenByStatusTotal(body),
+            "every 'open' number on the dashboard is New + Open + InProgress + PendingCustomer");
+    }
+
+    /// <summary>
+    /// A Resolved ticket moves none of: team load, unassigned, assigned-to-me, the attention set.
+    /// Asserted as a DELTA around the write, the only shape that survives the shared database.
+    /// </summary>
+    [Fact]
+    public async Task A_resolved_ticket_is_not_counted_as_open_anywhere()
+    {
+        var customerId = await AuditFixture.SeedCustomerAsync(factory);
+        var agentId = await UserIdAsync(Wasl.Infrastructure.Persistence.Seed.SupportUserSeeder.AgentTwoEmail);
+
+        var before = await ManagerDashboardAsync();
+
+        await DashboardFixture.SeedTicketAsync(
+            factory, customerId, DateTime.UtcNow.AddHours(-3), TicketStatus.Resolved, assignedToUserId: agentId);
+        await DashboardFixture.SeedTicketAsync(
+            factory, customerId, DateTime.UtcNow.AddHours(-3), TicketStatus.Resolved);
+        await DashboardFixture.SeedTicketAsync(
+            factory, customerId, DateTime.UtcNow.AddHours(-3), TicketStatus.Resolved, isEscalated: true);
+
+        var after = await ManagerDashboardAsync();
+
+        AssignedPlusUnassigned(after).Should().Be(AssignedPlusUnassigned(before));
+        after.GetProperty("attention").GetProperty("unassignedCount").GetInt32()
+            .Should().Be(before.GetProperty("attention").GetProperty("unassignedCount").GetInt32());
+        after.GetProperty("attention").GetProperty("needsAttentionTotal").GetInt32()
+            .Should().Be(before.GetProperty("attention").GetProperty("needsAttentionTotal").GetInt32(),
+                "a resolved ticket needs no attention, escalated or not");
+        after.GetProperty("needsAttention").EnumerateArray()
+            .Select(row => row.GetProperty("status").GetString())
+            .Should().NotContain(nameof(TicketStatus.Resolved));
+    }
 }

@@ -5,9 +5,7 @@ import {
   type BadgeAppearance,
   type BadgeTone,
 } from '../../components/Badge/Badge';
-import { cx } from '../../lib/cx';
 import type { TicketPriority, TicketStatus } from '../../lib/api-types.provisional';
-import styles from './TicketBadges.module.css';
 
 /**
  * The domain leak `Badge` refused, taken HERE — which is where
@@ -50,10 +48,10 @@ const STATUS_TONE: Record<TicketStatus, [BadgeTone, BadgeAppearance]> = {
 
 /* `040` item 2: the list renders priority as a badge beside Status, same size,
  * at the product owner's request — which reverses the "plain text, not a badge"
- * ruling on `TicketPriorityText` below. That component stays: its tests still use
- * the plain form. No dot, so the two badges in one row differ by more than a
+ * ruling; the plain-text component and its stylesheet are deleted, not kept (`040`). No dot, so the two badges in one row differ by more than a
  * word; Low/Normal are outline so only High and Critical shout. */
-const PRIORITY_TONE: Record<TicketPriority, [BadgeTone, BadgeAppearance]> = {
+/** Exported for the test. */
+export const PRIORITY_TONE_MAP: Record<TicketPriority, [BadgeTone, BadgeAppearance]> = {
   Low: ['neutral', 'outline'],
   Normal: ['neutral', 'outline'],
   High: ['warning', 'filled'],
@@ -62,7 +60,7 @@ const PRIORITY_TONE: Record<TicketPriority, [BadgeTone, BadgeAppearance]> = {
 
 export function TicketPriorityBadge({ priority }: { priority: TicketPriority }) {
   const { t } = useTranslation('tickets');
-  const [tone, appearance] = PRIORITY_TONE[priority];
+  const [tone, appearance] = PRIORITY_TONE_MAP[priority];
   return (
     <Badge tone={tone} appearance={appearance} label={t(`priority.${priority}`)} dot={false} />
   );
@@ -72,36 +70,6 @@ export function TicketStatusBadge({ status }: { status: TicketStatus }) {
   const { t } = useTranslation('tickets');
   const [tone, appearance] = STATUS_TONE[status];
   return <Badge tone={tone} appearance={appearance} label={t(`status.${status}`)} />;
-}
-
-/**
- * PLAIN COLOURED TEXT, NOT A BADGE — and that is a decision, not an omission.
- *
- * Two badges side by side in one row read as a single control with two halves.
- * Only the two priorities that demand an action carry colour; `Low` and `Normal`
- * are muted, because a table where every cell shouts says nothing.
- *
- * This is the one place red is allowed on a ticket row. `Critical` is a
- * SEVERITY, and BR-1 bans red for STATUS only.
- */
-/* CSS MODULE CLASSES, not strings. This map held 'priority-high' and
- * 'priority-critical' as plain global names that no stylesheet defined, so
- * High and Critical rendered in the default text colour — the map was inert
- * and the screen looked like the design had simply not been applied. */
-const PRIORITY_CLASS: Record<TicketPriority, string | undefined> = {
-  Low: undefined,
-  Normal: undefined,
-  High: styles.priorityHigh,
-  Critical: styles.priorityCritical,
-};
-
-export function TicketPriorityText({ priority }: { priority: TicketPriority }) {
-  const { t } = useTranslation('tickets');
-  return (
-    <span className={cx(styles.priority, PRIORITY_CLASS[priority])}>
-      {t(`priority.${priority}`)}
-    </span>
-  );
 }
 
 /** Exported for the test, and for `015` when it builds the status filter — a
