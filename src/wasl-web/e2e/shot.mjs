@@ -23,7 +23,7 @@ try {
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log('PAGEERROR', String(e).slice(0, 200)));
   await page.goto(server.url + path, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1300);
   if (extra === 'drawer') {
     await page.getByRole('button', { name: /open menu|فتح القائمة/i }).click();
     await page.waitForTimeout(450);

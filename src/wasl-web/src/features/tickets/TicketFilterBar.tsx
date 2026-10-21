@@ -222,6 +222,7 @@ export function TicketFilterBar({
      reduced motion. */
   const tablistRef = useRef<HTMLDivElement>(null);
   const activeTabKey = allSelected ? 'all' : (filters.status[0] ?? 'all');
+  const countsKey = `${totalCount ?? ''}|${JSON.stringify(statusCounts ?? {})}`;
   useEffect(() => {
     const active = tablistRef.current?.querySelector<HTMLElement>(
       '[aria-selected="true"]',
@@ -232,7 +233,10 @@ export function TicketFilterBar({
       block: 'nearest',
       behavior: reduced ? 'auto' : 'smooth',
     });
-  }, [activeTabKey]);
+    /* The counts arrive after the first paint and WIDEN the chips ("All" gains a
+       "12"), which moves everything after them: scrolling once on mount lands the
+       chosen tab off-screen by exactly that growth. So it is re-run when they land. */
+  }, [activeTabKey, countsKey]);
 
   const setStatus = (status: string | null) =>
     onChange({ ...filters, status: status === null ? [] : [status] });

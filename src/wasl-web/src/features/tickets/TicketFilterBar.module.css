@@ -54,6 +54,10 @@
 
 .tab {
   display: inline-flex;
+  /* `041`: NEVER SHRINK. The strip scrolls sideways on a phone; a chip that gives up
+     width instead of scrolling squeezes its own label into its neighbour's (seen
+     with the chosen tab drawn as a 44px disc and the others overprinting). */
+  flex: none;
   align-items: center;
   gap: var(--space-2);
   /* 32 inside a padded track, not 40 filling a bordered one — the carve needs
@@ -680,3 +684,11 @@
   }
 }
 /* stylelint-enable no-duplicate-selectors */
+
+/* `041` — the applied chip's "remove" x: a 44px target that does not grow the chip
+   (the extra is cancelled by negative margins; it overlaps the chip's own padding). */
+@media (width < 768px) { /* bp: md */
+  .appliedRemove {
+    margin: -13px;
+  }
+}

@@ -15,14 +15,14 @@ import { fileURLToPath } from 'node:url';
 
 import { startDevServer } from './devServer.mjs';
 import { installMockApi, seedSession } from './mockApi.mjs';
-import { CORE_ROUTES } from './routes.mjs';
+import { ALL_ROUTES } from './routes.mjs';
 
 const label = process.argv[2] ?? 'before';
 const here = dirname(fileURLToPath(import.meta.url));
 const out = resolve(here, 'out', label);
 mkdirSync(out, { recursive: true });
 
-const WIDTHS = [390, 768, 1024, 1440];
+const WIDTHS = [360, 390, 768, 1024, 1440];
 const LANGS = ['en', 'ar'];
 const SHOT_WIDTHS = new Set([390, 1024]);
 
@@ -122,7 +122,7 @@ const results = [];
 
 try {
   for (const lang of LANGS) {
-    for (const route of CORE_ROUTES) {
+    for (const route of ALL_ROUTES) {
       for (const width of WIDTHS) {
         const context = await browser.newContext({
           viewport: { width, height: width <= 480 ? 844 : 900 },

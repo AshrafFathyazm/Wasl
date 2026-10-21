@@ -2058,4 +2058,15 @@
   }
 }
 
+/* A "remove" x INSIDE a chip. The touch floor makes it a 44px button; the negative
+   margins cancel the extra so the chip stays 25px tall and its width barely moves —
+   the hit area overlaps the chip's own padding, which is nothing else's. */
+@media (width < 768px) { /* bp: md */
+  .tagRemove {
+    margin: -16px -14px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 /* stylelint-enable no-duplicate-selectors */

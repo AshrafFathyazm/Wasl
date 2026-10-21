@@ -95,7 +95,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-6);
+  padding: var(--space-4);
   background-color: var(--surface-card);
   border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -121,16 +121,22 @@
  *
  * The divider and the last field span, so the identity/contact boundary still
  * runs the full width and Notes is not a half-width box beside nothing. */
-.card:not(.cardBare) {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: var(--space-6);
-  align-items: start;
-}
+/* `041`: FROM md UP. On a 390px phone two tracks are ~150px each — "name@company.c"
+   and "+966 5X XXX XX" were cut mid-value, which on a field whose whole job is
+   to be read back is not a layout, it is a defect. One column below md, in the
+   order the file header argues for (the email-or-phone pair stays adjacent). */
+@media (width >= 768px) { /* bp: md */
+  .card:not(.cardBare) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-6);
+    align-items: start;
+  }
 
-.card:not(.cardBare) > .rule,
-.card:not(.cardBare) > :last-child {
-  grid-column: 1 / -1;
+  .card:not(.cardBare) > .rule,
+  .card:not(.cardBare) > :last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 /* `.hint` was here and is DELETED, not left behind — its only two consumers
@@ -362,4 +368,10 @@
      the overflow did not move. `resize` still works, so this is a starting
      height rather than a ceiling. */
   block-size: 78px;
+}
+
+@media (width >= 768px) { /* bp: md */
+  .card {
+    padding: var(--space-6);
+  }
 }

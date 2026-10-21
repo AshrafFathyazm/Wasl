@@ -23,9 +23,9 @@ import { chromium } from 'playwright';
 
 import { startDevServer } from './devServer.mjs';
 import { installMockApi, seedSession } from './mockApi.mjs';
-import { CORE_ROUTES } from './routes.mjs';
+import { ALL_ROUTES } from './routes.mjs';
 
-const WIDTHS = [390, 1280];
+const WIDTHS = [360, 390, 1280];
 const LANGS = ['en', 'ar'];
 
 const server = await startDevServer(5197);
@@ -35,7 +35,7 @@ let checked = 0;
 
 try {
   for (const lang of LANGS) {
-    for (const route of CORE_ROUTES) {
+    for (const route of ALL_ROUTES) {
       for (const width of WIDTHS) {
         const where = `${route.key} @${width} ${lang}`;
         const context = await browser.newContext({

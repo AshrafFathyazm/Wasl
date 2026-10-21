@@ -304,10 +304,57 @@ a {
  * for a phone, not a design token: from md up the primitives' own sizes apply.
  * Checkboxes and radios have no text, so they are excluded.
  * ========================================================================= */
-@media (width < 768px) { /* bp: md */
+@media (width < 768px) {
+  /* bp: md */
   input:not([type='checkbox'], [type='radio'], [type='hidden']),
   textarea,
   select {
     font-size: 16px !important;
+  }
+}
+
+/* ============================================================================
+ * `041` — THE TOUCH FLOOR: 44 x 44 BELOW md
+ * ============================================================================
+ * A thumb is ~44px wide and the product's own controls are 24 to 40. Rather than
+ * touch eighty rules in thirty modules, ONE low-specificity rule sets the floor and
+ * the few controls that must stay small (a remove "x" inside a chip) opt out with
+ * a class of their own — which wins, because `:where()` has no specificity.
+ *
+ * Block size for everything tappable; inline size too for the icon-only ones, which
+ * are the ones that were 28 and 30 wide. A text button is already wider than 44, so
+ * the inline floor costs it nothing.
+ *
+ * Form fields get the block floor only: their width is the column's.
+ * Checkbox and radio inputs are excluded — their label is the target (`Checkbox`
+ * makes the whole row one), and stretching a 16px box to 44 would draw a 44px box.
+ * ========================================================================= */
+@media (width < 768px) {
+  /* bp: md */
+  :where(
+    button,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='radio'],
+    [role='switch'],
+    [role='combobox']
+  ) {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+
+  :where(input:not([type='checkbox'], [type='radio'], [type='hidden']), select) {
+    min-block-size: 44px;
+  }
+
+  /* A link that is a control (a back link, a "Cancel", a crumb) — not a link in a
+     sentence, which stays inline and is exempt. */
+  :where(a[href]):where(:not(p a, li > a:only-child, dd a, td a)) {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
   }
 }
