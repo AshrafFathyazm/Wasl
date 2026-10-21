@@ -73,4 +73,10 @@ export default tseslint.config(
     files: ['*.config.{js,ts}', 'scripts/**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },
   },
+  /* `041` — the Playwright scripts run in Node and hand functions to the page, so
+     they legitimately name both worlds' globals (`process` and `document`). */
+  {
+    files: ['e2e/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
 );

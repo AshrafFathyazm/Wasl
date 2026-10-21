@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 
@@ -6,6 +6,7 @@ import { Button } from '../components/Button/Button';
 import {
   IconAdd,
   IconChevronDown,
+  IconClose,
   IconResolved,
   IconSettings,
   IconSignOut,
@@ -31,16 +32,32 @@ interface SidebarProps {
   drawerOpen: boolean;
   onToggle: () => void;
   onNavigate: () => void;
+  /** The shell's handle on the panel, for the drawer's focus trap. */
+  asideRef?: Ref<HTMLElement> | undefined;
 }
 
-export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps) {
+export function Sidebar({
+  mode,
+  drawerOpen,
+  onToggle,
+  onNavigate,
+  asideRef,
+}: SidebarProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const collapsed = mode === 'collapsed';
+  const isDrawer = mode === 'drawer';
 
   return (
     <aside
+      ref={asideRef}
+      /* A modal dialog for exactly as long as it is open. Closed, it is
+         `visibility: hidden` (see `.drawer`), which removes it from the tab order
+         and the accessibility tree without needing `inert` on the panel. */
+      {...(isDrawer && drawerOpen
+        ? { role: 'dialog', 'aria-modal': true, 'aria-label': t('common:nav.main') }
+        : {})}
       /* NO INLINE `position` HERE, and its removal is the fix for a real defect.
          It read `position: mode === 'drawer' ? undefined : 'relative'` and inline
          styles beat a stylesheet, so the panel could not be made sticky from CSS at
@@ -65,7 +82,12 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
       {/* A LINK HOME since `040` item 24: it was `role="img"`, so the one element
           every product lets you press to start over was inert and unnamed as a
           control. */}
-      <Link to="/" className={styles.lockup} aria-label={t('common:nav.home')} onClick={onNavigate}>
+      <Link
+        to="/"
+        className={styles.lockup}
+        aria-label={t('common:nav.home')}
+        onClick={onNavigate}
+      >
         <span className={styles.mark} aria-hidden="true">
           <Mark size={20} />
         </span>
@@ -83,17 +105,31 @@ export function Sidebar({ mode, drawerOpen, onToggle, onNavigate }: SidebarProps
       {/* On the sidebar's OUTER edge, half-overlapping the border. The chevron
           rotates 180°; under RTL it mirrors, and so does the direction of
           collapse — both from the logical properties, with no second rule. */}
-      <button
-        type="button"
-        className={styles.toggle}
-        onClick={onToggle}
-        aria-label={t(collapsed ? 'common:nav.expand' : 'common:nav.collapse')}
-        aria-expanded={!collapsed}
-      >
-        <span className={styles.toggleIcon}>
-          <IconChevronDown size={14} />
-        </span>
-      </button>
+      {isDrawer ? (
+        /* `041`: in the drawer the circle on the outer edge has no outer edge to sit
+           on — it was clipped against the screen's left side. A plain close button
+           in the lockup row takes its place. */
+        <button
+          type="button"
+          className={styles.drawerClose}
+          onClick={onToggle}
+          aria-label={t('common:nav.closeMenu')}
+        >
+          <IconClose size={18} aria-hidden="true" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          className={styles.toggle}
+          onClick={onToggle}
+          aria-label={t(collapsed ? 'common:nav.expand' : 'common:nav.collapse')}
+          aria-expanded={!collapsed}
+        >
+          <span className={styles.toggleIcon}>
+            <IconChevronDown size={14} />
+          </span>
+        </button>
+      )}
 
       {/* The one create action for the whole section, at the TOP of the sidebar
           rather than in the page header. Collapsed it becomes icon-only, and the
@@ -240,7 +276,12 @@ function NavItem({ item, collapsed, pathname, onNavigate }: NavItemProps) {
       {!collapsed && item.children && open ? (
         <div className={styles.children}>
           {item.children.map((child) => (
-            <ChildLink key={child.key} child={child} pathname={pathname} onNavigate={onNavigate} />
+            <ChildLink
+              key={child.key}
+              child={child}
+              pathname={pathname}
+              onNavigate={onNavigate}
+            />
           ))}
         </div>
       ) : null}

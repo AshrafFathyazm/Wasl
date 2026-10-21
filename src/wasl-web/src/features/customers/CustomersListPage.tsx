@@ -17,6 +17,7 @@ import { formatDate, formatNumber, formatPhone, type Lang } from '../../lib/form
 import { avatarBucket, avatarInitial } from '../../lib/tint';
 
 import { CreateCustomerForm } from './CreateCustomerPage';
+import { CustomerCard } from './CustomerCard';
 import { CustomerQuickView } from './CustomerQuickView';
 import styles from './CustomersList.module.css';
 import { CustomerFilterBar } from './CustomerFilterBar';
@@ -394,6 +395,8 @@ export default function CustomersListPage() {
              the name cell is unchanged, so a keyboard and a screen reader still
              reach the profile directly — this is the mouse path. */
         onRowClick={(row) => setOpenId(row.id)}
+        /* `041`: below md the same rows as cards, one query for both. */
+        renderCard={(row) => <CustomerCard row={row} lang={lang} onOpen={setOpenId} />}
         selectedRowKey={openId}
         empty={
           <div className={styles.pane}>

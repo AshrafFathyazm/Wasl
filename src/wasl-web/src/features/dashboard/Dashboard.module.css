@@ -138,6 +138,11 @@
 /* ── The three rows ──────────────────────────────────────────────────────── */
 
 .body {
+  /* `041`: THE CONTAINER for every grid below. Their breakpoints were a 900px
+     VIEWPORT query; the room a card has is what the sidebar and the page frame left
+     of it, so the decision is made on this box's width. */
+  container-type: inline-size;
+  container-name: dash;
   display: flex;
   flex-direction: column;
   gap: 13px;
@@ -153,7 +158,10 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* TWO ACROSS BY DEFAULT — measured at 390 and 360: the longest tile label in
+     either language fits a ~165px tile without truncating, so one column would be
+     twice the scroll for nothing. Four from a content width of 1000px. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px;
 }
 
@@ -162,7 +170,7 @@
 
   /* 1.6 : 1 — the canvas's ratio. The wide column carries the chart and the
      attention list; the narrow one carries two stacks of bars. */
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 13px;
 }
 
@@ -953,17 +961,48 @@
   background-color: var(--surface-subtle);
 }
 
-/* ── Narrow ──────────────────────────────────────────────────────────────── */
+/* ── Wide, by the width the dashboard was GIVEN (`041`) ─────────────────────── */
 
-/* The four tiles become two by two, and the 1.6:1 split stacks. Below roughly
-   this width the narrow column's 92px label plus a track is no longer a bar
-   chart — it is a label with a smear beside it. */
-@media (max-width: 900px) {
+/* Four tiles from a content width of 1000px (a ~1440px screen with the sidebar
+   open); the 1.6:1 split once the two columns each have room for a bar chart —
+   below it the narrow column's 92px label plus a track "is no longer a bar chart,
+   it is a label with a smear beside it" (the note this replaces). */
+@container dash (width >= 1000px) {
   .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .split {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+@container dash (width >= 760px) {
+  .split {
+    grid-template-columns: 1.6fr 1fr;
+  }
+}
+
+/* A phone: the attention list's row stacks — number, badge and age on the first
+   line, the subject under them at full width and free to wrap. It was one line of
+   five things with the subject cut to eight characters, which is the one thing a
+   reader scans the list for. */
+@container dash (width < 520px) {
+  .row {
+    flex-wrap: wrap;
+    row-gap: var(--space-1);
+    min-block-size: 44px;
+  }
+
+  .rowNumber {
+    flex: 1 1 auto;
+  }
+
+  .rowSubject {
+    order: 3;
+    flex: 1 0 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .rowAge {
+    flex: 0 0 auto;
+  }
+}
+

@@ -12,6 +12,8 @@
     "collapse": "طي القائمة الجانبية",
     "expand": "توسيع القائمة الجانبية",
     "ticketDetail": "التذكرة",
+    "openMenu": "فتح القائمة",
+    "closeMenu": "إغلاق القائمة",
     "home": "وصل — الانتقال إلى لوحة التحكم",
     "userMenu": "قائمة الحساب لـ {{name}}"
   },
@@ -45,6 +47,7 @@
   "loadingLong": "ما زال العمل جارياً — الأمر يستغرق وقتاً أطول من المعتاد.",
   "pager.rowsPerPage": "عدد الصفوف في الصفحة",
   "pager.range": "{{from}}–{{to}} من {{total}}",
+  "pager.pageOf": "صفحة {{page}} من {{total}}",
   "pager.prev": "السابق",
   "pager.next": "التالي",
   "pager.morePages": "صفحات أخرى",

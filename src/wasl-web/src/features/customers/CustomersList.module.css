@@ -112,15 +112,23 @@
 
   /* One unit that does not wrap — the ticket list shipped the opposite and the
      filter button dropped under the search box in English only, because a flex
-     item cannot shrink below an <input>'s min-content width. */
-  flex: 0 0 auto;
+     item cannot shrink below an <input>'s min-content width.
+
+     `041`: it GROWS into the room the row leaves and SHRINKS before the row wraps,
+     capped at what it was. A fixed 320px field plus the button plus the title
+     overflowed a 390px screen and pushed the button off its edge. */
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  max-inline-size: 440px;
+  min-inline-size: 0;
   flex-wrap: nowrap;
 }
 
 .searchField {
   position: relative;
-  flex: 0 0 320px;
-  min-inline-size: 0;
+  flex: 1 1 200px;
+  max-inline-size: 320px;
+  min-inline-size: 160px;
 }
 
 .searchIcon {
@@ -485,16 +493,6 @@
 
 .paneCta:hover {
   background-color: var(--surface-chip);
-}
-
-@media (width <= 700px) {
-  .toolbar {
-    flex-wrap: wrap;
-  }
-
-  .searchField {
-    flex: 1 1 200px;
-  }
 }
 
 /* The sheet badge: the customer's initial, tinted from their NAME so the same

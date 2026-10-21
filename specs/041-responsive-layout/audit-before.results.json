@@ -1,0 +1,3366 @@
+[
+  {
+    "route": "login",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 71,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 5,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "w": 26,
+        "h": 47,
+        "text": ""
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 26,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 256,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 634,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 298,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 298,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 373,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 373,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 43,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 43,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 39,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 85,
+        "h": 32,
+        "text": "New2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 89,
+        "h": 32,
+        "text": "Open2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 123,
+        "h": 32,
+        "text": "In progress2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 159,
+        "h": 32,
+        "text": "Pending customer2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 42,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 85,
+        "h": 32,
+        "text": "New2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 538,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 22,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 160,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 22,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 284,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._backLink_hif7d_249",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      },
+      {
+        "el": "button._statusPill_hif7d_327._statusButton_hif7d_355",
+        "w": 84,
+        "h": 28,
+        "text": "New"
+      },
+      {
+        "el": "button._actionButton_hif7d_3375",
+        "w": 121,
+        "h": 38,
+        "text": "Take action"
+      },
+      {
+        "el": "button._iconButton_hif7d_1167",
+        "w": 28,
+        "h": 28,
+        "text": "Change the assignee"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 88,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._backLink_hif7d_249",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 120,
+        "h": 40,
+        "text": "Email"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:r7:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 309,
+        "h": 40,
+        "text": "Email"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 403,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 403,
+        "h": 40,
+        "text": "WhatsApp"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rh:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rj:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 139,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 139,
+        "h": 40,
+        "text": "WhatsApp"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r9:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rb:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 69,
+        "h": 32,
+        "text": "NameSort by this column"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 73,
+        "h": 32,
+        "text": "AddedSort by this column"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 69,
+        "h": 32,
+        "text": "NameSort by this column"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 73,
+        "h": 32,
+        "text": "AddedSort by this column"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Expand sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 69,
+        "h": 32,
+        "text": "NameSort by this column"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 73,
+        "h": 32,
+        "text": "AddedSort by this column"
+      },
+      {
+        "el": "a._name_1neon_719",
+        "w": 96,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 69,
+        "h": 32,
+        "text": "NameSort by this column"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 73,
+        "h": 32,
+        "text": "AddedSort by this column"
+      },
+      {
+        "el": "a._name_1neon_719",
+        "w": 98,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 36,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 5,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "w": 26,
+        "h": 47,
+        "text": ""
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 26,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_1aqqy_1299",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_mrcm1_423",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_a2rzv_65",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 256,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 634,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 298,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 298,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_1emh0_197",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 373,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_1emh0_1191._barRowLink_1emh0_1225",
+        "w": 373,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 43,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 43,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 39,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 90,
+        "h": 32,
+        "text": "جديدة2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 95,
+        "h": 32,
+        "text": "مفتوحة2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 109,
+        "h": 32,
+        "text": "قيد التنفيذ2"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 123,
+        "h": 32,
+        "text": "بانتظار العميل2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 42,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._tab_fn1r6_79._tabActive_fn1r6_149",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      },
+      {
+        "el": "button._tab_fn1r6_79",
+        "w": 90,
+        "h": 32,
+        "text": "جديدة2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 21,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 22,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 22,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._backLink_hif7d_249",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      },
+      {
+        "el": "button._statusPill_hif7d_327._statusButton_hif7d_355",
+        "w": 90,
+        "h": 28,
+        "text": "جديدة"
+      },
+      {
+        "el": "button._actionButton_hif7d_3375",
+        "w": 105,
+        "h": 38,
+        "text": "اتخاذ إجراء"
+      },
+      {
+        "el": "button._iconButton_hif7d_1167",
+        "w": 28,
+        "h": 28,
+        "text": "تغيير المسؤول"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_1ak5i_875._active_1ak5i_941",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_1ak5i_875",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._backLink_hif7d_249",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 120,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 309,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 403,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 403,
+        "h": 40,
+        "text": "واتساب"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._crumb_14fdu_101",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_1tv73_131",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 139,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_1tv73_463",
+        "w": 139,
+        "h": 40,
+        "text": "واتساب"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_17922_83",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 82,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 63,
+        "h": 32,
+        "text": "الاسمترتيب بهذا العمود"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 71,
+        "h": 32,
+        "text": "الإضافةترتيب بهذا العمود"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 18,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._menuButton_14fdu_53",
+        "w": 32,
+        "h": 32,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 63,
+        "h": 32,
+        "text": "الاسمترتيب بهذا العمود"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 71,
+        "h": 32,
+        "text": "الإضافةترتيب بهذا العمود"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 51,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "توسيع القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 40,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 63,
+        "h": 32,
+        "text": "الاسمترتيب بهذا العمود"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 71,
+        "h": 32,
+        "text": "الإضافةترتيب بهذا العمود"
+      },
+      {
+        "el": "a._name_1neon_719",
+        "w": 96,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_1ak5i_289",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_1ak5i_505",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._button_1ctud_33._primary_1ctud_125",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_1ctud_33._secondaryOutline_1ctud_181",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 63,
+        "h": 32,
+        "text": "الاسمترتيب بهذا العمود"
+      },
+      {
+        "el": "button._sortBtn_sxt7e_553",
+        "w": 71,
+        "h": 32,
+        "text": "الإضافةترتيب بهذا العمود"
+      },
+      {
+        "el": "a._name_1neon_719",
+        "w": 98,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_mrcm1_71._md_mrcm1_31",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  }
+]

@@ -1,0 +1,134 @@
+/* ============================================================================
+ * TicketCard — `041`
+ * ============================================================================
+ * Logical properties only; semantic tokens only. The card is the touch target:
+ * its subject link is stretched over the whole surface, so the hit area is the
+ * card, comfortably above 44px in both directions.
+ * ========================================================================= */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  padding: var(--space-4);
+  background-color: var(--surface-card);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.card:active {
+  background-color: var(--surface-row-hover);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  /* The menu button is 44px tall; this keeps a card with no menu the same height. */
+  min-block-size: 44px;
+  margin-block: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+}
+
+.number {
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+}
+
+.escalated {
+  color: var(--state-danger-text);
+  font-size: var(--text-helper);
+  font-weight: var(--weight-medium);
+}
+
+/* Above the stretched link, so it takes its own press. */
+.menu {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  margin-inline-start: auto;
+}
+
+/* THE STRETCHED LINK. The anchor is the text; its pseudo-element is the card. */
+.subject {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.subject::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  border-radius: inherit;
+}
+
+.subject:focus-visible {
+  outline: none;
+}
+
+.subject:focus-visible::after {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.customer {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.assigneeName {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unassigned {
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+}
+
+.age {
+  flex: none;
+  color: var(--text-muted);
+  font-size: var(--text-helper);
+  font-variant-numeric: tabular-nums;
+}

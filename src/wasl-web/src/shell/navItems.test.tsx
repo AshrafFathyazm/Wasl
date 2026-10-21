@@ -29,7 +29,12 @@ describe('040 item 15 — a ticket’s own page keeps its place in the sidebar',
 
   it('recognises /tickets/:id as a ticket and the fixed sub-routes as not', () => {
     expect(ticketIdFromPath(`/tickets/${ID}`)).toBe(ID);
-    for (const fixed of ['/tickets', '/tickets/mine', '/tickets/unassigned', '/tickets/new']) {
+    for (const fixed of [
+      '/tickets',
+      '/tickets/mine',
+      '/tickets/unassigned',
+      '/tickets/new',
+    ]) {
       expect(ticketIdFromPath(fixed)).toBeNull();
     }
   });
@@ -55,7 +60,9 @@ describe('040 item 15 — a ticket’s own page keeps its place in the sidebar',
     );
 
     expect(screen.getByRole('link', { name: 'All tickets' }).className).toMatch(/active/);
-    expect(screen.getByRole('link', { name: 'My tickets' }).className).not.toMatch(/active/);
+    expect(screen.getByRole('link', { name: 'My tickets' }).className).not.toMatch(
+      /active/,
+    );
   });
 
   it('keeps Customers active on a customer page', () => {

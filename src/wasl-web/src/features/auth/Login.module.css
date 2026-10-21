@@ -32,11 +32,24 @@
  * -------------------------------------------------------------------------- */
 
 .page {
-  min-block-size: 100vh;
+  /* `dvh`, not `vh`: on a phone `100vh` is the tallest the viewport ever gets, so
+     a centred card was pushed below the fold by the browser's own toolbar. */
+  min-block-size: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-12) var(--space-6);
+  /* `041`, THE CONTAINER MOVED HERE. It was on `.screen`, and a container query
+     cannot style the container ITSELF — only its descendants. Every rule below
+     that set the screen's own flex-direction from a container query therefore
+     matched nothing, and the stacked layout the spec promises below 780 had never
+     applied: at 390px the two columns stayed side by side, each 150px wide, the
+     form unreadable. Measured on the first responsive audit. The card is
+     `width: 100%` of this box, so "the card is under 780" and "this box is under
+     780" are the same statement wherever the card is placed. */
+  container-type: inline-size;
+  container-name: login;
+  /* 16 on a phone, the reference's 48 / 24 from md up. */
+  padding: var(--space-4);
   /* Literal, and the only gradient on a light surface in the product. It is the
    * reference's own: a wash that lifts the top of the frame off the page. */
   background: radial-gradient(120% 80% at 50% 0%, #f6f8fa, #e4e9ed);
@@ -48,12 +61,7 @@
   max-inline-size: 980px;
   /* Not `block-size`. See the header note. */
   min-block-size: 540px;
-  /* A CONTAINER, not a media query: 01-login.md specifies the breakpoint on the
-   * component's own width so the screen works wherever it is placed. Now that
-   * the card is narrower than the viewport the two numbers genuinely differ —
-   * the card hits 780px before the window does, which is the point. */
-  container-type: inline-size;
-  container-name: login;
+  /* The breakpoint is a CONTAINER query on `.page` — see the note there. */
   background-color: var(--surface-card);
   border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -62,6 +70,12 @@
   overflow: hidden;
   /* TODO — literal, no shadow token exists. Q-8. */
   box-shadow: 0 30px 70px -30px rgb(13 20 38 / 35%);
+}
+
+@media (width >= 768px) { /* bp: md */
+  .page {
+    padding: var(--space-12) var(--space-6);
+  }
 }
 
 /* ---- The panel ------------------------------------------------------------
@@ -1023,7 +1037,8 @@
 
   .formColumn {
     flex: 1 1 auto;
-    padding: var(--space-8);
+    /* 24 at the sides on a phone; 32 once there is room (the 640 query below). */
+    padding: var(--space-8) var(--space-6);
     /* The seam is horizontal now — the panel is ABOVE the form, so a shadow on
      * the inline edge would point at nothing. Block-start, and it needs no RTL
      * variant because the two halves no longer swap sides. */
@@ -1183,5 +1198,14 @@
   .lang {
     inset-block-start: 14px;
     inset-inline-end: 16px;
+  }
+}
+
+/* `041` — a phone. The form column's side padding was 32 on a card that is itself
+   only ~360 wide, which left a 296px form; at 640 and under it takes 24, and the
+   band above is shorter so the fields are on screen without scrolling. */
+@container login (min-width: 640px) and (max-width: 780px) {
+  .formColumn {
+    padding: var(--space-8);
   }
 }

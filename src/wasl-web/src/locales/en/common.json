@@ -12,6 +12,8 @@
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "ticketDetail": "Ticket",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
     "home": "Wasl — go to the dashboard",
     "userMenu": "Account menu for {{name}}"
   },
@@ -45,6 +47,7 @@
   "loadingLong": "Still working — this is taking longer than usual.",
   "pager.rowsPerPage": "Rows per page",
   "pager.range": "{{from}}–{{to}} of {{total}}",
+  "pager.pageOf": "Page {{page}} of {{total}}",
   "pager.prev": "Previous",
   "pager.next": "Next",
   "pager.morePages": "More pages",

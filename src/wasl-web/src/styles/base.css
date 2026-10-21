@@ -289,3 +289,25 @@ a {
 [dir='rtl'] [data-flip] {
   transform: scaleX(-1);
 }
+
+/* ============================================================================
+ * `041` — FORM FIELDS ARE 16px ON A PHONE
+ * ============================================================================
+ * iOS Safari zooms the whole page into any field whose text is under 16px the
+ * moment it takes focus, and does not zoom back out. The product's fields are
+ * 14px (`--text-ui`), so every tap on a field on an iPhone was a zoom the reader
+ * had to undo by hand.
+ *
+ * ONE RULE HERE, NOT A DECLARATION IN EACH PRIMITIVE, and `!important` because the
+ * primitives set their own size with class selectors that outrank any element
+ * rule — the same reason `Button.module.css` marks its background. It is a FLOOR
+ * for a phone, not a design token: from md up the primitives' own sizes apply.
+ * Checkboxes and radios have no text, so they are excluded.
+ * ========================================================================= */
+@media (width < 768px) { /* bp: md */
+  input:not([type='checkbox'], [type='radio'], [type='hidden']),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}

@@ -25,6 +25,7 @@ import { formatRelativeAge } from '../../lib/relativeTime';
 import { AutoText } from '../../components/AutoText/AutoText';
 import { CloseTicketModal } from './CloseTicketModal';
 import { RowAssignMenu } from './RowAssignMenu';
+import { TicketCard } from './TicketCard';
 import { TicketFilterBar } from './TicketFilterBar';
 import {
   NO_FILTERS,
@@ -621,6 +622,8 @@ export default function TicketListPage({ queue }: { queue?: QueueScope | undefin
         columns={columns}
         rows={items}
         rowKey={(row) => row.id}
+        /* `041`: below md the same rows, as cards. One query feeds both. */
+        renderCard={(row, menu) => <TicketCard row={row} menu={menu} lang={lang} />}
         /* 62px rows. `03-tickets-list.md` and `06-customers-list.md` both
              specify 61 — the SAME number — and the 70px default was measured
              for this screen alone, before there was a second table for it to

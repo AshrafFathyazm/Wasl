@@ -48,8 +48,11 @@ describe('AC-4 — the two-column grid is declared in CSS, and nothing overrides
   const css = stripComments(read('CreateTicket.module.css'));
   const page = stripComments(read('CreateTicketPage.tsx'));
 
-  it('declares the 316px rail inside a 1100px media query, in the stylesheet', () => {
-    expect(css).toMatch(/@media\s*\(width\s*>=\s*1100px\)/);
+  it('declares the 316px rail inside an 880px CONTAINER query, in the stylesheet', () => {
+    /* `041`: it was a 1100px viewport media query — a viewport width says nothing
+       about what the sidebar left for the form. */
+    expect(css).toMatch(/@container\s+ticketform\s*\(width\s*>=\s*880px\)/);
+    expect(css).not.toMatch(/@media\s*\(width\s*>=\s*1100px\)/);
     expect(css).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+316px/);
   });
 

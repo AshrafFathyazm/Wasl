@@ -1,0 +1,3270 @@
+[
+  {
+    "route": "login",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 308,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r7:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r7:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "Switch language to العرب"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "Show password"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "Sign in"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._cardLink_otl93_196",
+        "w": 74,
+        "h": 17,
+        "text": "View all 15"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._cardLink_otl93_196",
+        "w": 74,
+        "h": 17,
+        "text": "View all 15"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 213,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 213,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 41,
+        "h": 32,
+        "text": "7d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 49,
+        "h": 32,
+        "text": "14d"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 48,
+        "h": 32,
+        "text": "30d"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 373,
+        "h": 25,
+        "text": "Show tickets with status"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 373,
+        "h": 25,
+        "text": "Show tickets with status"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 19,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      },
+      {
+        "el": "a._subject_3ze2f_56",
+        "w": 298,
+        "h": 24,
+        "text": "Short one"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "Ticket actions"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 35,
+    "smallTargetSample": [
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 85,
+        "h": 32,
+        "text": "New2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 89,
+        "h": 32,
+        "text": "Open2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 123,
+        "h": 32,
+        "text": "In progress2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 159,
+        "h": 32,
+        "text": "Pending customer2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 110,
+        "h": 32,
+        "text": "Resolved2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 98,
+        "h": 32,
+        "text": "Closed2"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 41,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 85,
+        "h": 32,
+        "text": "New2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 42,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 68,
+        "h": 32,
+        "text": "All12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 85,
+        "h": 32,
+        "text": "New2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 7,
+    "smallTargetSample": [
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      },
+      {
+        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "w": 84,
+        "h": 28,
+        "text": "New"
+      },
+      {
+        "el": "button._actionButton_ddizn_1867",
+        "w": 121,
+        "h": 38,
+        "text": "Take action"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "Remove Refund"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "Remove Double charge"
+      },
+      {
+        "el": "button._composeTool_ddizn_1004",
+        "w": 139,
+        "h": 32,
+        "text": "Insert a template"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 84,
+        "h": 40,
+        "text": "Add note"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 13,
+    "smallTargetSample": [
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      },
+      {
+        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "w": 84,
+        "h": 28,
+        "text": "New"
+      },
+      {
+        "el": "button._actionButton_ddizn_1867",
+        "w": 121,
+        "h": 38,
+        "text": "Take action"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "Remove Refund"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "Remove Double charge"
+      },
+      {
+        "el": "button._modeButton_ddizn_948",
+        "w": 126,
+        "h": 30,
+        "text": "Reply to customer"
+      },
+      {
+        "el": "button._modeButton_ddizn_948._modeButtonOn_ddizn_960",
+        "w": 99,
+        "h": 30,
+        "text": "Internal note"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 19,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "All tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "My tickets"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "Unassigned"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 108,
+        "h": 20,
+        "text": "Back to the list"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 13,
+    "smallTargetSample": [
+      {
+        "el": "a._back_58x7x_66",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "WhatsApp"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "Live chat"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "SMS"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 324,
+        "h": 40,
+        "text": "Web form"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "Low"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 14,
+    "smallTargetSample": [
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "WhatsApp"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "Live chat"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "SMS"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 686,
+        "h": 40,
+        "text": "Web form"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rh:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rj:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 293,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 293,
+        "h": 40,
+        "text": "WhatsApp"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:rd:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:rf:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 45,
+        "h": 21,
+        "text": "Tickets"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 139,
+        "h": 40,
+        "text": "Email"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 139,
+        "h": 40,
+        "text": "WhatsApp"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:r7:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 390,
+    "lang": "en",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 8,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "سارة المطيري"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "Noura"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "محمد عبدالله بن سعود الد"
+      },
+      {
+        "el": "div#:r5:._trigger_1bszu_46._sm_1bszu_69",
+        "w": 67,
+        "h": 39,
+        "text": "20"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 768,
+    "lang": "en",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 12,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Abdulrahman Mohammed Al-"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "سارة المطيري"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Noura"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "محمد عبدالله بن سعود الد"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1024,
+    "lang": "en",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 15,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "Abdulrahman Mohammed Al-"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1440,
+    "lang": "en",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "Wasl — go to the dashboa"
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "Collapse sidebar"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "New ticket"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 139,
+        "h": 40,
+        "text": "New customer"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "Filter"
+      },
+      {
+        "el": "button._sortBtn_x5dwj_288",
+        "w": 69,
+        "h": 32,
+        "text": "NameSort by this column"
+      },
+      {
+        "el": "button._sortBtn_x5dwj_288",
+        "w": 73,
+        "h": 32,
+        "text": "AddedSort by this column"
+      },
+      {
+        "el": "a._name_v0vi2_368",
+        "w": 98,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r7:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "ltr",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 308,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "login",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 4,
+    "smallTargetSample": [
+      {
+        "el": "button._lang_rtwi8_664",
+        "w": 61,
+        "h": 32,
+        "text": "تغيير اللغة إلى English"
+      },
+      {
+        "el": "button._reveal_jxvqb_212",
+        "w": 28,
+        "h": 28,
+        "text": "إظهار كلمة المرور"
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "w": 23,
+        "h": 23,
+        "text": ""
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 340,
+        "h": 40,
+        "text": "تسجيل الدخول"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_edo2e_33",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة قيد "
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 336,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة بانت"
+      },
+      {
+        "el": "a._cardLink_otl93_196",
+        "w": 89,
+        "h": 20,
+        "text": "عرض الـ15 تذكرة"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة قيد "
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 698,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة بانت"
+      },
+      {
+        "el": "a._cardLink_otl93_196",
+        "w": 89,
+        "h": 20,
+        "text": "عرض الـ15 تذكرة"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 213,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 213,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 20,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 53,
+        "h": 32,
+        "text": "7 أيام"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 62,
+        "h": 32,
+        "text": "14 يومًا"
+      },
+      {
+        "el": "button._rangeButton_otl93_99",
+        "w": 61,
+        "h": 32,
+        "text": "30 يومًا"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 373,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة جديد"
+      },
+      {
+        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "w": 373,
+        "h": 28,
+        "text": "إظهار التذاكر بحالة مفتو"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 19,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      },
+      {
+        "el": "a._subject_3ze2f_56",
+        "w": 298,
+        "h": 24,
+        "text": "Short one"
+      },
+      {
+        "el": "button._flyoutTrigger_x5dwj_422",
+        "w": 30,
+        "h": 30,
+        "text": "إجراءات التذكرة"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 35,
+    "smallTargetSample": [
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 90,
+        "h": 32,
+        "text": "جديدة2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 95,
+        "h": 32,
+        "text": "مفتوحة2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 109,
+        "h": 32,
+        "text": "قيد التنفيذ2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 123,
+        "h": 32,
+        "text": "بانتظار العميل2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 93,
+        "h": 32,
+        "text": "محلولة2"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 87,
+        "h": 32,
+        "text": "مغلقة2"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 41,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 90,
+        "h": 32,
+        "text": "جديدة2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "tickets",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 42,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "w": 73,
+        "h": 32,
+        "text": "الكل12"
+      },
+      {
+        "el": "button._tab_oxlyd_40",
+        "w": 90,
+        "h": 32,
+        "text": "جديدة2"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 7,
+    "smallTargetSample": [
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      },
+      {
+        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "w": 90,
+        "h": 28,
+        "text": "جديدة"
+      },
+      {
+        "el": "button._actionButton_ddizn_1867",
+        "w": 105,
+        "h": 38,
+        "text": "اتخاذ إجراء"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "إزالة Refund"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "إزالة Double charge"
+      },
+      {
+        "el": "button._composeTool_ddizn_1004",
+        "w": 91,
+        "h": 32,
+        "text": "إدراج قالب"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 111,
+        "h": 40,
+        "text": "إضافة الملاحظة"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 13,
+    "smallTargetSample": [
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      },
+      {
+        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "w": 90,
+        "h": 28,
+        "text": "جديدة"
+      },
+      {
+        "el": "button._actionButton_ddizn_1867",
+        "w": 105,
+        "h": 38,
+        "text": "اتخاذ إجراء"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "إزالة Refund"
+      },
+      {
+        "el": "button._tagRemove_ddizn_827",
+        "w": 11,
+        "h": 11,
+        "text": "إزالة Double charge"
+      },
+      {
+        "el": "button._modeButton_ddizn_948",
+        "w": 96,
+        "h": 30,
+        "text": "الرد على العميل"
+      },
+      {
+        "el": "button._modeButton_ddizn_948._modeButtonOn_ddizn_960",
+        "w": 95,
+        "h": 30,
+        "text": "ملاحظة داخلية"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 19,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-detail",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 21,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._child_102d8_486._active_102d8_519",
+        "w": 239,
+        "h": 40,
+        "text": "كل التذاكر"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكري"
+      },
+      {
+        "el": "a._child_102d8_486",
+        "w": 239,
+        "h": 40,
+        "text": "تذاكر غير مسندة"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._backLink_ddizn_133",
+        "w": 102,
+        "h": 23,
+        "text": "العودة إلى القائمة"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "textarea#:r1:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 13,
+    "smallTargetSample": [
+      {
+        "el": "a._back_58x7x_66",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "واتساب"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "محادثة مباشرة"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "رسالة نصية"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 324,
+        "h": 40,
+        "text": "نموذج ويب"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 160,
+        "h": 40,
+        "text": "منخفضة"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 14,
+    "smallTargetSample": [
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "واتساب"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "محادثة مباشرة"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 341,
+        "h": 40,
+        "text": "رسالة نصية"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 686,
+        "h": 40,
+        "text": "نموذج ويب"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:r7:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 293,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 293,
+        "h": 40,
+        "text": "واتساب"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:r7:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "ticket-new",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "a._crumb_641m4_71",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "a._back_58x7x_66",
+        "w": 32,
+        "h": 25,
+        "text": "التذاكر"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 139,
+        "h": 40,
+        "text": "بريد إلكتروني"
+      },
+      {
+        "el": "button._option_58x7x_234",
+        "w": 139,
+        "h": 40,
+        "text": "واتساب"
+      }
+    ],
+    "smallFont": 3,
+    "smallFontSample": [
+      {
+        "el": "input#nt-customer-search._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "textarea#:r7:._control_21y4g_42",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 390,
+    "lang": "ar",
+    "innerWidth": 390,
+    "scrollWidth": 390,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 8,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "سارة المطيري"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "Noura"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 298,
+        "h": 24,
+        "text": "محمد عبدالله بن سعود الد"
+      },
+      {
+        "el": "div#:r5:._trigger_1bszu_46._sm_1bszu_69",
+        "w": 67,
+        "h": 39,
+        "text": "20"
+      }
+    ],
+    "smallFont": 0,
+    "smallFontSample": [],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 768,
+    "lang": "ar",
+    "innerWidth": 768,
+    "scrollWidth": 768,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 12,
+    "smallTargetSample": [
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Abdulrahman Mohammed Al-"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "سارة المطيري"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "Noura"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 660,
+        "h": 24,
+        "text": "محمد عبدالله بن سعود الد"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1024,
+    "lang": "ar",
+    "innerWidth": 1024,
+    "scrollWidth": 1024,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 15,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "Faisal Al-Otaibi"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "علي الأحمد"
+      },
+      {
+        "el": "a._name_1rdhy_20",
+        "w": 564,
+        "h": 24,
+        "text": "Abdulrahman Mohammed Al-"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  },
+  {
+    "route": "customers",
+    "width": 1440,
+    "lang": "ar",
+    "innerWidth": 1440,
+    "scrollWidth": 1440,
+    "pageOverflow": false,
+    "mainOverflow": 0,
+    "overflowing": [],
+    "overflowCount": 0,
+    "smallTargets": 17,
+    "smallTargetSample": [
+      {
+        "el": "a._lockup_102d8_193",
+        "w": 239,
+        "h": 33,
+        "text": "وصل — الانتقال إلى لوحة "
+      },
+      {
+        "el": "button._toggle_102d8_301",
+        "w": 26,
+        "h": 26,
+        "text": "طي القائمة الجانبية"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 239,
+        "h": 40,
+        "text": "تذكرة جديدة"
+      },
+      {
+        "el": "button._button_r5gc0_17._primary_r5gc0_63",
+        "w": 107,
+        "h": 40,
+        "text": "عميل جديد"
+      },
+      {
+        "el": "button._button_r5gc0_17._secondaryOutline_r5gc0_91",
+        "w": 80,
+        "h": 40,
+        "text": "تصفية"
+      },
+      {
+        "el": "button._sortBtn_x5dwj_288",
+        "w": 63,
+        "h": 32,
+        "text": "الاسمترتيب بهذا العمود"
+      },
+      {
+        "el": "button._sortBtn_x5dwj_288",
+        "w": 71,
+        "h": 32,
+        "text": "الإضافةترتيب بهذا العمود"
+      },
+      {
+        "el": "a._name_v0vi2_368",
+        "w": 98,
+        "h": 21,
+        "text": "Faisal Al-Otaibi"
+      }
+    ],
+    "smallFont": 1,
+    "smallFontSample": [
+      {
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      }
+    ],
+    "dir": "rtl",
+    "unhandled": [],
+    "errors": []
+  }
+]

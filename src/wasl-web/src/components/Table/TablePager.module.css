@@ -74,8 +74,8 @@
 .pageArrow {
   display: grid;
   place-items: center;
-  min-inline-size: 34px;
-  block-size: 34px;
+  min-inline-size: 44px;
+  block-size: 44px;
   padding-inline: var(--space-1);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -176,8 +176,27 @@
    stands alone at the end. */
 .footStart {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
+}
+
+/* `041` — "Page X of Y" between the two arrows on a phone. */
+.pageOf {
+  min-inline-size: 7ch;
+  color: var(--text-secondary);
+  font-size: var(--type-body-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Touch targets: 44 on a phone, the frame's 34 from md up. */
+@media (width >= 768px) { /* bp: md */
+  .pageBtn,
+  .pageArrow {
+    min-inline-size: 34px;
+    block-size: 34px;
+  }
 }
 
 /* A disabled arrow sits in a quiet grey square — the frame draws the OFF state

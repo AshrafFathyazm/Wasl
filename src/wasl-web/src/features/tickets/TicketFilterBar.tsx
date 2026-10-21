@@ -203,6 +203,23 @@ export function TicketFilterBar({
 
   const allSelected = filters.status.length === 0;
 
+  /* `041`. On a phone the seven chips are wider than the screen and the strip
+     scrolls sideways, so the chosen one can be off-screen — after a reload with
+     `?status=Closed`, or after the arrow keys. It is brought to the middle of the
+     strip, `block: 'nearest'` so the PAGE never moves, and instantly under
+     reduced motion. */
+  const tablistRef = useRef<HTMLDivElement>(null);
+  const activeTabKey = allSelected ? 'all' : (filters.status[0] ?? 'all');
+  useEffect(() => {
+    const active = tablistRef.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    active?.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+  }, [activeTabKey]);
+
   const setStatus = (status: string | null) =>
     onChange({ ...filters, status: status === null ? [] : [status] });
 
@@ -308,7 +325,12 @@ export function TicketFilterBar({
           own: the strip and what is applied to it are one thought.
           ====================================================================== */}
       <div className={styles.tabsRow}>
-        <div className={styles.tabs} role="tablist" aria-label={t('list.tableLabel')}>
+        <div
+          ref={tablistRef}
+          className={styles.tabs}
+          role="tablist"
+          aria-label={t('list.tableLabel')}
+        >
           <button
             type="button"
             role="tab"

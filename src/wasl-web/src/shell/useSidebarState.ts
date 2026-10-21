@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useBreakpoint } from '../lib/useMediaQuery';
+
 /* ============================================================================
- * useSidebarState — three states, not two
+ * useSidebarState — three states, and two of them are the wide screen's
  * ============================================================================
  *
- * Treating the sidebar as a binary is the usual mistake, and it is why nested
- * items become unreachable on a narrow window: there is no room to show them
- * inline and nothing takes over.
+ *   expanded   288px   at lg (1024) and up — the default
+ *   collapsed   68px   at lg and up, ONLY because the user toggled it
+ *   drawer    overlay  below lg — the sidebar leaves the flow entirely
  *
- *   expanded   288px   default above 1100px
- *   collapsed   68px   user toggled, OR automatically below 1100px
- *   drawer    overlay  below 780px — the sidebar leaves the flow entirely
+ * `041` REMOVED THE THIRD WIDTH. There used to be an automatic 68px rail between
+ * 780 and 1100: it saved nothing a phone-sized drawer does not save better, and a
+ * 68px rail beside a 700px content area is a layout nobody chose. A tablet in
+ * portrait is now a phone with more room — it gets the drawer — and the reader's
+ * own collapse choice still persists, applying at lg and up (product owner,
+ * 2026-10-15, Q-1).
  *
  * PERSISTENCE IS PER USER, NOT PER SESSION. Someone who collapses it means it.
  * The value is restored BEFORE FIRST PAINT by the inline script in index.html —
  * doing it here alone would render the sidebar wide and snap it narrow on every
  * load, which everyone sees and nobody files.
  *
- * TODO — 1100 and 780 are literals. tokens.css has no breakpoint token (note 11)
- * and DESIGN-BRIEF rule 3 forbids inventing one, so the debt is visible. Spec Q-8.
+ * THE BREAKPOINT IS `BREAKPOINTS.lg` AND NOT A LITERAL HERE. This file carried
+ * `1100` and `780` with a TODO saying so; the TODO is discharged.
  * ============================================================================ */
 
 export type SidebarMode = 'expanded' | 'collapsed' | 'drawer';
-
-const COLLAPSE_BELOW = 1100;
-const DRAWER_BELOW = 780;
 
 const STORAGE_KEY = 'wasl.sidebar';
 
@@ -45,13 +47,6 @@ function store(collapsed: boolean): void {
   }
 }
 
-function readViewport(): 'wide' | 'narrow' | 'compact' {
-  if (typeof window === 'undefined') return 'wide';
-  if (window.innerWidth < DRAWER_BELOW) return 'compact';
-  if (window.innerWidth < COLLAPSE_BELOW) return 'narrow';
-  return 'wide';
-}
-
 export interface SidebarState {
   mode: SidebarMode;
   /** Drawer only. Ignored in the other two modes. */
@@ -61,31 +56,21 @@ export interface SidebarState {
 }
 
 export function useSidebarState(): SidebarState {
+  const wide = useBreakpoint('lg');
   const [userCollapsed, setUserCollapsed] = useState(readStoredCollapsed);
-  const [viewport, setViewport] = useState(readViewport);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    const onResize = () => setViewport(readViewport());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   /* Leaving the drawer breakpoint must close it, or the overlay survives into a
    * layout that has no way to dismiss it. */
   useEffect(() => {
-    if (viewport !== 'compact') setDrawerOpen(false);
-  }, [viewport]);
+    if (wide) setDrawerOpen(false);
+  }, [wide]);
 
-  let mode: SidebarMode = 'expanded';
-  if (viewport === 'compact') {
-    mode = 'drawer';
-  } else if (viewport === 'narrow' || userCollapsed) {
-    mode = 'collapsed';
-  }
+  let mode: SidebarMode = 'drawer';
+  if (wide) mode = userCollapsed ? 'collapsed' : 'expanded';
 
   const toggle = useCallback(() => {
-    if (readViewport() === 'compact') {
+    if (!wide) {
       setDrawerOpen((open) => !open);
       return;
     }
@@ -96,7 +81,7 @@ export function useSidebarState(): SidebarState {
       document.documentElement.dataset['sidebar'] = next ? 'collapsed' : 'expanded';
       return next;
     });
-  }, []);
+  }, [wide]);
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 

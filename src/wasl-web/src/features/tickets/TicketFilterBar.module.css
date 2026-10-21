@@ -58,7 +58,8 @@
   gap: var(--space-2);
   /* 32 inside a padded track, not 40 filling a bordered one — the carve needs
      ground around the pill. */
-  block-size: 32px;
+  /* 44 on a phone — a tab is a touch target (`041`). 32 from md up, the frame's. */
+  block-size: 44px;
   padding-inline: 14px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -206,13 +207,8 @@
   min-inline-size: 160px;
 }
 
-/* The narrow shell is the one case where it may give way: 320 + 12 + 80 does not
-   fit a phone, and the pair wrapping as a unit is better than a clipped field. */
-@media (width <= 700px) {
-  .searchField {
-    flex: 1 1 200px;
-  }
-}
+/* (The 700px query that stood here is retired by `041`: the field itself now shrinks,
+   see `.searchField` above, so there is no width at which the pair needs to wrap.) */
 
 /* The icon sits inside the field, and the field's own padding is what makes
    room for it. `Input` has no icon prop — checked, not assumed — so this is the
@@ -593,4 +589,11 @@
   border-color: var(--border-subtle);
   outline: none;
   box-shadow: none;
+}
+
+/* `041` — the frame's 32px tab from md up; the phone's 44 is set on `.tab`. */
+@media (width >= 768px) { /* bp: md */
+  .tab {
+    block-size: 32px;
+  }
 }
