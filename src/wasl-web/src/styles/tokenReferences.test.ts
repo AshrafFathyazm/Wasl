@@ -146,9 +146,9 @@ describe('every var(--token) reference resolves to a defined token', () => {
 
       expect(
         undefinedTokens,
-        `var() resolves to NOTHING for an unknown token — the declaration is `
-          + `silently dropped and the element renders without it. Check the name `
-          + `against styles/tokens.css.`,
+        `var() resolves to NOTHING for an unknown token — the declaration is ` +
+          `silently dropped and the element renders without it. Check the name ` +
+          `against styles/tokens.css.`,
       ).toEqual([]);
     },
   );
@@ -187,8 +187,9 @@ describe('every var(--token) reference resolves to a defined token', () => {
       .thing { color: var(--state-danger-text); }
     `;
 
-    const found = [...new Set(matches(stripComments(planted), REFERENCE))]
-      .filter((token) => !defined.has(token));
+    const found = [...new Set(matches(stripComments(planted), REFERENCE))].filter(
+      (token) => !defined.has(token),
+    );
 
     expect(found).toEqual([]);
   });

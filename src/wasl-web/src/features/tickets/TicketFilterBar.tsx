@@ -132,6 +132,18 @@ export function TicketFilterBar({
   const [panelOpen, setPanelOpen] = useState(false);
   const panelId = useId();
 
+  /* Escape closes the panel (`041`). It had no keyboard exit at all — the toggle was
+     the only way out — which a bottom sheet cannot be: a sheet that covers half the
+     screen and ignores Esc is a trap. Applies at every width. */
+  useEffect(() => {
+    if (!panelOpen) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPanelOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [panelOpen]);
+
   const [draft, setDraft] = useDebounced(filters.search, 300, (search) =>
     onChange({ ...filters, search }),
   );
@@ -202,6 +214,29 @@ export function TicketFilterBar({
     filters.status.length === 1 && filters.status[0] === status;
 
   const allSelected = filters.status.length === 0;
+
+  /* `041`. On a phone the seven chips are wider than the screen and the strip
+     scrolls sideways, so the chosen one can be off-screen — after a reload with
+     `?status=Closed`, or after the arrow keys. It is brought to the middle of the
+     strip, `block: 'nearest'` so the PAGE never moves, and instantly under
+     reduced motion. */
+  const tablistRef = useRef<HTMLDivElement>(null);
+  const activeTabKey = allSelected ? 'all' : (filters.status[0] ?? 'all');
+  const countsKey = `${totalCount ?? ''}|${JSON.stringify(statusCounts ?? {})}`;
+  useEffect(() => {
+    const active = tablistRef.current?.querySelector<HTMLElement>(
+      '[aria-selected="true"]',
+    );
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    active?.scrollIntoView({
+      inline: 'center',
+      block: 'nearest',
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+    /* The counts arrive after the first paint and WIDEN the chips ("All" gains a
+       "12"), which moves everything after them: scrolling once on mount lands the
+       chosen tab off-screen by exactly that growth. So it is re-run when they land. */
+  }, [activeTabKey, countsKey]);
 
   const setStatus = (status: string | null) =>
     onChange({ ...filters, status: status === null ? [] : [status] });
@@ -308,7 +343,12 @@ export function TicketFilterBar({
           own: the strip and what is applied to it are one thought.
           ====================================================================== */}
       <div className={styles.tabsRow}>
-        <div className={styles.tabs} role="tablist" aria-label={t('list.tableLabel')}>
+        <div
+          ref={tablistRef}
+          className={styles.tabs}
+          role="tablist"
+          aria-label={t('list.tableLabel')}
+        >
           <button
             type="button"
             role="tab"
@@ -420,102 +460,127 @@ export function TicketFilterBar({
               recorded here rather than resolved silently.
               ================================================================== */}
           {panelOpen ? (
-            <div className={styles.panel} id={panelId}>
-              <fieldset className={styles.facet}>
-                <legend className={styles.facetLabel}>{t('list.column.priority')}</legend>
-                <div className={styles.facetChips}>
-                  {TICKET_PRIORITIES.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={cx(
-                        styles.facetChip,
-                        panelDraft.priority.includes(value) && styles.facetChipOn,
-                      )}
-                      /* A toggle, and it says so — a chip that only LOOKS
+            <>
+              {/* `041`: below md the panel is a BOTTOM SHEET — this is its backdrop. Hidden
+                  from md up, where the panel is the popover it always was. */}
+              <button
+                type="button"
+                className={styles.panelScrim}
+                aria-hidden="true"
+                tabIndex={-1}
+                onClick={() => setPanelOpen(false)}
+              />
+              <div className={styles.panel} id={panelId}>
+                <div className={styles.panelHead}>
+                  <span className={styles.panelTitle}>{t('list.filter')}</span>
+                  <button
+                    type="button"
+                    className={styles.panelClose}
+                    aria-label={tc('dismiss')}
+                    onClick={() => setPanelOpen(false)}
+                  >
+                    <IconClose size={18} aria-hidden="true" />
+                  </button>
+                </div>
+                <fieldset className={styles.facet}>
+                  <legend className={styles.facetLabel}>
+                    {t('list.column.priority')}
+                  </legend>
+                  <div className={styles.facetChips}>
+                    {TICKET_PRIORITIES.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={cx(
+                          styles.facetChip,
+                          panelDraft.priority.includes(value) && styles.facetChipOn,
+                        )}
+                        /* A toggle, and it says so — a chip that only LOOKS
                          pressed is silent to anyone not looking at it. */
-                      aria-pressed={panelDraft.priority.includes(value)}
-                      onClick={() => toggleDraft('priority', value)}
-                    >
-                      {t(`priority.${value}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+                        aria-pressed={panelDraft.priority.includes(value)}
+                        onClick={() => toggleDraft('priority', value)}
+                      >
+                        {t(`priority.${value}`)}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
 
-              <fieldset className={styles.facet}>
-                <legend className={styles.facetLabel}>{t('list.column.channel')}</legend>
-                <div className={styles.facetChips}>
-                  {COMMUNICATION_CHANNELS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={cx(
-                        styles.facetChip,
-                        panelDraft.channel.includes(value) && styles.facetChipOn,
-                      )}
-                      aria-pressed={panelDraft.channel.includes(value)}
-                      onClick={() => toggleDraft('channel', value)}
-                    >
-                      {t(`channel.${value}`)}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+                <fieldset className={styles.facet}>
+                  <legend className={styles.facetLabel}>
+                    {t('list.column.channel')}
+                  </legend>
+                  <div className={styles.facetChips}>
+                    {COMMUNICATION_CHANNELS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={cx(
+                          styles.facetChip,
+                          panelDraft.channel.includes(value) && styles.facetChipOn,
+                        )}
+                        aria-pressed={panelDraft.channel.includes(value)}
+                        onClick={() => toggleDraft('channel', value)}
+                      >
+                        {t(`channel.${value}`)}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
 
-              {/* LIVE AS OF 2026-08-31. These stood here drawn-and-disabled —
+                {/* LIVE AS OF 2026-08-31. These stood here drawn-and-disabled —
                   the escalate precedent — because the endpoint bound no dates.
                   The product owner said "شغل فلتر البحث بالتاريخ", so the
                   endpoint grew \`createdFrom\`/\`createdTo\` (GetTicketsQuery
                   documents the UTC-day reading; three integration tests pin the
                   inclusive bounds) and the calendar the 026 preview proved was
                   promoted to TicketDateField. */}
-              <div className={styles.dates}>
-                <DateField
-                  label={t('list.createdFrom')}
-                  value={panelDraft.createdFrom}
-                  onChange={(createdFrom) =>
-                    setPanelDraft((current) => ({ ...current, createdFrom }))
-                  }
-                  lang={lang}
-                />
-                <DateField
-                  label={t('list.createdTo')}
-                  value={panelDraft.createdTo}
-                  onChange={(createdTo) =>
-                    setPanelDraft((current) => ({ ...current, createdTo }))
-                  }
-                  lang={lang}
-                />
-              </div>
+                <div className={styles.dates}>
+                  <DateField
+                    label={t('list.createdFrom')}
+                    value={panelDraft.createdFrom}
+                    onChange={(createdFrom) =>
+                      setPanelDraft((current) => ({ ...current, createdFrom }))
+                    }
+                    lang={lang}
+                  />
+                  <DateField
+                    label={t('list.createdTo')}
+                    value={panelDraft.createdTo}
+                    onChange={(createdTo) =>
+                      setPanelDraft((current) => ({ ...current, createdTo }))
+                    }
+                    lang={lang}
+                  />
+                </div>
 
-              {draftRangeInverted ? (
-                <p className={styles.facetNote} role="alert">
-                  {t('list.rangeInverted')}
-                </p>
-              ) : null}
+                {draftRangeInverted ? (
+                  <p className={styles.facetNote} role="alert">
+                    {t('list.rangeInverted')}
+                  </p>
+                ) : null}
 
-              <div className={styles.panelFooter}>
-                <button
-                  type="button"
-                  className={styles.clearAll}
-                  onClick={() => {
-                    /* CLEARS AND APPLIES IN ONE PRESS — a clear that still
+                <div className={styles.panelFooter}>
+                  <button
+                    type="button"
+                    className={styles.clearAll}
+                    onClick={() => {
+                      /* CLEARS AND APPLIES IN ONE PRESS — a clear that still
                        needs تطبيق is a clear that looks broken. The SEARCH
                        survives: it is a question the reader typed, not a facet
                        they ticked, and the box has its own ×. */
-                    setPanelDraft({
-                      priority: [],
-                      channel: [],
-                      createdFrom: '',
-                      createdTo: '',
-                    });
-                    onChange({
-                      status: [],
-                      priority: [],
-                      category: [],
-                      channel: [],
-                      /* THE QUEUE SURVIVES مسح الكل — it is the page, not a
+                      setPanelDraft({
+                        priority: [],
+                        channel: [],
+                        createdFrom: '',
+                        createdTo: '',
+                      });
+                      onChange({
+                        status: [],
+                        priority: [],
+                        category: [],
+                        channel: [],
+                        /* THE QUEUE SURVIVES مسح الكل — it is the page, not a
                          facet. Clearing it would leave the nav highlighting
                          "My tickets" over the whole team's.
                          BELT AND BRACES, AND MEASURED AS SUCH: control C4 sets
@@ -525,34 +590,35 @@ export function TicketFilterBar({
                          the component's own half of the contract — a caller that
                          locks the assignee without that strip needs it — so it
                          stays, with no claim that a green suite proves it. */
-                      assignee: lockedAssignee ? filters.assignee : '',
-                      escalated: undefined,
-                      search: filters.search,
-                      /* Dates are facets and مسح الكل clears facets. */
-                      createdFrom: '',
-                      createdTo: '',
-                    });
-                  }}
-                >
-                  {t('list.clearAll')}
-                </button>
+                        assignee: lockedAssignee ? filters.assignee : '',
+                        escalated: undefined,
+                        search: filters.search,
+                        /* Dates are facets and مسح الكل clears facets. */
+                        createdFrom: '',
+                        createdTo: '',
+                      });
+                    }}
+                  >
+                    {t('list.clearAll')}
+                  </button>
 
-                <Button
-                  text={t('list.apply')}
-                  disabled={draftRangeInverted}
-                  onClick={() => {
-                    onChange({
-                      ...filters,
-                      priority: panelDraft.priority,
-                      channel: panelDraft.channel,
-                      createdFrom: panelDraft.createdFrom,
-                      createdTo: panelDraft.createdTo,
-                    });
-                    setPanelOpen(false);
-                  }}
-                />
+                  <Button
+                    text={t('list.apply')}
+                    disabled={draftRangeInverted}
+                    onClick={() => {
+                      onChange({
+                        ...filters,
+                        priority: panelDraft.priority,
+                        channel: panelDraft.channel,
+                        createdFrom: panelDraft.createdFrom,
+                        createdTo: panelDraft.createdTo,
+                      });
+                      setPanelOpen(false);
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            </>
           ) : null}
         </div>
       </div>

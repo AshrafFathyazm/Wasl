@@ -132,6 +132,7 @@
   "detail.commentChannel": "Channel",
   "detail.channelTypedHere": "Typed here",
   "detail.send": "Send",
+  "detail.details": "Details",
   "detail.composerMode": "What you are writing",
   "detail.modeReply": "Reply to customer",
   "detail.modeInternal": "Internal note",

@@ -23,7 +23,9 @@
  * ========================================================================== */
 
 .page {
-  padding: var(--space-8);
+  /* `041`: 12 on a phone — the shell already gives 16 at the sides, and 32 more on
+     each made the conversation a 300px column on a 390 screen. */
+  padding: var(--space-3);
   background-color: var(--surface-page);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -35,6 +37,12 @@
   --pop-lg: 0 10px 28px rgb(13 38 38 / 14%);
   --pop-xl: 0 14px 36px rgb(13 38 38 / 16%);
   --rail-width: 240px;
+}
+
+@media (width >= 768px) { /* bp: md */
+  .page {
+    padding: var(--space-8);
+  }
 }
 
 .page:lang(ar) {
@@ -495,7 +503,11 @@
 .layoutWide {
   --rail-width: 292px;
 
-  gap: 20px;
+  /* `041`: ONE COLUMN BY DEFAULT — the two-column grid is restored by the
+     container query further down. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   padding: 0;
 }
 
@@ -766,6 +778,7 @@
 }
 
 .subjectTitle {
+  overflow-wrap: anywhere;
   margin: 0;
   /* `040` item 6 — named, not inherited. The heading took whatever the cascade
      above it held, which is why it read as a different black from the body. */
@@ -778,6 +791,7 @@
 }
 
 .descriptionText {
+  overflow-wrap: anywhere;
   margin: 12px 0 0;
   max-inline-size: 68ch;
   color: var(--text-secondary);
@@ -884,6 +898,9 @@
  * giving the only opaque child its own top radius, below. Nothing else inside
  * this card paints a background. */
 .feedCard {
+  /* `041`: inherited by every entry, so a comment holding one unbroken token (an
+     order id, a URL) wraps instead of widening the card past the screen. */
+  overflow-wrap: anywhere;
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   background-color: var(--surface-card);
@@ -1147,6 +1164,7 @@
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px;
   padding: 8px 12px 0;
@@ -1155,9 +1173,13 @@
 
 .tab {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 7px;
-  block-size: 40px;
+  /* 44 on a phone, the canvas's 40 from md. Never wraps: `.feedCard` lets text
+     break anywhere, and a tab name is the one place that must not. */
+  white-space: nowrap;
+  block-size: 44px;
   padding-inline: 12px;
   border: 0;
   border-block-end: 2px solid transparent;
@@ -1562,15 +1584,172 @@
   gap: 14px;
 }
 
-/* ---- narrow ------------------------------------------------------------- */
+/* ---- narrow, then wide — `041` ------------------------------------------------
+ * ONE COLUMN BY DEFAULT, TWO ABOVE A CONTAINER WIDTH.
+ *
+ * It was a viewport query (`width <= 980px`) and it was wrong in both directions:
+ * at 1024 the page was two columns inside a content area of ~620px, and at 960 it
+ * was one column in a shell whose content area is wider than that. The decision
+ * belongs to the width the page was GIVEN. `.layoutHost` is that container (a
+ * query cannot style its own container, so the grid sits one level down).
+ *
+ * In the single column the order is the one the spec asks for — title and
+ * description, then the ticket's facts folded into "Details", then the
+ * conversation — which the DOM does not have (rail first). `display: contents` on
+ * the main column hands its two cards to the same flex container as the rail, and
+ * `order` arranges the three.
+ * ------------------------------------------------------------------------- */
 
-@media (width <= 980px) {
+.layoutHost {
+  container-type: inline-size;
+  container-name: detail;
+}
+
+.layoutWide > .mainGap {
+  display: contents;
+}
+
+/* A flex item refuses to shrink below its content (`min-width: auto`), so one
+   unbroken token in a description — an order id, a URL, a pasted stack trace —
+   widened the whole column past the screen. Measured in the first audit: the page's
+   content area was 498px wider than its viewport. */
+.layoutWide > *,
+.layoutWide > .mainGap > * {
+  min-inline-size: 0;
+}
+
+.layoutWide > .mainGap > .subjectCard {
+  order: 1;
+}
+
+.layoutWide > .railCard {
+  order: 2;
+  position: static;
+  /* The aside's own card chrome belongs to the two-column layout. Folded, the
+     toggle and the body are each their own card. */
+  padding: 0;
+  gap: 0;
+  border: 0;
+  background-color: transparent;
+}
+
+.layoutWide > .mainGap > .feedCard {
+  order: 3;
+}
+
+/* The fold. A button that says what is inside it, so the key facts are on screen
+   without opening it: who has the ticket, and what it is about. 44px tall. */
+.detailsToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  font: inherit;
+  font-size: var(--text-ui);
+  text-align: start;
+  cursor: pointer;
+}
+
+.detailsLabel {
+  flex: none;
+  font-weight: var(--weight-medium);
+}
+
+.detailsSummary {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-helper);
+  white-space: nowrap;
+}
+
+.detailsName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.detailsChevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--text-muted);
+  transition: transform var(--motion-fast, 140ms) var(--motion-ease, ease);
+}
+
+.detailsChevronOpen {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detailsChevron {
+    transition: none;
+  }
+}
+
+/* Collapsed by default below the threshold. */
+.railBody {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.railBodyOpen {
+  display: flex;
+}
+
+@container detail (width >= 880px) {
   .layoutWide {
-    grid-template-columns: minmax(0, 1fr);
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
   }
 
-  .railCard {
-    position: static;
+  .layoutWide > .mainGap {
+    display: flex;
+  }
+
+  .layoutWide > .mainGap > .subjectCard,
+  .layoutWide > .mainGap > .feedCard,
+  .layoutWide > .railCard {
+    order: 0;
+  }
+
+  .layoutWide > .railCard {
+    position: sticky;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--surface-card);
+  }
+
+  .detailsToggle {
+    display: none;
+  }
+
+  /* The rail's own card chrome is on the aside at this width, so the body is bare. */
+  .railBody {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
   }
 }
 
@@ -1800,4 +1979,104 @@
   inset-block-start: calc(100% + 6px);
   inset-inline-start: 0;
   z-index: var(--z-flyout);
+}
+
+/* stylelint-disable no-duplicate-selectors -- `041`'s phone rules are a deliberate second
+   block, kept together after the desktop ones they adjust rather than scattered among them. */
+/* `041` — the tab strip and the composer on a phone. */
+.tabsNote {
+  /* "Newest first" is the strip's own second line below md, not a fourth thing
+     beside three tabs. */
+  flex-basis: 100%;
+  order: 2;
+  padding-block: var(--space-1) var(--space-2);
+  margin-inline-start: 0;
+}
+
+.modeButton {
+  block-size: 44px;
+}
+
+/* The composer's action row stays on screen while the field above it is being
+   typed in. On a phone the on-screen keyboard takes half the height; the shell is
+   `100dvh`, so the visible box shrinks with it and this sticks to ITS bottom edge
+   — Send is never behind the keyboard. Bounded by `.composeShell`, so it cannot
+   follow the reader into the feed. */
+.composeBar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 2;
+  padding-block: var(--space-2);
+  background-color: var(--surface-card);
+}
+
+.composeShellInternal .composeBar {
+  background-color: var(--state-warning-bg);
+}
+
+@media (width >= 768px) { /* bp: md */
+  .tab {
+    block-size: 40px;
+  }
+
+  .tabsNote {
+    flex-basis: auto;
+    order: 0;
+    padding-block: 0;
+    margin-inline-start: auto;
+  }
+
+  .modeButton {
+    block-size: 30px;
+  }
+
+  .composeBar {
+    position: static;
+    padding-block: 0;
+    background-color: transparent;
+  }
+
+  .composeShellInternal .composeBar {
+    background-color: transparent;
+  }
+}
+
+/* THE TEMPLATE MENU ON A PHONE (`041` AC-11). It is 316px wide and hangs from the
+   button that opens it — a button in the MIDDLE of the action row, so at 360px the
+   menu ran 18px past the screen's edge in Arabic and 18px past the other in English
+   (measured, `e2e/popovers.mjs`). Below md the button's wrapper stops being the
+   anchor, so the menu's containing block becomes the action row itself — full width
+   and sticky, i.e. positioned — and the menu spans it edge to edge. */
+@media (width < 768px) { /* bp: md */
+  .composeBar .popWrap {
+    position: static;
+  }
+
+  .templateMenu {
+    inset-inline: 0;
+    inline-size: auto;
+  }
+}
+
+/* A "remove" x INSIDE a chip. The touch floor makes it a 44px button; the negative
+   margins cancel the extra so the chip stays 25px tall and its width barely moves —
+   the hit area overlaps the chip's own padding, which is nothing else's. */
+@media (width < 768px) { /* bp: md */
+  .tagRemove {
+    margin: -16px -14px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* stylelint-enable no-duplicate-selectors */
+
+/* `041` — a link that is a CONTROL is a 44px target on a phone (the floor in base.css
+   covers buttons and fields; a link's box is its text, so it takes its own rule). */
+@media (width < 768px) { /* bp: md */
+  .backLink {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
 }

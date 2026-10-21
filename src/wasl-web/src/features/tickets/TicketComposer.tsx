@@ -148,7 +148,11 @@ export function TicketComposer({
     <div className={styles.composeBox}>
       {/* The mode switch. Buttons with `aria-pressed` in a labelled group: it is a
           choice of what the NEXT text is, not a field being submitted. */}
-      <div className={styles.modeSwitch} role="group" aria-label={t('detail.composerMode')}>
+      <div
+        className={styles.modeSwitch}
+        role="group"
+        aria-label={t('detail.composerMode')}
+      >
         {modes.map((option) => (
           <button
             key={option.value}
@@ -157,7 +161,9 @@ export function TicketComposer({
             className={cx(
               styles.modeButton,
               mode === option.value && styles.modeButtonOn,
-              mode === option.value && option.value === 'internal' && styles.modeButtonInternal,
+              mode === option.value &&
+                option.value === 'internal' &&
+                styles.modeButtonInternal,
             )}
             onClick={() => setChosen(option.value)}
           >
@@ -184,7 +190,11 @@ export function TicketComposer({
         /* THE REASON, rather than a composer that offers nothing and fails on
            submit. Same two sentences `021` wrote for the panel this replaces. */
         <p className={styles.internalNote}>
-          {t(sendableChannels.length === 0 ? 'messages.noChannels' : 'messages.notPermitted')}
+          {t(
+            sendableChannels.length === 0
+              ? 'messages.noChannels'
+              : 'messages.notPermitted',
+          )}
         </p>
       ) : (
         <div
@@ -198,11 +208,15 @@ export function TicketComposer({
           <Textarea
             label={t(internal ? 'detail.modeInternal' : 'detail.modeReply')}
             labelHidden
-            placeholder={t(internal ? 'detail.internalPlaceholder' : 'messages.bodyPlaceholder')}
+            placeholder={t(
+              internal ? 'detail.internalPlaceholder' : 'messages.bodyPlaceholder',
+            )}
             value={draft}
             onChange={setDraft}
             rows={3}
-            {...(internal ? {} : { maxLength: MESSAGE_MAX, counterFrom: MESSAGE_MAX - 200 })}
+            {...(internal
+              ? {}
+              : { maxLength: MESSAGE_MAX, counterFrom: MESSAGE_MAX - 200 })}
           />
 
           <div className={styles.composeBar}>

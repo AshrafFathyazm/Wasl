@@ -118,7 +118,12 @@ export function breadcrumbFor(pathname: string, ticketNumber?: string): NavLeaf[
     if (ticketIdFromPath(pathname) !== null) {
       return [
         tickets,
-        { key: 'ticket-detail', labelKey: 'common:nav.ticketDetail', to: pathname, label: ticketNumber },
+        {
+          key: 'ticket-detail',
+          labelKey: 'common:nav.ticketDetail',
+          to: pathname,
+          label: ticketNumber,
+        },
       ];
     }
   }

@@ -17,6 +17,8 @@ import {
   IconSortDesc,
 } from '../../icons/icons';
 import { cx } from '../../lib/cx';
+import { useAtLeastWidth, useBreakpoint } from '../../lib/useMediaQuery';
+import { CONTAINER_WIDTHS } from '../../styles/breakpoints';
 import { Loader } from '../Loader/Loader';
 import { Skeleton } from '../Loader/Skeleton';
 import styles from './Table.module.css';
@@ -193,6 +195,20 @@ export interface TableProps<TRow> {
    * Clicks originating inside a link or a button are ignored, so the link in
    * the cell does not navigate twice and a row action is not hijacked. */
   onRowClick?: (row: TRow) => void;
+
+  /**
+   * `041` Q-3. Below `md` the table is replaced by a list of cards, each drawn by
+   * the caller — the markup lives beside the page that knows what a row is, not in
+   * this 850-line primitive. `menu` is the row's actions trigger and flyout
+   * (`rowFlyout`), already wired, for the card to place where it wants it.
+   *
+   * ONE OF THE TWO IS RENDERED, never both with one hidden by CSS: a hidden table
+   * is still in the accessibility tree, still measured by every test, and still
+   * paid for on every row. The choice is read synchronously on first render
+   * (`useBreakpoint`), so a phone never paints a table for one frame. The data,
+   * the state, the notices and the footer are the same either way — one query.
+   */
+  renderCard?: (row: TRow, menu: ReactNode) => ReactNode;
 
   sort?: TableSort | null;
   onSortChange?: (next: TableSort | null) => void;
@@ -563,6 +579,7 @@ export function Table<TRow>({
   footer,
   rowFlyout,
   onRowClick,
+  renderCard,
   refreshing = false,
   sort,
   onSortChange,
@@ -616,6 +633,13 @@ export function Table<TRow>({
     ...(rowFlyout ? [rowFlyout.width ?? FLYOUT_DEFAULT_WIDTH] : []),
   ]);
   const skeletonCount = skeletonRows ?? visibleRows ?? 8;
+  /* THE CARD DECIDES BY ITS OWN WIDTH, with the viewport as the answer until it has
+     been measured (`041`). Measured on the element because the room a table gets is
+     what the sidebar and the page frame left, not what the screen has. */
+  const cardRef = useRef<HTMLDivElement>(null);
+  const tabletUp = useBreakpoint('md');
+  const roomy = useAtLeastWidth(cardRef, CONTAINER_WIDTHS.table, tabletUp);
+  const asCards = renderCard !== undefined && !roomy;
 
   /* NO MAX HEIGHT UNLESS ASKED. A table with no scrollbar is a table that does
    * not overflow, so the body is only capped when the caller opts in — and a
@@ -707,6 +731,7 @@ export function Table<TRow>({
 
   return (
     <div
+      ref={cardRef}
       className={cx(
         styles.card,
         styles[density],
@@ -745,70 +770,22 @@ export function Table<TRow>({
         style={bodyStyle}
         data-table-scroller=""
       >
-        <table className={styles.table} aria-label={label}>
-          {head}
-          {notice === null ? (
-            <tbody>
+        {asCards ? (
+          notice === null ? (
+            <ul className={styles.cards} aria-label={label}>
               {state === 'loading'
-                ? Array.from({ length: skeletonCount }, (_, i) => (
-                    <tr key={i} className={styles.row} aria-hidden="true">
-                      {columns.map((col, ci) => (
-                        <td
-                          key={col.id}
-                          className={cx(
-                            styles.td,
-                            col.align === 'center' && styles.center,
-                          )}
-                          style={{ inlineSize: percents[ci] }}
-                        >
-                          <Skeleton shape={col.skeleton ?? 'text'} />
-                        </td>
-                      ))}
-                      {rowFlyout ? (
-                        <td className={cx(styles.td, styles.center)}>
-                          <Skeleton shape="icon" />
-                        </td>
-                      ) : null}
-                    </tr>
+                ? Array.from({ length: Math.min(skeletonCount, 5) }, (_, i) => (
+                    <li key={i} aria-hidden="true">
+                      <Skeleton shape="block" height="112px" />
+                    </li>
                   ))
                 : rows.map((row) => {
                     const key = rowKey(row);
                     return (
-                      <tr
-                        key={key}
-                        className={cx(styles.row, onRowClick && styles.rowClickable)}
-                        /* `undefined`, not `false`, on an unselected row:
-                           `aria-selected="false"` on every row of a table that
-                           is not a selection widget tells a screen reader the
-                           whole list is selectable. Only the open row carries
-                           it. */
-                        aria-selected={key === selectedRowKey ? true : undefined}
-                        onClick={
-                          onRowClick
-                            ? (e) => {
-                                /* A click that started on a link or a button
-                                 * belongs to that control, not to the row. */
-                                const el = e.target as HTMLElement;
-                                if (el.closest('a, button')) return;
-                                onRowClick(row);
-                              }
-                            : undefined
-                        }
-                      >
-                        {columns.map((col, ci) => (
-                          <td
-                            key={col.id}
-                            className={cx(
-                              styles.td,
-                              col.align === 'center' && styles.center,
-                            )}
-                            style={{ inlineSize: percents[ci] }}
-                          >
-                            {col.cell(row)}
-                          </td>
-                        ))}
-                        {rowFlyout ? (
-                          <td className={cx(styles.td, styles.center, styles.flyoutCell)}>
+                      <li key={key}>
+                        {renderCard(
+                          row,
+                          rowFlyout ? (
                             <RowFlyout
                               row={row}
                               config={rowFlyout}
@@ -818,14 +795,98 @@ export function Table<TRow>({
                               }
                               onClose={close}
                             />
+                          ) : null,
+                        )}
+                      </li>
+                    );
+                  })}
+            </ul>
+          ) : null
+        ) : (
+          <table className={styles.table} aria-label={label}>
+            {head}
+            {notice === null ? (
+              <tbody>
+                {state === 'loading'
+                  ? Array.from({ length: skeletonCount }, (_, i) => (
+                      <tr key={i} className={styles.row} aria-hidden="true">
+                        {columns.map((col, ci) => (
+                          <td
+                            key={col.id}
+                            className={cx(
+                              styles.td,
+                              col.align === 'center' && styles.center,
+                            )}
+                            style={{ inlineSize: percents[ci] }}
+                          >
+                            <Skeleton shape={col.skeleton ?? 'text'} />
+                          </td>
+                        ))}
+                        {rowFlyout ? (
+                          <td className={cx(styles.td, styles.center)}>
+                            <Skeleton shape="icon" />
                           </td>
                         ) : null}
                       </tr>
-                    );
-                  })}
-            </tbody>
-          ) : null}
-        </table>
+                    ))
+                  : rows.map((row) => {
+                      const key = rowKey(row);
+                      return (
+                        <tr
+                          key={key}
+                          className={cx(styles.row, onRowClick && styles.rowClickable)}
+                          /* `undefined`, not `false`, on an unselected row:
+                           `aria-selected="false"` on every row of a table that
+                           is not a selection widget tells a screen reader the
+                           whole list is selectable. Only the open row carries
+                           it. */
+                          aria-selected={key === selectedRowKey ? true : undefined}
+                          onClick={
+                            onRowClick
+                              ? (e) => {
+                                  /* A click that started on a link or a button
+                                   * belongs to that control, not to the row. */
+                                  const el = e.target as HTMLElement;
+                                  if (el.closest('a, button')) return;
+                                  onRowClick(row);
+                                }
+                              : undefined
+                          }
+                        >
+                          {columns.map((col, ci) => (
+                            <td
+                              key={col.id}
+                              className={cx(
+                                styles.td,
+                                col.align === 'center' && styles.center,
+                              )}
+                              style={{ inlineSize: percents[ci] }}
+                            >
+                              {col.cell(row)}
+                            </td>
+                          ))}
+                          {rowFlyout ? (
+                            <td
+                              className={cx(styles.td, styles.center, styles.flyoutCell)}
+                            >
+                              <RowFlyout
+                                row={row}
+                                config={rowFlyout}
+                                open={openFlyout === key}
+                                onToggle={() =>
+                                  setOpenFlyout(openFlyout === key ? null : key)
+                                }
+                                onClose={close}
+                              />
+                            </td>
+                          ) : null}
+                        </tr>
+                      );
+                    })}
+              </tbody>
+            ) : null}
+          </table>
+        )}
       </div>
 
       {/* THE HEADER STAYS ABOVE BOTH NOTICES. One that also drops the column

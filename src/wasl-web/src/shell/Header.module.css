@@ -17,19 +17,39 @@
 
   block-size: var(--header-height);
   padding-block: var(--header-padding-block);
-  /* start 24, end 56 — the asymmetry, in one line where it is visible. */
-  padding-inline: var(--header-padding-inline-start) var(--header-padding-inline-end);
+
+  /* MOBILE-FIRST (`041`). 16 each side on a phone; 24 at md; and at lg the
+     desktop asymmetry below — start 24, end 56, in one place where it is visible.
+     The 56 exists to align the header's end edge with the content's, and the
+     content is 16 on a phone, so keeping 56 here would push the title off it. */
+  padding-inline: var(--space-4);
 
   background-color: var(--surface-page);
   border-block-end: var(--shell-border);
 }
 
+@media (width >= 768px) {
+  /* bp: md */
+  .header {
+    padding-inline: var(--space-6);
+  }
+}
+
+@media (width >= 1024px) {
+  /* bp: lg */
+  .header {
+    padding-inline: var(--header-padding-inline-start) var(--header-padding-inline-end);
+  }
+}
+
 .menuButton {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  inline-size: var(--space-8);
-  block-size: var(--space-8);
+  inline-size: 44px;
+  block-size: 44px;
+  margin-inline-start: calc(var(--space-2) * -1);
   padding: 0;
 
   background-color: transparent !important;
@@ -49,9 +69,43 @@
 }
 
 .crumb {
+  /* Below md only the CURRENT page is shown: "Tickets › TCK-2026-000042" is two
+     truncations fighting for 200px, and the parent is one tap away in the drawer. */
+  display: none;
   color: var(--text-muted);
   text-decoration: none;
   white-space: nowrap;
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .crumb {
+    display: inline;
+  }
+}
+
+/* The first breadcrumb <nav> is the flex child that must be allowed to shrink for
+   the ellipsis on `.current` to engage at all. */
+nav.breadcrumb {
+  flex: 1;
+}
+
+.newTicket {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  margin-inline-start: auto;
+  color: var(--on-brand);
+  background-color: var(--brand);
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+}
+
+.newTicket:hover {
+  background-color: var(--brand-hover);
 }
 
 /* The current page is not a link, and it is the only one at full weight. */
@@ -66,9 +120,16 @@
 /* The separator is a logical chevron, so it reverses with the direction and the
  * trail reads outward-in in both. */
 .separator {
-  display: inline-flex;
+  display: none;
   color: var(--text-placeholder);
   transform: rotate(-90deg);
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .separator {
+    display: inline-flex;
+  }
 }
 
 [dir='rtl'] .separator {

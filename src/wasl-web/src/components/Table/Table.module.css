@@ -88,6 +88,17 @@
   overflow: auto;
 }
 
+/* `041` — the card list that replaces the table below md. The cards are the
+   caller's; this is only the column they stand in. */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3);
+  list-style: none;
+}
+
 /* FILL MODE — the card owns the height the page gives it, and the SCROLLER is
  * the only thing that moves. Ruled 2026-09-06.
  *

@@ -42,7 +42,11 @@
   flex-direction: column;
   flex: 1;
   gap: var(--content-gap);
-  padding: var(--content-padding);
+
+  /* MOBILE-FIRST (`041`). The desktop frame is 56px on every side, which on a
+     390px phone is 112 of 390 — more than a quarter of the screen spent on margin.
+     16 on a phone, 24 at md, 56 at lg; the block padding is set below. */
+  padding: var(--space-4);
 
   /* LESS AT THE TOP THAN AT THE SIDES, and the asymmetry is the fix for a
      reported defect rather than a taste. `--content-padding` is 56px on all
@@ -52,7 +56,7 @@
      owner supplied. The sides keep 56: the table cards' inline edges are
      measured against that frame. The top does not need it, because the topbar
      draws a border. */
-  padding-block-start: var(--space-6);
+  padding-block-start: var(--space-4);
   background-color: var(--surface-content);
 
   /* THE FALLBACK SCROLLER. A page that does not fill the box scrolls here, as
@@ -77,5 +81,24 @@
  * IS "a child that fills", so reading it off the child cannot fall out of step.
  * `Dropdown.module.css` already relies on `:has()`. */
 .content:has(> [data-fills]) {
-  padding-block: var(--space-6) var(--space-6);
+  padding-block: var(--space-4);
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .content {
+    padding-inline: var(--space-6);
+    padding-block-start: var(--space-6);
+  }
+}
+
+@media (width >= 1024px) {
+  /* bp: lg */
+  .content {
+    padding-inline: var(--content-padding);
+  }
+
+  .content:has(> [data-fills]) {
+    padding-block: var(--space-6);
+  }
 }

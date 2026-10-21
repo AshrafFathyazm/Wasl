@@ -92,6 +92,10 @@
 }
 
 .scroll {
+  /* `041`: THE CONTAINER for the two-column decision below. The grid is a child of
+     this box, so the query is about the width the FORM was given, not the screen's. */
+  container-type: inline-size;
+  container-name: ticketform;
   flex: 1;
   min-block-size: 0;
   overflow-y: auto;
@@ -117,14 +121,12 @@
   min-inline-size: 0;
 }
 
-/* 1100px is the mock-up's own breakpoint and it is a literal: no breakpoint
-   token exists (tokens.css note 11). BELOW it the rail stacks, because a 316px
-   fixed track beside a shrinking main column crosses over and the "sidebar"
-   becomes the wider half. */
-/* `width >= 1100px`, which is `min-width: 1100px` written in range notation —
-   stylelint's `media-feature-range-notation` requires the modern form here. The
-   spec and the mock-up both say `min-width`; they are the same query. */
-@media (width >= 1100px) {
+/* THE RAIL STACKS BELOW 880px OF FORM, not of screen (`041`). The mock-up's 1100
+   was a VIEWPORT width, and with the product's 288px sidebar and 56px frame a
+   1100px screen leaves ~650px — a 316px rail beside a 330px form. The container
+   threshold is `CONTAINER_WIDTHS.split`; CSS cannot read it, so it is spelled
+   here and the breakpoints guard keeps the two equal. */
+@container ticketform (width >= 880px) {
   .grid {
     grid-template-columns: minmax(0, 1fr) 316px;
   }
@@ -553,7 +555,10 @@
 
 .footer {
   flex: none;
-  padding-block: var(--space-3);
+  /* `env(safe-area-inset-bottom)` is the home-indicator strip on a notched phone;
+     without it the Create button sits under the swipe-up bar. Zero everywhere
+     else. Needs `viewport-fit=cover` in index.html to be non-zero at all. */
+  padding-block: var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
   background-color: var(--surface-card);
   border-block-start: var(--border-width) solid var(--border-subtle);
 }
@@ -660,4 +665,15 @@
   font-weight: var(--weight-medium);
   color: var(--brand);
   text-decoration: underline;
+}
+
+/* `041` — a link that is a CONTROL is a 44px target on a phone (the floor in base.css
+   covers buttons and fields; a link's box is its text, so it takes its own rule). */
+@media (width < 768px) {
+  /* bp: md */
+  .back {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
 }

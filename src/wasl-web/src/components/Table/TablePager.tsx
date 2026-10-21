@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { IconChevronDown } from '../../icons/icons';
 import { cx } from '../../lib/cx';
 import { formatNumber, type Lang } from '../../lib/formatters';
+import { useBreakpoint } from '../../lib/useMediaQuery';
 import { Dropdown } from '../Dropdown/Dropdown';
 
 import styles from './TablePager.module.css';
@@ -87,6 +88,12 @@ export function TablePager({
   onPageSize,
 }: TablePagerProps) {
   const { t } = useTranslation('common');
+  /* `041`: below md the numbered pager (up to seven buttons and an ellipsis) does
+     not fit a phone beside the range. It becomes Previous, "Page X of Y", Next —
+     the first, last and neighbouring pages are still one tap away because the
+     arrows are, and the range still says where the reader is in the DATA. */
+  const tabletUp = useBreakpoint('md');
+  const last = Math.max(totalPages, 1);
 
   return (
     <div className={styles.footer}>
@@ -149,7 +156,16 @@ export function TablePager({
           <IconChevronDown size={18} className={styles.arrowPrev} aria-hidden="true" />
         </button>
 
-        {pageWindow(page, totalPages).map((n, index) =>
+        {!tabletUp ? (
+          <span className={styles.pageOf} aria-live="polite">
+            {t('pager.pageOf', {
+              page: formatNumber(page, lang),
+              total: formatNumber(last, lang),
+            })}
+          </span>
+        ) : null}
+
+        {(tabletUp ? pageWindow(page, totalPages) : []).map((n, index) =>
           n === null ? (
             /* An ellipsis is not a control: no button, no tab stop, and a name
                for anyone listening rather than a bare "…". */

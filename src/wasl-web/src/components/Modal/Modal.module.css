@@ -171,3 +171,96 @@
   padding: var(--space-4) var(--space-6);
   border-block-start: var(--border-width) solid var(--border-divider);
 }
+
+/* ============================================================================
+ * `041` — A BOTTOM SHEET BELOW md, THE CENTRED DIALOG FROM md UP
+ * ============================================================================
+ * A 560px card centred on a 390px screen is a card with 16px of dimmed page either
+ * side and a title that wraps; and the thumb is at the bottom. Below md the panel
+ * is anchored to the bottom edge at full width, rounded only where it meets the
+ * page, capped at 90dvh (`dvh`: the on-screen keyboard and the browser toolbar
+ * move it), with the home-indicator inset under its content. It slides up; under
+ * `prefers-reduced-motion` it simply appears.
+ *
+ * The rules are a deliberate SECOND block after the desktop ones so that the md
+ * query below can put each of them back exactly as it was.
+ * ========================================================================= */
+/* stylelint-disable no-duplicate-selectors -- the phone rules follow the desktop ones on purpose; see above. */
+.host {
+  align-items: end;
+  padding: 0;
+}
+
+.panel,
+.sm,
+.md,
+.lg {
+  inline-size: 100%;
+  max-block-size: 90dvh;
+  padding-block-end: env(safe-area-inset-bottom, 0);
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+  animation: modal-sheet 220ms var(--ease-out);
+}
+
+@keyframes modal-sheet {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.close {
+  inline-size: 44px;
+  block-size: 44px;
+  margin-block-start: -10px;
+  margin-inline-end: -10px;
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .host {
+    align-items: center;
+    padding: var(--space-4);
+  }
+
+  .panel {
+    inline-size: var(--modal-w-sm);
+    max-block-size: 70vh;
+    padding-block-end: 0;
+    border-radius: var(--radius-md);
+    animation: modal-in 180ms var(--ease-out);
+  }
+
+  .sm {
+    inline-size: var(--modal-w-sm);
+  }
+
+  .md {
+    inline-size: var(--modal-w-md);
+  }
+
+  .lg {
+    inline-size: var(--modal-w-lg);
+  }
+
+  .close {
+    inline-size: 24px;
+    block-size: 24px;
+    margin-block-start: 2px;
+    margin-inline-end: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .sm,
+  .md,
+  .lg {
+    animation: none;
+  }
+}
+/* stylelint-enable no-duplicate-selectors */

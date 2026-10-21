@@ -140,6 +140,20 @@
   color: var(--text-primary);
   cursor: pointer;
   min-inline-size: 0;
+  /* `041`: the LABEL is the touch target of a 16px box — 44 tall on a phone, and it
+     grows to fill the row so the whole line toggles it. */
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-block-size: 44px;
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .label {
+    flex: none;
+    min-block-size: 0;
+  }
 }
 
 .message {

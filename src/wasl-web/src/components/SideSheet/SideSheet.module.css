@@ -296,10 +296,16 @@
    `inline-size` alone is not the rule. A full page has no rounded edge, no
    shadow standing off a surface behind it, and no border on the inline-start
    side — because there is nothing behind it any more. */
-@media (width <= 768px) {
+@media (width < 768px) { /* bp: md */
   .panel {
     inline-size: 100vw;
     max-inline-size: 100vw;
     box-shadow: none;
+  }
+
+  /* 44, the touch floor — the frame's 32 is a pointer's size. */
+  .close {
+    inline-size: 44px;
+    block-size: 44px;
   }
 }

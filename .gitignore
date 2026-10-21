@@ -68,3 +68,6 @@ src/Wasl.Api/appsettings.Production.json
 publish/
 publish.zip
 publish-db.sql
+
+# `041` — Playwright audit output (the committed subset lives under specs/041-responsive-layout/screens)
+src/wasl-web/e2e/out/

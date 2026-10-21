@@ -38,7 +38,7 @@
   pointer-events: auto;
 }
 
-@media (width <= 480px) {
+@media (width < 768px) { /* bp: md */
   /* Edge to edge on a phone, where 360px + 24px of inset is wider than the
      viewport. `--toast-width`'s own `max-inline-size: 90vw` would keep the card
      on screen but leave it pinned to one edge with 10vw of dead space beside it,

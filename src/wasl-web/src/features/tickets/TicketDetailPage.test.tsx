@@ -684,6 +684,9 @@ describe('AC-7 — the assignee picker lists the server’s users and the server
     /* A PANEL, not a Dropdown — the v3 canvas gives it a title, a search box and
        a footer note, and the rows carry an avatar and the role. The rows are
        buttons; there is no listbox and no option role. */
+    /* jsdom evaluates no container query, so this is the NARROW layout (`041`): the
+       rail is folded under «Details». Open it, as a phone reader would. */
+    await userEvent.click(screen.getByRole('button', { name: /^Details/ }));
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }),
     );
@@ -704,6 +707,9 @@ describe('AC-7 — the assignee picker lists the server’s users and the server
     /* A PANEL, not a Dropdown — the v3 canvas gives it a title, a search box and
        a footer note, and the rows carry an avatar and the role. The rows are
        buttons; there is no listbox and no option role. */
+    /* jsdom evaluates no container query, so this is the NARROW layout (`041`): the
+       rail is folded under «Details». Open it, as a phone reader would. */
+    await userEvent.click(screen.getByRole('button', { name: /^Details/ }));
     await userEvent.click(
       screen.getByRole('button', { name: i18n.t('tickets:detail.assign') }),
     );

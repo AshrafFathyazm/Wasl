@@ -42,6 +42,7 @@ import type {
 } from '../../lib/api-types.provisional';
 import { cx } from '../../lib/cx';
 import { tint } from '../../lib/tint';
+import { AutoText } from '../../components/AutoText/AutoText';
 import { AssigneePanel } from './AssigneePanel';
 import { TicketStatusBadge } from './TicketBadges';
 import { CHANNEL_ICON } from './channelIcons';
@@ -607,6 +608,9 @@ export default function TicketDetailPage() {
   const { user } = useAuth();
 
   const [conflict, setConflict] = useState(false);
+  /* `041`: the rail is folded below the container threshold. Local, and it survives a
+     refetch because it is state of THIS page, not of the ticket. */
+  const [detailsOpen, setDetailsOpen] = useState(false);
   /* `forbidden` was a boolean here and is gone — the `403` is a toast now, so
      there is no banner whose visibility needs tracking. */
   const [clientBug, setClientBug] = useState<string | null>(null);
@@ -1537,9 +1541,45 @@ export default function TicketDetailPage() {
           </div>
         ) : null}
 
+        {/* `041`. THE HOST IS THE CONTAINER: two columns need ~880px of CONTENT, not of
+            viewport — at 1024 the full sidebar and the page's own 56px frame leave
+            ~620, which is a rail and a 330px conversation. Below it the page is one
+            column and the rail folds into "Details" between the title and the
+            conversation. It is a wrapper rather than the grid itself because a
+            container query cannot style its own container. Modals stay OUTSIDE it:
+            inline-size containment would otherwise capture their `position: fixed`. */}
+        <div className={styles.layoutHost}>
         <div className={cx(styles.layout, styles.layoutWide)}>
           {/* ── the rail ───────────────────────────────────────────────────── */}
           <aside className={cx(styles.rail, styles.railCard)}>
+            <button
+              type="button"
+              className={styles.detailsToggle}
+              aria-expanded={detailsOpen}
+              aria-controls="ticket-details"
+              onClick={() => setDetailsOpen((open) => !open)}
+            >
+              <span className={styles.detailsLabel}>{t('detail.details')}</span>
+              <span className={styles.detailsSummary}>
+                {ticket.assignee ? (
+                  <>
+                    <Avatar name={ticket.assignee.fullName} size={22} />
+                    <AutoText className={styles.detailsName}>{ticket.assignee.fullName}</AutoText>
+                  </>
+                ) : (
+                  <span>{t('detail.unassigned')}</span>
+                )}
+                <span aria-hidden="true">{'·'}</span>
+                <span>{t(`category.${ticket.category}`)}</span>
+              </span>
+              <span className={cx(styles.detailsChevron, detailsOpen && styles.detailsChevronOpen)}>
+                <IconChevronDown size={16} aria-hidden="true" />
+              </span>
+            </button>
+            <div
+              id="ticket-details"
+              className={cx(styles.railBody, detailsOpen && styles.railBodyOpen)}
+            >
             {/* THE GROUP IS THE ANCHOR, not the control that opens the panel.
                 The owner's frame puts the panel's start edge flush with the
                 rail's, growing over the content column — and a 316px panel
@@ -1774,6 +1814,7 @@ export default function TicketDetailPage() {
                   </span>
                 </div>
               ) : null}
+            </div>
             </div>
           </aside>
 
@@ -2056,6 +2097,7 @@ export default function TicketDetailPage() {
               )}
             </section>
           </div>
+        </div>
         </div>
       </div>
 

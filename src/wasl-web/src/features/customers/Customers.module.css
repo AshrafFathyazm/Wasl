@@ -32,10 +32,15 @@
  * `margin-inline: auto` is kept and is now inert — it costs nothing and it is
  * what would re-centre the column if a cap is ever wanted back. */
 .page {
+  /* `041`: the container for the strip and the two columns below — their widths were
+     a 900px VIEWPORT query. 8px on a phone (the shell already gives 16), the frame's
+     24 from md. */
+  container-type: inline-size;
+  container-name: profile;
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  padding: var(--space-6);
+  padding: var(--space-2);
   inline-size: 100%;
   margin-inline: auto;
 }
@@ -52,12 +57,16 @@
  * renders the crumb alone, and the page below it must not jump. */
 .crumbRow {
   display: flex;
+  /* `041`: wraps. The crumb and the two-segment switcher are ~420px together, and a
+     390px screen has 358 — the switcher's second segment was clipped off the edge. */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   min-block-size: 42px;
 }
 
 .crumbs {
+  min-inline-size: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -145,7 +154,8 @@
  * read as three unrelated facts, and these are one identity. */
 .strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Stacked by default; three across once the profile is 760px wide. */
+  grid-template-columns: minmax(0, 1fr);
   background-color: var(--surface-card);
   border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -164,7 +174,7 @@
  * `border-left` the first cell in Arabic would carry a stray edge against the
  * card. */
 .stripCell + .stripCell {
-  border-inline-start: var(--border-width) solid var(--border-divider);
+  border-block-start: var(--border-width) solid var(--border-divider);
 }
 
 .cellLabel {
@@ -290,25 +300,34 @@
 
 .columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-items: start;
 }
 
-/* One breakpoint, and it is where the record card stops having room for a date
- * on one line rather than at a device width. */
-@media (width <= 900px) {
-  .columns {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
+/* By the width the profile was GIVEN (`041`). The record card needs ~880px for a
+   1.6:1 pair; the three-cell strip needs ~760 for a date on one line. */
+@container profile (width >= 760px) {
   .strip {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .stripCell + .stripCell {
-    border-inline-start: 0;
-    border-block-start: var(--border-width) solid var(--border-divider);
+    border-block-start: 0;
+    border-inline-start: var(--border-width) solid var(--border-divider);
+  }
+}
+
+@container profile (width >= 880px) {
+  .columns {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+}
+
+@media (width >= 768px) {
+  /* bp: md */
+  .page {
+    padding: var(--space-6);
   }
 }
 
@@ -572,4 +591,16 @@
    a screen reader hears the identity before the control. */
 .headAction {
   margin-inline-start: auto;
+}
+
+/* `041` — a link that is a CONTROL is a 44px target on a phone (the floor in base.css
+   covers buttons and fields; a link's box is its text, so it takes its own rule). */
+@media (width < 768px) {
+  /* bp: md */
+  .crumbLink,
+  .cellLink {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
 }

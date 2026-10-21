@@ -17,15 +17,46 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
-if (!window.matchMedia) {
-  window.matchMedia = ((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  })) as typeof window.matchMedia;
+/* `041`. A WIDTH-AWARE matchMedia, because the table/cards choice and the sidebar
+ * drawer now read it on first render. jsdom ships none, and a stub that answers
+ * `false` to everything would mean "below every breakpoint" — every list a card
+ * list, every sidebar a drawer — in every test that was written for a desktop.
+ *
+ * It understands exactly the forms this codebase writes — `(min-width: Npx)`,
+ * `(max-width: Npx)` and the range spelling `(width >= Npx)` / `(width < Npx)` —
+ * against `window.innerWidth`, which setup pins to a desktop below. A test that
+ * wants a phone sets `window.innerWidth = 390` BEFORE rendering. Any other query
+ * (`prefers-reduced-motion`, `hover`) answers `false`, as it did before. */
+Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1280 });
+
+/** Pulls the pixel value out of one media feature, or null. */
+function px(query: string, feature: RegExp): number | null {
+  const match = feature.exec(query);
+  return match ? Number(match[1]) : null;
 }
+
+function evaluate(query: string): boolean {
+  const width = window.innerWidth;
+  const min = px(query, /\(\s*min-width:\s*(\d+(?:\.\d+)?)px\s*\)/);
+  if (min !== null) return width >= min;
+  const max = px(query, /\(\s*max-width:\s*(\d+(?:\.\d+)?)px\s*\)/);
+  if (max !== null) return width <= max;
+  const ge = px(query, /\(\s*width\s*>=\s*(\d+(?:\.\d+)?)px\s*\)/);
+  if (ge !== null) return width >= ge;
+  const lt = px(query, /\(\s*width\s*<\s*(\d+(?:\.\d+)?)px\s*\)/);
+  if (lt !== null) return width < lt;
+  return false;
+}
+
+window.matchMedia = ((query: string) => ({
+  get matches() {
+    return evaluate(query);
+  },
+  media: query,
+  onchange: null,
+  addListener: () => {},
+  removeListener: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => false,
+})) as typeof window.matchMedia;

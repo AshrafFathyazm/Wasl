@@ -270,6 +270,15 @@ export const IconClose = ({ size = 18, ...p }: IconProps) => (
   </svg>
 );
 
+/** (D) — the navigation drawer's trigger (`041`). `IconMore` was standing in for it
+ *  and reads as "more actions", not "open the menu". Three bars inside the 16-unit
+ *  keyline, no fill. Symmetric, so it needs no `data-flip`. */
+export const IconMenu = ({ size = 18, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M4.5 7h15M4.5 12h15M4.5 17h15" />
+  </svg>
+);
+
 export const IconAdd = ({ size = 18, ...p }: IconProps) => (
   <svg {...base(size)} {...p}>
     <path d="M12 4.5v15M4.5 12h15" />
