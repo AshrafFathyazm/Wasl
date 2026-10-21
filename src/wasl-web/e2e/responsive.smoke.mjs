@@ -60,14 +60,18 @@ try {
             main: main ? main.scrollWidth - main.clientWidth : 0,
           };
         });
-        if (m.doc > 0) failures.push(`${where}: the document scrolls sideways by ${m.doc}px`);
+        if (m.doc > 0)
+          failures.push(`${where}: the document scrolls sideways by ${m.doc}px`);
         if (m.main > 0) failures.push(`${where}: <main> scrolls sideways by ${m.main}px`);
 
         /* 2 — the navigation is reachable (not on the login screen, which has none). */
         if (route.signedIn !== false) {
           if (width >= 1024) {
-            const link = page.getByRole('link', { name: lang === 'ar' ? 'العملاء' : 'Customers' });
-            if (!(await link.first().isVisible())) failures.push(`${where}: sidebar link not visible`);
+            const link = page.getByRole('link', {
+              name: lang === 'ar' ? 'العملاء' : 'Customers',
+            });
+            if (!(await link.first().isVisible()))
+              failures.push(`${where}: sidebar link not visible`);
           } else {
             await page
               .getByRole('button', { name: lang === 'ar' ? 'فتح القائمة' : 'Open menu' })
@@ -76,14 +80,16 @@ try {
             const link = page
               .getByRole('dialog')
               .getByRole('link', { name: lang === 'ar' ? 'العملاء' : 'Customers' });
-            if (!(await link.isVisible())) failures.push(`${where}: drawer link not visible after opening`);
+            if (!(await link.isVisible()))
+              failures.push(`${where}: drawer link not visible after opening`);
           }
         }
 
         /* 3 — quiet. */
         if (errors.length > 0) failures.push(`${where}: page error — ${errors[0]}`);
         const gaps = [...new Set(unhandled)];
-        if (gaps.length > 0) failures.push(`${where}: unmocked request — ${gaps.join(', ')}`);
+        if (gaps.length > 0)
+          failures.push(`${where}: unmocked request — ${gaps.join(', ')}`);
 
         await context.close();
       }
@@ -99,4 +105,6 @@ if (failures.length > 0) {
   for (const failure of failures) console.error(`  ✗ ${failure}`);
   process.exit(1);
 }
-console.log(`\n✓ ${checked} page loads — no sideways scroll, navigation reachable, no unmocked requests.`);
+console.log(
+  `\n✓ ${checked} page loads — no sideways scroll, navigation reachable, no unmocked requests.`,
+);

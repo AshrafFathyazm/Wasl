@@ -128,7 +128,7 @@
         "text": "Show password"
       },
       {
-        "el": "input#:r7:._control_edo2e_33",
+        "el": "input#:r5:._control_edo2e_33",
         "w": 23,
         "h": 23,
         "text": ""
@@ -143,15 +143,15 @@
     "smallFont": 3,
     "smallFontSample": [
       {
+        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
         "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
-        "fontSize": 14
-      },
-      {
-        "el": "input#:r7:._control_edo2e_33",
+        "el": "input#:r5:._control_edo2e_33",
         "fontSize": 14
       }
     ],
@@ -225,52 +225,52 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 17,
+    "smallTargets": 12,
     "smallTargetSample": [
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 41,
         "h": 32,
         "text": "7d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 49,
         "h": 32,
         "text": "14d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 48,
         "h": 32,
         "text": "30d"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._cardLink_otl93_196",
+        "el": "a._cardLink_1debs_204",
         "w": 74,
         "h": 17,
         "text": "View all 15"
@@ -295,49 +295,49 @@
     "smallTargets": 17,
     "smallTargetSample": [
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 41,
         "h": 32,
         "text": "7d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 49,
         "h": 32,
         "text": "14d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 48,
         "h": 32,
         "text": "30d"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._cardLink_otl93_196",
+        "el": "a._cardLink_1debs_204",
         "w": 74,
         "h": 17,
         "text": "View all 15"
@@ -380,32 +380,32 @@
         "text": "New ticket"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 41,
         "h": 32,
         "text": "7d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 49,
         "h": 32,
         "text": "14d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 48,
         "h": 32,
         "text": "30d"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
-        "w": 213,
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
+        "w": 602,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
-        "w": 213,
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
+        "w": 602,
         "h": 25,
         "text": "Show tickets with status"
       }
@@ -447,31 +447,31 @@
         "text": "New ticket"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 41,
         "h": 32,
         "text": "7d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 49,
         "h": 32,
         "text": "14d"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 48,
         "h": 32,
         "text": "30d"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 373,
         "h": 25,
         "text": "Show tickets with status"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 373,
         "h": 25,
         "text": "Show tickets with status"
@@ -563,43 +563,43 @@
     "smallTargets": 35,
     "smallTargetSample": [
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 68,
         "h": 32,
         "text": "All12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 85,
         "h": 32,
         "text": "New2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 89,
         "h": 32,
         "text": "Open2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 123,
         "h": 32,
         "text": "In progress2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 159,
         "h": 32,
         "text": "Pending customer2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 110,
         "h": 32,
         "text": "Resolved2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 98,
         "h": 32,
         "text": "Closed2"
@@ -671,13 +671,13 @@
         "text": "Unassigned"
       },
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 68,
         "h": 32,
         "text": "All12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 85,
         "h": 32,
         "text": "New2"
@@ -743,13 +743,13 @@
         "text": "Unassigned"
       },
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 68,
         "h": 32,
         "text": "All12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 85,
         "h": 32,
         "text": "New2"
@@ -776,40 +776,46 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 7,
+    "smallTargets": 8,
     "smallTargetSample": [
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 108,
         "h": 20,
         "text": "Back to the list"
       },
       {
-        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "el": "button._statusPill_1jarr_172._statusButton_1jarr_186",
         "w": 84,
         "h": 28,
         "text": "New"
       },
       {
-        "el": "button._actionButton_ddizn_1867",
+        "el": "button._actionButton_1jarr_1867",
         "w": 121,
         "h": 38,
         "text": "Take action"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "Remove Refund"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "Remove Double charge"
       },
       {
-        "el": "button._composeTool_ddizn_1004",
+        "el": "button._tagAdd_1jarr_840",
+        "w": 89,
+        "h": 25,
+        "text": "Add a tag"
+      },
+      {
+        "el": "button._composeTool_1jarr_1004",
         "w": 139,
         "h": 32,
         "text": "Insert a template"
@@ -837,7 +843,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 13,
+    "smallTargets": 14,
     "smallTargetSample": [
       {
         "el": "a._crumb_641m4_71",
@@ -846,46 +852,46 @@
         "text": "Tickets"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 108,
         "h": 20,
         "text": "Back to the list"
       },
       {
-        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "el": "button._statusPill_1jarr_172._statusButton_1jarr_186",
         "w": 84,
         "h": 28,
         "text": "New"
       },
       {
-        "el": "button._actionButton_ddizn_1867",
+        "el": "button._actionButton_1jarr_1867",
         "w": 121,
         "h": 38,
         "text": "Take action"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "Remove Refund"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "Remove Double charge"
       },
       {
-        "el": "button._modeButton_ddizn_948",
+        "el": "button._tagAdd_1jarr_840",
+        "w": 89,
+        "h": 25,
+        "text": "Add a tag"
+      },
+      {
+        "el": "button._modeButton_1jarr_948",
         "w": 126,
         "h": 30,
         "text": "Reply to customer"
-      },
-      {
-        "el": "button._modeButton_ddizn_948._modeButtonOn_ddizn_960",
-        "w": 99,
-        "h": 30,
-        "text": "Internal note"
       }
     ],
     "smallFont": 1,
@@ -909,7 +915,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 19,
+    "smallTargets": 20,
     "smallTargetSample": [
       {
         "el": "a._lockup_102d8_193",
@@ -954,7 +960,7 @@
         "text": "Tickets"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 108,
         "h": 20,
         "text": "Back to the list"
@@ -981,7 +987,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 21,
+    "smallTargets": 22,
     "smallTargetSample": [
       {
         "el": "a._lockup_102d8_193",
@@ -1026,7 +1032,7 @@
         "text": "Tickets"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 108,
         "h": 20,
         "text": "Back to the list"
@@ -1178,11 +1184,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:rh:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r9:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:rj:._control_21y4g_42",
+        "el": "textarea#:rb:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -1258,11 +1264,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:rd:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:rh:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:rf:._control_21y4g_42",
+        "el": "textarea#:rj:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -1338,11 +1344,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:rd:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:r7:._control_21y4g_42",
+        "el": "textarea#:rf:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -1481,7 +1487,7 @@
     "smallFont": 1,
     "smallFontSample": [
       {
-        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r7:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       }
     ],
@@ -1625,7 +1631,7 @@
     "smallFont": 1,
     "smallFontSample": [
       {
-        "el": "input#:r7:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       }
     ],
@@ -1762,7 +1768,7 @@
         "text": "إظهار كلمة المرور"
       },
       {
-        "el": "input#:r5:._control_edo2e_33",
+        "el": "input#:r7:._control_edo2e_33",
         "w": 23,
         "h": 23,
         "text": ""
@@ -1777,15 +1783,15 @@
     "smallFont": 3,
     "smallFontSample": [
       {
-        "el": "input#:r1:._control_jxvqb_36._md_jxvqb_16",
-        "fontSize": 14
-      },
-      {
         "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_edo2e_33",
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "fontSize": 14
+      },
+      {
+        "el": "input#:r7:._control_edo2e_33",
         "fontSize": 14
       }
     ],
@@ -1859,52 +1865,52 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 17,
+    "smallTargets": 12,
     "smallTargetSample": [
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 53,
         "h": 32,
         "text": "7 أيام"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 62,
         "h": 32,
         "text": "14 يومًا"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 61,
         "h": 32,
         "text": "30 يومًا"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 28,
         "text": "إظهار التذاكر بحالة جديد"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 28,
         "text": "إظهار التذاكر بحالة مفتو"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 28,
         "text": "إظهار التذاكر بحالة قيد "
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 336,
         "h": 28,
         "text": "إظهار التذاكر بحالة بانت"
       },
       {
-        "el": "a._cardLink_otl93_196",
+        "el": "a._cardLink_1debs_204",
         "w": 89,
         "h": 20,
         "text": "عرض الـ15 تذكرة"
@@ -1929,49 +1935,49 @@
     "smallTargets": 17,
     "smallTargetSample": [
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 53,
         "h": 32,
         "text": "7 أيام"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 62,
         "h": 32,
         "text": "14 يومًا"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 61,
         "h": 32,
         "text": "30 يومًا"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 28,
         "text": "إظهار التذاكر بحالة جديد"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 28,
         "text": "إظهار التذاكر بحالة مفتو"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 28,
         "text": "إظهار التذاكر بحالة قيد "
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 698,
         "h": 28,
         "text": "إظهار التذاكر بحالة بانت"
       },
       {
-        "el": "a._cardLink_otl93_196",
+        "el": "a._cardLink_1debs_204",
         "w": 89,
         "h": 20,
         "text": "عرض الـ15 تذكرة"
@@ -2014,32 +2020,32 @@
         "text": "تذكرة جديدة"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 53,
         "h": 32,
         "text": "7 أيام"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 62,
         "h": 32,
         "text": "14 يومًا"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 61,
         "h": 32,
         "text": "30 يومًا"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
-        "w": 213,
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
+        "w": 602,
         "h": 28,
         "text": "إظهار التذاكر بحالة جديد"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
-        "w": 213,
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
+        "w": 602,
         "h": 28,
         "text": "إظهار التذاكر بحالة مفتو"
       }
@@ -2081,31 +2087,31 @@
         "text": "تذكرة جديدة"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 53,
         "h": 32,
         "text": "7 أيام"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 62,
         "h": 32,
         "text": "14 يومًا"
       },
       {
-        "el": "button._rangeButton_otl93_99",
+        "el": "button._rangeButton_1debs_99",
         "w": 61,
         "h": 32,
         "text": "30 يومًا"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 373,
         "h": 28,
         "text": "إظهار التذاكر بحالة جديد"
       },
       {
-        "el": "a._barRow_otl93_596._barRowLink_otl93_613",
+        "el": "a._barRow_1debs_604._barRowLink_1debs_621",
         "w": 373,
         "h": 28,
         "text": "إظهار التذاكر بحالة مفتو"
@@ -2197,43 +2203,43 @@
     "smallTargets": 35,
     "smallTargetSample": [
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 73,
         "h": 32,
         "text": "الكل12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 90,
         "h": 32,
         "text": "جديدة2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 95,
         "h": 32,
         "text": "مفتوحة2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 109,
         "h": 32,
         "text": "قيد التنفيذ2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 123,
         "h": 32,
         "text": "بانتظار العميل2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 93,
         "h": 32,
         "text": "محلولة2"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 87,
         "h": 32,
         "text": "مغلقة2"
@@ -2305,13 +2311,13 @@
         "text": "تذاكر غير مسندة"
       },
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 73,
         "h": 32,
         "text": "الكل12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 90,
         "h": 32,
         "text": "جديدة2"
@@ -2377,13 +2383,13 @@
         "text": "تذاكر غير مسندة"
       },
       {
-        "el": "button._tab_oxlyd_40._tabActive_oxlyd_76",
+        "el": "button._tab_17pts_40._tabActive_17pts_76",
         "w": 73,
         "h": 32,
         "text": "الكل12"
       },
       {
-        "el": "button._tab_oxlyd_40",
+        "el": "button._tab_17pts_40",
         "w": 90,
         "h": 32,
         "text": "جديدة2"
@@ -2392,7 +2398,7 @@
     "smallFont": 1,
     "smallFontSample": [
       {
-        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       }
     ],
@@ -2410,40 +2416,46 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 7,
+    "smallTargets": 8,
     "smallTargetSample": [
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 102,
         "h": 23,
         "text": "العودة إلى القائمة"
       },
       {
-        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "el": "button._statusPill_1jarr_172._statusButton_1jarr_186",
         "w": 90,
         "h": 28,
         "text": "جديدة"
       },
       {
-        "el": "button._actionButton_ddizn_1867",
+        "el": "button._actionButton_1jarr_1867",
         "w": 105,
         "h": 38,
         "text": "اتخاذ إجراء"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "إزالة Refund"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "إزالة Double charge"
       },
       {
-        "el": "button._composeTool_ddizn_1004",
+        "el": "button._tagAdd_1jarr_840",
+        "w": 91,
+        "h": 25,
+        "text": "إضافة وسم"
+      },
+      {
+        "el": "button._composeTool_1jarr_1004",
         "w": 91,
         "h": 32,
         "text": "إدراج قالب"
@@ -2471,7 +2483,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 13,
+    "smallTargets": 14,
     "smallTargetSample": [
       {
         "el": "a._crumb_641m4_71",
@@ -2480,46 +2492,46 @@
         "text": "التذاكر"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 102,
         "h": 23,
         "text": "العودة إلى القائمة"
       },
       {
-        "el": "button._statusPill_ddizn_172._statusButton_ddizn_186",
+        "el": "button._statusPill_1jarr_172._statusButton_1jarr_186",
         "w": 90,
         "h": 28,
         "text": "جديدة"
       },
       {
-        "el": "button._actionButton_ddizn_1867",
+        "el": "button._actionButton_1jarr_1867",
         "w": 105,
         "h": 38,
         "text": "اتخاذ إجراء"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "إزالة Refund"
       },
       {
-        "el": "button._tagRemove_ddizn_827",
+        "el": "button._tagRemove_1jarr_827",
         "w": 11,
         "h": 11,
         "text": "إزالة Double charge"
       },
       {
-        "el": "button._modeButton_ddizn_948",
+        "el": "button._tagAdd_1jarr_840",
+        "w": 91,
+        "h": 25,
+        "text": "إضافة وسم"
+      },
+      {
+        "el": "button._modeButton_1jarr_948",
         "w": 96,
         "h": 30,
         "text": "الرد على العميل"
-      },
-      {
-        "el": "button._modeButton_ddizn_948._modeButtonOn_ddizn_960",
-        "w": 95,
-        "h": 30,
-        "text": "ملاحظة داخلية"
       }
     ],
     "smallFont": 1,
@@ -2543,7 +2555,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 19,
+    "smallTargets": 20,
     "smallTargetSample": [
       {
         "el": "a._lockup_102d8_193",
@@ -2588,7 +2600,7 @@
         "text": "التذاكر"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 102,
         "h": 23,
         "text": "العودة إلى القائمة"
@@ -2615,7 +2627,7 @@
     "mainOverflow": 0,
     "overflowing": [],
     "overflowCount": 0,
-    "smallTargets": 21,
+    "smallTargets": 22,
     "smallTargetSample": [
       {
         "el": "a._lockup_102d8_193",
@@ -2660,7 +2672,7 @@
         "text": "التذاكر"
       },
       {
-        "el": "a._backLink_ddizn_133",
+        "el": "a._backLink_1jarr_133",
         "w": 102,
         "h": 23,
         "text": "العودة إلى القائمة"
@@ -2812,11 +2824,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:rd:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:r7:._control_21y4g_42",
+        "el": "textarea#:rf:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -2892,11 +2904,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r9:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:r7:._control_21y4g_42",
+        "el": "textarea#:rb:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -2972,11 +2984,11 @@
         "fontSize": 14
       },
       {
-        "el": "input#:r5:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:rd:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       },
       {
-        "el": "textarea#:r7:._control_21y4g_42",
+        "el": "textarea#:rf:._control_21y4g_42",
         "fontSize": 14
       }
     ],
@@ -3039,7 +3051,7 @@
         "text": "محمد عبدالله بن سعود الد"
       },
       {
-        "el": "div#:r5:._trigger_1bszu_46._sm_1bszu_69",
+        "el": "div#:r9:._trigger_1bszu_46._sm_1bszu_69",
         "w": 67,
         "h": 39,
         "text": "20"
@@ -3115,7 +3127,7 @@
     "smallFont": 1,
     "smallFontSample": [
       {
-        "el": "input#:r3:._control_jxvqb_36._md_jxvqb_16",
+        "el": "input#:r7:._control_jxvqb_36._md_jxvqb_16",
         "fontSize": 14
       }
     ],

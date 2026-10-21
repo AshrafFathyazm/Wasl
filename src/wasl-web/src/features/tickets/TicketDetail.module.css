@@ -2041,4 +2041,21 @@
   }
 }
 
+/* THE TEMPLATE MENU ON A PHONE (`041` AC-11). It is 316px wide and hangs from the
+   button that opens it — a button in the MIDDLE of the action row, so at 360px the
+   menu ran 18px past the screen's edge in Arabic and 18px past the other in English
+   (measured, `e2e/popovers.mjs`). Below md the button's wrapper stops being the
+   anchor, so the menu's containing block becomes the action row itself — full width
+   and sticky, i.e. positioned — and the menu spans it edge to edge. */
+@media (width < 768px) { /* bp: md */
+  .composeBar .popWrap {
+    position: static;
+  }
+
+  .templateMenu {
+    inset-inline: 0;
+    inline-size: auto;
+  }
+}
+
 /* stylelint-enable no-duplicate-selectors */

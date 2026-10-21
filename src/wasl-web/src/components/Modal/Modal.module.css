@@ -220,7 +220,8 @@
   margin-inline-end: -10px;
 }
 
-@media (width >= 768px) { /* bp: md */
+@media (width >= 768px) {
+  /* bp: md */
   .host {
     align-items: center;
     padding: var(--space-4);

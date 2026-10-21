@@ -17,7 +17,7 @@
     "lint:types": "node scripts/check-no-domain-types.mjs",
     "lint:tokens": "node scripts/check-semantic-tokens.mjs",
     "lint:select": "node scripts/check-no-native-select.mjs",
-    "test:e2e": "node e2e/responsive.smoke.mjs",
+    "test:e2e": "node e2e/responsive.smoke.mjs && node e2e/popovers.mjs",
     "e2e:audit": "node e2e/audit.mjs"
   },
   "dependencies": {

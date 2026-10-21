@@ -70,7 +70,8 @@
   color: var(--text-primary);
 }
 
-@media (width >= 768px) { /* bp: md */
+@media (width >= 768px) {
+  /* bp: md */
   .seg {
     block-size: 34px;
   }

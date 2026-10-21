@@ -359,6 +359,7 @@ export async function installMockApi(context, { signedIn = true } = {}) {
           json([
             { id: 't-1', name: 'Refund' },
             { id: 't-2', name: 'Double charge' },
+            { id: 't-3', name: 'VIP customer' },
           ]),
         );
       if (path === '/api/canned-replies') {

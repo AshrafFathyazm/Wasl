@@ -1,4 +1,4 @@
-# 041 — Audit (Phase 1, 2026-10-21)
+# 041 — Audit (Phases 1 and 2, 2026-10-21)
 
 Run with `src/wasl-web/e2e/audit.mjs` against the **mock API** (`e2e/mockApi.mjs`) — Docker and the
 SQL Server container were not available, so the live-DB audit Q-4 asked for was **not** done.
@@ -31,8 +31,9 @@ measure `main.scrollWidth - main.clientWidth` as well. Re-measured: **8 of 48 "b
 | 9 | Eight different `@media` widths in eight files; two more hard-coded in `useSidebarState` | `breakpoints.ts` header |
 | 10 | Tabs 32px tall, pager buttons 34px, mode switch 30px, header menu button 32px — below 44 | measured, see the targets column below |
 
-Not a defect, measured: **the dashboard already fits at 390** (2-column KPI cards, bars, no overflow). Its grids
-and chart ticks are Phase 2.
+Not a defect, measured: **the dashboard already fits at 390** (2-column KPI cards, bars, no overflow). Phase 2 still moved its grids from a 900px viewport query to the dashboard's own width, stacked the attention list's rows, and checked the chart at 30 days / 360px.
+
+**Found in Phase 2 by opening every menu at 360px:** the composer's template menu (316px, hung from a mid-row button) ran 18px past the screen edge in both languages.
 
 ## Before → after (390 and 1024, both languages)
 
@@ -42,24 +43,24 @@ Overflow = the document **or** `<main>`. Targets / fields = counts of controls u
 |---|---|---|---|---|---|---|
 | login | 390 | en | main +71 | none | 5 → 4 | 3 → 1 |
 | login | 1024 | en | none | none | 4 → 4 | 3 → 3 |
-| dashboard | 390 | en | none | none | 21 → 17 | 0 → 0 |
+| dashboard | 390 | en | none | none | 21 → 12 | 0 → 0 |
 | dashboard | 1024 | en | none | none | 20 → 20 | 0 → 0 |
 | tickets | 390 | en | none | none | 43 → 19 | 1 → 0 |
 | tickets | 1024 | en | none | none | 39 → 41 | 1 → 1 |
-| ticket-detail | 390 | en | main +538 | none | 22 → 7 | 1 → 0 |
-| ticket-detail | 1024 | en | main +284 | none | 18 → 19 | 1 → 1 |
+| ticket-detail | 390 | en | main +538 | none | 22 → 8 | 1 → 0 |
+| ticket-detail | 1024 | en | main +284 | none | 18 → 20 | 1 → 1 |
 | ticket-new | 390 | en | none | none | 18 → 13 | 3 → 0 |
 | ticket-new | 1024 | en | none | none | 17 → 17 | 3 → 3 |
 | customers | 390 | en | none | none | 18 → 8 | 1 → 0 |
 | customers | 1024 | en | none | none | 17 → 15 | 1 → 1 |
 | login | 390 | ar | main +36 | none | 5 → 4 | 3 → 1 |
 | login | 1024 | ar | none | none | 4 → 4 | 3 → 3 |
-| dashboard | 390 | ar | none | none | 21 → 17 | 0 → 0 |
+| dashboard | 390 | ar | none | none | 21 → 12 | 0 → 0 |
 | dashboard | 1024 | ar | none | none | 20 → 20 | 0 → 0 |
 | tickets | 390 | ar | none | none | 43 → 19 | 1 → 0 |
 | tickets | 1024 | ar | none | none | 39 → 41 | 1 → 1 |
-| ticket-detail | 390 | ar | main +21 | none | 22 → 7 | 1 → 0 |
-| ticket-detail | 1024 | ar | none | none | 18 → 19 | 1 → 1 |
+| ticket-detail | 390 | ar | main +21 | none | 22 → 8 | 1 → 0 |
+| ticket-detail | 1024 | ar | none | none | 18 → 20 | 1 → 1 |
 | ticket-new | 390 | ar | none | none | 18 → 13 | 3 → 0 |
 | ticket-new | 1024 | ar | none | none | 17 → 17 | 3 → 3 |
 | customers | 390 | ar | main +82 | none | 18 → 8 | 1 → 0 |
@@ -74,7 +75,6 @@ Overflow = the document **or** `<main>`. Targets / fields = counts of controls u
   and New-ticket buttons, the mode switch and the drawer close button were brought to 44. Most of the rest are 24–32px
   icon buttons inside dense rows.
 - **Form fields under 16px** at 1024+ is by design (the 16px floor is `< md`); at 390 only the login screen's remaining field fails (1).
-- Dashboard grids and chart ticks, the filter bottom sheet, dialogs as sheets, popover flipping — Phase 2.
 - Widths 360 and 1440 for every route, settings pages — Phase 3 (1440 and 768 were audited for the core routes only).
 
 ## Container thresholds decided from the audit (spec §8.A)

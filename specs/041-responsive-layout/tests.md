@@ -1,4 +1,4 @@
-# 041 — Tests (Phase 1, observed 2026-10-21)
+# 041 — Tests (Phases 1 and 2, observed 2026-10-21)
 
 Every number below was printed by the command beside it in this session. Nothing is quoted from memory.
 
@@ -8,10 +8,10 @@ Every number below was printed by the command beside it in this session. Nothing
 |---|---|
 | `npx tsc -b` | clean |
 | `npx eslint .` | clean (`e2e/**` gets Node + browser globals — the scripts hand functions to the page) |
-| `npx stylelint "src/**/*.css"` | **2 errors, both pre-existing at `396f82c`** (`Sidebar.module.css:31 :global`, `Dashboard.module.css:961` range notation). The three this phase introduced were fixed. The Dashboard one goes with its Phase 2 migration |
+| `npx stylelint "src/**/*.css"` | **1 error, pre-existing at `396f82c`** (`Sidebar.module.css:31 :global`). The Dashboard one went with its migration |
 | `npm run lint:tokens` / `lint:i18n` / `lint:select` / `lint:types` | clean · parity OK, 641 keys · clean · clean |
-| `NODE_OPTIONS=--max-old-space-size=6144 npx vitest run --maxWorkers=3` | **69 files, 1489 tests passed** (the default run dies `Zone Allocation failed`) |
-| `npm run test:e2e` | **✓ 24 page loads** — 6 core routes × 390/1280 × en/ar: no sideways scroll in the document or in `<main>`, navigation reachable, nothing threw, no unmocked request |
+| `NODE_OPTIONS=--max-old-space-size=6144 npx vitest run --maxWorkers=3` | **69 files, 1490 tests passed** (the default run dies `Zone Allocation failed`) |
+| `npm run test:e2e` | **✓ 24 page loads** (6 core routes × 390/1280 × en/ar: no sideways scroll in the document or in `<main>`, navigation reachable, nothing threw, no unmocked request) **and ✓ 12 menus at 360px and at 390px**, en + ar, all inside the viewport |
 | `node e2e/audit.mjs` before / after | overflowing loads **8 / 48 → 0 / 48** (`audit.md`) |
 
 ## Acceptance criteria — Phase 1
@@ -30,7 +30,11 @@ Every number below was printed by the command beside it in this session. Nothing
 | AC-16 no table→cards flash | met in test | `tableCards.test.tsx` renders cards synchronously on the first render |
 | AC-17 draft survives the drawer | met | `drawer.test.tsx` "does not lose an unsaved draft" — same DOM node, same value. Bottom sheets are Phase 2 |
 | AC-18 collapsed info header | met | "Details · avatar + name · category" |
-| AC-7, 10, 11, 12, 13, 14-full | **not Phase 1** | Phase 2 / 3 |
+| AC-7 dashboard grids, no overlapping ticks | met | seen at 390 (en/ar) and 30d/360; grids are container queries (`breakpoints.guard.test.ts` allows only named widths). Not asserted by an automated layout test — jsdom lays out nothing |
+| AC-11 popovers inside the viewport at 360 | **met, measured** | `e2e/popovers.mjs`: 12 menus × en/ar at 360 and 390. It found one real defect (template menu, 18px off-screen) which is fixed |
+| AC-12 dialogs below md are sheets | met for `Modal`, `SideSheet`, the filter panel; **seen** in screenshots (`modal.390.png`, `filter.390.en.png`) | CSS — no jsdom assertion. The filter panel's Escape + close button are asserted (`TicketFilterBar.test.tsx`) |
+| AC-13 reduced motion | CSS present on drawer, modal sheet, details chevron | **not observed** under emulated `prefers-reduced-motion`; Phase 3 |
+| AC-10, AC-14-full | **Phase 3** | |
 
 ## Known gaps in what was verified
 

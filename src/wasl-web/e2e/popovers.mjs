@@ -16,8 +16,24 @@ import { installMockApi, seedSession, TICKET_ID } from './mockApi.mjs';
 
 const width = Number(process.argv[2] ?? 360);
 const LABELS = {
-  en: { actions: 'Take action', template: /Insert a template/, tag: /Add a tag/, details: /^Details/, assign: /^Assign$|Change assignee/, internal: 'Internal note', category: /Category/ },
-  ar: { actions: 'اتخاذ إجراء', template: /إدراج قالب/, tag: /إضافة وسم|وسم/, details: /^التفاصيل/, assign: /^إسناد$|تغيير المُسنَد|تغيير/, internal: 'ملاحظة داخلية', category: /التصنيف/ },
+  en: {
+    actions: 'Take action',
+    template: /Insert a template/,
+    tag: /Add a tag/,
+    details: /^Details/,
+    assign: /Change the assignee|^Assign$/,
+    internal: 'Internal note',
+    rows: /Rows per page/,
+  },
+  ar: {
+    actions: 'اتخاذ إجراء',
+    template: /إدراج قالب/,
+    tag: /إضافة وسم|وسم/,
+    details: /^التفاصيل/,
+    assign: /تغيير المسؤول/,
+    internal: 'ملاحظة داخلية',
+    rows: /عدد الصفوف/,
+  },
 };
 
 /** Runs in the page: every visible, out-of-flow, panel-sized element. */
@@ -26,11 +42,20 @@ function panels() {
   for (const el of document.body.querySelectorAll('*')) {
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden') continue;
-    if (s.position !== 'absolute' && s.position !== 'fixed') continue;
+    const role = el.getAttribute('role');
+    const isMenu = role === 'menu' || role === 'listbox' || role === 'dialog';
+    if (!isMenu && s.position !== 'absolute' && s.position !== 'fixed') continue;
     const r = el.getBoundingClientRect();
-    if (r.width < 120 || r.height < 60) continue;
-    if (r.width >= window.innerWidth - 1 && r.left <= 1) continue; /* a full-width backdrop or sheet */
-    out.push({ key: `${el.tagName}.${String(el.className).slice(0, 40)}`, left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) });
+    if (!isMenu && (r.width < 100 || r.height < 30)) continue;
+    if (r.width < 20) continue;
+    if (r.width >= window.innerWidth - 1 && r.left <= 1)
+      continue; /* a full-width backdrop or sheet */
+    out.push({
+      key: `${el.tagName}.${String(el.className).slice(0, 40)}`,
+      left: Math.round(r.left),
+      right: Math.round(r.right),
+      width: Math.round(r.width),
+    });
   }
   return out;
 }
@@ -43,7 +68,10 @@ let opened = 0;
 try {
   for (const lang of ['en', 'ar']) {
     const L = LABELS[lang];
-    const context = await browser.newContext({ viewport: { width, height: 800 }, locale: lang === 'ar' ? 'ar-SA' : 'en-US' });
+    const context = await browser.newContext({
+      viewport: { width, height: 800 },
+      locale: lang === 'ar' ? 'ar-SA' : 'en-US',
+    });
     await installMockApi(context);
     await seedSession(context, lang);
     const page = await context.newPage();
@@ -54,35 +82,57 @@ try {
       try {
         await open();
       } catch (error) {
-        failures.push(`${lang} ${name}: could not open — ${String(error).replace(/\s+/g, ' ').slice(0, 420)}`);
+        failures.push(
+          `${lang} ${name}: could not open — ${String(error).replace(/\s+/g, ' ').slice(0, 420)}`,
+        );
         return;
       }
       await page.waitForTimeout(250);
-      const fresh = (await page.evaluate(panels)).filter((p) => !before.has(p.key + p.left));
+      const fresh = (await page.evaluate(panels)).filter(
+        (p) => !before.has(p.key + p.left),
+      );
       opened += 1;
-      if (fresh.length === 0) failures.push(`${lang} ${name}: nothing appeared (selector drift?)`);
+      if (fresh.length === 0)
+        failures.push(`${lang} ${name}: nothing appeared (selector drift?)`);
       for (const p of fresh) {
-        if (p.left < -1 || p.right > width + 1) failures.push(`${lang} ${name}: ${p.key} spans ${p.left}..${p.right} in a ${width}px viewport`);
+        if (p.left < -1 || p.right > width + 1)
+          failures.push(
+            `${lang} ${name}: ${p.key} spans ${p.left}..${p.right} in a ${width}px viewport`,
+          );
       }
       await page.keyboard.press('Escape');
       await page.waitForTimeout(150);
     };
 
     await page.goto(`${server.url}/tickets/${TICKET_ID}`, { waitUntil: 'networkidle' });
-    await check('take-action menu', () => page.getByRole('button', { name: L.actions }).click());
-    await check('status menu', () => page.locator('button[aria-haspopup="menu"]').first().click());
+    await check('take-action menu', () =>
+      page.getByRole('button', { name: L.actions }).click(),
+    );
+    await check('status menu', () =>
+      page.locator('main button[aria-haspopup="menu"]').first().click(),
+    );
     await check('template menu', async () => {
-      await page.getByRole('button', { name: L.internal }).click().catch(() => {});
+      await page
+        .getByRole('button', { name: L.internal })
+        .click()
+        .catch(() => {});
       await page.getByRole('button', { name: L.template }).click();
     });
-    await check('tag picker', () => page.getByRole('button', { name: L.tag }).first().click());
+    await check('tag picker', () =>
+      page.getByRole('button', { name: L.tag }).first().click(),
+    );
     await check('assignee panel', async () => {
       await page.getByRole('button', { name: L.details }).click();
       await page.getByRole('button', { name: L.assign }).first().click();
     });
 
-    await page.goto(`${server.url}/tickets/new`, { waitUntil: 'networkidle' });
-    await check('category dropdown', () => page.getByRole('combobox', { name: L.category }).click());
+    /* The new-ticket Category dropdown is DISABLED until a customer is chosen, so the
+       Dropdown primitive is exercised through the list pager's "rows per page" — the
+       same component, the same placement code. */
+    await page.goto(`${server.url}/tickets`, { waitUntil: 'networkidle' });
+    await check('dropdown (rows per page)', () =>
+      page.getByRole('combobox', { name: L.rows }).click(),
+    );
 
     await context.close();
   }
@@ -92,8 +142,12 @@ try {
 }
 
 if (failures.length > 0) {
-  console.error(`\n${failures.length} problem(s), ${opened} menus opened at ${width}px:\n`);
+  console.error(
+    `\n${failures.length} problem(s), ${opened} menus opened at ${width}px:\n`,
+  );
   for (const f of failures) console.error(`  ✗ ${f}`);
   process.exit(1);
 }
-console.log(`\n✓ ${opened} menus opened at ${width}px, en + ar — all inside the viewport.`);
+console.log(
+  `\n✓ ${opened} menus opened at ${width}px, en + ar — all inside the viewport.`,
+);

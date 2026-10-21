@@ -10,7 +10,10 @@ const out = resolve(dirname(fileURLToPath(import.meta.url)), 'out', 'shots');
 const server = await startDevServer(5196);
 const browser = await chromium.launch();
 try {
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: lang === 'ar' ? 'ar-SA' : 'en-US' });
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: lang === 'ar' ? 'ar-SA' : 'en-US',
+  });
   await installMockApi(context);
   await seedSession(context, lang);
   const page = await context.newPage();
@@ -19,7 +22,13 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: resolve(out, `filter.390.${lang}.png`) });
   await page.keyboard.press('Escape');
-  console.log('open after Esc:', await page.getByText(lang === 'ar' ? 'مسح الكل' : 'Clear all').isVisible().catch(() => false));
+  console.log(
+    'open after Esc:',
+    await page
+      .getByText(lang === 'ar' ? 'مسح الكل' : 'Clear all')
+      .isVisible()
+      .catch(() => false),
+  );
 } finally {
   await browser.close();
   await server.close();

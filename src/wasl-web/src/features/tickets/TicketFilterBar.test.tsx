@@ -260,6 +260,27 @@ describe('the panel', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
 
+  /* `041`. Below md the panel is a bottom sheet, and a sheet needs a way out that is
+   * not the button that opened it: Escape, and a named close button. Both hold at
+   * every width — the head with the button is `display: none` from md up in CSS, but
+   * Escape is behaviour and applies everywhere. */
+  it('closes on Escape and from its own close button', async () => {
+    mounted();
+    await waitFor(() => expect(listTickets).toHaveBeenCalled());
+    const toggle = screen.getByRole('button', {
+      name: new RegExp(i18n.t('tickets:list.filter'), 'i'),
+    });
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.keyboard('{Escape}');
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole('button', { name: i18n.t('common:dismiss') }));
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   /* The count is what tells a reader a filter is on while the panel is shut. */
   it('counts the active filters in a badge, and keeps the button name stable', async () => {
     mounted('/tickets?status=Open&status=New&escalated=false');
