@@ -597,3 +597,86 @@
     block-size: 32px;
   }
 }
+
+/* ============================================================================
+ * `041` — THE FILTER PANEL IS A BOTTOM SHEET BELOW md
+ * ============================================================================
+ * Anchored under a button at the end of a 358px toolbar, a 420px popover is either
+ * clipped or squeezed, and its two date fields and chip rows are tapped, not
+ * pointed at. Below md the same element becomes a sheet on the bottom edge: full
+ * width, 85dvh at most and scrolling inside itself, rounded where it meets the
+ * page, with a backdrop, a title row and a 44px close button (and Escape, in the
+ * component). From md up the head and the backdrop are `display: none` and the
+ * panel is the popover it was.
+ * ========================================================================= */
+/* stylelint-disable no-duplicate-selectors -- phone rules after the desktop ones they restore at md. */
+.panelScrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  padding: 0;
+  border: 0;
+  background-color: var(--scrim);
+  cursor: default;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panelTitle {
+  font-size: var(--type-card-title);
+  font-weight: var(--weight-bold);
+}
+
+.panelClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  margin-inline-end: calc(var(--space-2) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+  cursor: pointer;
+}
+
+.panel {
+  position: fixed;
+  inset-block: auto 0;
+  inset-inline: 0;
+  z-index: calc(var(--z-modal) + 1);
+  inline-size: auto;
+  max-block-size: 85dvh;
+  overflow-y: auto;
+  padding-block-end: calc(var(--space-4) + env(safe-area-inset-bottom, 0));
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+@media (width >= 768px) { /* bp: md */
+  .panelScrim,
+  .panelHead {
+    display: none;
+  }
+
+  .panel {
+    position: absolute;
+    inset-block: calc(100% + var(--space-2)) auto;
+    inset-inline: auto 0;
+    z-index: var(--z-flyout, 30);
+    inline-size: min(420px, calc(100vw - 2 * var(--space-4)));
+    max-block-size: none;
+    overflow-y: visible;
+    padding-block-end: var(--space-4);
+    border-radius: var(--radius-lg);
+  }
+}
+/* stylelint-enable no-duplicate-selectors */

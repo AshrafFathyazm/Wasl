@@ -57,12 +57,16 @@
  * renders the crumb alone, and the page below it must not jump. */
 .crumbRow {
   display: flex;
+  /* `041`: wraps. The crumb and the two-segment switcher are ~420px together, and a
+     390px screen has 358 — the switcher's second segment was clipped off the edge. */
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   min-block-size: 42px;
 }
 
 .crumbs {
+  min-inline-size: 0;
   display: flex;
   align-items: center;
   gap: var(--space-2);

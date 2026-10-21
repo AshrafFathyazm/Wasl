@@ -39,7 +39,8 @@
 .seg {
   display: inline-flex;
   align-items: center;
-  block-size: 34px;
+  /* 44 on a phone, the design's 34 from md. */
+  block-size: 44px;
   padding-inline: var(--space-4);
   border-radius: var(--radius-pill);
   color: var(--text-secondary);
@@ -67,4 +68,10 @@
 
 .segOn:hover {
   color: var(--text-primary);
+}
+
+@media (width >= 768px) { /* bp: md */
+  .seg {
+    block-size: 34px;
+  }
 }

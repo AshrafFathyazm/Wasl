@@ -297,7 +297,9 @@ describe('030 AC-12 — below 768px it is a full page, not a narrow panel', () =
   });
 
   it('breaks at 768, and no longer at 480', () => {
-    expect(css).toMatch(/@media\s*\(\s*width\s*<=\s*768px\s*\)/);
+    /* `041`: `< 768`, not `<= 768` — `md` is 768 and starts AT 768, so a viewport of exactly 768 is
+       the tablet layout and the sheet must not claim it as a phone. */
+    expect(css).toMatch(/@media\s*\(\s*width\s*<\s*768px\s*\)/);
 
     /* THE OTHER SIDE OF THE BREAKPOINT, and it is the half that was wrong rather
        than missing. 480 is the SMALLEST RUNG OF THE WIDTH LADDER
@@ -308,7 +310,7 @@ describe('030 AC-12 — below 768px it is a full page, not a narrow panel', () =
   });
 
   it('gives up the panel’s chrome too, not just its width', () => {
-    const query = css.slice(css.indexOf('@media (width <= 768px)'));
+    const query = css.slice(css.indexOf('@media (width < 768px)'));
 
     expect(query).toContain('inline-size: 100vw');
 

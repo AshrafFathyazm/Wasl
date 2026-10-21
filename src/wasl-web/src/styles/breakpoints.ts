@@ -4,8 +4,8 @@
  * Before this there were eight different `@media` widths across eight
  * stylesheets (480, 700, 700, 768, 900, 900, 980, 1100) and two more hard-coded
  * in `useSidebarState`, each chosen locally and none agreeing. They are retired
- * into the four below; the two that stay are listed in `LEGACY_WIDTHS` with the
- * reason, and `breakpoints.guard.test.ts` fails on any other.
+ * into the four below. `LEGACY_WIDTHS` is for a width that must stay and says why;
+ * it is EMPTY, and `breakpoints.guard.test.ts` fails on any width not named here.
  *
  * VIEWPORT BREAKPOINTS DECIDE THE SHELL ONLY — drawer or sidebar, header
  * controls, and "table or cards", which is a property of the screen the reader
@@ -52,11 +52,7 @@ export const CONTAINER_WIDTHS = {
  * guard accepts exactly these and fails if an entry no longer appears in any
  * stylesheet — a stale exemption is a hole the next width walks through.
  */
-export const LEGACY_WIDTHS: Record<string, string> = {
-  /* Each belongs to a screen `041` Phase 2 owns; the entry is deleted with the
-     migration, and the guard fails if it outlives it. */
-  '480': 'ToastHost — a toast becomes a bottom sheet in Phase 2 (dialogs as sheets)',
-};
+export const LEGACY_WIDTHS: Record<string, string> = {};
 
 export const ALLOWED_WIDTHS: ReadonlySet<number> = new Set([
   ...Object.values(BREAKPOINTS),
