@@ -125,7 +125,8 @@
    and "+966 5X XXX XX" were cut mid-value, which on a field whose whole job is
    to be read back is not a layout, it is a defect. One column below md, in the
    order the file header argues for (the email-or-phone pair stays adjacent). */
-@media (width >= 768px) { /* bp: md */
+@media (width >= 768px) {
+  /* bp: md */
   .card:not(.cardBare) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -370,8 +371,22 @@
   block-size: 78px;
 }
 
-@media (width >= 768px) { /* bp: md */
+@media (width >= 768px) {
+  /* bp: md */
   .card {
     padding: var(--space-6);
+  }
+}
+
+/* `041` — a link that is a CONTROL is a 44px target on a phone (the floor in base.css
+   covers buttons and fields; a link's box is its text, so it takes its own rule). */
+@media (width < 768px) {
+  /* bp: md */
+  .cancel,
+  .back {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+    min-inline-size: 44px;
   }
 }

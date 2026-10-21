@@ -1,4 +1,4 @@
-# 041 — Tests (Phases 1 and 2, observed 2026-10-21)
+# 041 — Tests (Phases 1, 2 and 3, observed 2026-10-22)
 
 Every number below was printed by the command beside it in this session. Nothing is quoted from memory.
 
@@ -11,8 +11,8 @@ Every number below was printed by the command beside it in this session. Nothing
 | `npx stylelint "src/**/*.css"` | **1 error, pre-existing at `396f82c`** (`Sidebar.module.css:31 :global`). The Dashboard one went with its migration |
 | `npm run lint:tokens` / `lint:i18n` / `lint:select` / `lint:types` | clean · parity OK, 641 keys · clean · clean |
 | `NODE_OPTIONS=--max-old-space-size=6144 npx vitest run --maxWorkers=3` | **69 files, 1490 tests passed** (the default run dies `Zone Allocation failed`) |
-| `npm run test:e2e` | **✓ 24 page loads** (6 core routes × 390/1280 × en/ar: no sideways scroll in the document or in `<main>`, navigation reachable, nothing threw, no unmocked request) **and ✓ 12 menus at 360px and at 390px**, en + ar, all inside the viewport |
-| `node e2e/audit.mjs` before / after | overflowing loads **8 / 48 → 0 / 48** (`audit.md`) |
+| `npm run test:e2e` (five scripts, run in order) | **✓ 78 page loads** (13 routes × 360/390/1280 × en/ar: no sideways scroll in the document or in `<main>`, navigation reachable, nothing threw, no unmocked request) · **✓ 12 menus** at 360 and at 390, en + ar, all inside the viewport · **✓ reduced motion** removes the drawer slide and the modal animation (and both move without it) · **✓ keyboard-height viewport** (390×420): composer Send and new-ticket Create on screen and hittable, en + ar · **✓ 0 controls under 44×44 and 0 text fields under 16px** at 390 |
+| `node e2e/audit.mjs` | before: 8 / 48 loads overflowing (6 routes × 4 widths × 2 langs). **After: 0 / 130** (13 routes × 5 widths × 2 langs) |
 
 ## Acceptance criteria — Phase 1
 
@@ -34,7 +34,10 @@ Every number below was printed by the command beside it in this session. Nothing
 | AC-11 popovers inside the viewport at 360 | **met, measured** | `e2e/popovers.mjs`: 12 menus × en/ar at 360 and 390. It found one real defect (template menu, 18px off-screen) which is fixed |
 | AC-12 dialogs below md are sheets | met for `Modal`, `SideSheet`, the filter panel; **seen** in screenshots (`modal.390.png`, `filter.390.en.png`) | CSS — no jsdom assertion. The filter panel's Escape + close button are asserted (`TicketFilterBar.test.tsx`) |
 | AC-13 reduced motion | CSS present on drawer, modal sheet, details chevron | **not observed** under emulated `prefers-reduced-motion`; Phase 3 |
-| AC-10, AC-14-full | **Phase 3** | |
+| AC-10 44px targets, 16px fields | **met at 360 and 390** (the widths the floor applies to) | `e2e/targets.mjs --strict` — 102 controls in 27 kinds before the sweep, 0 after. Exemptions are written in the script (inline text links, stretched card links, label-sized checkboxes). **Control:** the script's first run is the "before" count; it exits 1 while any remain |
+| AC-13 reduced motion | **met, computed style** | `e2e/motion.mjs`: with the preference the drawer's `transition-duration` is 1e-05s and the modal's `animation-name` is `none`; without it, 0.22s and `modal-sheet`. (The "off" half is the control.) |
+| AC-8 composer reachable, keyboard up | **met for a shrunken viewport** | `e2e/keyboard.mjs`. **Control:** setting the action row `position: static` turned it red (`Send spans 401..445 in a 420px viewport`, en and ar); restored, green. **Not a real keyboard** |
+| AC-14 full | met for the commands above | 
 
 ## Known gaps in what was verified
 

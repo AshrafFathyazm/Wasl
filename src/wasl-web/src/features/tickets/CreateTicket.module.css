@@ -666,3 +666,14 @@
   color: var(--brand);
   text-decoration: underline;
 }
+
+/* `041` — a link that is a CONTROL is a 44px target on a phone (the floor in base.css
+   covers buttons and fields; a link's box is its text, so it takes its own rule). */
+@media (width < 768px) {
+  /* bp: md */
+  .back {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
+}

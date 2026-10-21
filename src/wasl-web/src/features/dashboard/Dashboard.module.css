@@ -1005,3 +1005,18 @@
     flex: 0 0 auto;
   }
 }
+
+/* `041` — the status / channel bar rows are links, and the card header's "View all" is
+   one: 44px targets on a phone. */
+@media (width < 768px) {
+  /* bp: md */
+  .barRowLink {
+    min-block-size: 44px;
+  }
+
+  .cardLink {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 44px;
+  }
+}

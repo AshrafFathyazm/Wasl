@@ -1,6 +1,6 @@
-# 041 — Summary, Phases 1 and 2 (2026-10-21)
+# 041 — Summary, Phases 1, 2 and 3 (2026-10-22)
 
-**Status** Phases 1 and 2 implemented, **not committed**. Phase 3 not started — the brief says to stop for review.
+**Status** All three phases implemented, **not committed**.
 Full evidence is in `audit.md` and `tests.md`.
 
 ## What was built
@@ -28,6 +28,17 @@ Full evidence is in `audit.md` and `tests.md`.
 | **Popovers** | **Found by measuring, not by reading:** the composer's template menu is 316px wide and hangs from a button in the middle of the action row, so at 360px it ran 18px off the screen (right edge in English, left in Arabic). Below md its anchor is now the action row. `e2e/popovers.mjs` opens 12 menus (take-action, status, templates, tags, assignee, the `Dropdown` primitive) in both languages at 360 and 390: **all inside the viewport**. **Control:** the same script was red on the template menu before the fix |
 | **Guard** | `LEGACY_WIDTHS` is now **empty** — every width in every stylesheet is a named one. `npm run test:e2e` runs the smoke test and the popover check |
 
+## Phase 3 — what was built
+
+| Area | Change |
+|---|---|
+| **Full matrix** | `e2e/audit.mjs` now covers 13 routes (adds My tickets, Unassigned, customer profile / new / edit, Branding, Localization) at 360, 390, 768, 1024 and 1440 in both languages: **130 loads, 0 overflow**. The smoke test runs the same 13 routes at 360 / 390 / 1280 (78 loads) |
+| **Touch floor (AC-10)** | One `:where()` rule in `base.css` below 768 gives every control a 44×44 floor; the "x" inside a chip keeps its size and takes its hit area from negative margins. `e2e/targets.mjs --strict`: **102 → 0** under 44px at 390, 0 at 360, 0 text fields under 16px. The checkbox's label is its target now (44 tall, fills the row) |
+| **Fixes the sweep exposed** | The tab strip's chips shrank into each other (`flex: none`); scroll-into-view of the chosen tab ran before the counts widened the chips; the new-customer form kept two ~150px columns on a phone |
+| **Reduced motion (AC-13)** | `e2e/motion.mjs` reads computed style with the preference on and off |
+| **Keyboard (AC-8)** | `e2e/keyboard.mjs` cuts the viewport to 390×420 and checks the composer's Send and the new-ticket Create are on screen and hittable. **A control run** (action row `static`) turned it red |
+| **`npm run test:e2e`** | Runs smoke → popovers → motion → keyboard → targets |
+
 ## Decisions I made that you should check
 
 1. **The table/card switch is the element's width (760px), not the viewport's md.** At a 1024px viewport the sidebar and frame leave ~620px, so a viewport rule would have drawn the cramped table the audit found at 768. This is a deviation from "md and up: the table" in the brief.
@@ -39,11 +50,11 @@ Full evidence is in `audit.md` and `tests.md`.
 
 ## Not done / limits
 
-- **AC-10 (44px / 16px)** — 7–42 controls per page are still under 44px (see `audit.md`); Phase 3.
+- **The 44px floor is global and blunt:** every button, tab, menu item and form field gets `min-block-size: 44px` below 768. It was verified by screenshot on the ticket page, tickets list, login and filter sheet — **not on every screen**. A dense control I did not look at may have grown. The audit shows no overflow, but "looks right" is not measured.
 - **No real keyboard, notch or touch device** — AC-8's keyboard-open behaviour and AC-9's inset are implemented, not observed.
 - **Mock API** — the live-DB audit was impossible (Docker down).
 - **Chromium only.**
-- The two stylelint errors that predate this work are untouched.
+- The one stylelint error that predates this work (`Sidebar.module.css` `:global`) is untouched.
 
 ## Screenshots (`screens/`, Arabic, committed)
 

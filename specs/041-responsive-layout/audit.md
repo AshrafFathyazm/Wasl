@@ -39,43 +39,66 @@ Not a defect, measured: **the dashboard already fits at 390** (2-column KPI card
 
 Overflow = the document **or** `<main>`. Targets / fields = counts of controls under 44×44 / form fields under 16px.
 
-| route | w | lang | overflow before | overflow after | targets<44 before→after | fields<16 before→after |
-|---|---|---|---|---|---|---|
-| login | 390 | en | main +71 | none | 5 → 4 | 3 → 1 |
-| login | 1024 | en | none | none | 4 → 4 | 3 → 3 |
-| dashboard | 390 | en | none | none | 21 → 12 | 0 → 0 |
-| dashboard | 1024 | en | none | none | 20 → 20 | 0 → 0 |
-| tickets | 390 | en | none | none | 43 → 19 | 1 → 0 |
-| tickets | 1024 | en | none | none | 39 → 41 | 1 → 1 |
-| ticket-detail | 390 | en | main +538 | none | 22 → 8 | 1 → 0 |
-| ticket-detail | 1024 | en | main +284 | none | 18 → 20 | 1 → 1 |
-| ticket-new | 390 | en | none | none | 18 → 13 | 3 → 0 |
-| ticket-new | 1024 | en | none | none | 17 → 17 | 3 → 3 |
-| customers | 390 | en | none | none | 18 → 8 | 1 → 0 |
-| customers | 1024 | en | none | none | 17 → 15 | 1 → 1 |
-| login | 390 | ar | main +36 | none | 5 → 4 | 3 → 1 |
-| login | 1024 | ar | none | none | 4 → 4 | 3 → 3 |
-| dashboard | 390 | ar | none | none | 21 → 12 | 0 → 0 |
-| dashboard | 1024 | ar | none | none | 20 → 20 | 0 → 0 |
-| tickets | 390 | ar | none | none | 43 → 19 | 1 → 0 |
-| tickets | 1024 | ar | none | none | 39 → 41 | 1 → 1 |
-| ticket-detail | 390 | ar | main +21 | none | 22 → 8 | 1 → 0 |
-| ticket-detail | 1024 | ar | none | none | 18 → 20 | 1 → 1 |
-| ticket-new | 390 | ar | none | none | 18 → 13 | 3 → 0 |
-| ticket-new | 1024 | ar | none | none | 17 → 17 | 3 → 3 |
-| customers | 390 | ar | main +82 | none | 18 → 8 | 1 → 0 |
-| customers | 1024 | ar | none | none | 17 → 15 | 1 → 1 |
+| route | w | lang | overflow before | overflow after | raw targets<44 before→after |
+|---|---|---|---|---|---|
+| login | 390 | en | main +71 | none | 5 → 1 |
+| login | 1024 | en | none | none | 4 → 4 |
+| dashboard | 390 | en | none | none | 21 → 0 |
+| dashboard | 1024 | en | none | none | 20 → 20 |
+| tickets | 390 | en | none | none | 43 → 0 |
+| tickets | 1024 | en | none | none | 39 → 41 |
+| ticket-detail | 390 | en | main +538 | none | 22 → 0 |
+| ticket-detail | 1024 | en | main +284 | none | 18 → 20 |
+| ticket-new | 390 | en | none | none | 18 → 0 |
+| ticket-new | 1024 | en | none | none | 17 → 17 |
+| customers | 390 | en | none | none | 18 → 0 |
+| customers | 1024 | en | none | none | 17 → 15 |
+| login | 390 | ar | main +36 | none | 5 → 1 |
+| login | 1024 | ar | none | none | 4 → 4 |
+| dashboard | 390 | ar | none | none | 21 → 0 |
+| dashboard | 1024 | ar | none | none | 20 → 20 |
+| tickets | 390 | ar | none | none | 43 → 0 |
+| tickets | 1024 | ar | none | none | 39 → 41 |
+| ticket-detail | 390 | ar | main +21 | none | 22 → 0 |
+| ticket-detail | 1024 | ar | none | none | 18 → 20 |
+| ticket-new | 390 | ar | none | none | 18 → 0 |
+| ticket-new | 1024 | ar | none | none | 17 → 17 |
+| customers | 390 | ar | main +82 | none | 18 → 0 |
+| customers | 1024 | ar | none | none | 17 → 15 |
 
 **Overflowing page loads: 8 / 48 → 0 / 48.** `npm run test:e2e` (24 loads: 6 routes × 390/1280 × en/ar) passes.
 
-## Open after Phase 1 (measured, not fixed)
+## Phase 3 — the full matrix, and the touch sweep
 
-- **Touch targets (AC-10, Phase 3).** Still 7–42 controls under 44px per page — the dashboard (17 at 390), the ticket list's
-  filter bar, ticket detail's header chips and rail buttons, form fields at 40px. Tabs, pager buttons, the header menu
-  and New-ticket buttons, the mode switch and the drawer close button were brought to 44. Most of the rest are 24–32px
-  icon buttons inside dense rows.
-- **Form fields under 16px** at 1024+ is by design (the 16px floor is `< md`); at 390 only the login screen's remaining field fails (1).
-- Widths 360 and 1440 for every route, settings pages — Phase 3 (1440 and 768 were audited for the core routes only).
+**130 page loads** (13 routes × 360 / 390 / 768 / 1024 / 1440 × en / ar; `audit-after.results.json`): **0 overflow** in the
+document or in `<main>`, 0 page errors, 0 unmocked requests. The seven routes Phase 1 did not cover — My tickets, Unassigned,
+customer profile, new customer, edit customer, Branding, Localization — have **no "before"** (the throwaway worktree was gone
+by then), so for them the claim is "after: clean", not "fixed".
+
+Found and fixed on the way: the **new-customer form kept two columns at 390** (name/company and email/phone ~150px each, values
+cut mid-address); and the **status tab strip squeezed its own labels** into each other once a filter chip row was present
+(`flex: none` was missing), plus its scroll-into-view ran before the counts widened the chips and landed the chosen tab off-screen.
+
+### AC-10, measured by `e2e/targets.mjs` (the audit's own raw counter does not apply the exemptions below)
+
+| Width | Controls under 44×44 | Text fields under 16px |
+|---|---|---|
+| 390 | **0** (was 102 in 27 kinds before the sweep) | **0** |
+| 360 | **0** | **0** |
+
+Exemptions, written into the script: an inline link in running text (§8.D); a card whose subject link is stretched over the whole
+card (the hit area is the card); a checkbox or radio whose *label* is at least 44×44. The raw counter in `audit.mjs` does not apply
+them, so its 12-per-width figure at 360/390 is superseded by this one. From md (768) up the floor is off by design, so 768+
+columns in `audit-after.results.json` are large and are not defects.
+
+**How:** ONE low-specificity rule in `base.css` (`:where()`, below 768) sets `min-block-size`/`min-inline-size: 44px` on buttons,
+tabs, menu items, radios, switches, comboboxes, summaries, field inputs and control-links; the three controls that must stay small
+inside a chip (the tag "x", the applied-filter "x") keep their size and take 44px of hit area with cancelling negative margins.
+
+## Still not verified
+
+- A real phone, a real on-screen keyboard (`keyboard.mjs` only shrinks the viewport), Safari and Firefox, a notched device's safe-area inset.
+- The real API — the container was down for the whole of this work.
 
 ## Container thresholds decided from the audit (spec §8.A)
 

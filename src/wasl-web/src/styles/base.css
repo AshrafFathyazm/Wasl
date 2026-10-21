@@ -348,13 +348,4 @@ a {
   :where(input:not([type='checkbox'], [type='radio'], [type='hidden']), select) {
     min-block-size: 44px;
   }
-
-  /* A link that is a control (a back link, a "Cancel", a crumb) — not a link in a
-     sentence, which stays inline and is exempt. */
-  :where(a[href]):where(:not(p a, li > a:only-child, dd a, td a)) {
-    display: inline-flex;
-    align-items: center;
-    min-block-size: 44px;
-    min-inline-size: 44px;
-  }
 }
